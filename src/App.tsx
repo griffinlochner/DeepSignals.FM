@@ -1,10 +1,7 @@
+import SignalScene from './components/SignalScene'
+
 function App() {
-  return (
-    <main>
-      <h1>Deep Signals FM</h1>
-      <p>Psychedelic radio. Visual journeys. Coming soon.</p>
-    </main>
-  )
+  return <SignalScene />
 }
 
 export default App
