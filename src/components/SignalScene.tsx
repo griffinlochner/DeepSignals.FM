@@ -26,6 +26,30 @@ function SignalScene() {
     const cube = new THREE.Mesh(geometry, material)
     scene.add(cube)
 
+    const starCount = 1500
+    const starPositions = new Float32Array(starCount * 3)
+    for (let i = 0; i < starCount; i += 1) {
+      const radius = 120
+      starPositions[i * 3] = (Math.random() - 0.5) * 2 * radius
+      starPositions[i * 3 + 1] = (Math.random() - 0.5) * 2 * radius
+      starPositions[i * 3 + 2] = (Math.random() - 0.5) * 2 * radius - 100
+    }
+
+    const starGeometry = new THREE.BufferGeometry()
+    starGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starPositions, 3))
+
+    const starMaterial = new THREE.PointsMaterial({
+      color: 0xffffff,
+      size: 0.04,
+      sizeAttenuation: true,
+      transparent: true,
+      opacity: 0.95,
+      depthWrite: false,
+    })
+
+    const stars = new THREE.Points(starGeometry, starMaterial)
+    scene.add(stars)
+
     let animationFrameId = 0
 
     const animate = () => {
@@ -51,6 +75,8 @@ function SignalScene() {
       renderer.dispose()
       geometry.dispose()
       material.dispose()
+      starGeometry.dispose()
+      starMaterial.dispose()
       mount.removeChild(renderer.domElement)
     }
   }, [])
