@@ -1,0 +1,141 @@
+.landing-page {
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+  background: #010104;
+}
+
+.transmission-overlay {
+  position: fixed;
+  z-index: 3;
+  top: 50%;
+  left: clamp(24px, 7vw, 110px);
+  width: min(610px, 46vw);
+  transform: translateY(-50%);
+  color: #d8fff7;
+  font-family: 'Courier New', 'Lucida Console', monospace;
+  pointer-events: none;
+  text-shadow: 0 0 8px rgba(57, 255, 20, 0.2), 0 0 24px rgba(139, 53, 255, 0.2);
+}
+
+.transmission-overlay__acquired {
+  margin: 0 0 24px;
+  color: #39ff14;
+  font-size: clamp(0.78rem, 1.05vw, 1rem);
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  animation: signal-text-pulse 3s ease-in-out infinite;
+}
+
+.transmission-overlay__title {
+  margin: 0;
+  max-width: 610px;
+  font-size: clamp(1.45rem, 3vw, 3.15rem);
+  font-weight: 500;
+  line-height: 1.14;
+  letter-spacing: 0.055em;
+  text-transform: uppercase;
+  color: #ff4d7a;
+  text-wrap: balance;
+}
+
+.transmission-overlay__title span {
+  color: #79fff2;
+  font-size: 0.55em;
+  letter-spacing: 0.12em;
+}
+
+.transmission-overlay__status {
+  margin-top: 34px;
+  color: rgba(216, 255, 247, 0.68);
+  font-size: clamp(0.73rem, 1vw, 0.95rem);
+  line-height: 1.85;
+  letter-spacing: 0.08em;
+}
+
+.transmission-overlay__status p {
+  margin: 0;
+}
+
+.transmission-overlay__status p:nth-child(1) {
+  animation: status-flicker 5.8s infinite;
+}
+
+.transmission-overlay__status p:nth-child(2) {
+  animation: status-flicker 6.7s 0.8s infinite;
+}
+
+.transmission-overlay__status p:nth-child(3) {
+  animation: status-flicker 7.4s 1.6s infinite;
+}
+
+.transmission-overlay__message {
+  margin: 30px 0 0;
+  max-width: 520px;
+  color: #ff7a00;
+  font-size: clamp(0.92rem, 1.3vw, 1.2rem);
+  line-height: 1.65;
+  letter-spacing: 0.075em;
+}
+
+@keyframes signal-text-pulse {
+  0%,
+  100% {
+    opacity: 0.65;
+    text-shadow: 0 0 5px rgba(57, 255, 20, 0.3);
+  }
+
+  50% {
+    opacity: 1;
+    text-shadow: 0 0 8px rgba(57, 255, 20, 0.8), 0 0 22px rgba(57, 255, 20, 0.42);
+  }
+}
+
+@keyframes status-flicker {
+  0%,
+  7%,
+  9%,
+  52%,
+  55%,
+  100% {
+    opacity: 0.7;
+  }
+
+  8%,
+  53% {
+    opacity: 0.25;
+  }
+
+  54% {
+    opacity: 1;
+  }
+}
+
+@media (max-width: 760px) {
+  .transmission-overlay {
+    top: 8vh;
+    left: 24px;
+    right: 24px;
+    width: auto;
+    transform: none;
+  }
+
+  .transmission-overlay__acquired {
+    margin-bottom: 16px;
+  }
+
+  .transmission-overlay__title {
+    max-width: 520px;
+    font-size: clamp(1.25rem, 7vw, 2rem);
+  }
+
+  .transmission-overlay__status {
+    margin-top: 22px;
+    line-height: 1.65;
+  }
+
+  .transmission-overlay__message {
+    margin-top: 20px;
+    max-width: 430px;
+  }
+}
