@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
-import type { ThemeProps } from '../../app/types'
+import type { ThemeSceneProps } from '../themeTypes'
 import './cosmicNexus.css'
 
 type AnimatedRing = {
@@ -26,7 +26,7 @@ type SignalStreak = {
   speed: number
 }
 
-function CosmicNexusTheme({ className }: ThemeProps) {
+function CosmicNexusTheme({ reducedMotion }: ThemeSceneProps) {
   const mountRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
@@ -378,7 +378,7 @@ function CosmicNexusTheme({ className }: ThemeProps) {
     window.addEventListener('pointermove', handlePointerMove)
 
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    const motionMultiplier = prefersReducedMotion ? 0.18 : 1
+    const motionMultiplier = reducedMotion || prefersReducedMotion ? 0.18 : 1
 
     const clock = new THREE.Clock()
     let elapsedTime = 0
@@ -468,7 +468,7 @@ function CosmicNexusTheme({ className }: ThemeProps) {
     }
   }, [])
 
-  return <div ref={mountRef} className={['signal-scene', className].filter(Boolean).join(' ')} aria-hidden="true" />
+  return <div ref={mountRef} className="signal-scene" aria-hidden="true" />
 }
 
 export default CosmicNexusTheme

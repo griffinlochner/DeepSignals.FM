@@ -1,20 +1,38 @@
-function MainDisplay() {
-  return (
-    <section
-      style={{
-        border: '1px solid rgba(121, 255, 242, 0.3)',
-        background: 'rgba(1, 1, 4, 0.78)',
-        padding: '24px',
-        backdropFilter: 'blur(18px)',
-        boxShadow: '0 0 30px rgba(57, 255, 20, 0.12)',
-      }}
-    >
-      <p style={{ margin: 0, color: '#39ff14', letterSpacing: '0.2em', textTransform: 'uppercase' }}>
-        NO ACTIVE TRANSMISSION
-      </p>
-      <h2 style={{ margin: '12px 0 0', fontSize: '1.35rem', color: '#d8fff7' }}>AWAITING SIGNAL SOURCE</h2>
-    </section>
-  )
+import type { PlaybackState } from '../app/playerTypes'
+import DefaultDisplayFrame from './DefaultDisplayFrame'
+
+type MainDisplayProps = {
+  isPlaying: PlaybackState | boolean
+  signalLabel: string | null
+  displayMode: 'standby'
+}
+
+function MainDisplay({ isPlaying, signalLabel, displayMode }: MainDisplayProps) {
+  let headline = 'NO ACTIVE TRANSMISSION'
+  let subheading = 'AWAITING SIGNAL SOURCE'
+
+  if (signalLabel) {
+    if (isPlaying) {
+      headline = 'RECEIVING TEST TRANSMISSION'
+      subheading = signalLabel
+    } else {
+      headline = 'SIGNAL READY'
+      subheading = 'PRESS PLAY TO CONNECT'
+    }
+  }
+
+  if (displayMode === 'standby') {
+    return (
+      <DefaultDisplayFrame displayMode={displayMode}>
+        <div className="main-display__content">
+          <p className="main-display__headline">{headline}</p>
+          <h2 className="main-display__subheading">{subheading}</h2>
+        </div>
+      </DefaultDisplayFrame>
+    )
+  }
+
+  return <DefaultDisplayFrame displayMode={displayMode}><div /></DefaultDisplayFrame>
 }
 
 export default MainDisplay

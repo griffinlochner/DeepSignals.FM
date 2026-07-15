@@ -1,19 +1,24 @@
-import type { Station } from '../app/types'
+import type { SignalSource } from '../app/playerTypes'
 
 type SignalSourceSelectorProps = {
   value: string
-  stations: Station[]
+  signals: SignalSource[]
   onChange: (value: string) => void
 }
 
-function SignalSourceSelector({ value, stations, onChange }: SignalSourceSelectorProps) {
+function SignalSourceSelector({ value, signals, onChange }: SignalSourceSelectorProps) {
   return (
-    <label style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.95rem' }}>
-      <span>Signal source</span>
-      <select value={value} onChange={(event) => onChange(event.target.value)}>
-        {stations.map((station) => (
-          <option key={station.id} value={station.id}>
-            {station.label}
+    <label className="signal-source-selector">
+      <span className="signal-source-selector__label">Signal source</span>
+      <select
+        className="signal-source-selector__select"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+      >
+        <option value="">Select signal</option>
+        {signals.map((signal) => (
+          <option key={signal.id} value={signal.id}>
+            {signal.label}
           </option>
         ))}
       </select>

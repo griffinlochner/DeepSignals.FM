@@ -1,55 +1,87 @@
 import { useMemo, useState } from 'react'
-import type { DisplayMode, Station, ThemeDefinition, VisualThemeId } from './types'
-import { defaultThemeId, themeRegistry } from './themeRegistry'
 import MainDisplay from '../components/MainDisplay'
-import ControlConsole from '../components/ControlConsole'
-import CosmicNexusTheme from '../themes/cosmic-nexus/CosmicNexusTheme'
-import '../styles/playerPage.css'
+import TransportDock from '../components/TransportDock'
+import { themeRegistry } from '../themes/themeRegistry'
+import type { SignalSource, PlaybackState } from './playerTypes'
+import type { ThemeId, ThemeSceneProps } from '../themes/themeTypes'
+import '../styles/player.css'
 
 type PlayerShellProps = {
   className?: string
 }
 
 function PlayerShell({ className }: PlayerShellProps) {
-  const [selectedSignalSourceId, setSelectedSignalSourceId] = useState('transmission-unavailable')
-  const [selectedThemeId, setSelectedThemeId] = useState<VisualThemeId>(defaultThemeId)
-  const [playbackState] = useState<'stopped' | 'loading'>('stopped')
-  const [displayMode] = useState<DisplayMode>('standby')
+  const [selectedThemeId, setSelectedThemeId] = useState<ThemeId>('minimal')
+  const [selectedSignalId, setSelectedSignalId] = useState<string | null>(null)
+  const [isPlaying, setIsPlaying] = useState<PlaybackState>('stopped')
+  const [volume, setVolume] = useState(0.7)
+  const [displayMode] = useState<'standby'>('standby')
 
-  const stations: Station[] = useMemo(
-    () => [{ id: 'transmission-unavailable', label: 'Transmission unavailable' }],
+  const signals: SignalSource[] = useMemo(
+    () => [
+      { id: 'test-alpha', label: 'Test Signal Alpha' },
+      { id: 'test-beta', label: 'Test Signal Beta' },
+    ],
     [],
   )
 
-  const activeTheme = useMemo<ThemeDefinition | undefined>(() => {
-    return themeRegistry.find((theme) => theme.id === selectedThemeId)
+  const activeTheme = useMemo(() => {
+    return themeRegistry.find((t) => t.id === selectedThemeId)
   }, [selectedThemeId])
 
-  const ThemeComponent = activeTheme?.component ?? CosmicNexusTheme
+  const themeOptions = useMemo(
+    () => themeRegistry.map((t) => ({ id: t.id, name: t.name })),
+    [],
+  )
+
+  const selectedSignal = useMemo(
+    () => signals.find((s) => s.id === selectedSignalId),
+    [selectedSignalId, signals],
+  )
+
+  const sceneProps: ThemeSceneProps = {
+    isPlaying: isPlaying === 'playing',
+    volume,
+    signalId: selectedSignalId,
+    audioLevel: 0,
+    reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+  }
+
+  if (!activeTheme) {
+    return null
+  }
+
+  const SceneComponent = activeTheme.Scene
 
   return (
-    <div className={['player-page', className].filter(Boolean).join(' ')}>
-      <div className="player-page__theme" aria-hidden="true">
-        <ThemeComponent />
+    <div
+      className={['player-shell', activeTheme.className, className].filter(Boolean).join(' ')}
+      data-theme={activeTheme.id}
+    >
+      <div className="player-shell__scene" aria-hidden="true">
+        <SceneComponent {...sceneProps} />
       </div>
 
-      <div className="player-page__overlay">
-        <div>
-          <MainDisplay />
-        </div>
-        <ControlConsole
-          selectedSignalSourceId={selectedSignalSourceId}
-          selectedThemeId={selectedThemeId}
-          stations={stations}
-          onSignalSourceChange={setSelectedSignalSourceId}
-          onThemeChange={setSelectedThemeId}
+      <div className="player-shell__main">
+        <MainDisplay
+          isPlaying={isPlaying}
+          signalLabel={selectedSignal?.label || null}
+          displayMode={displayMode}
         />
       </div>
 
-      <div style={{ position: 'fixed', bottom: 16, left: 16, zIndex: 4, color: '#79fff2', fontSize: '0.85rem' }}>
-        <div>Playback state: {playbackState}</div>
-        <div>Display mode: {displayMode}</div>
-      </div>
+      <TransportDock
+        selectedThemeId={selectedThemeId}
+        selectedSignalId={selectedSignalId}
+        isPlaying={isPlaying === 'playing'}
+        volume={volume}
+        signals={signals}
+        themeOptions={themeOptions}
+        onThemeChange={setSelectedThemeId}
+        onSignalChange={setSelectedSignalId}
+        onPlayToggle={(playing) => setIsPlaying(playing ? 'playing' : 'stopped')}
+        onVolumeChange={setVolume}
+      />
     </div>
   )
 }

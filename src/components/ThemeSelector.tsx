@@ -1,16 +1,25 @@
-import type { VisualThemeId } from '../app/types'
+import type { ThemeId } from '../themes/themeTypes'
 
 type ThemeSelectorProps = {
-  value: VisualThemeId
-  onChange: (value: VisualThemeId) => void
+  value: ThemeId
+  options: Array<{ id: ThemeId; name: string }>
+  onChange: (value: ThemeId) => void
 }
 
-function ThemeSelector({ value, onChange }: ThemeSelectorProps) {
+function ThemeSelector({ value, options, onChange }: ThemeSelectorProps) {
   return (
-    <label style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.95rem' }}>
-      <span>Visual environment</span>
-      <select value={value} onChange={(event) => onChange(event.target.value as VisualThemeId)}>
-        <option value="cosmic-nexus">Cosmic Signal Nexus</option>
+    <label className="theme-selector">
+      <span className="theme-selector__label">Visual environment</span>
+      <select
+        className="theme-selector__select"
+        value={value}
+        onChange={(event) => onChange(event.target.value as ThemeId)}
+      >
+        {options.map((theme) => (
+          <option key={theme.id} value={theme.id}>
+            {theme.name}
+          </option>
+        ))}
       </select>
     </label>
   )

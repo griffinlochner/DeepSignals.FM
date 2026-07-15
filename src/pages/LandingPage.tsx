@@ -1,10 +1,19 @@
 import CosmicNexusTheme from '../themes/cosmic-nexus/CosmicNexusTheme'
+import type { ThemeSceneProps } from '../themes/themeTypes'
 import '../styles/landingPage.css'
 
 function LandingPage() {
+  const sceneProps: ThemeSceneProps = {
+    isPlaying: false,
+    volume: 1,
+    signalId: null,
+    audioLevel: 0,
+    reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+  }
+
   return (
     <div className="landing-page">
-      <CosmicNexusTheme />
+      <CosmicNexusTheme {...sceneProps} />
 
       <div className="signal-scene__vignette" aria-hidden="true" />
       <div className="signal-scene__scanlines" aria-hidden="true" />
