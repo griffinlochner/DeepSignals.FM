@@ -522,16 +522,16 @@
 
 /* Minimal theme */
 .player-shell.theme-minimal {
-  --theme-background: #0a0e1a;
-  --theme-panel: rgba(13, 18, 32, 0.85);
-  --theme-panel-strong: rgba(13, 18, 32, 0.95);
-  --theme-border: rgba(148, 187, 233, 0.25);
-  --theme-accent: #94bbf9;
-  --theme-accent-secondary: #7a9dd9;
-  --theme-text: #d4e4f7;
-  --theme-text-secondary: rgba(212, 228, 247, 0.7);
-  --theme-muted: rgba(212, 228, 247, 0.5);
-  --theme-glow: rgba(148, 187, 233, 0.2);
+  --theme-background: #0f0f0f;
+  --theme-panel: rgba(30, 30, 30, 0.9);
+  --theme-panel-strong: rgba(20, 20, 20, 0.98);
+  --theme-border: rgba(100, 100, 100, 0.4);
+  --theme-accent: #e8e8e8;
+  --theme-accent-secondary: #b0b0b0;
+  --theme-text: #f0f0f0;
+  --theme-text-secondary: rgba(240, 240, 240, 0.75);
+  --theme-muted: rgba(240, 240, 240, 0.55);
+  --theme-glow: rgba(200, 200, 200, 0.08);
 }
 
 /* Cosmic Nexus theme */

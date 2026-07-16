@@ -4,35 +4,18 @@
   width: 100%;
   height: 100%;
   overflow: hidden;
-  background: #0a0e1a;
+  background: linear-gradient(180deg, #0f0f0f 0%, #1a1a1a 50%, #0f0f0f 100%);
   z-index: 0;
 }
 
 .minimal-scene__background {
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, #0a0e1a 0%, #1a1f2e 50%, #0f1420 100%);
+  background: linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 50%, #12121a 100%);
 }
 
 .minimal-scene__grid {
   position: absolute;
   inset: 0;
-  background-image:
-    linear-gradient(0deg, transparent 24%, rgba(148, 187, 233, 0.05) 25%, rgba(148, 187, 233, 0.05) 26%, transparent 27%, transparent 74%, rgba(148, 187, 233, 0.05) 75%, rgba(148, 187, 233, 0.05) 76%, transparent 77%, transparent),
-    linear-gradient(90deg, transparent 24%, rgba(148, 187, 233, 0.05) 25%, rgba(148, 187, 233, 0.05) 26%, transparent 27%, transparent 74%, rgba(148, 187, 233, 0.05) 75%, rgba(148, 187, 233, 0.05) 76%, transparent 77%, transparent);
-  background-size: 50px 50px;
-  animation: minimal-grid-drift 20s linear infinite;
-}
-
-.minimal-scene__grid.reduced-motion {
-  animation: none;
-}
-
-@keyframes minimal-grid-drift {
-  0% {
-    background-position: 0 0, 0 0;
-  }
-  100% {
-    background-position: 50px 50px, -50px -50px;
-  }
+  background: transparent;
 }

@@ -4,7 +4,7 @@ import MinimalTheme from './MinimalTheme'
 const MinimalDefinition: ThemeDefinition = {
   id: 'minimal',
   name: 'Minimal',
-  description: 'Lightweight, high-performance theme with clean grid background',
+  description: 'Lightweight grayscale theme for low-power and distraction-free browsing',
   className: 'theme-minimal',
   performanceTier: 'minimal',
   Scene: MinimalTheme,
