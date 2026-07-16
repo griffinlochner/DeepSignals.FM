@@ -380,13 +380,16 @@ function CosmicNexusTheme({ reducedMotion }: ThemeSceneProps) {
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     const motionMultiplier = reducedMotion || prefersReducedMotion ? 0.18 : 1
 
-    const clock = new THREE.Clock()
+    const timer = new THREE.Timer()
+    timer.connect(document)
+
     let elapsedTime = 0
     let animationFrameId = 0
 
     const animate = () => {
       animationFrameId = window.requestAnimationFrame(animate)
-      const delta = Math.min(clock.getDelta(), 0.05)
+      timer.update()
+      const delta = Math.min(timer.getDelta(), 0.05)
       elapsedTime += delta * motionMultiplier
 
       pointerCurrent.lerp(pointerTarget, 0.025)
@@ -454,6 +457,7 @@ function CosmicNexusTheme({ reducedMotion }: ThemeSceneProps) {
     window.addEventListener('resize', handleResize)
 
     return () => {
+      timer.disconnect()
       window.removeEventListener('resize', handleResize)
       window.removeEventListener('pointermove', handlePointerMove)
       window.cancelAnimationFrame(animationFrameId)
