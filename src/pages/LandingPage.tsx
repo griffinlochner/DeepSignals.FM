@@ -1,22 +1,15 @@
-import CosmicNexusTheme from '../themes/cosmic-nexus/CosmicNexusTheme'
-import type { ThemeSceneProps } from '../themes/themeTypes'
+import LandingNexusScene from '../scenes/landing-nexus/LandingNexusScene'
 import '../styles/landingPage.css'
 
 function LandingPage() {
-  const sceneProps: ThemeSceneProps = {
-    isPlaying: false,
-    volume: 1,
-    signalId: null,
-    audioLevel: 0,
-    reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches,
-  }
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
   return (
     <div className="landing-page">
-      <CosmicNexusTheme {...sceneProps} />
+      <LandingNexusScene reducedMotion={reducedMotion} />
 
-      <div className="signal-scene__vignette" aria-hidden="true" />
-      <div className="signal-scene__scanlines" aria-hidden="true" />
+      <div className="landing-nexus-scene__vignette" aria-hidden="true" />
+      <div className="landing-nexus-scene__scanlines" aria-hidden="true" />
 
       <main className="transmission-overlay">
         <p className="transmission-overlay__acquired">░▒▓ SIGNAL ACQUIRED ▓▒░</p>

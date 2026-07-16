@@ -1,14 +1,7 @@
-type DefaultDisplayFrameProps = {
-  children: React.ReactNode
-  displayMode: string
-}
+import type { ThemeDisplayFrameProps } from '../themes/themeTypes'
 
-function DefaultDisplayFrame({ children }: DefaultDisplayFrameProps) {
-  return (
-    <div className="default-display-frame">
-      {children}
-    </div>
-  )
+function DefaultDisplayFrame({ children }: ThemeDisplayFrameProps) {
+  return <div className="default-display-frame">{children}</div>
 }
 
 export default DefaultDisplayFrame

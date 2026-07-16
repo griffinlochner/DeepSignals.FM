@@ -26,16 +26,16 @@ function PlayerShell({ className }: PlayerShellProps) {
   )
 
   const activeTheme = useMemo(() => {
-    return themeRegistry.find((t) => t.id === selectedThemeId)
+    return themeRegistry.find((theme) => theme.id === selectedThemeId)
   }, [selectedThemeId])
 
   const themeOptions = useMemo(
-    () => themeRegistry.map((t) => ({ id: t.id, name: t.name })),
+    () => themeRegistry.map((theme) => ({ id: theme.id, name: theme.name })),
     [],
   )
 
   const selectedSignal = useMemo(
-    () => signals.find((s) => s.id === selectedSignalId),
+    () => signals.find((signal) => signal.id === selectedSignalId),
     [selectedSignalId, signals],
   )
 
@@ -67,6 +67,7 @@ function PlayerShell({ className }: PlayerShellProps) {
           isPlaying={isPlaying}
           signalLabel={selectedSignal?.label || null}
           displayMode={displayMode}
+          DisplayFrame={activeTheme.DisplayFrame}
         />
       </div>
 
