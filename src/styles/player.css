@@ -186,8 +186,7 @@
 .theme-selector__select {
   width: 100%;
   height: var(--transport-control-height);
-  padding: 0 12px 0 12px;
-  padding-right: 44px;
+  padding: 0 44px 0 14px;
   box-sizing: border-box;
   background: var(--theme-panel, rgba(1, 1, 4, 0.78));
   color: var(--theme-text, #d8fff7);
@@ -199,7 +198,6 @@
   transition: border-color 0.2s;
   white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .signal-source-selector__select:hover,
@@ -420,7 +418,7 @@
   .signal-source-selector__select,
   .theme-selector__select {
     font-size: 0.8rem;
-    padding: 5px 8px;
+    padding: 5px 38px 5px 12px;
   }
 
   .play-stop-button {
@@ -470,7 +468,7 @@
   .signal-source-selector__select,
   .theme-selector__select {
     font-size: 0.75rem;
-    padding: 4px 6px;
+    padding: 4px 36px 4px 10px;
   }
 
   .play-stop-button {
