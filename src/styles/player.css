@@ -186,7 +186,8 @@
 .theme-selector__select {
   width: 100%;
   height: var(--transport-control-height);
-  padding: 0 10px;
+  padding: 0 12px 0 12px;
+  padding-right: 44px;
   box-sizing: border-box;
   background: var(--theme-panel, rgba(1, 1, 4, 0.78));
   color: var(--theme-text, #d8fff7);
@@ -196,6 +197,9 @@
   font-size: 0.9rem;
   cursor: pointer;
   transition: border-color 0.2s;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .signal-source-selector__select:hover,
