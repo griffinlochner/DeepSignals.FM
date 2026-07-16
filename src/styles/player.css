@@ -180,6 +180,7 @@
   min-width: 0;
   font-size: 0.85rem;
   height: 100%;
+  position: relative;
 }
 
 .signal-source-selector__select,
@@ -198,6 +199,14 @@
   transition: border-color 0.2s;
   white-space: nowrap;
   overflow: hidden;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="12" height="8" viewBox="0 0 12 8" fill="none"><path d="M1 1L6 6L11 1" stroke="%23d8fff7" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>');
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 12px 8px;
+  padding-right: 32px;
 }
 
 .signal-source-selector__select:hover,
@@ -419,6 +428,7 @@
   .theme-selector__select {
     font-size: 0.8rem;
     padding: 5px 38px 5px 12px;
+    background-position: right 12px center;
   }
 
   .play-stop-button {
@@ -469,6 +479,7 @@
   .theme-selector__select {
     font-size: 0.75rem;
     padding: 4px 36px 4px 10px;
+    background-position: right 10px center;
   }
 
   .play-stop-button {
