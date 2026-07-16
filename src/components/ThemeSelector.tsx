@@ -8,12 +8,12 @@ type ThemeSelectorProps = {
 
 function ThemeSelector({ value, options, onChange }: ThemeSelectorProps) {
   return (
-    <label className="theme-selector">
-      <span className="theme-selector__label">Visual environment</span>
+    <div className="theme-selector">
       <select
         className="theme-selector__select"
         value={value}
         onChange={(event) => onChange(event.target.value as ThemeId)}
+        aria-label="Visual environment"
       >
         {options.map((theme) => (
           <option key={theme.id} value={theme.id}>
@@ -21,7 +21,7 @@ function ThemeSelector({ value, options, onChange }: ThemeSelectorProps) {
           </option>
         ))}
       </select>
-    </label>
+    </div>
   )
 }
 

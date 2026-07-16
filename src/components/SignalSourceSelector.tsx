@@ -8,12 +8,12 @@ type SignalSourceSelectorProps = {
 
 function SignalSourceSelector({ value, signals, onChange }: SignalSourceSelectorProps) {
   return (
-    <label className="signal-source-selector">
-      <span className="signal-source-selector__label">Signal source</span>
+    <div className="signal-source-selector">
       <select
         className="signal-source-selector__select"
         value={value}
         onChange={(event) => onChange(event.target.value)}
+        aria-label="Signal source"
       >
         <option value="">Select signal</option>
         {signals.map((signal) => (
@@ -22,7 +22,7 @@ function SignalSourceSelector({ value, signals, onChange }: SignalSourceSelector
           </option>
         ))}
       </select>
-    </label>
+    </div>
   )
 }
 

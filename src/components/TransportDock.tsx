@@ -35,36 +35,53 @@ function TransportDock({
 
   return (
     <div className="transport-dock">
-      <div className="transport-dock__item transport-dock__item--theme">
-        <ThemeSelector
-          value={selectedThemeId}
-          options={themeOptions}
-          onChange={onThemeChange}
-        />
-      </div>
+      <div className="transport-dock__inner">
+        <div className="transport-dock__item transport-dock__item--theme">
+          <div className="transport-dock__item-label">VISUAL ENVIRONMENT</div>
+          <div className="transport-dock__item-control">
+            <ThemeSelector
+              value={selectedThemeId}
+              options={themeOptions}
+              onChange={onThemeChange}
+            />
+          </div>
+        </div>
 
-      <div className="transport-dock__item transport-dock__item--signal">
-        <SignalSourceSelector
-          value={selectedSignalId || ''}
-          signals={signals}
-          onChange={onSignalChange}
-        />
-      </div>
+        <div className="transport-dock__item transport-dock__item--signal">
+          <div className="transport-dock__item-label">SIGNAL SOURCE</div>
+          <div className="transport-dock__item-control">
+            <SignalSourceSelector
+              value={selectedSignalId || ''}
+              signals={signals}
+              onChange={onSignalChange}
+            />
+          </div>
+        </div>
 
-      <div className="transport-dock__item transport-dock__item--marquee">
-        <TrackMarquee isPlaying={isPlaying} signalLabel={selectedSignal?.label || null} />
-      </div>
+        <div className="transport-dock__item transport-dock__item--marquee">
+          <div className="transport-dock__item-label">NOW RECEIVING</div>
+          <div className="transport-dock__item-control">
+            <TrackMarquee isPlaying={isPlaying} signalLabel={selectedSignal?.label || null} />
+          </div>
+        </div>
 
-      <div className="transport-dock__item transport-dock__item--play">
-        <PlayStopButton
-          isPlaying={isPlaying}
-          isDisabled={!selectedSignalId}
-          onToggle={onPlayToggle}
-        />
-      </div>
+        <div className="transport-dock__item transport-dock__item--play">
+          <div className="transport-dock__item-label" aria-hidden="true" />
+          <div className="transport-dock__item-control">
+            <PlayStopButton
+              isPlaying={isPlaying}
+              isDisabled={!selectedSignalId}
+              onToggle={onPlayToggle}
+            />
+          </div>
+        </div>
 
-      <div className="transport-dock__item transport-dock__item--volume">
-        <VolumeControl value={volume} onChange={onVolumeChange} />
+        <div className="transport-dock__item transport-dock__item--volume">
+          <div className="transport-dock__item-label" aria-hidden="true" />
+          <div className="transport-dock__item-control">
+            <VolumeControl value={volume} onChange={onVolumeChange} />
+          </div>
+        </div>
       </div>
     </div>
   )

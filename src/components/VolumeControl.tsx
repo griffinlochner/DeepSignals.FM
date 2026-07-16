@@ -6,7 +6,6 @@ type VolumeControlProps = {
 function VolumeControl({ value, onChange }: VolumeControlProps) {
   return (
     <label className="volume-control">
-      <span className="volume-control__label">⧉</span>
       <input
         className="volume-control__range"
         type="range"
