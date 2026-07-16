@@ -31,6 +31,7 @@
   --nexus-pink: #ff4d7a;
   --nexus-orange: #ff7a00;
   --nexus-violet: #a45cff;
+  --nexus-display-width: min(70vw, calc(54vh * 16 / 9), 1080px);
   font-family:
     system-ui,
     -apple-system,
@@ -59,7 +60,7 @@
 
 .cosmic-nexus-display-frame {
   position: relative;
-  width: min(80vw, calc(60vh * 16 / 9), 1200px);
+  width: var(--nexus-display-width);
   aspect-ratio: 16 / 9;
   display: flex;
   align-items: stretch;
@@ -183,6 +184,29 @@
   mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.62), transparent 76%);
 }
 
+.cosmic-nexus-display-frame__scan-beam {
+  position: absolute;
+  top: 7%;
+  right: 2px;
+  left: 2px;
+  z-index: 4;
+  height: 2px;
+  pointer-events: none;
+  opacity: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 3%,
+    rgba(57, 255, 20, 0.18) 18%,
+    rgba(121, 255, 242, 0.78) 48%,
+    rgba(255, 77, 122, 0.46) 72%,
+    transparent 97%
+  );
+  box-shadow:
+    0 0 7px rgba(121, 255, 242, 0.52),
+    0 0 18px rgba(164, 92, 255, 0.24);
+  mix-blend-mode: screen;
+}
+
 .cosmic-nexus-display-frame__corner {
   position: absolute;
   z-index: 5;
@@ -196,29 +220,33 @@
 .cosmic-nexus-display-frame__corner--top-left {
   top: -13px;
   left: -13px;
-  border-top: 3px solid;
-  border-left: 3px solid;
+  color: var(--nexus-cyan);
+  border-top: 3px solid currentColor;
+  border-left: 3px solid currentColor;
 }
 
 .cosmic-nexus-display-frame__corner--top-right {
   top: -13px;
   right: -13px;
-  border-top: 3px solid var(--nexus-pink);
-  border-right: 3px solid var(--nexus-pink);
+  color: var(--nexus-pink);
+  border-top: 3px solid currentColor;
+  border-right: 3px solid currentColor;
 }
 
 .cosmic-nexus-display-frame__corner--bottom-left {
   bottom: -13px;
   left: -13px;
-  border-bottom: 3px solid var(--nexus-green);
-  border-left: 3px solid var(--nexus-green);
+  color: var(--nexus-green);
+  border-bottom: 3px solid currentColor;
+  border-left: 3px solid currentColor;
 }
 
 .cosmic-nexus-display-frame__corner--bottom-right {
   right: -13px;
   bottom: -13px;
-  border-right: 3px solid var(--nexus-orange);
-  border-bottom: 3px solid var(--nexus-orange);
+  color: var(--nexus-orange);
+  border-right: 3px solid currentColor;
+  border-bottom: 3px solid currentColor;
 }
 
 .cosmic-nexus-display-frame__node {
@@ -246,6 +274,32 @@
   box-shadow:
     0 0 0 5px rgba(255, 77, 122, 0.08),
     0 0 14px rgba(255, 77, 122, 0.56);
+}
+
+.cosmic-nexus-display-frame__node--top,
+.cosmic-nexus-display-frame__node--bottom {
+  top: auto;
+  width: 10px;
+  height: 10px;
+  transform: translateX(-50%);
+}
+
+.cosmic-nexus-display-frame__node--top {
+  top: -14px;
+  left: 31%;
+  border-color: var(--nexus-orange);
+  box-shadow:
+    0 0 0 5px rgba(255, 122, 0, 0.07),
+    0 0 14px rgba(255, 122, 0, 0.52);
+}
+
+.cosmic-nexus-display-frame__node--bottom {
+  bottom: -14px;
+  left: 69%;
+  border-color: var(--nexus-violet);
+  box-shadow:
+    0 0 0 5px rgba(164, 92, 255, 0.08),
+    0 0 14px rgba(164, 92, 255, 0.58);
 }
 
 .cosmic-nexus-display-frame__status {
@@ -276,6 +330,19 @@
 .cosmic-nexus-display-frame[data-playing='true'] .cosmic-nexus-display-frame__halo {
   opacity: 0.92;
   animation: nexus-aperture-breathe 3.8s ease-in-out infinite;
+}
+
+.cosmic-nexus-display-frame[data-playing='true'] .cosmic-nexus-display-frame__scan-beam {
+  opacity: 0.62;
+  animation: nexus-aperture-scan 2.75s cubic-bezier(0.35, 0, 0.65, 1) infinite;
+}
+
+.cosmic-nexus-display-frame[data-playing='true'] .cosmic-nexus-display-frame__corner {
+  animation: nexus-corner-charge 1.9s ease-in-out infinite alternate;
+}
+
+.cosmic-nexus-display-frame[data-playing='true'] .cosmic-nexus-display-frame__node {
+  animation: nexus-port-lock 1.3s ease-in-out infinite;
 }
 
 .player-shell.theme-cosmic-nexus .main-display__content {
@@ -453,15 +520,69 @@
   }
 }
 
+@keyframes nexus-aperture-scan {
+  0% {
+    top: 7%;
+    opacity: 0;
+  }
+  12% {
+    opacity: 0.58;
+  }
+  50% {
+    opacity: 0.82;
+  }
+  88% {
+    opacity: 0.48;
+  }
+  100% {
+    top: 92%;
+    opacity: 0;
+  }
+}
+
+@keyframes nexus-corner-charge {
+  from {
+    filter: drop-shadow(0 0 4px currentColor);
+  }
+  to {
+    filter: drop-shadow(0 0 10px currentColor);
+  }
+}
+
+@keyframes nexus-port-lock {
+  0%,
+  100% {
+    transform: translateY(-50%) scale(0.9);
+  }
+  50% {
+    transform: translateY(-50%) scale(1.18);
+  }
+}
+
+@keyframes nexus-port-lock-horizontal {
+  0%,
+  100% {
+    transform: translateX(-50%) scale(0.9);
+  }
+  50% {
+    transform: translateX(-50%) scale(1.18);
+  }
+}
+
+.cosmic-nexus-display-frame[data-playing='true'] .cosmic-nexus-display-frame__node--top,
+.cosmic-nexus-display-frame[data-playing='true'] .cosmic-nexus-display-frame__node--bottom {
+  animation-name: nexus-port-lock-horizontal;
+}
+
 @media (max-width: 1099px) {
-  .cosmic-nexus-display-frame {
-    width: min(88vw, calc(52vh * 16 / 9), 900px);
+  .player-shell.theme-cosmic-nexus {
+    --nexus-display-width: min(84vw, calc(50vh * 16 / 9), 900px);
   }
 }
 
 @media (max-width: 768px) {
-  .cosmic-nexus-display-frame {
-    width: min(90vw, calc(48vh * 16 / 9));
+  .player-shell.theme-cosmic-nexus {
+    --nexus-display-width: min(90vw, calc(47vh * 16 / 9));
   }
 
   .cosmic-nexus-display-frame__status {
@@ -492,8 +613,8 @@
 }
 
 @media (max-width: 480px) {
-  .cosmic-nexus-display-frame {
-    width: min(93vw, calc(42vh * 16 / 9));
+  .player-shell.theme-cosmic-nexus {
+    --nexus-display-width: min(93vw, calc(42vh * 16 / 9));
   }
 
   .cosmic-nexus-display-frame::before {
@@ -511,7 +632,15 @@
 
 @media (prefers-reduced-motion: reduce) {
   .cosmic-nexus-display-frame[data-playing='true'] .cosmic-nexus-display-frame__halo,
+  .cosmic-nexus-display-frame[data-playing='true'] .cosmic-nexus-display-frame__scan-beam,
+  .cosmic-nexus-display-frame[data-playing='true'] .cosmic-nexus-display-frame__corner,
+  .cosmic-nexus-display-frame[data-playing='true'] .cosmic-nexus-display-frame__node,
   .player-shell.theme-cosmic-nexus .play-stop-button:hover:not(:disabled)::after {
     animation: none;
+  }
+
+  .cosmic-nexus-display-frame[data-playing='true'] .cosmic-nexus-display-frame__scan-beam {
+    top: 50%;
+    opacity: 0.16;
   }
 }
