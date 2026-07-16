@@ -568,6 +568,26 @@
   --theme-glow: rgba(57, 255, 20, 0.12);
 }
 
+@media (max-width: 768px) {
+  .player-shell.theme-cosmic-nexus .main-display__headline {
+    font-size: clamp(0.85rem, 1.8vw, 1rem);
+  }
+
+  .player-shell.theme-cosmic-nexus .main-display__subheading {
+    font-size: clamp(1.3rem, 3vw, 1.8rem);
+  }
+}
+
+@media (max-width: 480px) {
+  .player-shell.theme-cosmic-nexus .main-display__headline {
+    font-size: clamp(0.8rem, 1.5vw, 0.95rem);
+  }
+
+  .player-shell.theme-cosmic-nexus .main-display__subheading {
+    font-size: clamp(1.1rem, 2.5vw, 1.5rem);
+  }
+}
+
 /* ============================================================
    ACCESSIBILITY
    ============================================================ */
