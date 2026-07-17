@@ -55,12 +55,16 @@ type RailgunShot = {
   coreMaterial: THREE.MeshBasicMaterial
   glowMaterial: THREE.MeshBasicMaterial
   accentMaterial: THREE.MeshBasicMaterial
-  tipMaterial: THREE.MeshBasicMaterial
-  curve: THREE.Curve<THREE.Vector3>
   cycleRate: number
   offset: number
   duty: number
   readyEnabled: boolean
+}
+
+type ActivationWave = {
+  group: THREE.Group
+  material: THREE.MeshBasicMaterial
+  delay: number
 }
 
 type LaserSweep = {
@@ -81,8 +85,6 @@ const COLORS = {
   violet: 0xa45cff,
   white: 0xe9fffb,
 }
-
-const Y_AXIS = new THREE.Vector3(0, 1, 0)
 
 function CosmicNexusTheme(props: ThemeSceneProps) {
   const mountRef = useRef<HTMLDivElement | null>(null)
@@ -171,10 +173,6 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
     const coloredStars = createStarLayer(440, 58, 0.046, COLORS.violet, 0.5, -28, -2)
     const brightStars = createStarLayer(120, 44, 0.08, COLORS.cyan, 0.75, -18, 1)
 
-    const apertureGroup = new THREE.Group()
-    apertureGroup.position.z = -0.7
-    world.add(apertureGroup)
-
     const animatedRings: AnimatedRing[] = []
     const relays: Relay[] = []
     const pulses: TravelingPulse[] = []
@@ -183,61 +181,7 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
     const floatingGlyphs: FloatingGlyph[] = []
     const railgunShots: RailgunShot[] = []
     const laserSweeps: LaserSweep[] = []
-
-    const createRoundedRectPoints = (width: number, height: number, radius: number, segments = 12) => {
-      const points: THREE.Vector3[] = []
-      const corners = [
-        { cx: width / 2 - radius, cy: height / 2 - radius, start: 0 },
-        { cx: -width / 2 + radius, cy: height / 2 - radius, start: Math.PI / 2 },
-        { cx: -width / 2 + radius, cy: -height / 2 + radius, start: Math.PI },
-        { cx: width / 2 - radius, cy: -height / 2 + radius, start: Math.PI * 1.5 },
-      ]
-
-      corners.forEach(({ cx, cy, start }) => {
-        for (let index = 0; index <= segments; index += 1) {
-          const angle = start + (index / segments) * (Math.PI / 2)
-          points.push(new THREE.Vector3(cx + Math.cos(angle) * radius, cy + Math.sin(angle) * radius, 0))
-        }
-      })
-
-      return points
-    }
-
-    const createApertureOutline = (width: number, height: number, color: number, opacity: number, z: number) => {
-      const points = createRoundedRectPoints(width, height, 0.18)
-      const geometry = trackGeometry(new THREE.BufferGeometry().setFromPoints(points))
-      const material = trackMaterial(
-        new THREE.LineBasicMaterial({
-          color,
-          transparent: true,
-          opacity,
-          depthWrite: false,
-          blending: THREE.AdditiveBlending,
-        }),
-      )
-      const line = new THREE.LineLoop(geometry, material)
-      line.position.z = z
-      apertureGroup.add(line)
-      return { line, material }
-    }
-
-    const outerAperture = createApertureOutline(8.55, 5.05, COLORS.cyan, 0.18, -0.04)
-    const middleAperture = createApertureOutline(8.16, 4.72, COLORS.violet, 0.24, 0)
-    const innerAperture = createApertureOutline(7.78, 4.38, COLORS.green, 0.22, 0.04)
-
-    const haloGeometry = trackGeometry(new THREE.PlaneGeometry(9.35, 5.7))
-    const haloMaterial = trackMaterial(
-      new THREE.MeshBasicMaterial({
-        color: COLORS.violet,
-        transparent: true,
-        opacity: 0.035,
-        depthWrite: false,
-        blending: THREE.AdditiveBlending,
-      }),
-    )
-    const halo = new THREE.Mesh(haloGeometry, haloMaterial)
-    halo.position.z = -0.15
-    apertureGroup.add(halo)
+    const activationWaves: ActivationWave[] = []
 
     const createRelay = (position: THREE.Vector3, scale: number, color: number, phase: number) => {
       const group = new THREE.Group()
@@ -464,6 +408,32 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
     createAperturePort(portBottomCenter, COLORS.violet, 4.72)
     createAperturePort(portBottomRight, COLORS.violet, 5.2)
 
+    // Two reusable elliptical shockwaves make signal selection and playback feel like a system
+    // ignition event. The center remains hidden by the display, while the expanding perimeter is visible.
+    const activationWaveGeometry = trackGeometry(new THREE.TorusGeometry(4.35, 0.024, 8, 180))
+    ;[
+      { color: COLORS.cyan, delay: 0 },
+      { color: COLORS.pink, delay: 0.16 },
+    ].forEach(({ color, delay }) => {
+      const group = new THREE.Group()
+      const material = trackMaterial(
+        new THREE.MeshBasicMaterial({
+          color,
+          transparent: true,
+          opacity: 0,
+          depthWrite: false,
+          blending: THREE.AdditiveBlending,
+        }),
+      )
+      const ring = new THREE.Mesh(activationWaveGeometry, material)
+      ring.scale.y = 0.62
+      group.add(ring)
+      group.visible = false
+      group.position.z = 0.18
+      world.add(group)
+      activationWaves.push({ group, material, delay })
+    })
+
     // Short feeder curves bring energy from the relay clusters toward the aperture perimeter.
     createSignalPath(
       createCurve(
@@ -598,6 +568,76 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
       0.011,
     )
 
+    // Hero transmission lanes deliberately continue beyond the camera frustum so a few paths
+    // visibly touch the browser edges on fullscreen desktop displays. These stay faint while dormant
+    // and become the long-range backbone of the instrument in play mode.
+    createSignalPath(
+      createCurve(
+        portLeft.clone(),
+        [new THREE.Vector3(-6.4, 0.62, -0.3), new THREE.Vector3(-11.2, 1.1, -1.8)],
+        new THREE.Vector3(-17.4, 1.5, -3.6),
+      ),
+      COLORS.cyan,
+      0.23,
+      0.12,
+      0.009,
+    )
+    createSignalPath(
+      createCurve(
+        portRight.clone(),
+        [new THREE.Vector3(6.45, -0.55, -0.3), new THREE.Vector3(11.25, -1.05, -1.8)],
+        new THREE.Vector3(17.5, -1.55, -3.6),
+      ),
+      COLORS.pink,
+      0.24,
+      0.42,
+      0.009,
+    )
+    createSignalPath(
+      createCurve(
+        portTopLeft.clone(),
+        [new THREE.Vector3(-4.65, 3.35, -0.3), new THREE.Vector3(-5.6, 6.15, -1.8)],
+        new THREE.Vector3(-6.35, 9.2, -3.7),
+      ),
+      COLORS.green,
+      0.2,
+      0.26,
+      0.0085,
+    )
+    createSignalPath(
+      createCurve(
+        portTopRight.clone(),
+        [new THREE.Vector3(4.75, 3.3, -0.3), new THREE.Vector3(5.85, 6.15, -1.8)],
+        new THREE.Vector3(6.6, 9.2, -3.7),
+      ),
+      COLORS.orange,
+      0.21,
+      0.66,
+      0.0085,
+    )
+    createSignalPath(
+      createCurve(
+        portBottomLeft.clone(),
+        [new THREE.Vector3(-4.7, -3.35, -0.3), new THREE.Vector3(-5.6, -6.15, -1.8)],
+        new THREE.Vector3(-6.3, -9.25, -3.7),
+      ),
+      COLORS.pink,
+      0.21,
+      0.54,
+      0.0085,
+    )
+    createSignalPath(
+      createCurve(
+        portBottomRight.clone(),
+        [new THREE.Vector3(4.75, -3.35, -0.3), new THREE.Vector3(5.75, -6.2, -1.8)],
+        new THREE.Vector3(6.45, -9.25, -3.7),
+      ),
+      COLORS.violet,
+      0.22,
+      0.88,
+      0.0085,
+    )
+
     // A couple of deeper background lines keep the field expansive without fighting the safe zone.
     createSignalPath(
       createCurve(
@@ -622,40 +662,85 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
       0.0085,
     )
 
-    // A reusable railgun pool: additive cylinders travel on outward corkscrew curves instead
-    // of clustering behind the main display.
-    const shotCoreGeometry = trackGeometry(new THREE.CylinderGeometry(0.017, 0.025, 0.9, 8, 1, true))
-    const shotGlowGeometry = trackGeometry(new THREE.CylinderGeometry(0.055, 0.075, 1.45, 8, 1, true))
-    const shotAccentGeometry = trackGeometry(new THREE.CylinderGeometry(0.028, 0.04, 0.52, 8, 1, true))
-    const shotTipGeometry = trackGeometry(new THREE.SphereGeometry(0.06, 12, 10))
-
-    // These behave more like rave-laser transmission bursts: they launch from the aperture perimeter
-    // and corkscrew outward into the edges of the viewport rather than spinning near the center.
-    const railgunCurves = [
-      createHelixCurve(portTopLeft.clone(), new THREE.Vector3(-10.9, 4.58, -7.2), 6.2, 0.16),
-      createHelixCurve(portTopCenter.clone(), new THREE.Vector3(0.12, 5.85, -7), 7.1, 0.14),
-      createHelixCurve(portTopRight.clone(), new THREE.Vector3(10.95, 4.62, -7.2), 6.6, 0.16),
-      createHelixCurve(portLeft.clone(), new THREE.Vector3(-11.35, 1.18, -7), 5.8, 0.15),
-      createHelixCurve(portRight.clone(), new THREE.Vector3(11.3, -1.2, -7), 5.9, 0.15),
-      createHelixCurve(portBottomLeft.clone(), new THREE.Vector3(-10.95, -4.72, -7.2), 6.4, 0.16),
-      createHelixCurve(portBottomCenter.clone(), new THREE.Vector3(-0.08, -5.95, -7), 7.1, 0.14),
-      createHelixCurve(portBottomRight.clone(), new THREE.Vector3(10.95, -4.78, -7.2), 6.7, 0.16),
+    // Full-path transmission bursts read as actual rave-laser shots rather than hovering projectiles.
+    // A straight white core flashes together with a colored corkscrew sheath, then disappears quickly.
+    const railgunSpecs = [
+      {
+        start: portTopLeft.clone(),
+        end: new THREE.Vector3(-16.8, 8.7, -3.5),
+        turns: 6.2,
+        radius: 0.17,
+        glow: COLORS.cyan,
+        accent: COLORS.green,
+      },
+      {
+        start: portTopCenter.clone(),
+        end: new THREE.Vector3(-1.2, 9.5, -3.7),
+        turns: 7.4,
+        radius: 0.15,
+        glow: COLORS.orange,
+        accent: COLORS.violet,
+      },
+      {
+        start: portTopRight.clone(),
+        end: new THREE.Vector3(16.9, 8.6, -3.5),
+        turns: 6.6,
+        radius: 0.17,
+        glow: COLORS.orange,
+        accent: COLORS.pink,
+      },
+      {
+        start: portLeft.clone(),
+        end: new THREE.Vector3(-17.7, 1.7, -3.4),
+        turns: 5.8,
+        radius: 0.16,
+        glow: COLORS.cyan,
+        accent: COLORS.pink,
+      },
+      {
+        start: portRight.clone(),
+        end: new THREE.Vector3(17.7, -1.7, -3.4),
+        turns: 5.9,
+        radius: 0.16,
+        glow: COLORS.pink,
+        accent: COLORS.orange,
+      },
+      {
+        start: portBottomLeft.clone(),
+        end: new THREE.Vector3(-16.7, -8.8, -3.5),
+        turns: 6.4,
+        radius: 0.17,
+        glow: COLORS.pink,
+        accent: COLORS.green,
+      },
+      {
+        start: portBottomCenter.clone(),
+        end: new THREE.Vector3(1.1, -9.55, -3.7),
+        turns: 7.3,
+        radius: 0.15,
+        glow: COLORS.violet,
+        accent: COLORS.cyan,
+      },
+      {
+        start: portBottomRight.clone(),
+        end: new THREE.Vector3(16.8, -8.8, -3.5),
+        turns: 6.7,
+        radius: 0.17,
+        glow: COLORS.violet,
+        accent: COLORS.orange,
+      },
     ]
 
-    const railgunColors = [
-      [COLORS.cyan, COLORS.pink],
-      [COLORS.orange, COLORS.violet],
-      [COLORS.pink, COLORS.green],
-      [COLORS.violet, COLORS.cyan],
-      [COLORS.green, COLORS.orange],
-      [COLORS.cyan, COLORS.violet],
-    ] as const
-
-    for (let index = 0; index < 8; index += 1) {
-      const [glowColor, accentColor] = railgunColors[index % railgunColors.length]
+    railgunSpecs.forEach(({ start, end, turns, radius, glow, accent }, index) => {
       const group = new THREE.Group()
       group.visible = false
       world.add(group)
+
+      const straightCurve = new THREE.LineCurve3(start, end)
+      const helixCurve = createHelixCurve(start, end, turns, radius, 180)
+      const coreGeometry = trackGeometry(new THREE.TubeGeometry(straightCurve, 12, 0.012, 6, false))
+      const glowGeometry = trackGeometry(new THREE.TubeGeometry(straightCurve, 12, 0.045, 6, false))
+      const accentGeometry = trackGeometry(new THREE.TubeGeometry(helixCurve, 180, 0.017, 6, false))
 
       const coreMaterial = trackMaterial(
         new THREE.MeshBasicMaterial({
@@ -668,7 +753,7 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
       )
       const glowMaterial = trackMaterial(
         new THREE.MeshBasicMaterial({
-          color: glowColor,
+          color: glow,
           transparent: true,
           opacity: 0,
           depthWrite: false,
@@ -677,16 +762,7 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
       )
       const accentMaterial = trackMaterial(
         new THREE.MeshBasicMaterial({
-          color: accentColor,
-          transparent: true,
-          opacity: 0,
-          depthWrite: false,
-          blending: THREE.AdditiveBlending,
-        }),
-      )
-      const tipMaterial = trackMaterial(
-        new THREE.MeshBasicMaterial({
-          color: accentColor,
+          color: accent,
           transparent: true,
           opacity: 0,
           depthWrite: false,
@@ -694,27 +770,23 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
         }),
       )
 
-      const glow = new THREE.Mesh(shotGlowGeometry, glowMaterial)
-      const core = new THREE.Mesh(shotCoreGeometry, coreMaterial)
-      const accent = new THREE.Mesh(shotAccentGeometry, accentMaterial)
-      const tip = new THREE.Mesh(shotTipGeometry, tipMaterial)
-      accent.position.y = -0.42
-      tip.position.y = 0.5
-      group.add(glow, core, accent, tip)
+      group.add(
+        new THREE.Mesh(glowGeometry, glowMaterial),
+        new THREE.Mesh(coreGeometry, coreMaterial),
+        new THREE.Mesh(accentGeometry, accentMaterial),
+      )
 
       railgunShots.push({
         group,
         coreMaterial,
         glowMaterial,
         accentMaterial,
-        tipMaterial,
-        curve: railgunCurves[index % railgunCurves.length],
-        cycleRate: 0.2 + (index % 4) * 0.024,
-        offset: index * 0.123,
-        duty: 0.065 + (index % 3) * 0.012,
-        readyEnabled: index < 3,
+        cycleRate: 0.15 + (index % 4) * 0.018,
+        offset: index * 0.119,
+        duty: 0.075 + (index % 3) * 0.012,
+        readyEnabled: index < 2,
       })
-    }
+    })
 
     const sweepCoreGeometry = trackGeometry(new THREE.CylinderGeometry(0.009, 0.009, 15.5, 6, 1, true))
     const sweepGlowGeometry = trackGeometry(new THREE.CylinderGeometry(0.038, 0.038, 15.5, 6, 1, true))
@@ -831,9 +903,12 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
     const timer = new THREE.Timer()
     timer.connect(document)
 
-    const shotTangent = new THREE.Vector3()
     let elapsed = 0
     let animationFrameId = 0
+    let previousHasSignal = Boolean(visualStateRef.current.signalId)
+    let previousPlaying = visualStateRef.current.isPlaying
+    let activationProgress = 1
+    let activationStrength = 0
 
     const animate = () => {
       animationFrameId = window.requestAnimationFrame(animate)
@@ -845,10 +920,35 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
       const hasSignal = Boolean(state.signalId)
       const ready = hasSignal && !state.isPlaying
       const motionScale = reduced ? 0.16 : 1
-      const activeScale = state.isPlaying ? 2.15 : ready ? 0.88 : 0.34
+      const activeScale = state.isPlaying ? 2.45 : ready ? 0.92 : 0.26
       const volumeScale = 0.68 + state.volume * 0.32
       const delta = Math.min(timer.getDelta(), 0.05)
       elapsed += delta * motionScale
+
+      if (hasSignal && !previousHasSignal) {
+        activationProgress = 0
+        activationStrength = 0.9
+      } else if (state.isPlaying && !previousPlaying) {
+        activationProgress = 0
+        activationStrength = 1.45
+      } else if (!state.isPlaying && previousPlaying) {
+        activationProgress = 0
+        activationStrength = 0.52
+      } else if (!hasSignal && previousHasSignal) {
+        activationProgress = 0
+        activationStrength = 0.34
+      }
+
+      previousHasSignal = hasSignal
+      previousPlaying = state.isPlaying
+
+      if (reduced) {
+        activationProgress = 1
+      } else {
+        activationProgress = Math.min(1, activationProgress + delta * (state.isPlaying ? 1.42 : 1.08))
+      }
+
+      const transitionBoost = Math.max(0, 1 - activationProgress) * activationStrength
 
       pointerCurrent.lerp(pointerTarget, reduced ? 0.01 : 0.026)
       world.rotation.y = pointerCurrent.x * 0.022
@@ -867,19 +967,19 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
         shell.rotation.y -= 0.07 * delta * motionScale * activeScale
         const pulse = 1 + Math.sin(elapsed * (1.05 + activeScale * 0.7) + phase) * (state.isPlaying ? 0.13 : 0.045)
         glow.scale.setScalar(pulse)
-        glowMaterial.opacity = (state.isPlaying ? 0.17 : ready ? 0.085 : 0.045) * volumeScale
-        shellMaterial.opacity = state.isPlaying ? 0.82 : ready ? 0.58 : 0.34
+        glowMaterial.opacity = ((state.isPlaying ? 0.19 : ready ? 0.09 : 0.035) + transitionBoost * 0.08) * volumeScale
+        shellMaterial.opacity = Math.min(1, (state.isPlaying ? 0.88 : ready ? 0.6 : 0.3) + transitionBoost * 0.18)
         group.rotation.z = Math.sin(elapsed * 0.18 + phase) * 0.035
       })
 
-      const pathPower = state.isPlaying ? 1.42 : ready ? 0.82 : 0.22
+      const pathPower = (state.isPlaying ? 1.55 : ready ? 0.86 : 0.14) + transitionBoost * 0.42
       signalPaths.forEach(({ outerMaterial, innerMaterial, baseOuterOpacity, baseInnerOpacity }) => {
-        outerMaterial.opacity = baseOuterOpacity * pathPower * volumeScale
-        innerMaterial.opacity = baseInnerOpacity * pathPower * volumeScale
+        outerMaterial.opacity = Math.min(1, baseOuterOpacity * pathPower * volumeScale)
+        innerMaterial.opacity = Math.min(1, baseInnerOpacity * pathPower * volumeScale)
       })
 
       pulses.forEach(({ core, glow, coreMaterial, glowMaterial, curve, speed, offset }) => {
-        const effectiveSpeed = speed * (state.isPlaying ? 2.85 : ready ? 0.9 : 0.18)
+        const effectiveSpeed = speed * (state.isPlaying ? 3.35 : ready ? 0.96 : 0.12)
         const progress = (elapsed * effectiveSpeed + offset) % 1
         const point = curve.getPointAt(progress)
         core.position.copy(point)
@@ -899,11 +999,20 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
         glowMaterial.opacity = (state.isPlaying ? 0.15 + beat * 0.16 : ready ? 0.07 + beat * 0.05 : 0.025) * volumeScale
       })
 
-      const aperturePulse = (Math.sin(elapsed * (state.isPlaying ? 2.7 : 0.8)) + 1) * 0.5
-      outerAperture.material.opacity = 0.1 + aperturePulse * (state.isPlaying ? 0.24 : ready ? 0.09 : 0.035)
-      middleAperture.material.opacity = 0.14 + aperturePulse * (state.isPlaying ? 0.28 : ready ? 0.1 : 0.04)
-      innerAperture.material.opacity = 0.14 + aperturePulse * (state.isPlaying ? 0.34 : ready ? 0.11 : 0.04)
-      haloMaterial.opacity = state.isPlaying ? 0.075 + aperturePulse * 0.05 : ready ? 0.033 : 0.018
+      activationWaves.forEach(({ group, material, delay }) => {
+        const localProgress = THREE.MathUtils.clamp((activationProgress - delay) / Math.max(0.001, 1 - delay), 0, 1)
+        const active = activationProgress < 1 && localProgress > 0 && localProgress < 1
+        group.visible = active
+
+        if (!active) {
+          material.opacity = 0
+          return
+        }
+
+        const flare = Math.sin(localProgress * Math.PI)
+        group.scale.setScalar(0.58 + localProgress * 1.62)
+        material.opacity = flare * activationStrength * 0.42 * volumeScale
+      })
 
       railgunShots.forEach((shot) => {
         if (reduced || !hasSignal || (!state.isPlaying && !shot.readyEnabled)) {
@@ -911,8 +1020,8 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
           return
         }
 
-        const rateMultiplier = state.isPlaying ? 2.45 : 0.56
-        const duty = state.isPlaying ? shot.duty : 0.03
+        const rateMultiplier = state.isPlaying ? 2.65 : 0.34
+        const duty = state.isPlaying ? shot.duty : 0.018
         const cycle = (elapsed * shot.cycleRate * rateMultiplier + shot.offset) % 1
 
         if (cycle >= duty) {
@@ -922,18 +1031,11 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
 
         const progress = THREE.MathUtils.clamp(cycle / duty, 0, 1)
         const flare = Math.sin(progress * Math.PI)
-        const point = shot.curve.getPointAt(progress)
-        shot.curve.getTangentAt(progress, shotTangent).normalize()
+        const intensity = (state.isPlaying ? 1.18 : 0.16) * volumeScale * flare
         shot.group.visible = true
-        shot.group.position.copy(point)
-        shot.group.quaternion.setFromUnitVectors(Y_AXIS, shotTangent)
-        shot.group.scale.setScalar((state.isPlaying ? 1.12 : 0.72) + flare * (state.isPlaying ? 0.42 : 0.18))
-
-        const intensity = (state.isPlaying ? 1.28 : 0.24) * volumeScale * flare
         shot.coreMaterial.opacity = 0.92 * intensity
-        shot.glowMaterial.opacity = 0.28 * intensity
-        shot.accentMaterial.opacity = 0.72 * intensity
-        shot.tipMaterial.opacity = 0.95 * intensity
+        shot.glowMaterial.opacity = 0.2 * intensity
+        shot.accentMaterial.opacity = 0.78 * intensity
       })
 
       laserSweeps.forEach(({ group, coreMaterial, glowMaterial, baseY, baseRotation, phase, speed }) => {

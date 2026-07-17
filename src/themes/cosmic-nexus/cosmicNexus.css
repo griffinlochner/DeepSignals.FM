@@ -50,7 +50,7 @@
   z-index: 1;
   pointer-events: none;
   background:
-    radial-gradient(circle at 50% 48%, transparent 0 32%, rgba(1, 1, 4, 0.08) 56%, rgba(1, 1, 4, 0.74) 100()),
+    radial-gradient(circle at 50% 48%, transparent 0 32%, rgba(1, 1, 4, 0.08) 56%, rgba(1, 1, 4, 0.54) 100%),
     repeating-linear-gradient(0deg, transparent 0 4px, rgba(121, 255, 242, 0.018) 5px);
 }
 
@@ -329,20 +329,20 @@
 
 .cosmic-nexus-display-frame[data-playing='true'] .cosmic-nexus-display-frame__halo {
   opacity: 0.92;
-  animation: nexus-aperture-breathe 3.8s ease-in-out infinite;
+  animation: nexus-aperture-breathe 3.1s ease-in-out infinite;
 }
 
 .cosmic-nexus-display-frame[data-playing='true'] .cosmic-nexus-display-frame__scan-beam {
   opacity: 0.62;
-  animation: nexus-aperture-scan 2.75s cubic-bezier(0.35, 0, 0.65, 1) infinite;
+  animation: nexus-aperture-scan 2.15s cubic-bezier(0.35, 0, 0.65, 1) infinite;
 }
 
 .cosmic-nexus-display-frame[data-playing='true'] .cosmic-nexus-display-frame__corner {
-  animation: nexus-corner-charge 1.9s ease-in-out infinite alternate;
+  animation: nexus-corner-charge 1.5s ease-in-out infinite alternate;
 }
 
 .cosmic-nexus-display-frame[data-playing='true'] .cosmic-nexus-display-frame__node {
-  animation: nexus-port-lock 1.3s ease-in-out infinite;
+  animation: nexus-port-lock 1.05s ease-in-out infinite;
 }
 
 .player-shell.theme-cosmic-nexus .main-display__content {
