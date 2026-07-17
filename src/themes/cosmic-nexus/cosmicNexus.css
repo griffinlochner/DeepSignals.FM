@@ -414,6 +414,25 @@
   text-shadow: 0 0 8px rgba(121, 255, 242, 0.08);
 }
 
+.player-shell.theme-cosmic-nexus .transport-dock__status-indicator {
+  background: rgba(121, 255, 242, 0.25);
+  box-shadow: 0 0 0 1px rgba(121, 255, 242, 0.24);
+}
+
+.player-shell.theme-cosmic-nexus .transport-dock__status-indicator[data-marquee-state='ready'] {
+  background: rgba(121, 255, 242, 0.78);
+  box-shadow:
+    0 0 0 1px rgba(121, 255, 242, 0.34),
+    0 0 7px rgba(121, 255, 242, 0.35);
+}
+
+.player-shell.theme-cosmic-nexus .transport-dock__status-indicator[data-marquee-state='playing'] {
+  background: rgba(57, 255, 20, 0.95);
+  box-shadow:
+    0 0 0 1px rgba(57, 255, 20, 0.36),
+    0 0 9px rgba(57, 255, 20, 0.55);
+}
+
 .player-shell.theme-cosmic-nexus .signal-source-selector__select,
 .player-shell.theme-cosmic-nexus .theme-selector__select,
 .player-shell.theme-cosmic-nexus .track-marquee {
@@ -436,6 +455,7 @@
 
 .player-shell.theme-cosmic-nexus .signal-source-selector__select:focus-visible,
 .player-shell.theme-cosmic-nexus .theme-selector__select:focus-visible,
+.player-shell.theme-cosmic-nexus .track-marquee:focus-visible,
 .player-shell.theme-cosmic-nexus .play-stop-button:focus-visible,
 .player-shell.theme-cosmic-nexus .volume-control__range:focus-visible {
   outline: 2px solid var(--nexus-cyan);
@@ -446,8 +466,32 @@
 }
 
 .player-shell.theme-cosmic-nexus .track-marquee {
+  position: relative;
+  isolation: isolate;
   color: rgba(216, 255, 247, 0.88);
   border-image: linear-gradient(90deg, rgba(121, 255, 242, 0.5), rgba(164, 92, 255, 0.3), rgba(255, 77, 122, 0.45)) 1;
+}
+
+.player-shell.theme-cosmic-nexus .track-marquee::after {
+  content: '';
+  position: absolute;
+  inset: 1px;
+  pointer-events: none;
+  opacity: 0;
+  background: linear-gradient(
+    110deg,
+    transparent 0,
+    rgba(121, 255, 242, 0.03) 38%,
+    rgba(121, 255, 242, 0.17) 50%,
+    rgba(57, 255, 20, 0.09) 57%,
+    transparent 82%
+  );
+  transform: translateX(-130%);
+}
+
+.player-shell.theme-cosmic-nexus .track-marquee[data-marquee-state='playing']::after {
+  opacity: 0.22;
+  animation: nexus-marquee-sheen 2.9s linear infinite;
 }
 
 .player-shell.theme-cosmic-nexus .play-stop-button {
@@ -512,6 +556,15 @@
 }
 
 @keyframes nexus-button-scan {
+  from {
+    transform: translateX(-130%);
+  }
+  to {
+    transform: translateX(130%);
+  }
+}
+
+@keyframes nexus-marquee-sheen {
   from {
     transform: translateX(-130%);
   }
@@ -635,8 +688,13 @@
   .cosmic-nexus-display-frame[data-playing='true'] .cosmic-nexus-display-frame__scan-beam,
   .cosmic-nexus-display-frame[data-playing='true'] .cosmic-nexus-display-frame__corner,
   .cosmic-nexus-display-frame[data-playing='true'] .cosmic-nexus-display-frame__node,
-  .player-shell.theme-cosmic-nexus .play-stop-button:hover:not(:disabled)::after {
+  .player-shell.theme-cosmic-nexus .play-stop-button:hover:not(:disabled)::after,
+  .player-shell.theme-cosmic-nexus .track-marquee[data-marquee-state='playing']::after {
     animation: none;
+  }
+
+  .player-shell.theme-cosmic-nexus .track-marquee::after {
+    opacity: 0;
   }
 
   .cosmic-nexus-display-frame[data-playing='true'] .cosmic-nexus-display-frame__scan-beam {

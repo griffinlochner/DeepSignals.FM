@@ -1,26 +1,30 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 type TrackMarqueeProps = {
-  isPlaying: boolean
   signalLabel: string | null
+  marqueeState: 'no-signal' | 'ready' | 'playing'
 }
 
-function TrackMarquee({ isPlaying, signalLabel }: TrackMarqueeProps) {
-  const viewportRef = useRef<HTMLDivElement | null>(null)
-  const textRef = useRef<HTMLSpanElement | null>(null)
-  const measureRef = useRef<HTMLSpanElement | null>(null)
-  const [marqueeMode, setMarqueeMode] = useState<'fit' | 'scroll' | 'reduced'>('fit')
-  const [isReducedMotion, setIsReducedMotion] = useState(false)
-
-  let content = 'NO ACTIVE TRANSMISSION'
-
-  if (signalLabel) {
-    if (isPlaying) {
-      content = `DEEPSIGNALS TEST ARRAY — ${signalLabel.toUpperCase()}`
-    } else {
-      content = 'TEST SIGNAL READY'
+function TrackMarquee({ signalLabel, marqueeState }: TrackMarqueeProps) {
+  const [isReducedMotion, setIsReducedMotion] = useState(() => {
+    if (typeof window === 'undefined') {
+      return false
     }
-  }
+
+    return window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  })
+
+  const content = useMemo(() => {
+    if (!signalLabel) {
+      return 'NO ACTIVE TRANSMISSION'
+    }
+
+    if (marqueeState === 'playing') {
+      return `DEEPSIGNALS TEST ARRAY - ${signalLabel.toUpperCase()}`
+    }
+
+    return 'TEST SIGNAL READY'
+  }, [marqueeState, signalLabel])
 
   useEffect(() => {
     const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)')
@@ -39,78 +43,23 @@ function TrackMarquee({ isPlaying, signalLabel }: TrackMarqueeProps) {
     return () => mediaQuery.removeListener(updatePreference)
   }, [])
 
-  useLayoutEffect(() => {
-    const viewport = viewportRef.current
-    const text = textRef.current
-    const measureText = measureRef.current
-
-    if (!viewport || !text || !measureText) {
-      return
-    }
-
-    let cancelled = false
-    let frameId = 0
-
-    const measureOverflow = () => {
-      if (cancelled) {
-        return
-      }
-
-      const overflow = measureText.scrollWidth - viewport.clientWidth
-      const shouldAnimate = !isReducedMotion && overflow > 2
-
-      setMarqueeMode(shouldAnimate ? 'scroll' : 'fit')
-
-      if (isReducedMotion && overflow > 2) {
-        setMarqueeMode('reduced')
-      }
-    }
-
-    const scheduleMeasurement = () => {
-      window.cancelAnimationFrame(frameId)
-      frameId = window.requestAnimationFrame(() => {
-        measureOverflow()
-      })
-    }
-
-    scheduleMeasurement()
-
-    const resizeObserver = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(scheduleMeasurement) : null
-    resizeObserver?.observe(viewport)
-    window.addEventListener('resize', scheduleMeasurement)
-
-    if (document.fonts?.ready) {
-      void document.fonts.ready.then(scheduleMeasurement)
-    }
-
-    return () => {
-      cancelled = true
-      window.cancelAnimationFrame(frameId)
-      resizeObserver?.disconnect()
-      window.removeEventListener('resize', scheduleMeasurement)
-    }
-  }, [content, isReducedMotion])
-
   return (
-    <div className="track-marquee" role="status" aria-live="polite">
-      <div className={`track-marquee__viewport${isReducedMotion ? ' track-marquee__viewport--reduced' : ''}`} ref={viewportRef}>
-        {marqueeMode === 'scroll' ? (
+    <div className="track-marquee" data-marquee-state={marqueeState} tabIndex={0}>
+      <div className={`track-marquee__viewport${isReducedMotion ? ' track-marquee__viewport--reduced' : ''}`} aria-hidden="true">
+        {isReducedMotion ? (
+          <span className="track-marquee__text track-marquee__text--reduced">{content}</span>
+        ) : (
           <div className="track-marquee__scroll">
-            <span ref={textRef} className="track-marquee__text track-marquee__text--animated">
+            <span className="track-marquee__text track-marquee__text--animated" aria-hidden="true">
               {content}
             </span>
-            <span className="track-marquee__text track-marquee__text--animated track-marquee__text--duplicate">{content}</span>
+            <span className="track-marquee__text track-marquee__text--animated track-marquee__text--duplicate" aria-hidden="true">
+              {content}
+            </span>
           </div>
-        ) : (
-          <span
-            ref={textRef}
-            className={`track-marquee__text${marqueeMode === 'reduced' ? ' track-marquee__text--reduced' : ' track-marquee__text--single'}`}
-          >
-            {content}
-          </span>
         )}
       </div>
-      <span ref={measureRef} className="track-marquee__measure" aria-hidden="true">
+      <span className="track-marquee__live" aria-live="polite" aria-atomic="true">
         {content}
       </span>
     </div>

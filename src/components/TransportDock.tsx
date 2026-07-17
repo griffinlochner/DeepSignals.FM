@@ -32,6 +32,11 @@ function TransportDock({
   onVolumeChange,
 }: TransportDockProps) {
   const selectedSignal = signals.find((s) => s.id === selectedSignalId)
+  const marqueeState: 'no-signal' | 'ready' | 'playing' = !selectedSignalId
+    ? 'no-signal'
+    : isPlaying
+      ? 'playing'
+      : 'ready'
 
   return (
     <div className="transport-dock">
@@ -59,9 +64,12 @@ function TransportDock({
         </div>
 
         <div className="transport-dock__item transport-dock__item--marquee">
-          <div className="transport-dock__item-label">NOW RECEIVING</div>
+          <div className="transport-dock__item-label">
+            NOW RECEIVING
+            <span className="transport-dock__status-indicator" data-marquee-state={marqueeState} aria-hidden="true" />
+          </div>
           <div className="transport-dock__item-control">
-            <TrackMarquee isPlaying={isPlaying} signalLabel={selectedSignal?.label || null} />
+            <TrackMarquee signalLabel={selectedSignal?.label || null} marqueeState={marqueeState} />
           </div>
         </div>
 
