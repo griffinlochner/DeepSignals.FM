@@ -52,11 +52,17 @@ function PlayerShell({ className }: PlayerShellProps) {
   }
 
   const SceneComponent = activeTheme.Scene
+  const signalState = !selectedSignalId
+    ? 'dormant'
+    : isPlaying === 'playing'
+      ? 'playing'
+      : 'armed'
 
   return (
     <div
       className={['player-shell', activeTheme.className, className].filter(Boolean).join(' ')}
       data-theme={activeTheme.id}
+      data-signal-state={signalState}
     >
       <div className="player-shell__scene" aria-hidden="true">
         <SceneComponent {...sceneProps} />
