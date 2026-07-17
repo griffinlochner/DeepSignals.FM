@@ -313,11 +313,12 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
       return group
     }
 
-    // Keep the signature relay geometry outside the central video-safe zone.
-    const upperLeftRelay = createRelay(new THREE.Vector3(-5.95, 2.82, -0.35), 0.9, COLORS.green, 0.2)
-    const upperRightRelay = createRelay(new THREE.Vector3(5.85, 2.62, -0.65), 0.72, COLORS.orange, 1.7)
-    const lowerRightRelay = createRelay(new THREE.Vector3(5.95, -2.82, -0.15), 1.12, COLORS.violet, 3.1)
-    const lowerLeftRelay = createRelay(new THREE.Vector3(-5.9, -2.85, -0.75), 0.66, COLORS.pink, 4.5)
+    // Keep the signature relay geometry outside the central video-safe zone and bias it farther
+    // toward the corners so more of the animated network remains visible around the aperture.
+    const upperLeftRelay = createRelay(new THREE.Vector3(-6.65, 3.18, -0.35), 0.94, COLORS.green, 0.2)
+    const upperRightRelay = createRelay(new THREE.Vector3(6.55, 3.02, -0.65), 0.76, COLORS.orange, 1.7)
+    const lowerRightRelay = createRelay(new THREE.Vector3(6.6, -3.18, -0.15), 1.16, COLORS.violet, 3.1)
+    const lowerLeftRelay = createRelay(new THREE.Vector3(-6.55, -3.18, -0.75), 0.72, COLORS.pink, 4.5)
 
     const createCurve = (start: THREE.Vector3, controls: THREE.Vector3[], end: THREE.Vector3) =>
       new THREE.CatmullRomCurve3([start, ...controls, end], false, 'catmullrom', 0.45)
@@ -445,94 +446,200 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
       aperturePorts.push({ ring, glow, ringMaterial, glowMaterial, phase })
     }
 
-    const portLeft = new THREE.Vector3(-4.28, 0.35, 0.08)
-    const portTopRight = new THREE.Vector3(3.35, 2.36, 0.08)
-    const portRight = new THREE.Vector3(4.28, -0.42, 0.08)
-    const portBottomLeft = new THREE.Vector3(-3.35, -2.36, 0.08)
-    const portBottomRight = new THREE.Vector3(3.35, -2.36, 0.08)
+    const portTopLeft = new THREE.Vector3(-3.58, 2.36, 0.08)
+    const portTopCenter = new THREE.Vector3(0, 2.52, 0.08)
+    const portTopRight = new THREE.Vector3(3.58, 2.36, 0.08)
+    const portLeft = new THREE.Vector3(-4.3, 0.28, 0.08)
+    const portRight = new THREE.Vector3(4.32, -0.32, 0.08)
+    const portBottomLeft = new THREE.Vector3(-3.58, -2.36, 0.08)
+    const portBottomCenter = new THREE.Vector3(0.12, -2.52, 0.08)
+    const portBottomRight = new THREE.Vector3(3.58, -2.36, 0.08)
 
-    createAperturePort(portLeft, COLORS.cyan, 0.4)
+    createAperturePort(portTopLeft, COLORS.green, 0.22)
+    createAperturePort(portTopCenter, COLORS.orange, 0.92)
     createAperturePort(portTopRight, COLORS.orange, 1.7)
+    createAperturePort(portLeft, COLORS.cyan, 2.38)
     createAperturePort(portRight, COLORS.pink, 2.9)
     createAperturePort(portBottomLeft, COLORS.green, 4.1)
+    createAperturePort(portBottomCenter, COLORS.violet, 4.72)
     createAperturePort(portBottomRight, COLORS.violet, 5.2)
 
+    // Short feeder curves bring energy from the relay clusters toward the aperture perimeter.
     createSignalPath(
       createCurve(
         upperLeftRelay.position.clone(),
-        [new THREE.Vector3(-5.35, 3.35, -0.2), new THREE.Vector3(-4.72, 1.4, 0)],
-        portLeft,
+        [new THREE.Vector3(-6.0, 3.6, -0.22), new THREE.Vector3(-4.9, 2.86, -0.04)],
+        portTopLeft,
       ),
       COLORS.green,
-      0.17,
-      0.08,
+      0.16,
+      0.04,
     )
     createSignalPath(
       createCurve(
         upperRightRelay.position.clone(),
-        [new THREE.Vector3(5.2, 3.2, -0.5), new THREE.Vector3(4.25, 2.75, 0)],
+        [new THREE.Vector3(6.0, 3.48, -0.38), new THREE.Vector3(4.88, 2.82, -0.04)],
         portTopRight,
       ),
       COLORS.orange,
-      0.13,
+      0.15,
+      0.18,
+    )
+    createSignalPath(
+      createCurve(
+        lowerLeftRelay.position.clone(),
+        [new THREE.Vector3(-5.95, -3.58, -0.52), new THREE.Vector3(-4.82, -2.82, -0.04)],
+        portBottomLeft,
+      ),
+      COLORS.pink,
+      0.18,
       0.36,
     )
     createSignalPath(
       createCurve(
         lowerRightRelay.position.clone(),
-        [new THREE.Vector3(5.15, -3.3, -0.1), new THREE.Vector3(4.65, -1.5, 0)],
-        portRight,
+        [new THREE.Vector3(6.0, -3.56, -0.12), new THREE.Vector3(4.95, -2.88, -0.04)],
+        portBottomRight,
       ),
       COLORS.violet,
-      0.19,
-      0.6,
+      0.17,
+      0.52,
       0.014,
     )
+
+    // Long outbound transmission lines radiate away from the screen so the main motion remains
+    // visible in the viewport perimeter instead of being hidden behind the central display.
     createSignalPath(
       createCurve(
-        lowerLeftRelay.position.clone(),
-        [new THREE.Vector3(-5.15, -3.35, -0.65), new THREE.Vector3(-4.15, -2.75, 0)],
-        portBottomLeft,
+        portTopLeft.clone(),
+        [new THREE.Vector3(-4.9, 2.9, -0.15), new THREE.Vector3(-7.1, 4.25, -1.9)],
+        new THREE.Vector3(-10.4, 4.1, -5.4),
       ),
-      COLORS.pink,
-      0.21,
-      0.82,
+      COLORS.green,
+      0.19,
+      0.07,
+      0.011,
     )
     createSignalPath(
       createCurve(
-        new THREE.Vector3(-7.6, 0.1, -4),
-        [new THREE.Vector3(-6.2, -0.9, -2), new THREE.Vector3(-5.05, -0.6, -0.7)],
-        portLeft,
+        portTopCenter.clone(),
+        [new THREE.Vector3(-0.28, 3.0, -0.12), new THREE.Vector3(0.4, 4.3, -1.6)],
+        new THREE.Vector3(0.08, 5.45, -4.9),
       ),
-      COLORS.cyan,
-      0.15,
-      0.25,
+      COLORS.orange,
+      0.16,
+      0.22,
       0.01,
     )
     createSignalPath(
       createCurve(
-        new THREE.Vector3(7.45, -3.8, -4.5),
-        [new THREE.Vector3(6.1, -3.65, -2), new THREE.Vector3(4.4, -2.8, -0.6)],
-        portBottomRight,
+        portTopRight.clone(),
+        [new THREE.Vector3(4.92, 2.9, -0.15), new THREE.Vector3(7.18, 4.32, -1.8)],
+        new THREE.Vector3(10.5, 4.18, -5.4),
       ),
       COLORS.orange,
-      0.145,
-      0.48,
-      0.009,
+      0.17,
+      0.33,
+      0.011,
+    )
+    createSignalPath(
+      createCurve(
+        portLeft.clone(),
+        [new THREE.Vector3(-5.55, 0.34, -0.15), new THREE.Vector3(-8.05, 0.92, -1.9)],
+        new THREE.Vector3(-11.1, 0.96, -5.2),
+      ),
+      COLORS.cyan,
+      0.2,
+      0.46,
+      0.012,
+    )
+    createSignalPath(
+      createCurve(
+        portRight.clone(),
+        [new THREE.Vector3(5.6, -0.36, -0.15), new THREE.Vector3(8.1, -0.96, -2.0)],
+        new THREE.Vector3(11.15, -1.0, -5.2),
+      ),
+      COLORS.pink,
+      0.21,
+      0.58,
+      0.012,
+    )
+    createSignalPath(
+      createCurve(
+        portBottomLeft.clone(),
+        [new THREE.Vector3(-4.95, -2.92, -0.15), new THREE.Vector3(-7.26, -4.18, -1.9)],
+        new THREE.Vector3(-10.55, -4.18, -5.35),
+      ),
+      COLORS.pink,
+      0.18,
+      0.69,
+      0.011,
+    )
+    createSignalPath(
+      createCurve(
+        portBottomCenter.clone(),
+        [new THREE.Vector3(0.18, -3.1, -0.12), new THREE.Vector3(-0.18, -4.25, -1.6)],
+        new THREE.Vector3(-0.12, -5.4, -4.9),
+      ),
+      COLORS.violet,
+      0.16,
+      0.82,
+      0.01,
+    )
+    createSignalPath(
+      createCurve(
+        portBottomRight.clone(),
+        [new THREE.Vector3(4.98, -2.9, -0.15), new THREE.Vector3(7.3, -4.2, -1.9)],
+        new THREE.Vector3(10.6, -4.22, -5.35),
+      ),
+      COLORS.violet,
+      0.19,
+      0.93,
+      0.011,
     )
 
-    // A small reusable railgun pool: nested additive cylinders travel on
-    // corkscrew curves near the perimeter instead of crossing the display.
+    // A couple of deeper background lines keep the field expansive without fighting the safe zone.
+    createSignalPath(
+      createCurve(
+        new THREE.Vector3(-10.8, 2.6, -6.8),
+        [new THREE.Vector3(-8.7, 2.2, -4.8), new THREE.Vector3(-6.25, 1.4, -1.8)],
+        portLeft,
+      ),
+      COLORS.cyan,
+      0.12,
+      0.27,
+      0.0085,
+    )
+    createSignalPath(
+      createCurve(
+        new THREE.Vector3(10.8, -2.85, -6.8),
+        [new THREE.Vector3(8.9, -2.4, -4.8), new THREE.Vector3(6.28, -1.48, -1.8)],
+        portRight,
+      ),
+      COLORS.orange,
+      0.12,
+      0.74,
+      0.0085,
+    )
+
+    // A reusable railgun pool: additive cylinders travel on outward corkscrew curves instead
+    // of clustering behind the main display.
     const shotCoreGeometry = trackGeometry(new THREE.CylinderGeometry(0.017, 0.025, 0.9, 8, 1, true))
     const shotGlowGeometry = trackGeometry(new THREE.CylinderGeometry(0.055, 0.075, 1.45, 8, 1, true))
     const shotAccentGeometry = trackGeometry(new THREE.CylinderGeometry(0.028, 0.04, 0.52, 8, 1, true))
     const shotTipGeometry = trackGeometry(new THREE.SphereGeometry(0.06, 12, 10))
 
+    // These behave more like rave-laser transmission bursts: they launch from the aperture perimeter
+    // and corkscrew outward into the edges of the viewport rather than spinning near the center.
     const railgunCurves = [
-      createHelixCurve(new THREE.Vector3(-8.6, 4.15, -6), new THREE.Vector3(-4.45, 2.6, -0.2), 4.5, 0.24),
-      createHelixCurve(new THREE.Vector3(8.6, 4.0, -7), new THREE.Vector3(4.45, 2.35, -0.25), 5.2, 0.22),
-      createHelixCurve(new THREE.Vector3(-8.4, -4.05, -6), new THREE.Vector3(-4.4, -2.55, -0.2), 4.2, 0.21),
-      createHelixCurve(new THREE.Vector3(8.5, -4.15, -7), new THREE.Vector3(4.45, -2.5, -0.25), 5.1, 0.23),
+      createHelixCurve(portTopLeft.clone(), new THREE.Vector3(-10.9, 4.58, -7.2), 6.2, 0.16),
+      createHelixCurve(portTopCenter.clone(), new THREE.Vector3(0.12, 5.85, -7), 7.1, 0.14),
+      createHelixCurve(portTopRight.clone(), new THREE.Vector3(10.95, 4.62, -7.2), 6.6, 0.16),
+      createHelixCurve(portLeft.clone(), new THREE.Vector3(-11.35, 1.18, -7), 5.8, 0.15),
+      createHelixCurve(portRight.clone(), new THREE.Vector3(11.3, -1.2, -7), 5.9, 0.15),
+      createHelixCurve(portBottomLeft.clone(), new THREE.Vector3(-10.95, -4.72, -7.2), 6.4, 0.16),
+      createHelixCurve(portBottomCenter.clone(), new THREE.Vector3(-0.08, -5.95, -7), 7.1, 0.14),
+      createHelixCurve(portBottomRight.clone(), new THREE.Vector3(10.95, -4.78, -7.2), 6.7, 0.16),
     ]
 
     const railgunColors = [
@@ -544,8 +651,8 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
       [COLORS.cyan, COLORS.violet],
     ] as const
 
-    for (let index = 0; index < 6; index += 1) {
-      const [glowColor, accentColor] = railgunColors[index]
+    for (let index = 0; index < 8; index += 1) {
+      const [glowColor, accentColor] = railgunColors[index % railgunColors.length]
       const group = new THREE.Group()
       group.visible = false
       world.add(group)
@@ -602,10 +709,10 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
         accentMaterial,
         tipMaterial,
         curve: railgunCurves[index % railgunCurves.length],
-        cycleRate: 0.14 + (index % 3) * 0.025,
-        offset: index * 0.163,
-        duty: 0.09 + (index % 2) * 0.025,
-        readyEnabled: index < 2,
+        cycleRate: 0.2 + (index % 4) * 0.024,
+        offset: index * 0.123,
+        duty: 0.065 + (index % 3) * 0.012,
+        readyEnabled: index < 3,
       })
     }
 
@@ -738,8 +845,8 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
       const hasSignal = Boolean(state.signalId)
       const ready = hasSignal && !state.isPlaying
       const motionScale = reduced ? 0.16 : 1
-      const activeScale = state.isPlaying ? 1.65 : ready ? 0.82 : 0.42
-      const volumeScale = 0.7 + state.volume * 0.3
+      const activeScale = state.isPlaying ? 2.15 : ready ? 0.88 : 0.34
+      const volumeScale = 0.68 + state.volume * 0.32
       const delta = Math.min(timer.getDelta(), 0.05)
       elapsed += delta * motionScale
 
@@ -765,23 +872,23 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
         group.rotation.z = Math.sin(elapsed * 0.18 + phase) * 0.035
       })
 
-      const pathPower = state.isPlaying ? 1.24 : ready ? 0.72 : 0.28
+      const pathPower = state.isPlaying ? 1.42 : ready ? 0.82 : 0.22
       signalPaths.forEach(({ outerMaterial, innerMaterial, baseOuterOpacity, baseInnerOpacity }) => {
         outerMaterial.opacity = baseOuterOpacity * pathPower * volumeScale
         innerMaterial.opacity = baseInnerOpacity * pathPower * volumeScale
       })
 
       pulses.forEach(({ core, glow, coreMaterial, glowMaterial, curve, speed, offset }) => {
-        const effectiveSpeed = speed * (state.isPlaying ? 2.0 : ready ? 0.78 : 0.22)
+        const effectiveSpeed = speed * (state.isPlaying ? 2.85 : ready ? 0.9 : 0.18)
         const progress = (elapsed * effectiveSpeed + offset) % 1
         const point = curve.getPointAt(progress)
         core.position.copy(point)
         glow.position.copy(point)
         const scale = 0.82 + Math.sin(progress * Math.PI * 2) * 0.18
-        core.scale.setScalar(scale)
-        glow.scale.setScalar(scale * (state.isPlaying ? 1.55 : ready ? 0.92 : 0.65))
-        coreMaterial.opacity = state.isPlaying ? 1 : ready ? 0.72 : 0.28
-        glowMaterial.opacity = (state.isPlaying ? 0.28 : ready ? 0.13 : 0.045) * volumeScale
+        core.scale.setScalar(scale * (state.isPlaying ? 1.08 : 1))
+        glow.scale.setScalar(scale * (state.isPlaying ? 1.82 : ready ? 1.0 : 0.65))
+        coreMaterial.opacity = state.isPlaying ? 1 : ready ? 0.76 : 0.24
+        glowMaterial.opacity = (state.isPlaying ? 0.34 : ready ? 0.15 : 0.04) * volumeScale
       })
 
       aperturePorts.forEach(({ ring, glow, ringMaterial, glowMaterial, phase }) => {
@@ -804,8 +911,8 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
           return
         }
 
-        const rateMultiplier = state.isPlaying ? 1.35 : 0.42
-        const duty = state.isPlaying ? shot.duty : 0.035
+        const rateMultiplier = state.isPlaying ? 2.45 : 0.56
+        const duty = state.isPlaying ? shot.duty : 0.03
         const cycle = (elapsed * shot.cycleRate * rateMultiplier + shot.offset) % 1
 
         if (cycle >= duty) {
@@ -820,9 +927,9 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
         shot.group.visible = true
         shot.group.position.copy(point)
         shot.group.quaternion.setFromUnitVectors(Y_AXIS, shotTangent)
-        shot.group.scale.setScalar((state.isPlaying ? 0.95 : 0.7) + flare * 0.28)
+        shot.group.scale.setScalar((state.isPlaying ? 1.12 : 0.72) + flare * (state.isPlaying ? 0.42 : 0.18))
 
-        const intensity = (state.isPlaying ? 1 : 0.22) * volumeScale * flare
+        const intensity = (state.isPlaying ? 1.28 : 0.24) * volumeScale * flare
         shot.coreMaterial.opacity = 0.92 * intensity
         shot.glowMaterial.opacity = 0.28 * intensity
         shot.accentMaterial.opacity = 0.72 * intensity
@@ -831,12 +938,12 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
 
       laserSweeps.forEach(({ group, coreMaterial, glowMaterial, baseY, baseRotation, phase, speed }) => {
         const wave = Math.max(0, Math.sin(elapsed * speed + phase))
-        const flash = Math.pow(wave, state.isPlaying ? 8 : 14)
-        const intensity = state.isPlaying ? flash * volumeScale : ready ? flash * 0.08 : 0
-        group.position.y = baseY + Math.sin(elapsed * speed * 0.36 + phase) * 0.18
-        group.rotation.z = baseRotation + Math.sin(elapsed * speed * 0.42 + phase) * 0.055
-        coreMaterial.opacity = 0.42 * intensity
-        glowMaterial.opacity = 0.1 * intensity
+        const flash = Math.pow(wave, state.isPlaying ? 7 : 13)
+        const intensity = state.isPlaying ? flash * volumeScale * 1.22 : ready ? flash * 0.1 : 0
+        group.position.y = baseY + Math.sin(elapsed * speed * 0.52 + phase) * 0.24
+        group.rotation.z = baseRotation + Math.sin(elapsed * speed * 0.58 + phase) * 0.08
+        coreMaterial.opacity = 0.5 * intensity
+        glowMaterial.opacity = 0.135 * intensity
       })
 
       floatingGlyphs.forEach(({ mesh, basePosition, phase }, index) => {

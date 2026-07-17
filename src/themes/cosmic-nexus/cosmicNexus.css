@@ -31,7 +31,7 @@
   --nexus-pink: #ff4d7a;
   --nexus-orange: #ff7a00;
   --nexus-violet: #a45cff;
-  --nexus-display-width: min(70vw, calc(54vh * 16 / 9), 1080px);
+  --nexus-display-width: min(64vw, calc(51vh * 16 / 9), 980px);
   font-family:
     system-ui,
     -apple-system,
@@ -50,7 +50,7 @@
   z-index: 1;
   pointer-events: none;
   background:
-    radial-gradient(circle at 50% 48%, transparent 0 34%, rgba(1, 1, 4, 0.08) 58%, rgba(1, 1, 4, 0.74) 100%),
+    radial-gradient(circle at 50% 48%, transparent 0 32%, rgba(1, 1, 4, 0.08) 56%, rgba(1, 1, 4, 0.74) 100()),
     repeating-linear-gradient(0deg, transparent 0 4px, rgba(121, 255, 242, 0.018) 5px);
 }
 
@@ -576,13 +576,13 @@
 
 @media (max-width: 1099px) {
   .player-shell.theme-cosmic-nexus {
-    --nexus-display-width: min(84vw, calc(50vh * 16 / 9), 900px);
+    --nexus-display-width: min(80vw, calc(48vh * 16 / 9), 860px);
   }
 }
 
 @media (max-width: 768px) {
   .player-shell.theme-cosmic-nexus {
-    --nexus-display-width: min(90vw, calc(47vh * 16 / 9));
+    --nexus-display-width: min(88vw, calc(45vh * 16 / 9));
   }
 
   .cosmic-nexus-display-frame__status {
@@ -614,7 +614,7 @@
 
 @media (max-width: 480px) {
   .player-shell.theme-cosmic-nexus {
-    --nexus-display-width: min(93vw, calc(42vh * 16 / 9));
+    --nexus-display-width: min(92vw, calc(40vh * 16 / 9));
   }
 
   .cosmic-nexus-display-frame::before {
