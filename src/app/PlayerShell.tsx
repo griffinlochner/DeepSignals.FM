@@ -3,7 +3,7 @@ import MainDisplay from '../components/MainDisplay'
 import TransportDock from '../components/TransportDock'
 import { themeRegistry } from '../themes/themeRegistry'
 import type { SignalSource, PlaybackState } from './playerTypes'
-import type { ThemeId, ThemeSceneProps } from '../themes/themeTypes'
+import type { MainDisplayMode, ThemeId, ThemeSceneProps, ThemeTelemetry } from '../themes/themeTypes'
 import '../styles/player.css'
 
 type PlayerShellProps = {
@@ -15,7 +15,9 @@ function PlayerShell({ className }: PlayerShellProps) {
   const [selectedSignalId, setSelectedSignalId] = useState<string | null>(null)
   const [isPlaying, setIsPlaying] = useState<PlaybackState>('stopped')
   const [volume, setVolume] = useState(0.7)
-  const [displayMode] = useState<'standby'>('standby')
+  const [displayMode, setDisplayMode] = useState<MainDisplayMode>('standby')
+  const [motionEnabled, setMotionEnabled] = useState(true)
+  const [depthResonance, setDepthResonance] = useState(0)
 
   const signals: SignalSource[] = useMemo(
     () => [
@@ -39,12 +41,21 @@ function PlayerShell({ className }: PlayerShellProps) {
     [selectedSignalId, signals],
   )
 
+  const telemetry = useMemo<ThemeTelemetry>(() => ({ depthResonance }), [depthResonance])
+
+  const handleSignalChange = (id: string) => {
+    setSelectedSignalId(id || null)
+  }
+
   const sceneProps: ThemeSceneProps = {
     isPlaying: isPlaying === 'playing',
     volume,
     signalId: selectedSignalId,
     audioLevel: 0,
     reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+    motionEnabled,
+    displayMode,
+    onDepthResonanceChange: setDepthResonance,
   }
 
   if (!activeTheme) {
@@ -52,6 +63,7 @@ function PlayerShell({ className }: PlayerShellProps) {
   }
 
   const SceneComponent = activeTheme.Scene
+  const OverlayComponent = activeTheme.PlayerOverlay
   const signalState = !selectedSignalId
     ? 'dormant'
     : isPlaying === 'playing'
@@ -68,27 +80,47 @@ function PlayerShell({ className }: PlayerShellProps) {
         <SceneComponent {...sceneProps} />
       </div>
 
-      <div className="player-shell__main">
-        <MainDisplay
-          isPlaying={isPlaying}
+      {OverlayComponent ? (
+        <OverlayComponent
+          selectedSignalId={selectedSignalId}
+          signals={signals}
           signalLabel={selectedSignal?.label || null}
+          isPlaying={isPlaying === 'playing'}
+          volume={volume}
+          motionEnabled={motionEnabled}
           displayMode={displayMode}
-          DisplayFrame={activeTheme.DisplayFrame}
+          telemetry={telemetry}
+          onSignalChange={handleSignalChange}
+          onPlayToggle={(playing: boolean) => setIsPlaying(playing ? 'playing' : 'stopped')}
+          onVolumeChange={setVolume}
+          onMotionToggle={setMotionEnabled}
+          onDisplayModeChange={setDisplayMode}
         />
-      </div>
+      ) : (
+        <>
+          <div className="player-shell__main">
+            <MainDisplay
+              isPlaying={isPlaying}
+              signalLabel={selectedSignal?.label || null}
+              displayMode={displayMode}
+              DisplayFrame={activeTheme.DisplayFrame}
+            />
+          </div>
 
-      <TransportDock
-        selectedThemeId={selectedThemeId}
-        selectedSignalId={selectedSignalId}
-        isPlaying={isPlaying === 'playing'}
-        volume={volume}
-        signals={signals}
-        themeOptions={themeOptions}
-        onThemeChange={setSelectedThemeId}
-        onSignalChange={setSelectedSignalId}
-        onPlayToggle={(playing) => setIsPlaying(playing ? 'playing' : 'stopped')}
-        onVolumeChange={setVolume}
-      />
+          <TransportDock
+            selectedThemeId={selectedThemeId}
+            selectedSignalId={selectedSignalId}
+            isPlaying={isPlaying === 'playing'}
+            volume={volume}
+            signals={signals}
+            themeOptions={themeOptions}
+            onThemeChange={setSelectedThemeId}
+            onSignalChange={handleSignalChange}
+            onPlayToggle={(playing) => setIsPlaying(playing ? 'playing' : 'stopped')}
+            onVolumeChange={setVolume}
+          />
+        </>
+      )}
     </div>
   )
 }
