@@ -1,6 +1,10 @@
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import type { DepthLabSceneProps } from "../types";
+import {
+  formatUvJunglePlaybackFilter,
+  stepUvJunglePlaybackVisualMix,
+} from "../../../themes/uv-reactive-jungle/uvReactivePlaybackVisuals";
 
 const JUNGLE_IMAGE_PATH = "/experiments/depth-lab/jungle-color.png";
 const JUNGLE_DEPTH_MAP_PATH = "/experiments/depth-lab/jungle-depth.png";
@@ -225,6 +229,8 @@ function JungleDepthScene({
       "(prefers-reduced-motion: reduce)",
     );
 
+    let playbackVisualMix = 0;
+
     mount.addEventListener("pointermove", handlePointerMove);
     mount.addEventListener("pointerleave", handlePointerLeave);
     window.addEventListener("resize", handleResize);
@@ -327,6 +333,14 @@ function JungleDepthScene({
         : staticDepth;
       const effectiveDepth = isPlaying ? breathingDepth : staticDepth;
 
+      playbackVisualMix = stepUvJunglePlaybackVisualMix(
+        playbackVisualMix,
+        isPlaying,
+        reducedMotionQuery.matches,
+      );
+      renderer.domElement.style.filter =
+        formatUvJunglePlaybackFilter(playbackVisualMix);
+
       if (
         elapsed - lastDiagnosticUpdateAt >=
         DIAGNOSTIC_UPDATE_INTERVAL_SECONDS
@@ -370,6 +384,7 @@ function JungleDepthScene({
 
       colorTexture?.dispose();
       depthTexture?.dispose();
+      renderer.domElement.style.filter = "";
       planeGeometry.dispose();
       planeMaterial.dispose();
       glowGeometry.dispose();
