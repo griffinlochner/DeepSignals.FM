@@ -1,24 +1,22 @@
-import type { ChangeEvent } from 'react'
-import type { DepthLabEnvironment, DepthLabPlaybackState, DepthLabSettings } from '../types'
+import type { ChangeEvent } from "react";
+import type { DepthLabPlaybackState, DepthLabSettings } from "../types";
 
 type DepthLabControlsProps = {
-  settings: DepthLabSettings
-  onEnvironmentChange: (environment: DepthLabEnvironment) => void
-  onPlaybackStateChange: (state: DepthLabPlaybackState) => void
-  onMotionIntensityChange: (value: number) => void
-  onDepthStrengthChange: (value: number) => void
-  onMinimumBreathingDepthChange: (value: number) => void
-  onMaximumBreathingDepthChange: (value: number) => void
-  onBreathingCycleDurationChange: (value: number) => void
-  onPointerParallaxChange: (enabled: boolean) => void
-  onAutoMotionChange: (enabled: boolean) => void
-  effectiveDepthDiagnostic: number
-  reducedMotionActive: boolean
-}
+  settings: DepthLabSettings;
+  onPlaybackStateChange: (state: DepthLabPlaybackState) => void;
+  onMotionIntensityChange: (value: number) => void;
+  onDepthStrengthChange: (value: number) => void;
+  onMinimumBreathingDepthChange: (value: number) => void;
+  onMaximumBreathingDepthChange: (value: number) => void;
+  onBreathingCycleDurationChange: (value: number) => void;
+  onPointerParallaxChange: (enabled: boolean) => void;
+  onAutoMotionChange: (enabled: boolean) => void;
+  effectiveDepthDiagnostic: number;
+  reducedMotionActive: boolean;
+};
 
 function DepthLabControls({
   settings,
-  onEnvironmentChange,
   onPlaybackStateChange,
   onMotionIntensityChange,
   onDepthStrengthChange,
@@ -30,28 +28,22 @@ function DepthLabControls({
   effectiveDepthDiagnostic,
   reducedMotionActive,
 }: DepthLabControlsProps) {
-  const handleSliderChange = (event: ChangeEvent<HTMLInputElement>, onChange: (value: number) => void) => {
-    onChange(Number(event.target.value))
-  }
+  const handleSliderChange = (
+    event: ChangeEvent<HTMLInputElement>,
+    onChange: (value: number) => void,
+  ) => {
+    onChange(Number(event.target.value));
+  };
 
   return (
     <div className="depth-lab__controls">
       <label className="depth-lab__field">
-        <span>Environment</span>
-        <select
-          value={settings.environment}
-          onChange={(event) => onEnvironmentChange(event.target.value as DepthLabEnvironment)}
-        >
-          <option value="beach-panorama">Beach Panorama</option>
-          <option value="jungle-depth">Jungle Depth Image</option>
-        </select>
-      </label>
-
-      <label className="depth-lab__field">
         <span>State</span>
         <select
           value={settings.playbackState}
-          onChange={(event) => onPlaybackStateChange(event.target.value as DepthLabPlaybackState)}
+          onChange={(event) =>
+            onPlaybackStateChange(event.target.value as DepthLabPlaybackState)
+          }
         >
           <option value="dormant">Dormant</option>
           <option value="armed">Armed</option>
@@ -67,7 +59,9 @@ function DepthLabControls({
           max="1"
           step="0.01"
           value={settings.motionIntensity}
-          onChange={(event) => handleSliderChange(event, onMotionIntensityChange)}
+          onChange={(event) =>
+            handleSliderChange(event, onMotionIntensityChange)
+          }
         />
         <strong>{settings.motionIntensity.toFixed(2)}</strong>
       </label>
@@ -93,7 +87,9 @@ function DepthLabControls({
           max="1"
           step="0.01"
           value={settings.minimumBreathingDepth}
-          onChange={(event) => handleSliderChange(event, onMinimumBreathingDepthChange)}
+          onChange={(event) =>
+            handleSliderChange(event, onMinimumBreathingDepthChange)
+          }
         />
         <strong>{settings.minimumBreathingDepth.toFixed(2)}</strong>
       </label>
@@ -106,7 +102,9 @@ function DepthLabControls({
           max="1"
           step="0.01"
           value={settings.maximumBreathingDepth}
-          onChange={(event) => handleSliderChange(event, onMaximumBreathingDepthChange)}
+          onChange={(event) =>
+            handleSliderChange(event, onMaximumBreathingDepthChange)
+          }
         />
         <strong>{settings.maximumBreathingDepth.toFixed(2)}</strong>
       </label>
@@ -119,7 +117,9 @@ function DepthLabControls({
           max="12"
           step="0.1"
           value={settings.breathingCycleDurationSeconds}
-          onChange={(event) => handleSliderChange(event, onBreathingCycleDurationChange)}
+          onChange={(event) =>
+            handleSliderChange(event, onBreathingCycleDurationChange)
+          }
         />
         <strong>{settings.breathingCycleDurationSeconds.toFixed(1)}s</strong>
       </label>
@@ -142,12 +142,16 @@ function DepthLabControls({
         />
       </label>
 
-      <p className="depth-lab__diagnostic">Effective depth: {effectiveDepthDiagnostic.toFixed(3)}</p>
+      <p className="depth-lab__diagnostic">
+        Effective depth: {effectiveDepthDiagnostic.toFixed(3)}
+      </p>
       {reducedMotionActive && (
-        <p className="depth-lab__motion-note">Reduced motion preference detected: ambient animation is suppressed.</p>
+        <p className="depth-lab__motion-note">
+          Reduced motion preference detected: ambient animation is suppressed.
+        </p>
       )}
     </div>
-  )
+  );
 }
 
-export default DepthLabControls
+export default DepthLabControls;
