@@ -85,7 +85,7 @@ function DepthLabControls({
       </label>
 
       <label className="depth-lab__toggle">
-        <span>Auto motion</span>
+        <span>Ambient motion</span>
         <input
           type="checkbox"
           checked={settings.autoMotionEnabled}

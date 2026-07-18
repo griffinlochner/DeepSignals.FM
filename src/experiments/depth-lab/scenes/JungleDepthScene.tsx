@@ -5,10 +5,15 @@ import type { DepthLabSceneProps, DepthLabPlaybackState } from '../types'
 const JUNGLE_IMAGE_PATH = '/experiments/depth-lab/jungle-color.png'
 const JUNGLE_DEPTH_MAP_PATH = '/experiments/depth-lab/jungle-depth.png'
 
-const STATE_MOTION: Record<DepthLabPlaybackState, { motion: number; depth: number }> = {
-  dormant: { motion: 0.1, depth: 0.42 },
-  armed: { motion: 0.24, depth: 0.7 },
-  playing: { motion: 0.4, depth: 1 },
+const POINTER_IDLE_TIMEOUT_SECONDS = 1.25
+
+const STATE_MOTION: Record<
+  DepthLabPlaybackState,
+  { motion: number; depth: number; breathAmplitude: number; breathSpeed: number; driftAmount: number; driftSpeed: number }
+> = {
+  dormant: { motion: 0.08, depth: 0.42, breathAmplitude: 0.018, breathSpeed: 0.32, driftAmount: 0.1, driftSpeed: 0.2 },
+  armed: { motion: 0.24, depth: 0.7, breathAmplitude: 0.05, breathSpeed: 0.52, driftAmount: 0.34, driftSpeed: 0.36 },
+  playing: { motion: 0.42, depth: 1, breathAmplitude: 0.085, breathSpeed: 0.76, driftAmount: 0.6, driftSpeed: 0.58 },
 }
 
 function JungleDepthScene({
@@ -54,7 +59,11 @@ function JungleDepthScene({
 
     const pointer = new THREE.Vector2(0, 0)
     const pointerTarget = new THREE.Vector2(0, 0)
+    const blendedPointer = new THREE.Vector2(0, 0)
+    const autonomousPointer = new THREE.Vector2(0, 0)
     const planeScale = new THREE.Vector2(1, 1)
+    let pointerInfluence = 0
+    let lastPointerInputAt = -100
 
     const scene = new THREE.Scene()
     scene.background = new THREE.Color(0x08110d)
@@ -166,6 +175,7 @@ function JungleDepthScene({
       const rect = mount.getBoundingClientRect()
       pointerTarget.x = ((event.clientX - rect.left) / rect.width) * 2 - 1
       pointerTarget.y = ((event.clientY - rect.top) / rect.height) * 2 - 1
+      lastPointerInputAt = timer.getElapsed()
     }
 
     const handlePointerLeave = () => {
@@ -197,23 +207,48 @@ function JungleDepthScene({
       const elapsed = timer.getElapsed()
       const stateProfile = STATE_MOTION[configRef.current.playbackState]
       const motionAmount = reducedMotionQuery.matches ? 0 : configRef.current.motionIntensity * stateProfile.motion
-      const depthAmount = configRef.current.depthStrength * stateProfile.depth
-      const pointerAmount = configRef.current.pointerParallaxEnabled && !reducedMotionQuery.matches ? motionAmount : 0
-      const autoAmount = configRef.current.autoMotionEnabled && !reducedMotionQuery.matches ? motionAmount : 0
+      const baseDepth = configRef.current.depthStrength * stateProfile.depth
+      const ambientEnabled = configRef.current.autoMotionEnabled && !reducedMotionQuery.matches
+      const pointerEnabled = configRef.current.pointerParallaxEnabled && !reducedMotionQuery.matches
+      const autoAmount = ambientEnabled ? motionAmount : 0
 
-      pointer.lerp(pointerTarget, 0.045)
-      planeMaterial.displacementScale = 0.04 + depthAmount * 0.32
-      planeMaterial.bumpScale = depthAmount * 0.04
+      pointer.lerp(pointerTarget, 0.05)
 
-      planeGroup.position.x = Math.sin(elapsed * 0.18) * 0.08 * (0.2 + autoAmount) + pointer.x * 0.16 * pointerAmount
-      planeGroup.position.y = Math.cos(elapsed * 0.14) * 0.05 * (0.24 + autoAmount) - pointer.y * 0.12 * pointerAmount
-      planeGroup.rotation.y = Math.sin(elapsed * 0.11) * 0.025 * (0.24 + autoAmount) + pointer.x * 0.12 * pointerAmount
-      planeGroup.rotation.x = Math.cos(elapsed * 0.09) * 0.018 * (0.2 + autoAmount) - pointer.y * 0.08 * pointerAmount
+      autonomousPointer.x = Math.sin(elapsed * stateProfile.driftSpeed) * stateProfile.driftAmount * autoAmount
+      autonomousPointer.y =
+        Math.sin(elapsed * stateProfile.driftSpeed * 0.65) *
+        Math.cos(elapsed * stateProfile.driftSpeed * 0.42) *
+        stateProfile.driftAmount *
+        autoAmount *
+        0.82
+
+      const pointerIsActive = elapsed - lastPointerInputAt <= POINTER_IDLE_TIMEOUT_SECONDS
+      const pointerInfluenceTarget = pointerEnabled && pointerIsActive ? 1 : 0
+      pointerInfluence = THREE.MathUtils.lerp(pointerInfluence, pointerInfluenceTarget, 0.045)
+
+      blendedPointer.x = THREE.MathUtils.lerp(autonomousPointer.x, pointer.x * motionAmount, pointerInfluence)
+      blendedPointer.y = THREE.MathUtils.lerp(autonomousPointer.y, pointer.y * motionAmount, pointerInfluence)
+
+      const breathingAmplitude = ambientEnabled ? stateProfile.breathAmplitude * autoAmount : 0
+      const breathingSpeed = stateProfile.breathSpeed
+      const effectiveDepth = THREE.MathUtils.clamp(
+        baseDepth + Math.sin(elapsed * breathingSpeed) * breathingAmplitude,
+        0,
+        1,
+      )
+
+      planeMaterial.displacementScale = 0.04 + effectiveDepth * 0.32
+      planeMaterial.bumpScale = effectiveDepth * 0.04
+
+      planeGroup.position.x = Math.sin(elapsed * 0.16) * 0.06 * (0.2 + autoAmount) + blendedPointer.x * 0.14
+      planeGroup.position.y = Math.cos(elapsed * 0.12) * 0.04 * (0.2 + autoAmount) - blendedPointer.y * 0.11
+      planeGroup.rotation.y = Math.sin(elapsed * 0.1) * 0.022 * (0.22 + autoAmount) + blendedPointer.x * 0.13
+      planeGroup.rotation.x = Math.cos(elapsed * 0.085) * 0.016 * (0.2 + autoAmount) - blendedPointer.y * 0.1
       plane.position.z = -0.15 + Math.sin(elapsed * 0.22) * 0.06 * (0.16 + autoAmount)
-      glowPlane.material.opacity = 0.05 + depthAmount * 0.06
+      glowPlane.material.opacity = 0.05 + effectiveDepth * 0.06
 
-      camera.position.x = pointer.x * 0.05 * pointerAmount
-      camera.position.y = -pointer.y * 0.04 * pointerAmount
+      camera.position.x = blendedPointer.x * 0.06
+      camera.position.y = -blendedPointer.y * 0.045
       camera.lookAt(0, 0, -0.4)
 
       renderer.render(scene, camera)
