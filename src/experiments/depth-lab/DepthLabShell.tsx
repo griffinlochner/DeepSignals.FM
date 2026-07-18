@@ -12,8 +12,14 @@ type DepthLabShellProps = {
   onPlaybackStateChange: (state: DepthLabPlaybackState) => void
   onMotionIntensityChange: (value: number) => void
   onDepthStrengthChange: (value: number) => void
+  onMinimumBreathingDepthChange: (value: number) => void
+  onMaximumBreathingDepthChange: (value: number) => void
+  onBreathingCycleDurationChange: (value: number) => void
   onPointerParallaxChange: (enabled: boolean) => void
   onAutoMotionChange: (enabled: boolean) => void
+  effectiveDepthDiagnostic: number
+  reducedMotionActive: boolean
+  onEffectiveDepthDiagnosticChange: (value: number) => void
   onLoadingStateChange: (state: DepthLabLoadingState) => void
 }
 
@@ -24,8 +30,14 @@ function DepthLabShell({
   onPlaybackStateChange,
   onMotionIntensityChange,
   onDepthStrengthChange,
+  onMinimumBreathingDepthChange,
+  onMaximumBreathingDepthChange,
+  onBreathingCycleDurationChange,
   onPointerParallaxChange,
   onAutoMotionChange,
+  effectiveDepthDiagnostic,
+  reducedMotionActive,
+  onEffectiveDepthDiagnosticChange,
   onLoadingStateChange,
 }: DepthLabShellProps) {
   return (
@@ -37,8 +49,12 @@ function DepthLabShell({
             playbackState={settings.playbackState}
             motionIntensity={settings.motionIntensity}
             depthStrength={settings.depthStrength}
+            minimumBreathingDepth={settings.minimumBreathingDepth}
+            maximumBreathingDepth={settings.maximumBreathingDepth}
+            breathingCycleDurationSeconds={settings.breathingCycleDurationSeconds}
             pointerParallaxEnabled={settings.pointerParallaxEnabled}
             autoMotionEnabled={settings.autoMotionEnabled}
+            onEffectiveDepthDiagnosticChange={onEffectiveDepthDiagnosticChange}
             onLoadingStateChange={onLoadingStateChange}
           />
         ) : (
@@ -47,8 +63,12 @@ function DepthLabShell({
             playbackState={settings.playbackState}
             motionIntensity={settings.motionIntensity}
             depthStrength={settings.depthStrength}
+            minimumBreathingDepth={settings.minimumBreathingDepth}
+            maximumBreathingDepth={settings.maximumBreathingDepth}
+            breathingCycleDurationSeconds={settings.breathingCycleDurationSeconds}
             pointerParallaxEnabled={settings.pointerParallaxEnabled}
             autoMotionEnabled={settings.autoMotionEnabled}
+            onEffectiveDepthDiagnosticChange={onEffectiveDepthDiagnosticChange}
             onLoadingStateChange={onLoadingStateChange}
           />
         )}
@@ -61,8 +81,13 @@ function DepthLabShell({
           onPlaybackStateChange={onPlaybackStateChange}
           onMotionIntensityChange={onMotionIntensityChange}
           onDepthStrengthChange={onDepthStrengthChange}
+          onMinimumBreathingDepthChange={onMinimumBreathingDepthChange}
+          onMaximumBreathingDepthChange={onMaximumBreathingDepthChange}
+          onBreathingCycleDurationChange={onBreathingCycleDurationChange}
           onPointerParallaxChange={onPointerParallaxChange}
           onAutoMotionChange={onAutoMotionChange}
+          effectiveDepthDiagnostic={effectiveDepthDiagnostic}
+          reducedMotionActive={reducedMotionActive}
         />
       </DepthLabOverlay>
     </main>

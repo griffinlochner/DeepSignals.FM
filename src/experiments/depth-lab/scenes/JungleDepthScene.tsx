@@ -6,22 +6,28 @@ const JUNGLE_IMAGE_PATH = '/experiments/depth-lab/jungle-color.png'
 const JUNGLE_DEPTH_MAP_PATH = '/experiments/depth-lab/jungle-depth.png'
 
 const POINTER_IDLE_TIMEOUT_SECONDS = 1.25
+const DIAGNOSTIC_UPDATE_INTERVAL_SECONDS = 0.14
+const DISPLACEMENT_SCALE_MULTIPLIER = 0.36
 
 const STATE_MOTION: Record<
   DepthLabPlaybackState,
-  { motion: number; depth: number; breathAmplitude: number; breathSpeed: number; driftAmount: number; driftSpeed: number }
+  { motion: number; driftAmount: number; driftSpeed: number }
 > = {
-  dormant: { motion: 0.08, depth: 0.42, breathAmplitude: 0.018, breathSpeed: 0.32, driftAmount: 0.1, driftSpeed: 0.2 },
-  armed: { motion: 0.24, depth: 0.7, breathAmplitude: 0.05, breathSpeed: 0.52, driftAmount: 0.34, driftSpeed: 0.36 },
-  playing: { motion: 0.42, depth: 1, breathAmplitude: 0.085, breathSpeed: 0.76, driftAmount: 0.6, driftSpeed: 0.58 },
+  dormant: { motion: 0.1, driftAmount: 0.12, driftSpeed: 0.2 },
+  armed: { motion: 0.24, driftAmount: 0.34, driftSpeed: 0.36 },
+  playing: { motion: 0.42, driftAmount: 0.6, driftSpeed: 0.58 },
 }
 
 function JungleDepthScene({
   playbackState,
   motionIntensity,
   depthStrength,
+  minimumBreathingDepth,
+  maximumBreathingDepth,
+  breathingCycleDurationSeconds,
   pointerParallaxEnabled,
   autoMotionEnabled,
+  onEffectiveDepthDiagnosticChange,
   onLoadingStateChange,
 }: DepthLabSceneProps) {
   const mountRef = useRef<HTMLDivElement | null>(null)
@@ -29,6 +35,9 @@ function JungleDepthScene({
     playbackState,
     motionIntensity,
     depthStrength,
+    minimumBreathingDepth,
+    maximumBreathingDepth,
+    breathingCycleDurationSeconds,
     pointerParallaxEnabled,
     autoMotionEnabled,
   })
@@ -38,10 +47,22 @@ function JungleDepthScene({
       playbackState,
       motionIntensity,
       depthStrength,
+      minimumBreathingDepth,
+      maximumBreathingDepth,
+      breathingCycleDurationSeconds,
       pointerParallaxEnabled,
       autoMotionEnabled,
     }
-  }, [autoMotionEnabled, depthStrength, motionIntensity, playbackState, pointerParallaxEnabled])
+  }, [
+    autoMotionEnabled,
+    breathingCycleDurationSeconds,
+    depthStrength,
+    maximumBreathingDepth,
+    minimumBreathingDepth,
+    motionIntensity,
+    playbackState,
+    pointerParallaxEnabled,
+  ])
 
   useEffect(() => {
     const mount = mountRef.current
@@ -64,6 +85,7 @@ function JungleDepthScene({
     const planeScale = new THREE.Vector2(1, 1)
     let pointerInfluence = 0
     let lastPointerInputAt = -100
+    let lastDiagnosticUpdateAt = -100
 
     const scene = new THREE.Scene()
     scene.background = new THREE.Color(0x08110d)
@@ -207,10 +229,22 @@ function JungleDepthScene({
       const elapsed = timer.getElapsed()
       const stateProfile = STATE_MOTION[configRef.current.playbackState]
       const motionAmount = reducedMotionQuery.matches ? 0 : configRef.current.motionIntensity * stateProfile.motion
-      const baseDepth = configRef.current.depthStrength * stateProfile.depth
       const ambientEnabled = configRef.current.autoMotionEnabled && !reducedMotionQuery.matches
       const pointerEnabled = configRef.current.pointerParallaxEnabled && !reducedMotionQuery.matches
       const autoAmount = ambientEnabled ? motionAmount : 0
+
+      const minBreathingDepth = THREE.MathUtils.clamp(
+        Math.min(configRef.current.minimumBreathingDepth, configRef.current.maximumBreathingDepth),
+        0,
+        1,
+      )
+      const maxBreathingDepth = THREE.MathUtils.clamp(
+        Math.max(configRef.current.minimumBreathingDepth, configRef.current.maximumBreathingDepth),
+        0,
+        1,
+      )
+      const breathingCycleDurationSeconds = Math.max(configRef.current.breathingCycleDurationSeconds, 0.4)
+      const breathingFrequency = (Math.PI * 2) / breathingCycleDurationSeconds
 
       pointer.lerp(pointerTarget, 0.05)
 
@@ -229,22 +263,22 @@ function JungleDepthScene({
       blendedPointer.x = THREE.MathUtils.lerp(autonomousPointer.x, pointer.x * motionAmount, pointerInfluence)
       blendedPointer.y = THREE.MathUtils.lerp(autonomousPointer.y, pointer.y * motionAmount, pointerInfluence)
 
-      const breathingAmplitude = ambientEnabled ? stateProfile.breathAmplitude * autoAmount : 0
-      const breathingSpeed = stateProfile.breathSpeed
-      const effectiveDepth = THREE.MathUtils.clamp(
-        baseDepth + Math.sin(elapsed * breathingSpeed) * breathingAmplitude,
-        0,
-        1,
-      )
+      const breathProgress = ambientEnabled ? (Math.sin(elapsed * breathingFrequency) + 1) / 2 : 0
+      const effectiveDepth = THREE.MathUtils.lerp(minBreathingDepth, maxBreathingDepth, breathProgress)
 
-      planeMaterial.displacementScale = 0.04 + effectiveDepth * 0.32
+      if (elapsed - lastDiagnosticUpdateAt >= DIAGNOSTIC_UPDATE_INTERVAL_SECONDS) {
+        lastDiagnosticUpdateAt = elapsed
+        onEffectiveDepthDiagnosticChange?.(effectiveDepth)
+      }
+
+      planeMaterial.displacementScale = effectiveDepth * DISPLACEMENT_SCALE_MULTIPLIER
       planeMaterial.bumpScale = effectiveDepth * 0.04
 
-      planeGroup.position.x = Math.sin(elapsed * 0.16) * 0.06 * (0.2 + autoAmount) + blendedPointer.x * 0.14
-      planeGroup.position.y = Math.cos(elapsed * 0.12) * 0.04 * (0.2 + autoAmount) - blendedPointer.y * 0.11
-      planeGroup.rotation.y = Math.sin(elapsed * 0.1) * 0.022 * (0.22 + autoAmount) + blendedPointer.x * 0.13
-      planeGroup.rotation.x = Math.cos(elapsed * 0.085) * 0.016 * (0.2 + autoAmount) - blendedPointer.y * 0.1
-      plane.position.z = -0.15 + Math.sin(elapsed * 0.22) * 0.06 * (0.16 + autoAmount)
+      planeGroup.position.x = Math.sin(elapsed * 0.16) * 0.06 * autoAmount + blendedPointer.x * 0.14
+      planeGroup.position.y = Math.cos(elapsed * 0.12) * 0.04 * autoAmount - blendedPointer.y * 0.11
+      planeGroup.rotation.y = Math.sin(elapsed * 0.1) * 0.022 * autoAmount + blendedPointer.x * 0.13
+      planeGroup.rotation.x = Math.cos(elapsed * 0.085) * 0.016 * autoAmount - blendedPointer.y * 0.1
+      plane.position.z = -0.15 + Math.sin(elapsed * 0.22) * 0.06 * autoAmount
       glowPlane.material.opacity = 0.05 + effectiveDepth * 0.06
 
       camera.position.x = blendedPointer.x * 0.06
@@ -258,6 +292,7 @@ function JungleDepthScene({
 
     return () => {
       disposed = true
+      onEffectiveDepthDiagnosticChange?.(0)
       window.cancelAnimationFrame(animationFrameId)
       timer.disconnect()
       mount.removeEventListener('pointermove', handlePointerMove)
@@ -278,7 +313,7 @@ function JungleDepthScene({
         mount.removeChild(renderer.domElement)
       }
     }
-  }, [onLoadingStateChange])
+  }, [onEffectiveDepthDiagnosticChange, onLoadingStateChange])
 
   return <div ref={mountRef} className="depth-lab__scene" />
 }

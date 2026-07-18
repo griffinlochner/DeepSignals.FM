@@ -97,6 +97,22 @@
   font-weight: 700;
 }
 
+.depth-lab__diagnostic,
+.depth-lab__motion-note {
+  margin: 0;
+  font-size: 0.76rem;
+  line-height: 1.4;
+}
+
+.depth-lab__diagnostic {
+  color: var(--depth-lab-accent);
+  letter-spacing: 0.03em;
+}
+
+.depth-lab__motion-note {
+  color: #ffd79a;
+}
+
 .depth-lab__field select,
 .depth-lab__field input[type='range'] {
   width: 100%;
