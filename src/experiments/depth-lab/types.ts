@@ -1,4 +1,4 @@
-export type DepthLabPlaybackState = "dormant" | "armed" | "playing";
+export type DepthLabPlaybackState = "stopped" | "playing";
 export type DepthLabLoadingState = "loading" | "ready" | "error";
 
 export type DepthLabSettings = {

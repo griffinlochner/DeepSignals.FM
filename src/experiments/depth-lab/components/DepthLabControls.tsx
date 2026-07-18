@@ -45,8 +45,7 @@ function DepthLabControls({
             onPlaybackStateChange(event.target.value as DepthLabPlaybackState)
           }
         >
-          <option value="dormant">Dormant</option>
-          <option value="armed">Armed</option>
+          <option value="stopped">Stopped</option>
           <option value="playing">Playing</option>
         </select>
       </label>

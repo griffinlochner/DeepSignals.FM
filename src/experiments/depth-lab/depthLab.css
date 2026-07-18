@@ -8,11 +8,19 @@
   inset: 0;
   overflow: hidden;
   background:
-    radial-gradient(circle at top left, rgba(115, 255, 235, 0.12), transparent 30%),
-    radial-gradient(circle at 80% 20%, rgba(255, 222, 167, 0.12), transparent 26%),
+    radial-gradient(
+      circle at top left,
+      rgba(115, 255, 235, 0.12),
+      transparent 30%
+    ),
+    radial-gradient(
+      circle at 80% 20%,
+      rgba(255, 222, 167, 0.12),
+      transparent 26%
+    ),
     #081014;
   color: var(--depth-lab-text);
-  font-family: 'Avenir Next', 'Segoe UI', sans-serif;
+  font-family: "Avenir Next", "Segoe UI", sans-serif;
 }
 
 .depth-lab__viewport {
@@ -34,16 +42,25 @@
 
 .depth-lab__overlay {
   position: absolute;
-  top: clamp(16px, 3vw, 28px);
-  left: clamp(16px, 3vw, 28px);
+  top: clamp(12px, 2.4vw, 24px);
+  left: clamp(12px, 2.4vw, 24px);
   z-index: 2;
-  width: min(360px, calc(100vw - 32px));
+  display: flex;
+  flex-direction: column;
+  width: min(360px, calc(100vw - 24px));
+  max-height: calc(100vh - 24px);
+  max-height: calc(100dvh - 24px);
   padding: 16px 16px 14px;
   border: 1px solid var(--depth-lab-border);
   border-radius: 18px;
-  background: linear-gradient(180deg, rgba(14, 30, 36, 0.66), rgba(8, 17, 21, 0.58));
+  background: linear-gradient(
+    180deg,
+    rgba(14, 30, 36, 0.66),
+    rgba(8, 17, 21, 0.58)
+  );
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.28);
   backdrop-filter: blur(18px);
+  overflow: hidden;
 }
 
 .depth-lab__eyebrow,
@@ -73,16 +90,42 @@
   line-height: 1.45;
 }
 
+.depth-lab__panel-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  margin-top: 12px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(142, 242, 216, 0.45) transparent;
+}
+
+.depth-lab__panel-scroll::-webkit-scrollbar {
+  width: 10px;
+}
+
+.depth-lab__panel-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.depth-lab__panel-scroll::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background-clip: content-box;
+  background-color: rgba(142, 242, 216, 0.34);
+}
+
 .depth-lab__controls {
   display: grid;
-  gap: 12px;
-  margin-top: 14px;
+  gap: 10px;
 }
 
 .depth-lab__field,
 .depth-lab__toggle {
   display: grid;
-  gap: 7px;
+  gap: 6px;
   font-size: 0.82rem;
 }
 
@@ -114,7 +157,7 @@
 }
 
 .depth-lab__field select,
-.depth-lab__field input[type='range'] {
+.depth-lab__field input[type="range"] {
   width: 100%;
 }
 
@@ -126,7 +169,7 @@
   padding: 10px 12px;
 }
 
-.depth-lab__field input[type='range'] {
+.depth-lab__field input[type="range"] {
   accent-color: var(--depth-lab-accent);
 }
 
@@ -142,10 +185,41 @@
 }
 
 .depth-lab__status {
-  margin-top: 14px;
+  margin-top: 12px;
   color: rgba(237, 248, 242, 0.82);
   font-size: 0.76rem;
   letter-spacing: 0.03em;
+}
+
+@media (max-height: 820px) {
+  .depth-lab__overlay {
+    top: 10px;
+    left: 10px;
+    width: min(360px, calc(100vw - 20px));
+    max-height: calc(100vh - 20px);
+    max-height: calc(100dvh - 20px);
+    padding: 13px 13px 12px;
+  }
+
+  .depth-lab__title {
+    margin-top: 4px;
+  }
+
+  .depth-lab__caption {
+    margin-top: 5px;
+  }
+
+  .depth-lab__panel-scroll {
+    margin-top: 10px;
+  }
+
+  .depth-lab__controls {
+    gap: 9px;
+  }
+
+  .depth-lab__status {
+    margin-top: 10px;
+  }
 }
 
 @media (max-width: 640px) {

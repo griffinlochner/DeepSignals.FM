@@ -60,19 +60,21 @@ function DepthLabShell({
       </div>
 
       <DepthLabOverlay status={status}>
-        <DepthLabControls
-          settings={settings}
-          onPlaybackStateChange={onPlaybackStateChange}
-          onMotionIntensityChange={onMotionIntensityChange}
-          onDepthStrengthChange={onDepthStrengthChange}
-          onMinimumBreathingDepthChange={onMinimumBreathingDepthChange}
-          onMaximumBreathingDepthChange={onMaximumBreathingDepthChange}
-          onBreathingCycleDurationChange={onBreathingCycleDurationChange}
-          onPointerParallaxChange={onPointerParallaxChange}
-          onAutoMotionChange={onAutoMotionChange}
-          effectiveDepthDiagnostic={effectiveDepthDiagnostic}
-          reducedMotionActive={reducedMotionActive}
-        />
+        <div className="depth-lab__panel-scroll">
+          <DepthLabControls
+            settings={settings}
+            onPlaybackStateChange={onPlaybackStateChange}
+            onMotionIntensityChange={onMotionIntensityChange}
+            onDepthStrengthChange={onDepthStrengthChange}
+            onMinimumBreathingDepthChange={onMinimumBreathingDepthChange}
+            onMaximumBreathingDepthChange={onMaximumBreathingDepthChange}
+            onBreathingCycleDurationChange={onBreathingCycleDurationChange}
+            onPointerParallaxChange={onPointerParallaxChange}
+            onAutoMotionChange={onAutoMotionChange}
+            effectiveDepthDiagnostic={effectiveDepthDiagnostic}
+            reducedMotionActive={reducedMotionActive}
+          />
+        </div>
       </DepthLabOverlay>
     </main>
   );

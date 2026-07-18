@@ -7,7 +7,7 @@ import type {
 } from "./types";
 
 const DEFAULT_SETTINGS: DepthLabSettings = {
-  playbackState: "dormant",
+  playbackState: "stopped",
   motionIntensity: 0.35,
   depthStrength: 0.45,
   minimumBreathingDepth: 0,
@@ -18,8 +18,7 @@ const DEFAULT_SETTINGS: DepthLabSettings = {
 };
 
 const STATE_LABELS: Record<DepthLabPlaybackState, string> = {
-  dormant: "Dormant",
-  armed: "Armed",
+  stopped: "Stopped",
   playing: "Playing",
 };
 
