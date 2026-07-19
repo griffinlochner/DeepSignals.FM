@@ -1,4 +1,4 @@
-import { useId, useMemo, useState } from 'react'
+import { useId, useMemo } from 'react'
 import type { SignalSource } from '../app/playerTypes'
 import type { ThemeId } from '../themes/themeTypes'
 import PlayStopButton from './PlayStopButton'
@@ -23,9 +23,12 @@ type FloatingPlayerPanelProps = {
   volume: number
   onVolumeChange: (volume: number) => void
   motionEnabled: boolean
+  supportsMotion: boolean
   onMotionToggle: (enabled: boolean) => void
   visualFeedOpen: boolean
   onVisualFeedChange: (enabled: boolean) => void
+  collapsed: boolean
+  onCollapsedChange: (collapsed: boolean) => void
 }
 
 type PanelChevronIconProps = {
@@ -65,11 +68,13 @@ function FloatingPlayerPanel({
   volume,
   onVolumeChange,
   motionEnabled,
+  supportsMotion,
   onMotionToggle,
   visualFeedOpen,
   onVisualFeedChange,
+  collapsed,
+  onCollapsedChange,
 }: FloatingPlayerPanelProps) {
-  const [collapsed, setCollapsed] = useState(false)
   const contentId = useId()
 
   const marqueeState: 'no-signal' | 'ready' | 'playing' = !selectedSignalId
@@ -99,7 +104,7 @@ function FloatingPlayerPanel({
         <button
           type="button"
           className="floating-player-panel__toggle"
-          onClick={() => setCollapsed((value) => !value)}
+          onClick={() => onCollapsedChange(!collapsed)}
           aria-controls={contentId}
           aria-expanded={!collapsed}
           aria-label={toggleLabel}
@@ -171,6 +176,7 @@ function FloatingPlayerPanel({
                 className="floating-player-panel__switch-checkbox"
                 type="checkbox"
                 checked={motionEnabled}
+                disabled={!supportsMotion}
                 onChange={(event) => onMotionToggle(event.target.checked)}
                 aria-label="Motion"
               />

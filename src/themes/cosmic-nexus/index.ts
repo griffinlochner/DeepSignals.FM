@@ -1,5 +1,5 @@
 import type { ThemeDefinition } from '../themeTypes'
-import CosmicNexusDisplayFrame from './CosmicNexusDisplayFrame'
+import CosmicNexusVisualFeedFrame from './CosmicNexusVisualFeedFrame'
 import CosmicNexusTheme from './CosmicNexusTheme'
 
 const CosmicNexusDefinition: ThemeDefinition = {
@@ -9,9 +9,9 @@ const CosmicNexusDefinition: ThemeDefinition = {
   className: 'theme-cosmic-nexus',
   performanceTier: 'enhanced',
   Scene: CosmicNexusTheme,
-  DisplayFrame: CosmicNexusDisplayFrame,
-  supportsVideo: true,
-  defaultDisplayMode: 'standby',
+  VisualFeedFrame: CosmicNexusVisualFeedFrame,
+  supportsMotion: true,
+  supportsVisualFeed: true,
 }
 
 export default CosmicNexusDefinition

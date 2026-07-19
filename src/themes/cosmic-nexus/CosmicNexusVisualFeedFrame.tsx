@@ -1,12 +1,9 @@
-import type { ThemeDisplayFrameProps } from '../themeTypes'
+import type { ThemeVisualFeedFrameProps } from '../themeTypes'
+import './cosmicNexus.css'
 
-function CosmicNexusDisplayFrame({ children, displayMode, isPlaying }: ThemeDisplayFrameProps) {
+function CosmicNexusVisualFeedFrame({ children }: ThemeVisualFeedFrameProps) {
   return (
-    <div
-      className="cosmic-nexus-display-frame"
-      data-display-mode={displayMode}
-      data-playing={isPlaying ? 'true' : 'false'}
-    >
+    <div className="cosmic-nexus-display-frame cosmic-nexus-visual-feed-frame">
       <div className="cosmic-nexus-display-frame__halo" aria-hidden="true" />
       <div className="cosmic-nexus-display-frame__grid" aria-hidden="true" />
       <div className="cosmic-nexus-display-frame__scan-beam" aria-hidden="true" />
@@ -18,13 +15,9 @@ function CosmicNexusDisplayFrame({ children, displayMode, isPlaying }: ThemeDisp
       <div className="cosmic-nexus-display-frame__node cosmic-nexus-display-frame__node--right" aria-hidden="true" />
       <div className="cosmic-nexus-display-frame__node cosmic-nexus-display-frame__node--top" aria-hidden="true" />
       <div className="cosmic-nexus-display-frame__node cosmic-nexus-display-frame__node--bottom" aria-hidden="true" />
-      <div className="cosmic-nexus-display-frame__content">{children}</div>
-      <div className="cosmic-nexus-display-frame__status" aria-hidden="true">
-        <span>APERTURE // 07</span>
-        <span>{isPlaying ? 'SIGNAL LOCKED // HIGH ENERGY' : 'PASSIVE SCAN'}</span>
-      </div>
+      <div className="cosmic-nexus-display-frame__content cosmic-nexus-visual-feed-frame__content">{children}</div>
     </div>
   )
 }
 
-export default CosmicNexusDisplayFrame
+export default CosmicNexusVisualFeedFrame

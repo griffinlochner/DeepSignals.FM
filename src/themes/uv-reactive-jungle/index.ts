@@ -1,5 +1,4 @@
 import type { ThemeDefinition } from '../themeTypes'
-import UvReactiveJunglePlayerPanel from './UvReactiveJunglePlayerPanel'
 import UvReactiveJungleTheme from './UvReactiveJungleTheme'
 
 const UvReactiveJungleDefinition: ThemeDefinition = {
@@ -9,9 +8,8 @@ const UvReactiveJungleDefinition: ThemeDefinition = {
   className: 'theme-uv-reactive-jungle',
   performanceTier: 'enhanced',
   Scene: UvReactiveJungleTheme,
-  PlayerOverlay: UvReactiveJunglePlayerPanel,
-  supportsVideo: true,
-  defaultDisplayMode: 'standby',
+  supportsMotion: true,
+  supportsVisualFeed: true,
 }
 
 export default UvReactiveJungleDefinition

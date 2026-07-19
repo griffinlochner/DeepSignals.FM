@@ -9,5 +9,3 @@ export type TrackInfo = {
 }
 
 export type PlaybackState = 'stopped' | 'playing' | 'loading'
-
-export type DisplayMode = 'standby' | 'video' | 'visualizer' | 'artwork'

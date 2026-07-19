@@ -8,8 +8,8 @@ const MinimalDefinition: ThemeDefinition = {
   className: 'theme-minimal',
   performanceTier: 'minimal',
   Scene: MinimalTheme,
-  supportsVideo: false,
-  defaultDisplayMode: 'standby',
+  supportsMotion: false,
+  supportsVisualFeed: true,
 }
 
 export default MinimalDefinition

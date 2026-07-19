@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react'
-import MainDisplay from '../components/MainDisplay'
-import TransportDock from '../components/TransportDock'
+import FloatingPlayerPanel from '../components/FloatingPlayerPanel'
+import VisualFeedWindow from '../components/VisualFeedWindow'
 import { themeRegistry } from '../themes/themeRegistry'
 import type { SignalSource, PlaybackState } from './playerTypes'
-import type { MainDisplayMode, ThemeId, ThemeSceneProps } from '../themes/themeTypes'
+import type { ThemeId, ThemeSceneProps } from '../themes/themeTypes'
 import '../styles/player.css'
 
 type PlayerShellProps = {
@@ -15,8 +15,9 @@ function PlayerShell({ className }: PlayerShellProps) {
   const [selectedSignalId, setSelectedSignalId] = useState<string | null>(null)
   const [isPlaying, setIsPlaying] = useState<PlaybackState>('stopped')
   const [volume, setVolume] = useState(0.7)
-  const [displayMode, setDisplayMode] = useState<MainDisplayMode>('standby')
   const [motionEnabled, setMotionEnabled] = useState(true)
+  const [panelCollapsed, setPanelCollapsed] = useState(false)
+  const [visualFeedOpen, setVisualFeedOpen] = useState(false)
 
   const signals: SignalSource[] = useMemo(
     () => [
@@ -40,6 +41,9 @@ function PlayerShell({ className }: PlayerShellProps) {
     [selectedSignalId, signals],
   )
 
+  const supportsMotion = activeTheme?.supportsMotion ?? true
+  const supportsVisualFeed = activeTheme?.supportsVisualFeed ?? true
+
   const handleSignalChange = (id: string) => {
     setSelectedSignalId(id || null)
   }
@@ -47,8 +51,10 @@ function PlayerShell({ className }: PlayerShellProps) {
   const handleThemeChange = (themeId: ThemeId) => {
     setSelectedThemeId(themeId)
 
-    if (themeId !== 'uv-reactive-jungle') {
-      setDisplayMode('standby')
+    const nextTheme = themeRegistry.find((theme) => theme.id === themeId)
+
+    if (!nextTheme?.supportsVisualFeed) {
+      setVisualFeedOpen(false)
     }
   }
 
@@ -59,7 +65,6 @@ function PlayerShell({ className }: PlayerShellProps) {
     audioLevel: 0,
     reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches,
     motionEnabled,
-    displayMode,
   }
 
   if (!activeTheme) {
@@ -67,7 +72,6 @@ function PlayerShell({ className }: PlayerShellProps) {
   }
 
   const SceneComponent = activeTheme.Scene
-  const OverlayComponent = activeTheme.PlayerOverlay
   const signalState = !selectedSignalId
     ? 'dormant'
     : isPlaying === 'playing'
@@ -84,50 +88,33 @@ function PlayerShell({ className }: PlayerShellProps) {
         <SceneComponent {...sceneProps} />
       </div>
 
-      {OverlayComponent ? (
-        <OverlayComponent
-          selectedThemeId={selectedThemeId}
-          selectedThemeName={activeTheme.name}
-          themeOptions={themeOptions}
-          selectedSignalId={selectedSignalId}
-          signals={signals}
-          signalLabel={selectedSignal?.label || null}
-          isPlaying={isPlaying === 'playing'}
-          volume={volume}
-          motionEnabled={motionEnabled}
-          displayMode={displayMode}
-          onThemeChange={handleThemeChange}
-          onSignalChange={handleSignalChange}
-          onPlayToggle={(playing: boolean) => setIsPlaying(playing ? 'playing' : 'stopped')}
-          onVolumeChange={setVolume}
-          onMotionToggle={setMotionEnabled}
-          onDisplayModeChange={setDisplayMode}
-        />
-      ) : (
-        <>
-          <div className="player-shell__main">
-            <MainDisplay
-              isPlaying={isPlaying}
-              signalLabel={selectedSignal?.label || null}
-              displayMode={displayMode}
-              DisplayFrame={activeTheme.DisplayFrame}
-            />
-          </div>
+      <FloatingPlayerPanel
+        environmentName={activeTheme.name}
+        environmentOptions={themeOptions}
+        selectedEnvironmentId={selectedThemeId}
+        onEnvironmentChange={handleThemeChange}
+        signalOptions={signals}
+        selectedSignalId={selectedSignalId}
+        onSignalChange={handleSignalChange}
+        signalLabel={selectedSignal?.label || null}
+        isPlaying={isPlaying === 'playing'}
+        onPlayToggle={(playing: boolean) => setIsPlaying(playing ? 'playing' : 'stopped')}
+        volume={volume}
+        onVolumeChange={setVolume}
+        motionEnabled={motionEnabled}
+        supportsMotion={supportsMotion}
+        onMotionToggle={setMotionEnabled}
+        visualFeedOpen={visualFeedOpen && supportsVisualFeed}
+        onVisualFeedChange={(enabled) => setVisualFeedOpen(enabled)}
+        collapsed={panelCollapsed}
+        onCollapsedChange={setPanelCollapsed}
+      />
 
-          <TransportDock
-            selectedThemeId={selectedThemeId}
-            selectedSignalId={selectedSignalId}
-            isPlaying={isPlaying === 'playing'}
-            volume={volume}
-            signals={signals}
-            themeOptions={themeOptions}
-            onThemeChange={handleThemeChange}
-            onSignalChange={handleSignalChange}
-            onPlayToggle={(playing) => setIsPlaying(playing ? 'playing' : 'stopped')}
-            onVolumeChange={setVolume}
-          />
-        </>
-      )}
+      <VisualFeedWindow
+        open={visualFeedOpen && supportsVisualFeed}
+        onClose={() => setVisualFeedOpen(false)}
+        Frame={activeTheme.VisualFeedFrame}
+      />
     </div>
   )
 }
