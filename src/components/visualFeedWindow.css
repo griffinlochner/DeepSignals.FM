@@ -1,10 +1,13 @@
 .visual-feed-window {
+  --visual-feed-width: clamp(280px, 46vw, 540px);
+  --visual-feed-mobile-width: min(90vw, 460px);
+  --visual-feed-aspect-ratio: 16 / 9;
   position: absolute;
   right: clamp(14px, 2.2vw, 22px);
   bottom: clamp(16px, 3vw, 26px);
   z-index: 4;
-  width: min(46vw, 540px);
-  min-width: 280px;
+  width: var(--visual-feed-width);
+  max-width: calc(100vw - 24px);
   border: 1px solid var(--visual-feed-border, rgba(165, 243, 234, 0.2));
   border-radius: 12px;
   background: var(
@@ -72,8 +75,15 @@
   padding: 0;
 }
 
+.visual-feed-window__body > * {
+  display: block;
+  width: 100%;
+}
+
 .visual-feed-window__viewport {
-  aspect-ratio: 16 / 9;
+  box-sizing: border-box;
+  width: 100%;
+  aspect-ratio: var(--visual-feed-aspect-ratio);
   display: grid;
   place-items: center;
   text-align: center;
@@ -99,7 +109,7 @@
 
 @media (max-width: 820px) {
   .visual-feed-window {
-    width: min(90vw, 460px);
+    width: var(--visual-feed-mobile-width);
     right: 12px;
     left: 12px;
     margin-left: auto;

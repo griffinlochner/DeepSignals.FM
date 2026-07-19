@@ -318,6 +318,15 @@
   pointer-events: none;
 }
 
+.cosmic-nexus-visual-feed-frame {
+  width: 100%;
+  aspect-ratio: auto;
+}
+
+.cosmic-nexus-visual-feed-frame .cosmic-nexus-display-frame__content {
+  height: auto;
+}
+
 .cosmic-nexus-display-frame[data-playing='true'] .cosmic-nexus-display-frame__content {
   border-color: rgba(57, 255, 20, 0.56);
   box-shadow:

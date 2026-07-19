@@ -920,12 +920,17 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
       const state = visualStateRef.current
       const systemReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
       const reduced = state.reducedMotion || systemReducedMotion
+      const motionEnabled = state.motionEnabled ?? true
+      const cinematicMotion = motionEnabled && !reduced
+      const isPlayingWithMotionOff = state.isPlaying && !motionEnabled
       const hasSignal = Boolean(state.signalId)
       const ready = hasSignal && !state.isPlaying
-      const motionScale = reduced ? 0.16 : 1
+      const motionScale = reduced ? 0.16 : cinematicMotion ? 1 : 0.08
       const activeScale = state.isPlaying ? 2.45 : ready ? 0.92 : 0.26
       const volumeScale = 0.68 + state.volume * 0.32
       const delta = Math.min(timer.getDelta(), 0.05)
+      const travelScale = reduced ? 0 : cinematicMotion ? 1 : state.isPlaying ? 0.08 : 0.38
+      const suppressBursts = reduced || !motionEnabled
       elapsed += delta * motionScale
 
       if (hasSignal && !previousHasSignal) {
@@ -953,12 +958,12 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
 
       const transitionBoost = Math.max(0, 1 - activationProgress) * activationStrength
 
-      pointerCurrent.lerp(pointerTarget, reduced ? 0.01 : 0.026)
+      pointerCurrent.lerp(pointerTarget, reduced ? 0.01 : cinematicMotion ? 0.026 : 0.004)
       world.rotation.y = pointerCurrent.x * 0.022
       world.rotation.x = -pointerCurrent.y * 0.016
 
       animatedRings.forEach(({ mesh, rotationSpeed, material, baseOpacity }) => {
-        const speed = activeScale * volumeScale
+        const speed = activeScale * volumeScale * (cinematicMotion ? 1 : state.isPlaying ? 0.12 : 0.52)
         mesh.rotation.x += rotationSpeed.x * delta * motionScale * speed
         mesh.rotation.y += rotationSpeed.y * delta * motionScale * speed
         mesh.rotation.z += rotationSpeed.z * delta * motionScale * speed
@@ -966,13 +971,14 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
       })
 
       relays.forEach(({ group, shell, shellMaterial, glow, glowMaterial, phase }) => {
-        shell.rotation.x += 0.04 * delta * motionScale * activeScale
-        shell.rotation.y -= 0.07 * delta * motionScale * activeScale
+        shell.rotation.x += 0.04 * delta * motionScale * activeScale * (cinematicMotion ? 1 : 0.14)
+        shell.rotation.y -= 0.07 * delta * motionScale * activeScale * (cinematicMotion ? 1 : 0.14)
         const pulse = 1 + Math.sin(elapsed * (1.05 + activeScale * 0.7) + phase) * (state.isPlaying ? 0.13 : 0.045)
         glow.scale.setScalar(pulse)
-        glowMaterial.opacity = ((state.isPlaying ? 0.19 : ready ? 0.09 : 0.035) + transitionBoost * 0.08) * volumeScale
+        const calmGlowFloor = isPlayingWithMotionOff ? 0.075 : state.isPlaying ? 0.19 : ready ? 0.09 : 0.035
+        glowMaterial.opacity = (calmGlowFloor + transitionBoost * (isPlayingWithMotionOff ? 0.028 : 0.08)) * volumeScale
         shellMaterial.opacity = Math.min(1, (state.isPlaying ? 0.88 : ready ? 0.6 : 0.3) + transitionBoost * 0.18)
-        group.rotation.z = Math.sin(elapsed * 0.18 + phase) * 0.035
+        group.rotation.z = Math.sin(elapsed * 0.18 + phase) * (isPlayingWithMotionOff ? 0.009 : 0.035)
       })
 
       const pathPower = (state.isPlaying ? 1.55 : ready ? 0.86 : 0.14) + transitionBoost * 0.42
@@ -982,7 +988,7 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
       })
 
       pulses.forEach(({ core, glow, coreMaterial, glowMaterial, curve, speed, offset }) => {
-        const effectiveSpeed = speed * (state.isPlaying ? 3.35 : ready ? 0.96 : 0.12)
+        const effectiveSpeed = speed * (state.isPlaying ? 3.35 : ready ? 0.96 : 0.12) * travelScale
         const progress = (elapsed * effectiveSpeed + offset) % 1
         const point = curve.getPointAt(progress)
         core.position.copy(point)
@@ -991,15 +997,15 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
         core.scale.setScalar(scale * (state.isPlaying ? 1.08 : 1))
         glow.scale.setScalar(scale * (state.isPlaying ? 1.82 : ready ? 1.0 : 0.65))
         coreMaterial.opacity = state.isPlaying ? 1 : ready ? 0.76 : 0.24
-        glowMaterial.opacity = (state.isPlaying ? 0.34 : ready ? 0.15 : 0.04) * volumeScale
+        glowMaterial.opacity = (state.isPlaying ? (isPlayingWithMotionOff ? 0.08 : 0.34) : ready ? 0.15 : 0.04) * volumeScale
       })
 
       aperturePorts.forEach(({ ring, glow, ringMaterial, glowMaterial, phase }) => {
         const beat = (Math.sin(elapsed * (state.isPlaying ? 3.0 : 1.1) + phase) + 1) * 0.5
-        ring.scale.setScalar(1 + beat * (state.isPlaying ? 0.18 : 0.06))
-        glow.scale.setScalar(0.85 + beat * (state.isPlaying ? 0.75 : 0.25))
-        ringMaterial.opacity = state.isPlaying ? 0.78 + beat * 0.22 : ready ? 0.58 + beat * 0.14 : 0.3
-        glowMaterial.opacity = (state.isPlaying ? 0.15 + beat * 0.16 : ready ? 0.07 + beat * 0.05 : 0.025) * volumeScale
+        ring.scale.setScalar(1 + beat * (state.isPlaying ? (isPlayingWithMotionOff ? 0.04 : 0.18) : 0.06))
+        glow.scale.setScalar(0.85 + beat * (state.isPlaying ? (isPlayingWithMotionOff ? 0.18 : 0.75) : 0.25))
+        ringMaterial.opacity = state.isPlaying ? (isPlayingWithMotionOff ? 0.72 + beat * 0.06 : 0.78 + beat * 0.22) : ready ? 0.58 + beat * 0.14 : 0.3
+        glowMaterial.opacity = (state.isPlaying ? (isPlayingWithMotionOff ? 0.07 + beat * 0.05 : 0.15 + beat * 0.16) : ready ? 0.07 + beat * 0.05 : 0.025) * volumeScale
       })
 
       activationWaves.forEach(({ group, material, delay }) => {
@@ -1018,7 +1024,7 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
       })
 
       railgunShots.forEach((shot) => {
-        if (reduced || !hasSignal || (!state.isPlaying && !shot.readyEnabled)) {
+        if (suppressBursts || !hasSignal || (!state.isPlaying && !shot.readyEnabled)) {
           shot.group.visible = false
           return
         }
@@ -1044,17 +1050,21 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
       laserSweeps.forEach(({ group, coreMaterial, glowMaterial, baseY, baseRotation, phase, speed }) => {
         const wave = Math.max(0, Math.sin(elapsed * speed + phase))
         const flash = Math.pow(wave, state.isPlaying ? 7 : 13)
-        const intensity = state.isPlaying ? flash * volumeScale * 1.22 : ready ? flash * 0.1 : 0
-        group.position.y = baseY + Math.sin(elapsed * speed * 0.52 + phase) * 0.24
-        group.rotation.z = baseRotation + Math.sin(elapsed * speed * 0.58 + phase) * 0.08
+        const intensity = state.isPlaying
+          ? flash * volumeScale * (isPlayingWithMotionOff ? 0.32 : 1.22)
+          : ready
+            ? flash * 0.1
+            : 0
+        group.position.y = baseY + Math.sin(elapsed * speed * 0.52 + phase) * (isPlayingWithMotionOff ? 0.04 : 0.24)
+        group.rotation.z = baseRotation + Math.sin(elapsed * speed * 0.58 + phase) * (isPlayingWithMotionOff ? 0.014 : 0.08)
         coreMaterial.opacity = 0.5 * intensity
         glowMaterial.opacity = 0.135 * intensity
       })
 
       floatingGlyphs.forEach(({ mesh, basePosition, phase }, index) => {
-        mesh.position.y = basePosition.y + Math.sin(elapsed * 0.35 + phase) * 0.16
-        mesh.position.x = basePosition.x + Math.cos(elapsed * 0.22 + phase) * 0.08
-        mesh.rotation.z += (index % 2 === 0 ? 1 : -1) * 0.06 * delta * motionScale
+        mesh.position.y = basePosition.y + Math.sin(elapsed * 0.35 + phase) * (isPlayingWithMotionOff ? 0.03 : 0.16)
+        mesh.position.x = basePosition.x + Math.cos(elapsed * 0.22 + phase) * (isPlayingWithMotionOff ? 0.02 : 0.08)
+        mesh.rotation.z += (index % 2 === 0 ? 1 : -1) * (isPlayingWithMotionOff ? 0.01 : 0.06) * delta * motionScale
       })
 
       distantStars.rotation.y += 0.0015 * delta * motionScale
