@@ -152,20 +152,6 @@ function FloatingPlayerPanel({
               onToggle={onPlayToggle}
             />
 
-            <label className="floating-player-panel__switch floating-player-panel__motion-switch">
-              <input
-                className="floating-player-panel__switch-checkbox"
-                type="checkbox"
-                checked={motionEnabled}
-                onChange={(event) => onMotionToggle(event.target.checked)}
-                aria-label="Motion"
-              />
-              <span className="floating-player-panel__switch-label">Motion</span>
-              <span className="floating-player-panel__switch-track" aria-hidden="true">
-                <span className="floating-player-panel__switch-thumb" />
-              </span>
-            </label>
-
             <label className="floating-player-panel__switch floating-player-panel__visual-switch">
               <input
                 className="floating-player-panel__switch-checkbox"
@@ -175,6 +161,20 @@ function FloatingPlayerPanel({
                 aria-label="Visual Feed"
               />
               <span className="floating-player-panel__switch-label">Visual Feed</span>
+              <span className="floating-player-panel__switch-track" aria-hidden="true">
+                <span className="floating-player-panel__switch-thumb" />
+              </span>
+            </label>
+
+            <label className="floating-player-panel__switch floating-player-panel__motion-switch">
+              <input
+                className="floating-player-panel__switch-checkbox"
+                type="checkbox"
+                checked={motionEnabled}
+                onChange={(event) => onMotionToggle(event.target.checked)}
+                aria-label="Motion"
+              />
+              <span className="floating-player-panel__switch-label">Motion</span>
               <span className="floating-player-panel__switch-track" aria-hidden="true">
                 <span className="floating-player-panel__switch-thumb" />
               </span>
