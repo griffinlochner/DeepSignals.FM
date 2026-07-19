@@ -3,11 +3,39 @@ import * as THREE from 'three'
 import type { ThemeSceneProps } from '../themeTypes'
 import './cosmicNexus.css'
 
-type AnimatedRing = {
+type NexusShell = {
   mesh: THREE.Mesh
-  rotationSpeed: THREE.Vector3
-  baseOpacity: number
   material: THREE.MeshBasicMaterial
+  spin: THREE.Vector3
+  wobble: number
+}
+
+type NexusRing = {
+  mesh: THREE.Mesh
+  material: THREE.MeshBasicMaterial
+  spin: number
+  pulsePhase: number
+}
+
+type Satellite = {
+  group: THREE.Group
+  shell: THREE.Mesh
+  shellMaterial: THREE.MeshBasicMaterial
+  glowMaterial: THREE.MeshBasicMaterial
+  orbitRadius: number
+  orbitSpeed: number
+  orbitPhase: number
+  yDrift: number
+}
+
+type InboundLane = {
+  curve: THREE.Curve<THREE.Vector3>
+  innerMaterial: THREE.MeshBasicMaterial
+  outerMaterial: THREE.MeshBasicMaterial
+  baseInnerOpacity: number
+  baseOuterOpacity: number
+  travelRate: number
+  pulseBoost: number
 }
 
 type TravelingPulse = {
@@ -15,33 +43,42 @@ type TravelingPulse = {
   glow: THREE.Mesh
   coreMaterial: THREE.MeshBasicMaterial
   glowMaterial: THREE.MeshBasicMaterial
-  curve: THREE.Curve<THREE.Vector3>
-  speed: number
+  lane: InboundLane
   offset: number
 }
 
-type SignalPath = {
-  outerMaterial: THREE.MeshBasicMaterial
-  innerMaterial: THREE.MeshBasicMaterial
-  baseOuterOpacity: number
-  baseInnerOpacity: number
-}
-
-type Relay = {
+type RailShot = {
   group: THREE.Group
-  shell: THREE.Mesh
-  shellMaterial: THREE.MeshBasicMaterial
-  glow: THREE.Mesh
+  coreMaterial: THREE.MeshBasicMaterial
   glowMaterial: THREE.MeshBasicMaterial
+  helixMaterial: THREE.MeshBasicMaterial
+  cycleRate: number
+  cycleOffset: number
+  duty: number
+  readyEnabled: boolean
+}
+
+type LightningArc = {
+  line: THREE.Line
+  material: THREE.LineBasicMaterial
+  points: THREE.Vector3[]
+  jitter: number
   phase: number
 }
 
-type AperturePort = {
-  ring: THREE.Mesh
-  glow: THREE.Mesh
-  ringMaterial: THREE.MeshBasicMaterial
+type ActivationWave = {
+  mesh: THREE.Mesh
+  material: THREE.MeshBasicMaterial
+  delay: number
+}
+
+type SweepBeam = {
+  group: THREE.Group
+  coreMaterial: THREE.MeshBasicMaterial
   glowMaterial: THREE.MeshBasicMaterial
+  baseY: number
   phase: number
+  speed: number
 }
 
 type FloatingGlyph = {
@@ -50,40 +87,19 @@ type FloatingGlyph = {
   phase: number
 }
 
-type RailgunShot = {
-  group: THREE.Group
-  coreMaterial: THREE.MeshBasicMaterial
-  glowMaterial: THREE.MeshBasicMaterial
-  accentMaterial: THREE.MeshBasicMaterial
-  cycleRate: number
-  offset: number
-  duty: number
-  readyEnabled: boolean
-}
-
-type ActivationWave = {
-  group: THREE.Group
-  material: THREE.MeshBasicMaterial
-  delay: number
-}
-
-type LaserSweep = {
-  group: THREE.Group
-  coreMaterial: THREE.MeshBasicMaterial
-  glowMaterial: THREE.MeshBasicMaterial
-  baseY: number
-  baseRotation: number
-  phase: number
-  speed: number
-}
-
 const COLORS = {
-  green: 0x39ff14,
   cyan: 0x79fff2,
+  green: 0x39ff14,
   pink: 0xff4d7a,
   orange: 0xff7a00,
   violet: 0xa45cff,
   white: 0xe9fffb,
+}
+
+function inQuietZone(x: number, y: number) {
+  const upperLeftConsoleZone = x < -2.2 && y > 1.4
+  const lowerRightFeedZone = x > 3.6 && y < -1.1
+  return upperLeftConsoleZone || lowerRightFeedZone
 }
 
 function CosmicNexusTheme(props: ThemeSceneProps) {
@@ -103,17 +119,16 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
 
     const scene = new THREE.Scene()
     scene.background = new THREE.Color(0x010104)
-    scene.fog = new THREE.FogExp2(0x010104, 0.027)
+    scene.fog = new THREE.FogExp2(0x010104, 0.024)
 
-    const camera = new THREE.PerspectiveCamera(59, mount.clientWidth / mount.clientHeight, 0.1, 120)
-    camera.position.set(0, 0, 10)
+    const camera = new THREE.PerspectiveCamera(58, mount.clientWidth / mount.clientHeight, 0.1, 140)
+    camera.position.set(0, 0, 11)
 
     const renderer = new THREE.WebGLRenderer({
       antialias: true,
       alpha: false,
       powerPreference: 'high-performance',
     })
-
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
     renderer.setSize(mount.clientWidth, mount.clientHeight)
     renderer.domElement.style.display = 'block'
@@ -137,19 +152,31 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
 
     const createStarLayer = (
       count: number,
-      spread: number,
+      spreadX: number,
+      spreadY: number,
       size: number,
       color: number,
       opacity: number,
       minZ: number,
       maxZ: number,
+      respectQuietZones: boolean,
     ) => {
       const positions = new Float32Array(count * 3)
 
-      for (let index = 0; index < count; index += 1) {
-        positions[index * 3] = (Math.random() - 0.5) * spread
-        positions[index * 3 + 1] = (Math.random() - 0.5) * spread * 0.62
-        positions[index * 3 + 2] = minZ + Math.random() * (maxZ - minZ)
+      for (let i = 0; i < count; i += 1) {
+        let x: number
+        let y: number
+        let attempts = 0
+
+        do {
+          x = (Math.random() - 0.5) * spreadX
+          y = (Math.random() - 0.5) * spreadY
+          attempts += 1
+        } while (respectQuietZones && attempts < 8 && inQuietZone(x, y))
+
+        positions[i * 3] = x
+        positions[i * 3 + 1] = y
+        positions[i * 3 + 2] = minZ + Math.random() * (maxZ - minZ)
       }
 
       const geometry = trackGeometry(new THREE.BufferGeometry())
@@ -172,150 +199,193 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
       return points
     }
 
-    const distantStars = createStarLayer(1800, 72, 0.025, 0xffffff, 0.64, -42, -8)
-    const coloredStars = createStarLayer(440, 58, 0.046, COLORS.violet, 0.5, -28, -2)
-    const brightStars = createStarLayer(120, 44, 0.08, COLORS.cyan, 0.75, -18, 1)
+    const distantStars = createStarLayer(1650, 74, 42, 0.02, 0xffffff, 0.56, -42, -9, false)
+    const accentStars = createStarLayer(340, 66, 32, 0.045, COLORS.violet, 0.36, -28, -2, true)
+    const brightStars = createStarLayer(110, 60, 28, 0.075, COLORS.cyan, 0.56, -18, 0, true)
 
-    const animatedRings: AnimatedRing[] = []
-    const relays: Relay[] = []
-    const pulses: TravelingPulse[] = []
-    const signalPaths: SignalPath[] = []
-    const aperturePorts: AperturePort[] = []
-    const floatingGlyphs: FloatingGlyph[] = []
-    const railgunShots: RailgunShot[] = []
-    const laserSweeps: LaserSweep[] = []
+    const nexusCenter = new THREE.Vector3(0.35, 0.05, -0.15)
+    const nexusGroup = new THREE.Group()
+    nexusGroup.position.copy(nexusCenter)
+    world.add(nexusGroup)
+
+    const nexusShells: NexusShell[] = []
+    const nexusRings: NexusRing[] = []
+    const satellites: Satellite[] = []
+    const inboundLanes: InboundLane[] = []
+    const travelingPulses: TravelingPulse[] = []
+    const railShots: RailShot[] = []
+    const lightningArcs: LightningArc[] = []
     const activationWaves: ActivationWave[] = []
+    const sweepBeams: SweepBeam[] = []
+    const floatingGlyphs: FloatingGlyph[] = []
 
-    const createRelay = (position: THREE.Vector3, scale: number, color: number, phase: number) => {
+    const coreGlowMaterial = trackMaterial(
+      new THREE.MeshBasicMaterial({
+        color: COLORS.cyan,
+        transparent: true,
+        opacity: 0.12,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+      }),
+    )
+    const coreGlow = new THREE.Mesh(trackGeometry(new THREE.SphereGeometry(1.9, 36, 28)), coreGlowMaterial)
+    nexusGroup.add(coreGlow)
+
+    const coreSolidMaterial = trackMaterial(
+      new THREE.MeshBasicMaterial({
+        color: 0x05060f,
+        transparent: true,
+        opacity: 0.95,
+      }),
+    )
+    const coreSolid = new THREE.Mesh(trackGeometry(new THREE.IcosahedronGeometry(0.86, 2)), coreSolidMaterial)
+    nexusGroup.add(coreSolid)
+
+    const shellSpecs = [
+      {
+        geometry: trackGeometry(new THREE.IcosahedronGeometry(1.16, 2)),
+        color: COLORS.cyan,
+        opacity: 0.58,
+        spin: new THREE.Vector3(0.1, 0.15, 0.04),
+        wobble: 0.05,
+      },
+      {
+        geometry: trackGeometry(new THREE.OctahedronGeometry(1.36, 2)),
+        color: COLORS.green,
+        opacity: 0.46,
+        spin: new THREE.Vector3(-0.08, 0.12, -0.05),
+        wobble: 0.07,
+      },
+      {
+        geometry: trackGeometry(new THREE.IcosahedronGeometry(1.56, 1)),
+        color: COLORS.violet,
+        opacity: 0.34,
+        spin: new THREE.Vector3(0.06, -0.09, 0.08),
+        wobble: 0.04,
+      },
+    ]
+
+    shellSpecs.forEach((spec) => {
+      const material = trackMaterial(
+        new THREE.MeshBasicMaterial({
+          color: spec.color,
+          wireframe: true,
+          transparent: true,
+          opacity: spec.opacity,
+          depthWrite: false,
+          blending: THREE.AdditiveBlending,
+        }),
+      )
+      const mesh = new THREE.Mesh(spec.geometry, material)
+      nexusGroup.add(mesh)
+      nexusShells.push({ mesh, material, spin: spec.spin, wobble: spec.wobble })
+    })
+
+    const ringSpecs = [
+      {
+        radius: 2.15,
+        tube: 0.03,
+        tilt: new THREE.Euler(0.3, 0.15, 0.44),
+        color: COLORS.cyan,
+        spin: 0.2,
+      },
+      {
+        radius: 2.45,
+        tube: 0.02,
+        tilt: new THREE.Euler(1.0, 0.2, 0.2),
+        color: COLORS.pink,
+        spin: -0.17,
+      },
+      {
+        radius: 2.75,
+        tube: 0.015,
+        tilt: new THREE.Euler(0.8, 0.62, 0.95),
+        color: COLORS.orange,
+        spin: 0.11,
+      },
+    ]
+
+    ringSpecs.forEach((spec, index) => {
+      const material = trackMaterial(
+        new THREE.MeshBasicMaterial({
+          color: spec.color,
+          transparent: true,
+          opacity: 0.44 - index * 0.06,
+          depthWrite: false,
+          blending: THREE.AdditiveBlending,
+        }),
+      )
+      const mesh = new THREE.Mesh(trackGeometry(new THREE.TorusGeometry(spec.radius, spec.tube, 12, 140)), material)
+      mesh.rotation.copy(spec.tilt)
+      nexusGroup.add(mesh)
+      nexusRings.push({ mesh, material, spin: spec.spin, pulsePhase: Math.random() * Math.PI * 2 })
+    })
+
+    const satellitePositions = [
+      { radius: 3.3, speed: 0.26, phase: 0.2, drift: 0.45, color: COLORS.orange },
+      { radius: 3.8, speed: -0.19, phase: 2.4, drift: -0.38, color: COLORS.pink },
+      { radius: 4.15, speed: 0.14, phase: 4.6, drift: 0.32, color: COLORS.cyan },
+    ]
+
+    satellitePositions.forEach(({ radius, speed, phase, drift, color }) => {
       const group = new THREE.Group()
-      group.position.copy(position)
-      group.scale.setScalar(scale)
       world.add(group)
 
-      const coreGeometry = trackGeometry(new THREE.SphereGeometry(0.34, 28, 20))
-      const coreMaterial = trackMaterial(new THREE.MeshBasicMaterial({ color: 0x05020b }))
-      const core = new THREE.Mesh(coreGeometry, coreMaterial)
-      group.add(core)
-
-      const shellGeometry = trackGeometry(new THREE.IcosahedronGeometry(0.5, 1))
       const shellMaterial = trackMaterial(
         new THREE.MeshBasicMaterial({
           color,
           wireframe: true,
           transparent: true,
-          opacity: 0.64,
+          opacity: 0.5,
           depthWrite: false,
           blending: THREE.AdditiveBlending,
         }),
       )
-      const shell = new THREE.Mesh(shellGeometry, shellMaterial)
-      group.add(shell)
-
-      const glowGeometry = trackGeometry(new THREE.SphereGeometry(0.72, 26, 18))
       const glowMaterial = trackMaterial(
         new THREE.MeshBasicMaterial({
           color,
           transparent: true,
-          opacity: 0.09,
+          opacity: 0.08,
           depthWrite: false,
           blending: THREE.AdditiveBlending,
         }),
       )
-      const glow = new THREE.Mesh(glowGeometry, glowMaterial)
-      group.add(glow)
 
-      const ringData = [
-        {
-          radius: 0.72,
-          tube: 0.014,
-          tilt: new THREE.Euler(0.5, 0.2, 0.15),
-          speed: new THREE.Vector3(0.05, 0.11, 0.04),
-        },
-        {
-          radius: 0.93,
-          tube: 0.012,
-          tilt: new THREE.Euler(1.1, 0.35, 0.7),
-          speed: new THREE.Vector3(-0.08, 0.04, 0.09),
-        },
-      ]
+      const shell = new THREE.Mesh(trackGeometry(new THREE.IcosahedronGeometry(0.3, 1)), shellMaterial)
+      const glow = new THREE.Mesh(trackGeometry(new THREE.SphereGeometry(0.56, 20, 14)), glowMaterial)
+      group.add(shell, glow)
 
-      ringData.forEach(({ radius, tube, tilt, speed }, index) => {
-        const geometry = trackGeometry(new THREE.TorusGeometry(radius, tube, 10, 80))
-        const material = trackMaterial(
-          new THREE.MeshBasicMaterial({
-            color: index === 0 ? color : COLORS.orange,
-            transparent: true,
-            opacity: 0.72,
-            depthWrite: false,
-            blending: THREE.AdditiveBlending,
-          }),
-        )
-        const ring = new THREE.Mesh(geometry, material)
-        ring.rotation.copy(tilt)
-        group.add(ring)
-        animatedRings.push({ mesh: ring, rotationSpeed: speed, baseOpacity: material.opacity, material })
+      satellites.push({
+        group,
+        shell,
+        shellMaterial,
+        glowMaterial,
+        orbitRadius: radius,
+        orbitSpeed: speed,
+        orbitPhase: phase,
+        yDrift: drift,
       })
+    })
 
-      relays.push({ group, shell, shellMaterial, glow, glowMaterial, phase })
-      return group
-    }
+    const createInboundCurve = (edge: THREE.Vector3, controlA: THREE.Vector3, controlB: THREE.Vector3, port: THREE.Vector3) =>
+      new THREE.CatmullRomCurve3([edge, controlA, controlB, port], false, 'catmullrom', 0.42)
 
-    // Keep the signature relay geometry outside the central video-safe zone and bias it farther
-    // toward the corners so more of the animated network remains visible around the aperture.
-    const upperLeftRelay = createRelay(new THREE.Vector3(-6.65, 3.18, -0.35), 0.94, COLORS.green, 0.2)
-    const upperRightRelay = createRelay(new THREE.Vector3(6.55, 3.02, -0.65), 0.76, COLORS.orange, 1.7)
-    const lowerRightRelay = createRelay(new THREE.Vector3(6.6, -3.18, -0.15), 1.16, COLORS.violet, 3.1)
-    const lowerLeftRelay = createRelay(new THREE.Vector3(-6.55, -3.18, -0.75), 0.72, COLORS.pink, 4.5)
+    const pulseCoreGeometry = trackGeometry(new THREE.SphereGeometry(0.052, 10, 8))
+    const pulseGlowGeometry = trackGeometry(new THREE.SphereGeometry(0.14, 12, 10))
 
-    const createCurve = (start: THREE.Vector3, controls: THREE.Vector3[], end: THREE.Vector3) =>
-      new THREE.CatmullRomCurve3([start, ...controls, end], false, 'catmullrom', 0.45)
-
-    const createHelixCurve = (
-      start: THREE.Vector3,
-      end: THREE.Vector3,
-      turns: number,
-      radius: number,
-      pointCount = 120,
-    ) => {
-      const forward = end.clone().sub(start).normalize()
-      const reference = Math.abs(forward.y) < 0.9 ? new THREE.Vector3(0, 1, 0) : new THREE.Vector3(1, 0, 0)
-      const side = new THREE.Vector3().crossVectors(forward, reference).normalize()
-      const up = new THREE.Vector3().crossVectors(side, forward).normalize()
-      const points: THREE.Vector3[] = []
-
-      for (let index = 0; index <= pointCount; index += 1) {
-        const progress = index / pointCount
-        const point = start.clone().lerp(end, progress)
-        const phase = progress * Math.PI * 2 * turns
-        const taperedRadius = THREE.MathUtils.lerp(radius, radius * 0.18, progress)
-        point.addScaledVector(side, Math.cos(phase) * taperedRadius)
-        point.addScaledVector(up, Math.sin(phase) * taperedRadius)
-        points.push(point)
-      }
-
-      return new THREE.CatmullRomCurve3(points)
-    }
-
-    const pulseCoreGeometry = trackGeometry(new THREE.SphereGeometry(0.055, 12, 10))
-    const pulseGlowGeometry = trackGeometry(new THREE.SphereGeometry(0.15, 12, 10))
-
-    const createSignalPath = (
+    const createInboundLane = (
       curve: THREE.Curve<THREE.Vector3>,
       color: number,
-      speed: number,
-      offset: number,
-      thickness = 0.012,
+      radius: number,
+      travelRate: number,
+      pulseOffset: number,
+      pulseBoost: number,
     ) => {
-      const outerGeometry = trackGeometry(new THREE.TubeGeometry(curve, 150, thickness * 2.6, 6, false))
-      const innerGeometry = trackGeometry(new THREE.TubeGeometry(curve, 150, thickness, 5, false))
-      const baseOuterOpacity = 0.08
-      const baseInnerOpacity = 0.58
-
       const outerMaterial = trackMaterial(
         new THREE.MeshBasicMaterial({
           color,
           transparent: true,
-          opacity: baseOuterOpacity,
+          opacity: 0.08,
           depthWrite: false,
           blending: THREE.AdditiveBlending,
         }),
@@ -324,15 +394,26 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
         new THREE.MeshBasicMaterial({
           color,
           transparent: true,
-          opacity: baseInnerOpacity,
+          opacity: 0.5,
           depthWrite: false,
           blending: THREE.AdditiveBlending,
         }),
       )
 
-      world.add(new THREE.Mesh(outerGeometry, outerMaterial))
-      world.add(new THREE.Mesh(innerGeometry, innerMaterial))
-      signalPaths.push({ outerMaterial, innerMaterial, baseOuterOpacity, baseInnerOpacity })
+      const outerMesh = new THREE.Mesh(trackGeometry(new THREE.TubeGeometry(curve, 160, radius * 2.4, 7, false)), outerMaterial)
+      const innerMesh = new THREE.Mesh(trackGeometry(new THREE.TubeGeometry(curve, 160, radius, 6, false)), innerMaterial)
+      world.add(outerMesh, innerMesh)
+
+      const lane: InboundLane = {
+        curve,
+        innerMaterial,
+        outerMaterial,
+        baseInnerOpacity: innerMaterial.opacity,
+        baseOuterOpacity: outerMaterial.opacity,
+        travelRate,
+        pulseBoost,
+      }
+      inboundLanes.push(lane)
 
       const coreMaterial = trackMaterial(
         new THREE.MeshBasicMaterial({
@@ -347,78 +428,128 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
         new THREE.MeshBasicMaterial({
           color,
           transparent: true,
-          opacity: 0.18,
+          opacity: 0.22,
           depthWrite: false,
           blending: THREE.AdditiveBlending,
         }),
       )
 
-      ;[offset, offset + 0.5].forEach((pulseOffset) => {
+      ;[pulseOffset, pulseOffset + 0.46].forEach((offset) => {
         const core = new THREE.Mesh(pulseCoreGeometry, coreMaterial)
         const glow = new THREE.Mesh(pulseGlowGeometry, glowMaterial)
-        world.add(core)
-        world.add(glow)
-        pulses.push({ core, glow, coreMaterial, glowMaterial, curve, speed, offset: pulseOffset })
+        world.add(core, glow)
+        travelingPulses.push({ core, glow, coreMaterial, glowMaterial, lane, offset })
       })
     }
 
-    const portRingGeometry = trackGeometry(new THREE.TorusGeometry(0.105, 0.018, 10, 28))
-    const portGlowGeometry = trackGeometry(new THREE.SphereGeometry(0.22, 16, 12))
+    const edgeSpecs = [
+      {
+        edge: new THREE.Vector3(-11.8, 3.6, -4.8),
+        controlA: new THREE.Vector3(-8.6, 3.3, -2.2),
+        controlB: new THREE.Vector3(-4.2, 2.5, -0.7),
+        port: new THREE.Vector3(-1.45, 1.1, -0.08).add(nexusCenter),
+        color: COLORS.cyan,
+        radius: 0.012,
+        speed: 0.18,
+        offset: 0.06,
+        pulseBoost: 1,
+      },
+      {
+        edge: new THREE.Vector3(-12.4, 0.5, -4.2),
+        controlA: new THREE.Vector3(-8.7, 0.75, -2.3),
+        controlB: new THREE.Vector3(-4.6, 0.8, -0.75),
+        port: new THREE.Vector3(-1.55, 0.12, -0.05).add(nexusCenter),
+        color: COLORS.green,
+        radius: 0.011,
+        speed: 0.22,
+        offset: 0.22,
+        pulseBoost: 0.92,
+      },
+      {
+        edge: new THREE.Vector3(-11.9, -3.4, -4.8),
+        controlA: new THREE.Vector3(-8.3, -2.8, -2.1),
+        controlB: new THREE.Vector3(-4.0, -1.85, -0.65),
+        port: new THREE.Vector3(-1.35, -1.05, -0.05).add(nexusCenter),
+        color: COLORS.pink,
+        radius: 0.012,
+        speed: 0.2,
+        offset: 0.34,
+        pulseBoost: 1,
+      },
+      {
+        edge: new THREE.Vector3(-5.8, 8.9, -4.1),
+        controlA: new THREE.Vector3(-4.8, 5.8, -2.2),
+        controlB: new THREE.Vector3(-3.0, 3.4, -0.8),
+        port: new THREE.Vector3(-0.55, 1.62, -0.02).add(nexusCenter),
+        color: COLORS.orange,
+        radius: 0.01,
+        speed: 0.16,
+        offset: 0.47,
+        pulseBoost: 0.82,
+      },
+      {
+        edge: new THREE.Vector3(0.5, 9.2, -4.2),
+        controlA: new THREE.Vector3(0.4, 6.2, -2.3),
+        controlB: new THREE.Vector3(0.25, 3.7, -0.86),
+        port: new THREE.Vector3(0.1, 1.82, -0.02).add(nexusCenter),
+        color: COLORS.violet,
+        radius: 0.01,
+        speed: 0.17,
+        offset: 0.58,
+        pulseBoost: 0.8,
+      },
+      {
+        edge: new THREE.Vector3(7.8, 7.8, -4.5),
+        controlA: new THREE.Vector3(6.5, 5.2, -2.4),
+        controlB: new THREE.Vector3(4.0, 3.0, -0.9),
+        port: new THREE.Vector3(1.15, 1.22, -0.02).add(nexusCenter),
+        color: COLORS.orange,
+        radius: 0.01,
+        speed: 0.16,
+        offset: 0.7,
+        pulseBoost: 0.84,
+      },
+      {
+        edge: new THREE.Vector3(8.3, -5.0, -4.5),
+        controlA: new THREE.Vector3(6.7, -3.6, -2.4),
+        controlB: new THREE.Vector3(4.1, -2.1, -0.9),
+        port: new THREE.Vector3(1.2, -1.15, -0.02).add(nexusCenter),
+        color: COLORS.violet,
+        radius: 0.01,
+        speed: 0.15,
+        offset: 0.83,
+        pulseBoost: 0.86,
+      },
+      {
+        edge: new THREE.Vector3(0.6, -9.2, -4.0),
+        controlA: new THREE.Vector3(0.42, -6.15, -2.2),
+        controlB: new THREE.Vector3(0.25, -3.6, -0.8),
+        port: new THREE.Vector3(0.05, -1.9, -0.02).add(nexusCenter),
+        color: COLORS.pink,
+        radius: 0.01,
+        speed: 0.17,
+        offset: 0.94,
+        pulseBoost: 0.8,
+      },
+    ]
 
-    const createAperturePort = (position: THREE.Vector3, color: number, phase: number) => {
-      const ringMaterial = trackMaterial(
-        new THREE.MeshBasicMaterial({
-          color,
-          transparent: true,
-          opacity: 0.72,
-          depthWrite: false,
-          blending: THREE.AdditiveBlending,
-        }),
+    edgeSpecs.forEach((spec) => {
+      createInboundLane(
+        createInboundCurve(spec.edge, spec.controlA, spec.controlB, spec.port),
+        spec.color,
+        spec.radius,
+        spec.speed,
+        spec.offset,
+        spec.pulseBoost,
       )
-      const glowMaterial = trackMaterial(
-        new THREE.MeshBasicMaterial({
-          color,
-          transparent: true,
-          opacity: 0.08,
-          depthWrite: false,
-          blending: THREE.AdditiveBlending,
-        }),
-      )
-      const ring = new THREE.Mesh(portRingGeometry, ringMaterial)
-      const glow = new THREE.Mesh(portGlowGeometry, glowMaterial)
-      ring.position.copy(position)
-      glow.position.copy(position)
-      world.add(ring)
-      world.add(glow)
-      aperturePorts.push({ ring, glow, ringMaterial, glowMaterial, phase })
-    }
+    })
 
-    const portTopLeft = new THREE.Vector3(-3.58, 2.36, 0.08)
-    const portTopCenter = new THREE.Vector3(0, 2.52, 0.08)
-    const portTopRight = new THREE.Vector3(3.58, 2.36, 0.08)
-    const portLeft = new THREE.Vector3(-4.3, 0.28, 0.08)
-    const portRight = new THREE.Vector3(4.32, -0.32, 0.08)
-    const portBottomLeft = new THREE.Vector3(-3.58, -2.36, 0.08)
-    const portBottomCenter = new THREE.Vector3(0.12, -2.52, 0.08)
-    const portBottomRight = new THREE.Vector3(3.58, -2.36, 0.08)
-
-    createAperturePort(portTopLeft, COLORS.green, 0.22)
-    createAperturePort(portTopCenter, COLORS.orange, 0.92)
-    createAperturePort(portTopRight, COLORS.orange, 1.7)
-    createAperturePort(portLeft, COLORS.cyan, 2.38)
-    createAperturePort(portRight, COLORS.pink, 2.9)
-    createAperturePort(portBottomLeft, COLORS.green, 4.1)
-    createAperturePort(portBottomCenter, COLORS.violet, 4.72)
-    createAperturePort(portBottomRight, COLORS.violet, 5.2)
-
-    // Two reusable elliptical shockwaves make signal selection and playback feel like a system
-    // ignition event. The center remains hidden by the display, while the expanding perimeter is visible.
-    const activationWaveGeometry = trackGeometry(new THREE.TorusGeometry(4.35, 0.024, 8, 180))
+    const activationWaveGeometry = trackGeometry(new THREE.TorusGeometry(3.2, 0.03, 8, 180))
     ;[
       { color: COLORS.cyan, delay: 0 },
-      { color: COLORS.pink, delay: 0.16 },
+      { color: COLORS.pink, delay: 0.14 },
+      { color: COLORS.violet, delay: 0.26 },
     ].forEach(({ color, delay }) => {
-      const group = new THREE.Group()
       const material = trackMaterial(
         new THREE.MeshBasicMaterial({
           color,
@@ -428,322 +559,82 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
           blending: THREE.AdditiveBlending,
         }),
       )
-      const ring = new THREE.Mesh(activationWaveGeometry, material)
-      ring.scale.y = 0.62
-      group.add(ring)
-      group.visible = false
-      group.position.z = 0.18
-      world.add(group)
-      activationWaves.push({ group, material, delay })
+      const mesh = new THREE.Mesh(activationWaveGeometry, material)
+      mesh.position.copy(nexusCenter)
+      mesh.scale.set(1, 0.62, 1)
+      mesh.visible = false
+      world.add(mesh)
+      activationWaves.push({ mesh, material, delay })
     })
 
-    // Short feeder curves bring energy from the relay clusters toward the aperture perimeter.
-    createSignalPath(
-      createCurve(
-        upperLeftRelay.position.clone(),
-        [new THREE.Vector3(-6.0, 3.6, -0.22), new THREE.Vector3(-4.9, 2.86, -0.04)],
-        portTopLeft,
-      ),
-      COLORS.green,
-      0.16,
-      0.04,
-    )
-    createSignalPath(
-      createCurve(
-        upperRightRelay.position.clone(),
-        [new THREE.Vector3(6.0, 3.48, -0.38), new THREE.Vector3(4.88, 2.82, -0.04)],
-        portTopRight,
-      ),
-      COLORS.orange,
-      0.15,
-      0.18,
-    )
-    createSignalPath(
-      createCurve(
-        lowerLeftRelay.position.clone(),
-        [new THREE.Vector3(-5.95, -3.58, -0.52), new THREE.Vector3(-4.82, -2.82, -0.04)],
-        portBottomLeft,
-      ),
-      COLORS.pink,
-      0.18,
-      0.36,
-    )
-    createSignalPath(
-      createCurve(
-        lowerRightRelay.position.clone(),
-        [new THREE.Vector3(6.0, -3.56, -0.12), new THREE.Vector3(4.95, -2.88, -0.04)],
-        portBottomRight,
-      ),
-      COLORS.violet,
-      0.17,
-      0.52,
-      0.014,
-    )
+    const buildHelixCurve = (
+      start: THREE.Vector3,
+      end: THREE.Vector3,
+      turns: number,
+      radius: number,
+      pointsCount: number,
+    ) => {
+      const forward = end.clone().sub(start).normalize()
+      const axisRef = Math.abs(forward.y) < 0.9 ? new THREE.Vector3(0, 1, 0) : new THREE.Vector3(1, 0, 0)
+      const side = new THREE.Vector3().crossVectors(forward, axisRef).normalize()
+      const up = new THREE.Vector3().crossVectors(side, forward).normalize()
+      const points: THREE.Vector3[] = []
 
-    // Long outbound transmission lines radiate away from the screen so the main motion remains
-    // visible in the viewport perimeter instead of being hidden behind the central display.
-    createSignalPath(
-      createCurve(
-        portTopLeft.clone(),
-        [new THREE.Vector3(-4.9, 2.9, -0.15), new THREE.Vector3(-7.1, 4.25, -1.9)],
-        new THREE.Vector3(-10.4, 4.1, -5.4),
-      ),
-      COLORS.green,
-      0.19,
-      0.07,
-      0.011,
-    )
-    createSignalPath(
-      createCurve(
-        portTopCenter.clone(),
-        [new THREE.Vector3(-0.28, 3.0, -0.12), new THREE.Vector3(0.4, 4.3, -1.6)],
-        new THREE.Vector3(0.08, 5.45, -4.9),
-      ),
-      COLORS.orange,
-      0.16,
-      0.22,
-      0.01,
-    )
-    createSignalPath(
-      createCurve(
-        portTopRight.clone(),
-        [new THREE.Vector3(4.92, 2.9, -0.15), new THREE.Vector3(7.18, 4.32, -1.8)],
-        new THREE.Vector3(10.5, 4.18, -5.4),
-      ),
-      COLORS.orange,
-      0.17,
-      0.33,
-      0.011,
-    )
-    createSignalPath(
-      createCurve(
-        portLeft.clone(),
-        [new THREE.Vector3(-5.55, 0.34, -0.15), new THREE.Vector3(-8.05, 0.92, -1.9)],
-        new THREE.Vector3(-11.1, 0.96, -5.2),
-      ),
-      COLORS.cyan,
-      0.2,
-      0.46,
-      0.012,
-    )
-    createSignalPath(
-      createCurve(
-        portRight.clone(),
-        [new THREE.Vector3(5.6, -0.36, -0.15), new THREE.Vector3(8.1, -0.96, -2.0)],
-        new THREE.Vector3(11.15, -1.0, -5.2),
-      ),
-      COLORS.pink,
-      0.21,
-      0.58,
-      0.012,
-    )
-    createSignalPath(
-      createCurve(
-        portBottomLeft.clone(),
-        [new THREE.Vector3(-4.95, -2.92, -0.15), new THREE.Vector3(-7.26, -4.18, -1.9)],
-        new THREE.Vector3(-10.55, -4.18, -5.35),
-      ),
-      COLORS.pink,
-      0.18,
-      0.69,
-      0.011,
-    )
-    createSignalPath(
-      createCurve(
-        portBottomCenter.clone(),
-        [new THREE.Vector3(0.18, -3.1, -0.12), new THREE.Vector3(-0.18, -4.25, -1.6)],
-        new THREE.Vector3(-0.12, -5.4, -4.9),
-      ),
-      COLORS.violet,
-      0.16,
-      0.82,
-      0.01,
-    )
-    createSignalPath(
-      createCurve(
-        portBottomRight.clone(),
-        [new THREE.Vector3(4.98, -2.9, -0.15), new THREE.Vector3(7.3, -4.2, -1.9)],
-        new THREE.Vector3(10.6, -4.22, -5.35),
-      ),
-      COLORS.violet,
-      0.19,
-      0.93,
-      0.011,
-    )
+      for (let i = 0; i <= pointsCount; i += 1) {
+        const t = i / pointsCount
+        const point = start.clone().lerp(end, t)
+        const phase = t * Math.PI * 2 * turns
+        const tapered = THREE.MathUtils.lerp(radius, radius * 0.25, t)
+        point.addScaledVector(side, Math.cos(phase) * tapered)
+        point.addScaledVector(up, Math.sin(phase) * tapered)
+        points.push(point)
+      }
 
-    // Hero transmission lanes deliberately continue beyond the camera frustum so a few paths
-    // visibly touch the browser edges on fullscreen desktop displays. These stay faint while dormant
-    // and become the long-range backbone of the instrument in play mode.
-    createSignalPath(
-      createCurve(
-        portLeft.clone(),
-        [new THREE.Vector3(-6.4, 0.62, -0.3), new THREE.Vector3(-11.2, 1.1, -1.8)],
-        new THREE.Vector3(-17.4, 1.5, -3.6),
-      ),
-      COLORS.cyan,
-      0.23,
-      0.12,
-      0.009,
-    )
-    createSignalPath(
-      createCurve(
-        portRight.clone(),
-        [new THREE.Vector3(6.45, -0.55, -0.3), new THREE.Vector3(11.25, -1.05, -1.8)],
-        new THREE.Vector3(17.5, -1.55, -3.6),
-      ),
-      COLORS.pink,
-      0.24,
-      0.42,
-      0.009,
-    )
-    createSignalPath(
-      createCurve(
-        portTopLeft.clone(),
-        [new THREE.Vector3(-4.65, 3.35, -0.3), new THREE.Vector3(-5.6, 6.15, -1.8)],
-        new THREE.Vector3(-6.35, 9.2, -3.7),
-      ),
-      COLORS.green,
-      0.2,
-      0.26,
-      0.0085,
-    )
-    createSignalPath(
-      createCurve(
-        portTopRight.clone(),
-        [new THREE.Vector3(4.75, 3.3, -0.3), new THREE.Vector3(5.85, 6.15, -1.8)],
-        new THREE.Vector3(6.6, 9.2, -3.7),
-      ),
-      COLORS.orange,
-      0.21,
-      0.66,
-      0.0085,
-    )
-    createSignalPath(
-      createCurve(
-        portBottomLeft.clone(),
-        [new THREE.Vector3(-4.7, -3.35, -0.3), new THREE.Vector3(-5.6, -6.15, -1.8)],
-        new THREE.Vector3(-6.3, -9.25, -3.7),
-      ),
-      COLORS.pink,
-      0.21,
-      0.54,
-      0.0085,
-    )
-    createSignalPath(
-      createCurve(
-        portBottomRight.clone(),
-        [new THREE.Vector3(4.75, -3.35, -0.3), new THREE.Vector3(5.75, -6.2, -1.8)],
-        new THREE.Vector3(6.45, -9.25, -3.7),
-      ),
-      COLORS.violet,
-      0.22,
-      0.88,
-      0.0085,
-    )
+      return new THREE.CatmullRomCurve3(points)
+    }
 
-    // A couple of deeper background lines keep the field expansive without fighting the safe zone.
-    createSignalPath(
-      createCurve(
-        new THREE.Vector3(-10.8, 2.6, -6.8),
-        [new THREE.Vector3(-8.7, 2.2, -4.8), new THREE.Vector3(-6.25, 1.4, -1.8)],
-        portLeft,
-      ),
-      COLORS.cyan,
-      0.12,
-      0.27,
-      0.0085,
-    )
-    createSignalPath(
-      createCurve(
-        new THREE.Vector3(10.8, -2.85, -6.8),
-        [new THREE.Vector3(8.9, -2.4, -4.8), new THREE.Vector3(6.28, -1.48, -1.8)],
-        portRight,
-      ),
-      COLORS.orange,
-      0.12,
-      0.74,
-      0.0085,
-    )
-
-    // Full-path transmission bursts read as actual rave-laser shots rather than hovering projectiles.
-    // A straight white core flashes together with a colored corkscrew sheath, then disappears quickly.
-    const railgunSpecs = [
+    const railSpecs = [
       {
-        start: portTopLeft.clone(),
-        end: new THREE.Vector3(-16.8, 8.7, -3.5),
-        turns: 6.2,
-        radius: 0.17,
+        start: new THREE.Vector3(-11.7, 4.0, -3.8),
+        end: new THREE.Vector3(-0.4, 0.9, -0.14).add(nexusCenter),
         glow: COLORS.cyan,
         accent: COLORS.green,
+        turns: 5.8,
+        radius: 0.17,
       },
       {
-        start: portTopCenter.clone(),
-        end: new THREE.Vector3(-1.2, 9.5, -3.7),
-        turns: 7.4,
-        radius: 0.15,
+        start: new THREE.Vector3(-11.5, -3.7, -3.8),
+        end: new THREE.Vector3(-0.45, -0.9, -0.14).add(nexusCenter),
+        glow: COLORS.pink,
+        accent: COLORS.orange,
+        turns: 6.2,
+        radius: 0.16,
+      },
+      {
+        start: new THREE.Vector3(8.4, 7.2, -3.8),
+        end: new THREE.Vector3(0.88, 1.24, -0.14).add(nexusCenter),
         glow: COLORS.orange,
         accent: COLORS.violet,
-      },
-      {
-        start: portTopRight.clone(),
-        end: new THREE.Vector3(16.9, 8.6, -3.5),
-        turns: 6.6,
-        radius: 0.17,
-        glow: COLORS.orange,
-        accent: COLORS.pink,
-      },
-      {
-        start: portLeft.clone(),
-        end: new THREE.Vector3(-17.7, 1.7, -3.4),
-        turns: 5.8,
-        radius: 0.16,
-        glow: COLORS.cyan,
-        accent: COLORS.pink,
-      },
-      {
-        start: portRight.clone(),
-        end: new THREE.Vector3(17.7, -1.7, -3.4),
-        turns: 5.9,
-        radius: 0.16,
-        glow: COLORS.pink,
-        accent: COLORS.orange,
-      },
-      {
-        start: portBottomLeft.clone(),
-        end: new THREE.Vector3(-16.7, -8.8, -3.5),
-        turns: 6.4,
-        radius: 0.17,
-        glow: COLORS.pink,
-        accent: COLORS.green,
-      },
-      {
-        start: portBottomCenter.clone(),
-        end: new THREE.Vector3(1.1, -9.55, -3.7),
-        turns: 7.3,
+        turns: 5.5,
         radius: 0.15,
+      },
+      {
+        start: new THREE.Vector3(8.1, -4.8, -3.8),
+        end: new THREE.Vector3(0.9, -1.05, -0.14).add(nexusCenter),
         glow: COLORS.violet,
         accent: COLORS.cyan,
-      },
-      {
-        start: portBottomRight.clone(),
-        end: new THREE.Vector3(16.8, -8.8, -3.5),
-        turns: 6.7,
-        radius: 0.17,
-        glow: COLORS.violet,
-        accent: COLORS.orange,
+        turns: 5.7,
+        radius: 0.15,
       },
     ]
 
-    railgunSpecs.forEach(({ start, end, turns, radius, glow, accent }, index) => {
+    railSpecs.forEach((spec, index) => {
       const group = new THREE.Group()
       group.visible = false
       world.add(group)
 
-      const straightCurve = new THREE.LineCurve3(start, end)
-      const helixCurve = createHelixCurve(start, end, turns, radius, 180)
-      const coreGeometry = trackGeometry(new THREE.TubeGeometry(straightCurve, 12, 0.012, 6, false))
-      const glowGeometry = trackGeometry(new THREE.TubeGeometry(straightCurve, 12, 0.045, 6, false))
-      const accentGeometry = trackGeometry(new THREE.TubeGeometry(helixCurve, 180, 0.017, 6, false))
+      const straightCurve = new THREE.LineCurve3(spec.start, spec.end)
+      const helixCurve = buildHelixCurve(spec.start, spec.end, spec.turns, spec.radius, 180)
 
       const coreMaterial = trackMaterial(
         new THREE.MeshBasicMaterial({
@@ -756,16 +647,16 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
       )
       const glowMaterial = trackMaterial(
         new THREE.MeshBasicMaterial({
-          color: glow,
+          color: spec.glow,
           transparent: true,
           opacity: 0,
           depthWrite: false,
           blending: THREE.AdditiveBlending,
         }),
       )
-      const accentMaterial = trackMaterial(
+      const helixMaterial = trackMaterial(
         new THREE.MeshBasicMaterial({
-          color: accent,
+          color: spec.accent,
           transparent: true,
           opacity: 0,
           depthWrite: false,
@@ -774,36 +665,72 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
       )
 
       group.add(
-        new THREE.Mesh(glowGeometry, glowMaterial),
-        new THREE.Mesh(coreGeometry, coreMaterial),
-        new THREE.Mesh(accentGeometry, accentMaterial),
+        new THREE.Mesh(trackGeometry(new THREE.TubeGeometry(straightCurve, 16, 0.05, 7, false)), glowMaterial),
+        new THREE.Mesh(trackGeometry(new THREE.TubeGeometry(straightCurve, 16, 0.013, 6, false)), coreMaterial),
+        new THREE.Mesh(trackGeometry(new THREE.TubeGeometry(helixCurve, 180, 0.015, 6, false)), helixMaterial),
       )
 
-      railgunShots.push({
+      railShots.push({
         group,
         coreMaterial,
         glowMaterial,
-        accentMaterial,
-        cycleRate: 0.15 + (index % 4) * 0.018,
-        offset: index * 0.119,
-        duty: 0.075 + (index % 3) * 0.012,
-        readyEnabled: index < 2,
+        helixMaterial,
+        cycleRate: 0.16 + (index % 3) * 0.02,
+        cycleOffset: index * 0.21,
+        duty: 0.08,
+        readyEnabled: index === 0,
       })
     })
 
-    const sweepCoreGeometry = trackGeometry(new THREE.CylinderGeometry(0.009, 0.009, 15.5, 6, 1, true))
-    const sweepGlowGeometry = trackGeometry(new THREE.CylinderGeometry(0.038, 0.038, 15.5, 6, 1, true))
+    const arcPairs = [
+      {
+        start: new THREE.Vector3(-5.9, 5.1, -2.2),
+        end: new THREE.Vector3(-2.6, 2.1, -0.65),
+        color: COLORS.cyan,
+      },
+      {
+        start: new THREE.Vector3(5.2, 4.8, -2.2),
+        end: new THREE.Vector3(2.2, 1.7, -0.6),
+        color: COLORS.orange,
+      },
+      {
+        start: new THREE.Vector3(4.9, -4.2, -2.2),
+        end: new THREE.Vector3(1.9, -1.7, -0.6),
+        color: COLORS.violet,
+      },
+    ]
 
-    const createLaserSweep = (
-      baseY: number,
-      baseRotation: number,
-      color: number,
-      phase: number,
-      speed: number,
-    ) => {
+    arcPairs.forEach((spec, index) => {
+      const points = [
+        spec.start,
+        spec.start.clone().lerp(spec.end, 0.35).add(new THREE.Vector3(0.2, 0.9, 0)),
+        spec.start.clone().lerp(spec.end, 0.66).add(new THREE.Vector3(-0.22, -0.45, 0.15)),
+        spec.end,
+      ]
+      const curve = new THREE.CatmullRomCurve3(points, false, 'catmullrom', 0.8)
+      const geometry = trackGeometry(new THREE.BufferGeometry().setFromPoints(curve.getPoints(40)))
+      const material = trackMaterial(
+        new THREE.LineBasicMaterial({
+          color: spec.color,
+          transparent: true,
+          opacity: 0,
+          depthWrite: false,
+          blending: THREE.AdditiveBlending,
+        }),
+      )
+      const line = new THREE.Line(geometry, material)
+      world.add(line)
+      lightningArcs.push({ line, material, points, jitter: 0.24 + index * 0.07, phase: Math.random() * Math.PI * 2 })
+    })
+
+    const sweepGeometryCore = trackGeometry(new THREE.CylinderGeometry(0.008, 0.008, 14.5, 6, 1, true))
+    const sweepGeometryGlow = trackGeometry(new THREE.CylinderGeometry(0.036, 0.036, 14.5, 6, 1, true))
+    ;[
+      { y: 3.2, phase: 0.4, speed: 0.64, color: COLORS.cyan },
+      { y: -3.25, phase: 2.5, speed: 0.49, color: COLORS.pink },
+    ].forEach(({ y, phase, speed, color }) => {
       const group = new THREE.Group()
-      group.position.set(0, baseY, -4.5)
-      group.rotation.z = baseRotation
+      group.position.set(nexusCenter.x, y, -4.7)
       world.add(group)
 
       const coreMaterial = trackMaterial(
@@ -824,47 +751,50 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
           blending: THREE.AdditiveBlending,
         }),
       )
-      const glow = new THREE.Mesh(sweepGlowGeometry, glowMaterial)
-      const core = new THREE.Mesh(sweepCoreGeometry, coreMaterial)
+
+      const glow = new THREE.Mesh(sweepGeometryGlow, glowMaterial)
+      const core = new THREE.Mesh(sweepGeometryCore, coreMaterial)
       glow.rotation.z = Math.PI / 2
       core.rotation.z = Math.PI / 2
       group.add(glow, core)
-      laserSweeps.push({ group, coreMaterial, glowMaterial, baseY, baseRotation, phase, speed })
-    }
 
-    createLaserSweep(3.45, -0.035, COLORS.cyan, 0.3, 0.58)
-    createLaserSweep(-3.5, 0.045, COLORS.pink, 2.5, 0.47)
+      sweepBeams.push({ group, coreMaterial, glowMaterial, baseY: y, phase, speed })
+    })
 
     const glyphGeometry = trackGeometry(
       new THREE.BufferGeometry().setFromPoints([
-        new THREE.Vector3(-0.16, -0.16, 0),
-        new THREE.Vector3(0.16, -0.16, 0),
-        new THREE.Vector3(0.16, 0.16, 0),
-        new THREE.Vector3(-0.16, 0.16, 0),
+        new THREE.Vector3(-0.14, -0.14, 0),
+        new THREE.Vector3(0.14, -0.14, 0),
+        new THREE.Vector3(0.14, 0.14, 0),
+        new THREE.Vector3(-0.14, 0.14, 0),
       ]),
     )
 
-    const glyphColors = [COLORS.cyan, COLORS.green, COLORS.pink, COLORS.orange, COLORS.violet]
-    for (let index = 0; index < 18; index += 1) {
+    const glyphColors = [COLORS.cyan, COLORS.orange, COLORS.pink, COLORS.violet]
+    for (let i = 0; i < 10; i += 1) {
+      const side = i % 2 === 0 ? -1 : 1
+      const x = side * (5.2 + Math.random() * 2.1)
+      const y = (Math.random() - 0.5) * 5.4
+
+      if (inQuietZone(x, y)) {
+        continue
+      }
+
       const material = trackMaterial(
         new THREE.LineBasicMaterial({
-          color: glyphColors[index % glyphColors.length],
+          color: glyphColors[i % glyphColors.length],
           transparent: true,
-          opacity: 0.2,
+          opacity: 0.16,
           depthWrite: false,
           blending: THREE.AdditiveBlending,
         }),
       )
+
       const mesh = new THREE.LineLoop(glyphGeometry, material)
-      const side = index % 2 === 0 ? -1 : 1
-      const basePosition = new THREE.Vector3(
-        side * (4.65 + Math.random() * 2.15),
-        (Math.random() - 0.5) * 6.1,
-        -1.5 - Math.random() * 4,
-      )
+      const basePosition = new THREE.Vector3(x, y, -2.2 - Math.random() * 2.2)
       mesh.position.copy(basePosition)
+      mesh.scale.setScalar(0.25 + Math.random() * 0.55)
       mesh.rotation.z = Math.random() * Math.PI
-      mesh.scale.setScalar(0.25 + Math.random() * 0.65)
       world.add(mesh)
       floatingGlyphs.push({ mesh, basePosition, phase: Math.random() * Math.PI * 2 })
     }
@@ -876,7 +806,6 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
       pointerTarget.x = (event.clientX / window.innerWidth) * 2 - 1
       pointerTarget.y = (event.clientY / window.innerHeight) * 2 - 1
     }
-
     window.addEventListener('pointermove', handlePointerMove)
 
     const applyResponsiveLayout = () => {
@@ -885,17 +814,17 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
       const aspect = width / Math.max(height, 1)
 
       if (width < 640) {
-        world.scale.setScalar(0.62)
-        world.position.set(0, -0.1, 0)
-        camera.fov = 69
-      } else if (width < 1000 || aspect < 1.25) {
-        world.scale.setScalar(0.8)
-        world.position.set(0, 0.02, 0)
-        camera.fov = 65
+        world.scale.setScalar(0.66)
+        world.position.set(0.16, -0.14, 0)
+        camera.fov = 68
+      } else if (width < 1000 || aspect < 1.28) {
+        world.scale.setScalar(0.82)
+        world.position.set(0.13, 0.0, 0)
+        camera.fov = 63
       } else {
         world.scale.setScalar(1)
-        world.position.set(0, 0.14, 0)
-        camera.fov = 59
+        world.position.set(0.1, 0.12, 0)
+        camera.fov = 58
       }
 
       camera.updateProjectionMatrix()
@@ -907,41 +836,42 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
     timer.connect(document)
 
     let elapsed = 0
-    let animationFrameId = 0
+    let frameId = 0
     let previousHasSignal = Boolean(visualStateRef.current.signalId)
     let previousPlaying = visualStateRef.current.isPlaying
     let activationProgress = 1
     let activationStrength = 0
 
     const animate = () => {
-      animationFrameId = window.requestAnimationFrame(animate)
+      frameId = window.requestAnimationFrame(animate)
       timer.update()
 
       const state = visualStateRef.current
       const systemReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
       const reduced = state.reducedMotion || systemReducedMotion
-      const motionEnabled = state.motionEnabled ?? true
-      const cinematicMotion = motionEnabled && !reduced
-      const isPlayingWithMotionOff = state.isPlaying && !motionEnabled
       const hasSignal = Boolean(state.signalId)
       const ready = hasSignal && !state.isPlaying
-      const motionScale = reduced ? 0.16 : cinematicMotion ? 1 : 0.08
-      const activeScale = state.isPlaying ? 2.45 : ready ? 0.92 : 0.26
-      const volumeScale = 0.68 + state.volume * 0.32
+      const motionEnabled = state.motionEnabled ?? true
+      const playingMotionOff = state.isPlaying && !motionEnabled
+      const volumeScale = 0.67 + state.volume * 0.33
+
+      const kineticScale = reduced ? 0.12 : playingMotionOff ? 0.16 : 1
+      const trafficScale = reduced ? 0.05 : playingMotionOff ? 0.16 : state.isPlaying ? 1 : ready ? 0.34 : 0.08
+      const burstEnabled = state.isPlaying && motionEnabled && !reduced
+      const dampedActiveScale = state.isPlaying ? (playingMotionOff ? 0.42 : 1.2) : ready ? 0.45 : 0.2
       const delta = Math.min(timer.getDelta(), 0.05)
-      const travelScale = reduced ? 0 : cinematicMotion ? 1 : state.isPlaying ? 0.08 : 0.38
-      const suppressBursts = reduced || !motionEnabled
-      elapsed += delta * motionScale
+
+      elapsed += delta * kineticScale
 
       if (hasSignal && !previousHasSignal) {
         activationProgress = 0
-        activationStrength = 0.9
+        activationStrength = 0.86
       } else if (state.isPlaying && !previousPlaying) {
         activationProgress = 0
-        activationStrength = 1.45
+        activationStrength = 1.4
       } else if (!state.isPlaying && previousPlaying) {
         activationProgress = 0
-        activationStrength = 0.52
+        activationStrength = 0.6
       } else if (!hasSignal && previousHasSignal) {
         activationProgress = 0
         activationStrength = 0.34
@@ -953,123 +883,171 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
       if (reduced) {
         activationProgress = 1
       } else {
-        activationProgress = Math.min(1, activationProgress + delta * (state.isPlaying ? 1.42 : 1.08))
+        activationProgress = Math.min(1, activationProgress + delta * (state.isPlaying ? 1.48 : 1.1))
       }
 
       const transitionBoost = Math.max(0, 1 - activationProgress) * activationStrength
 
-      pointerCurrent.lerp(pointerTarget, reduced ? 0.01 : cinematicMotion ? 0.026 : 0.004)
-      world.rotation.y = pointerCurrent.x * 0.022
-      world.rotation.x = -pointerCurrent.y * 0.016
+      pointerCurrent.lerp(pointerTarget, reduced ? 0.01 : playingMotionOff ? 0.005 : 0.024)
+      world.rotation.y = pointerCurrent.x * 0.02
+      world.rotation.x = -pointerCurrent.y * 0.015
 
-      animatedRings.forEach(({ mesh, rotationSpeed, material, baseOpacity }) => {
-        const speed = activeScale * volumeScale * (cinematicMotion ? 1 : state.isPlaying ? 0.12 : 0.52)
-        mesh.rotation.x += rotationSpeed.x * delta * motionScale * speed
-        mesh.rotation.y += rotationSpeed.y * delta * motionScale * speed
-        mesh.rotation.z += rotationSpeed.z * delta * motionScale * speed
-        material.opacity = baseOpacity * (0.58 + activeScale * 0.28)
+      const corePulse = (Math.sin(elapsed * (state.isPlaying ? 2.8 : 1.1)) + 1) * 0.5
+      coreGlow.scale.setScalar(1 + corePulse * (state.isPlaying ? (playingMotionOff ? 0.08 : 0.26) : 0.07))
+      coreGlowMaterial.opacity = (state.isPlaying ? (playingMotionOff ? 0.2 : 0.36) : ready ? 0.16 : 0.07) * volumeScale
+
+      nexusShells.forEach(({ mesh, material, spin, wobble }, index) => {
+        const spinFactor = reduced ? 0.18 : playingMotionOff ? 0.2 : 1
+        mesh.rotation.x += spin.x * delta * spinFactor * (0.62 + dampedActiveScale)
+        mesh.rotation.y += spin.y * delta * spinFactor * (0.62 + dampedActiveScale)
+        mesh.rotation.z += spin.z * delta * spinFactor * (0.62 + dampedActiveScale)
+        const wobblePulse = 1 + Math.sin(elapsed * (1.2 + index * 0.15) + index) * wobble
+        mesh.scale.setScalar(wobblePulse)
+        material.opacity = THREE.MathUtils.clamp(
+          (state.isPlaying ? 0.58 : ready ? 0.4 : 0.22) + transitionBoost * 0.14 - index * 0.05,
+          0.08,
+          0.86,
+        )
       })
 
-      relays.forEach(({ group, shell, shellMaterial, glow, glowMaterial, phase }) => {
-        shell.rotation.x += 0.04 * delta * motionScale * activeScale * (cinematicMotion ? 1 : 0.14)
-        shell.rotation.y -= 0.07 * delta * motionScale * activeScale * (cinematicMotion ? 1 : 0.14)
-        const pulse = 1 + Math.sin(elapsed * (1.05 + activeScale * 0.7) + phase) * (state.isPlaying ? 0.13 : 0.045)
-        glow.scale.setScalar(pulse)
-        const calmGlowFloor = isPlayingWithMotionOff ? 0.075 : state.isPlaying ? 0.19 : ready ? 0.09 : 0.035
-        glowMaterial.opacity = (calmGlowFloor + transitionBoost * (isPlayingWithMotionOff ? 0.028 : 0.08)) * volumeScale
-        shellMaterial.opacity = Math.min(1, (state.isPlaying ? 0.88 : ready ? 0.6 : 0.3) + transitionBoost * 0.18)
-        group.rotation.z = Math.sin(elapsed * 0.18 + phase) * (isPlayingWithMotionOff ? 0.009 : 0.035)
+      nexusRings.forEach(({ mesh, material, spin, pulsePhase }, index) => {
+        mesh.rotation.y += spin * delta * kineticScale * (0.7 + dampedActiveScale)
+        mesh.rotation.x += spin * delta * kineticScale * 0.28
+        const ringPulse = (Math.sin(elapsed * (1.5 + index * 0.25) + pulsePhase) + 1) * 0.5
+        material.opacity = (state.isPlaying ? 0.38 : ready ? 0.23 : 0.12) + ringPulse * (state.isPlaying ? 0.2 : 0.08)
       })
 
-      const pathPower = (state.isPlaying ? 1.55 : ready ? 0.86 : 0.14) + transitionBoost * 0.42
-      signalPaths.forEach(({ outerMaterial, innerMaterial, baseOuterOpacity, baseInnerOpacity }) => {
-        outerMaterial.opacity = Math.min(1, baseOuterOpacity * pathPower * volumeScale)
-        innerMaterial.opacity = Math.min(1, baseInnerOpacity * pathPower * volumeScale)
+      satellites.forEach((satellite, index) => {
+        const orbitAngle = elapsed * satellite.orbitSpeed * (state.isPlaying ? 1.5 : ready ? 0.74 : 0.4) + satellite.orbitPhase
+        const x = nexusCenter.x + Math.cos(orbitAngle) * satellite.orbitRadius
+        const y = nexusCenter.y + Math.sin(orbitAngle * 0.82) * satellite.yDrift
+        const z = -0.9 + Math.sin(orbitAngle * 0.6) * 0.7
+
+        satellite.group.position.set(x, y, z)
+        satellite.shell.rotation.x += 0.4 * delta * kineticScale
+        satellite.shell.rotation.y += 0.68 * delta * kineticScale
+
+        const pulse = (Math.sin(elapsed * (1.4 + index * 0.2) + satellite.orbitPhase) + 1) * 0.5
+        satellite.shellMaterial.opacity = (state.isPlaying ? 0.56 : ready ? 0.38 : 0.2) + pulse * 0.1
+        satellite.glowMaterial.opacity = (state.isPlaying ? 0.12 : ready ? 0.07 : 0.03) * volumeScale
       })
 
-      pulses.forEach(({ core, glow, coreMaterial, glowMaterial, curve, speed, offset }) => {
-        const effectiveSpeed = speed * (state.isPlaying ? 3.35 : ready ? 0.96 : 0.12) * travelScale
-        const progress = (elapsed * effectiveSpeed + offset) % 1
-        const point = curve.getPointAt(progress)
+      const lanePower = (state.isPlaying ? 1.5 : ready ? 0.7 : 0.14) + transitionBoost * 0.3
+      inboundLanes.forEach((lane) => {
+        lane.outerMaterial.opacity = Math.min(1, lane.baseOuterOpacity * lanePower * volumeScale)
+        lane.innerMaterial.opacity = Math.min(1, lane.baseInnerOpacity * lanePower * volumeScale)
+      })
+
+      travelingPulses.forEach(({ core, glow, coreMaterial, glowMaterial, lane, offset }, index) => {
+        const speed = lane.travelRate * (state.isPlaying ? 3.2 : ready ? 1.05 : 0.15) * trafficScale
+        const progress = (elapsed * speed + offset) % 1
+        const point = lane.curve.getPointAt(progress)
         core.position.copy(point)
         glow.position.copy(point)
-        const scale = 0.82 + Math.sin(progress * Math.PI * 2) * 0.18
-        core.scale.setScalar(scale * (state.isPlaying ? 1.08 : 1))
-        glow.scale.setScalar(scale * (state.isPlaying ? 1.82 : ready ? 1.0 : 0.65))
-        coreMaterial.opacity = state.isPlaying ? 1 : ready ? 0.76 : 0.24
-        glowMaterial.opacity = (state.isPlaying ? (isPlayingWithMotionOff ? 0.08 : 0.34) : ready ? 0.15 : 0.04) * volumeScale
+
+        const flicker = (Math.sin(elapsed * (3 + index * 0.3) + offset) + 1) * 0.5
+        const scale = 0.82 + flicker * 0.26
+        core.scale.setScalar(scale)
+        glow.scale.setScalar(scale * (state.isPlaying ? (playingMotionOff ? 1.2 : 1.9) : ready ? 1.1 : 0.7))
+
+        const boost = state.isPlaying ? lane.pulseBoost : ready ? 0.6 : 0.25
+        coreMaterial.opacity = THREE.MathUtils.clamp(boost, 0.15, 1)
+        glowMaterial.opacity = (state.isPlaying ? (playingMotionOff ? 0.1 : 0.3) : ready ? 0.12 : 0.03) * volumeScale
       })
 
-      aperturePorts.forEach(({ ring, glow, ringMaterial, glowMaterial, phase }) => {
-        const beat = (Math.sin(elapsed * (state.isPlaying ? 3.0 : 1.1) + phase) + 1) * 0.5
-        ring.scale.setScalar(1 + beat * (state.isPlaying ? (isPlayingWithMotionOff ? 0.04 : 0.18) : 0.06))
-        glow.scale.setScalar(0.85 + beat * (state.isPlaying ? (isPlayingWithMotionOff ? 0.18 : 0.75) : 0.25))
-        ringMaterial.opacity = state.isPlaying ? (isPlayingWithMotionOff ? 0.72 + beat * 0.06 : 0.78 + beat * 0.22) : ready ? 0.58 + beat * 0.14 : 0.3
-        glowMaterial.opacity = (state.isPlaying ? (isPlayingWithMotionOff ? 0.07 + beat * 0.05 : 0.15 + beat * 0.16) : ready ? 0.07 + beat * 0.05 : 0.025) * volumeScale
-      })
-
-      activationWaves.forEach(({ group, material, delay }) => {
-        const localProgress = THREE.MathUtils.clamp((activationProgress - delay) / Math.max(0.001, 1 - delay), 0, 1)
-        const active = activationProgress < 1 && localProgress > 0 && localProgress < 1
-        group.visible = active
+      activationWaves.forEach(({ mesh, material, delay }) => {
+        const local = THREE.MathUtils.clamp((activationProgress - delay) / Math.max(0.001, 1 - delay), 0, 1)
+        const active = activationProgress < 1 && local > 0 && local < 1
+        mesh.visible = active
 
         if (!active) {
           material.opacity = 0
           return
         }
 
-        const flare = Math.sin(localProgress * Math.PI)
-        group.scale.setScalar(0.58 + localProgress * 1.62)
-        material.opacity = flare * activationStrength * 0.42 * volumeScale
+        const flare = Math.sin(local * Math.PI)
+        mesh.scale.set(0.65 + local * 1.65, 0.65 + local * 1.03, 0.65 + local * 1.65)
+        material.opacity = flare * activationStrength * 0.38 * volumeScale
       })
 
-      railgunShots.forEach((shot) => {
-        if (suppressBursts || !hasSignal || (!state.isPlaying && !shot.readyEnabled)) {
+      railShots.forEach((shot) => {
+        if ((!burstEnabled && !ready) || !hasSignal || (!state.isPlaying && !shot.readyEnabled)) {
           shot.group.visible = false
           return
         }
 
-        const rateMultiplier = state.isPlaying ? 2.65 : 0.34
+        const rate = state.isPlaying ? shot.cycleRate * 2.75 : shot.cycleRate * 0.45
         const duty = state.isPlaying ? shot.duty : 0.018
-        const cycle = (elapsed * shot.cycleRate * rateMultiplier + shot.offset) % 1
+        const cycle = (elapsed * rate + shot.cycleOffset) % 1
 
-        if (cycle >= duty) {
+        if (cycle >= duty || playingMotionOff || reduced) {
           shot.group.visible = false
           return
         }
 
         const progress = THREE.MathUtils.clamp(cycle / duty, 0, 1)
         const flare = Math.sin(progress * Math.PI)
-        const intensity = (state.isPlaying ? 1.18 : 0.16) * volumeScale * flare
+        const intensity = flare * (state.isPlaying ? 1.2 : 0.2) * volumeScale
         shot.group.visible = true
-        shot.coreMaterial.opacity = 0.92 * intensity
-        shot.glowMaterial.opacity = 0.2 * intensity
-        shot.accentMaterial.opacity = 0.78 * intensity
+        shot.coreMaterial.opacity = 0.95 * intensity
+        shot.glowMaterial.opacity = 0.24 * intensity
+        shot.helixMaterial.opacity = 0.78 * intensity
       })
 
-      laserSweeps.forEach(({ group, coreMaterial, glowMaterial, baseY, baseRotation, phase, speed }) => {
-        const wave = Math.max(0, Math.sin(elapsed * speed + phase))
-        const flash = Math.pow(wave, state.isPlaying ? 7 : 13)
+      lightningArcs.forEach((arc, index) => {
+        const enabled = burstEnabled && hasSignal
+        if (!enabled) {
+          arc.material.opacity = 0
+          return
+        }
+
+        const arcPulse = Math.max(0, Math.sin(elapsed * (1.9 + index * 0.3) + arc.phase))
+        if (arcPulse < 0.65) {
+          arc.material.opacity = 0
+          return
+        }
+
+        const curve = new THREE.CatmullRomCurve3([
+          arc.points[0].clone(),
+          arc.points[1].clone().add(new THREE.Vector3((Math.random() - 0.5) * arc.jitter, (Math.random() - 0.5) * arc.jitter, 0)),
+          arc.points[2].clone().add(new THREE.Vector3((Math.random() - 0.5) * arc.jitter, (Math.random() - 0.5) * arc.jitter, 0)),
+          arc.points[3].clone(),
+        ])
+
+        const positions = arc.line.geometry.attributes.position as THREE.BufferAttribute
+        const sampled = curve.getPoints(positions.count - 1)
+        sampled.forEach((point, pointIndex) => {
+          positions.setXYZ(pointIndex, point.x, point.y, point.z)
+        })
+        positions.needsUpdate = true
+
+        arc.material.opacity = Math.min(0.5, (arcPulse - 0.65) * 1.6)
+      })
+
+      sweepBeams.forEach((beam) => {
+        const wave = Math.max(0, Math.sin(elapsed * beam.speed + beam.phase))
+        const flash = Math.pow(wave, state.isPlaying ? 6 : 12)
         const intensity = state.isPlaying
-          ? flash * volumeScale * (isPlayingWithMotionOff ? 0.32 : 1.22)
+          ? flash * volumeScale * (playingMotionOff ? 0.3 : 1.15)
           : ready
-            ? flash * 0.1
+            ? flash * 0.12
             : 0
-        group.position.y = baseY + Math.sin(elapsed * speed * 0.52 + phase) * (isPlayingWithMotionOff ? 0.04 : 0.24)
-        group.rotation.z = baseRotation + Math.sin(elapsed * speed * 0.58 + phase) * (isPlayingWithMotionOff ? 0.014 : 0.08)
-        coreMaterial.opacity = 0.5 * intensity
-        glowMaterial.opacity = 0.135 * intensity
+
+        beam.group.position.y = beam.baseY + Math.sin(elapsed * beam.speed * 0.45 + beam.phase) * (playingMotionOff ? 0.05 : 0.25)
+        beam.group.rotation.z = Math.sin(elapsed * beam.speed * 0.56 + beam.phase) * (playingMotionOff ? 0.02 : 0.08)
+        beam.coreMaterial.opacity = 0.54 * intensity
+        beam.glowMaterial.opacity = 0.15 * intensity
       })
 
       floatingGlyphs.forEach(({ mesh, basePosition, phase }, index) => {
-        mesh.position.y = basePosition.y + Math.sin(elapsed * 0.35 + phase) * (isPlayingWithMotionOff ? 0.03 : 0.16)
-        mesh.position.x = basePosition.x + Math.cos(elapsed * 0.22 + phase) * (isPlayingWithMotionOff ? 0.02 : 0.08)
-        mesh.rotation.z += (index % 2 === 0 ? 1 : -1) * (isPlayingWithMotionOff ? 0.01 : 0.06) * delta * motionScale
+        mesh.position.y = basePosition.y + Math.sin(elapsed * 0.32 + phase) * (playingMotionOff ? 0.03 : 0.14)
+        mesh.position.x = basePosition.x + Math.cos(elapsed * 0.18 + phase) * (playingMotionOff ? 0.02 : 0.08)
+        mesh.rotation.z += (index % 2 === 0 ? 1 : -1) * (playingMotionOff ? 0.012 : 0.055) * delta * kineticScale
       })
 
-      distantStars.rotation.y += 0.0015 * delta * motionScale
-      coloredStars.rotation.z -= 0.0022 * delta * motionScale
-      brightStars.rotation.y -= 0.003 * delta * motionScale
+      distantStars.rotation.y += 0.0012 * delta * kineticScale
+      accentStars.rotation.z -= 0.0018 * delta * kineticScale
+      brightStars.rotation.y -= 0.0024 * delta * kineticScale
 
       renderer.render(scene, camera)
     }
@@ -1089,7 +1067,7 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
 
     return () => {
       timer.disconnect()
-      window.cancelAnimationFrame(animationFrameId)
+      window.cancelAnimationFrame(frameId)
       window.removeEventListener('pointermove', handlePointerMove)
       window.removeEventListener('resize', handleResize)
       geometries.forEach((geometry) => geometry.dispose())

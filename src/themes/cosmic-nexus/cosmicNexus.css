@@ -5,7 +5,9 @@
   height: 100%;
   overflow: hidden;
   background:
-    radial-gradient(circle at 50% 44%, rgba(82, 24, 132, 0.16), transparent 36%),
+    radial-gradient(circle at 52% 48%, rgba(82, 24, 132, 0.18), transparent 38%),
+    radial-gradient(circle at 14% 16%, rgba(4, 7, 20, 0.64), transparent 40%),
+    radial-gradient(circle at 86% 78%, rgba(4, 7, 20, 0.58), transparent 44%),
     #010104;
 }
 
