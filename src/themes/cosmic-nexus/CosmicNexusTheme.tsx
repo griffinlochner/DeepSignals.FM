@@ -89,7 +89,10 @@ const COLORS = {
 function CosmicNexusTheme(props: ThemeSceneProps) {
   const mountRef = useRef<HTMLDivElement | null>(null)
   const visualStateRef = useRef(props)
-  visualStateRef.current = props
+
+  useEffect(() => {
+    visualStateRef.current = props
+  }, [props])
 
   useEffect(() => {
     const mount = mountRef.current

@@ -31,6 +31,11 @@ type LandingNexusSceneProps = {
 
 function LandingNexusScene({ reducedMotion = false }: LandingNexusSceneProps) {
   const mountRef = useRef<HTMLDivElement | null>(null)
+  const reducedMotionRef = useRef(reducedMotion)
+
+  useEffect(() => {
+    reducedMotionRef.current = reducedMotion
+  }, [reducedMotion])
 
   useEffect(() => {
     const mount = mountRef.current
@@ -381,7 +386,6 @@ function LandingNexusScene({ reducedMotion = false }: LandingNexusSceneProps) {
     window.addEventListener('pointermove', handlePointerMove)
 
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    const motionMultiplier = reducedMotion || prefersReducedMotion ? 0.18 : 1
 
     const timer = new THREE.Timer()
     timer.connect(document)
@@ -393,6 +397,8 @@ function LandingNexusScene({ reducedMotion = false }: LandingNexusSceneProps) {
       animationFrameId = window.requestAnimationFrame(animate)
       timer.update()
       const delta = Math.min(timer.getDelta(), 0.05)
+      const motionMultiplier = reducedMotionRef.current || prefersReducedMotion ? 0.18 : 1
+
       elapsedTime += delta * motionMultiplier
 
       pointerCurrent.lerp(pointerTarget, 0.025)

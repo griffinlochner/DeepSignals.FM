@@ -1,5 +1,19 @@
+import { useEffect } from 'react'
 import FloatingPlayerPanel from '../../components/FloatingPlayerPanel'
 import type { ThemePlayerOverlayProps } from '../themeTypes'
+
+type CloseIconProps = {
+  className?: string
+}
+
+function CloseIcon({ className }: CloseIconProps) {
+  return (
+    <svg className={className} viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+      <path d="M3.25 3.25L12.75 12.75" />
+      <path d="M12.75 3.25L3.25 12.75" />
+    </svg>
+  )
+}
 
 function UvReactiveJunglePlayerPanel({
   selectedThemeId,
@@ -19,8 +33,25 @@ function UvReactiveJunglePlayerPanel({
   onMotionToggle,
   onDisplayModeChange,
 }: ThemePlayerOverlayProps) {
-  const visualFeedOpen = displayMode === 'video' || displayMode === 'artwork'
-  const feedExpanded = displayMode === 'video'
+  const visualFeedOpen = displayMode === 'video'
+
+  useEffect(() => {
+    if (!visualFeedOpen) {
+      return
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onDisplayModeChange('standby')
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [onDisplayModeChange, visualFeedOpen])
 
   return (
     <>
@@ -47,44 +78,21 @@ function UvReactiveJunglePlayerPanel({
         <section className="uv-jungle-feed" aria-label="Visual feed panel">
           <header className="uv-jungle-feed__header">
             <p>Visual Feed</p>
-            <div className="uv-jungle-feed__actions">
-              <button
-                type="button"
-                onClick={() => onDisplayModeChange('artwork')}
-                className="uv-jungle-feed__action"
-                aria-label="Collapse feed"
-                disabled={!feedExpanded}
-              >
-                Collapse
-              </button>
-              <button
-                type="button"
-                onClick={() => onDisplayModeChange('video')}
-                className="uv-jungle-feed__action"
-                aria-label="Expand feed"
-                disabled={feedExpanded}
-              >
-                Expand
-              </button>
-              <button
-                type="button"
-                onClick={() => onDisplayModeChange('standby')}
-                className="uv-jungle-feed__action"
-                aria-label="Close feed"
-              >
-                Close
-              </button>
-            </div>
+            <button
+              type="button"
+              className="uv-jungle-feed__close"
+              onClick={() => onDisplayModeChange('standby')}
+              aria-label="Close visual feed"
+              title="Close visual feed"
+            >
+              <CloseIcon className="uv-jungle-feed__close-icon" />
+            </button>
           </header>
 
-          {feedExpanded ? (
-            <div className="uv-jungle-feed__viewport" role="img" aria-label="Video feed placeholder">
-              <p>No video source configured.</p>
-              <span>Attach a live capture endpoint to activate this feed.</span>
-            </div>
-          ) : (
-            <div className="uv-jungle-feed__collapsed">Feed collapsed</div>
-          )}
+          <div className="uv-jungle-feed__viewport" role="img" aria-label="Video feed placeholder">
+            <p>No video source configured.</p>
+            <span>Attach a live capture endpoint to activate this feed.</span>
+          </div>
         </section>
       )}
     </>

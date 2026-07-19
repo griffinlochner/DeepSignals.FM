@@ -44,6 +44,14 @@ function PlayerShell({ className }: PlayerShellProps) {
     setSelectedSignalId(id || null)
   }
 
+  const handleThemeChange = (themeId: ThemeId) => {
+    setSelectedThemeId(themeId)
+
+    if (themeId !== 'uv-reactive-jungle') {
+      setDisplayMode('standby')
+    }
+  }
+
   const sceneProps: ThemeSceneProps = {
     isPlaying: isPlaying === 'playing',
     volume,
@@ -88,7 +96,7 @@ function PlayerShell({ className }: PlayerShellProps) {
           volume={volume}
           motionEnabled={motionEnabled}
           displayMode={displayMode}
-          onThemeChange={setSelectedThemeId}
+          onThemeChange={handleThemeChange}
           onSignalChange={handleSignalChange}
           onPlayToggle={(playing: boolean) => setIsPlaying(playing ? 'playing' : 'stopped')}
           onVolumeChange={setVolume}
@@ -113,7 +121,7 @@ function PlayerShell({ className }: PlayerShellProps) {
             volume={volume}
             signals={signals}
             themeOptions={themeOptions}
-            onThemeChange={setSelectedThemeId}
+            onThemeChange={handleThemeChange}
             onSignalChange={handleSignalChange}
             onPlayToggle={(playing) => setIsPlaying(playing ? 'playing' : 'stopped')}
             onVolumeChange={setVolume}
