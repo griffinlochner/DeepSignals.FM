@@ -3,7 +3,7 @@ import MainDisplay from '../components/MainDisplay'
 import TransportDock from '../components/TransportDock'
 import { themeRegistry } from '../themes/themeRegistry'
 import type { SignalSource, PlaybackState } from './playerTypes'
-import type { MainDisplayMode, ThemeId, ThemeSceneProps, ThemeTelemetry } from '../themes/themeTypes'
+import type { MainDisplayMode, ThemeId, ThemeSceneProps } from '../themes/themeTypes'
 import '../styles/player.css'
 
 type PlayerShellProps = {
@@ -17,7 +17,6 @@ function PlayerShell({ className }: PlayerShellProps) {
   const [volume, setVolume] = useState(0.7)
   const [displayMode, setDisplayMode] = useState<MainDisplayMode>('standby')
   const [motionEnabled, setMotionEnabled] = useState(true)
-  const [depthResonance, setDepthResonance] = useState(0)
 
   const signals: SignalSource[] = useMemo(
     () => [
@@ -41,8 +40,6 @@ function PlayerShell({ className }: PlayerShellProps) {
     [selectedSignalId, signals],
   )
 
-  const telemetry = useMemo<ThemeTelemetry>(() => ({ depthResonance }), [depthResonance])
-
   const handleSignalChange = (id: string) => {
     setSelectedSignalId(id || null)
   }
@@ -55,7 +52,6 @@ function PlayerShell({ className }: PlayerShellProps) {
     reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches,
     motionEnabled,
     displayMode,
-    onDepthResonanceChange: setDepthResonance,
   }
 
   if (!activeTheme) {
@@ -82,6 +78,9 @@ function PlayerShell({ className }: PlayerShellProps) {
 
       {OverlayComponent ? (
         <OverlayComponent
+          selectedThemeId={selectedThemeId}
+          selectedThemeName={activeTheme.name}
+          themeOptions={themeOptions}
           selectedSignalId={selectedSignalId}
           signals={signals}
           signalLabel={selectedSignal?.label || null}
@@ -89,7 +88,7 @@ function PlayerShell({ className }: PlayerShellProps) {
           volume={volume}
           motionEnabled={motionEnabled}
           displayMode={displayMode}
-          telemetry={telemetry}
+          onThemeChange={setSelectedThemeId}
           onSignalChange={handleSignalChange}
           onPlayToggle={(playing: boolean) => setIsPlaying(playing ? 'playing' : 'stopped')}
           onVolumeChange={setVolume}

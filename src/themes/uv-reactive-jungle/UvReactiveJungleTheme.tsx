@@ -35,13 +35,10 @@ const UV_JUNGLE_PROFILE: DepthImageThemeProfile = {
   displacementScaleMultiplier: 0.36,
 };
 
-const TELEMETRY_UPDATE_INTERVAL_SECONDS = 0.14;
-
 function UvReactiveJungleTheme({
   isPlaying,
   reducedMotion,
   motionEnabled = true,
-  onDepthResonanceChange,
 }: ThemeSceneProps) {
   const mountRef = useRef<HTMLDivElement | null>(null);
   const visualStateRef = useRef({ isPlaying, reducedMotion, motionEnabled });
@@ -61,7 +58,6 @@ function UvReactiveJungleTheme({
     let disposed = false;
     let colorTexture: THREE.Texture | null = null;
     let depthTexture: THREE.Texture | null = null;
-    let lastTelemetrySentAt = -100;
 
     const pointer = new THREE.Vector2(0, 0);
     const pointerTarget = new THREE.Vector2(0, 0);
@@ -232,11 +228,6 @@ function UvReactiveJungleTheme({
         effectiveDepth * UV_JUNGLE_PROFILE.displacementScaleMultiplier;
       planeMaterial.bumpScale = effectiveDepth * 0.04;
 
-      if (elapsed - lastTelemetrySentAt >= TELEMETRY_UPDATE_INTERVAL_SECONDS) {
-        lastTelemetrySentAt = elapsed;
-        onDepthResonanceChange?.(effectiveDepth);
-      }
-
       pointer.lerp(pointerTarget, 0.06);
       const parallaxFactor = pointerMotionAllowed
         ? UV_JUNGLE_PROFILE.pointerParallaxStrength
@@ -262,7 +253,6 @@ function UvReactiveJungleTheme({
       disposed = true;
       window.cancelAnimationFrame(animationFrameId);
       timer.disconnect();
-      onDepthResonanceChange?.(0);
       renderer.domElement.style.filter = "";
 
       mount.removeEventListener("pointermove", handlePointerMove);
@@ -283,7 +273,7 @@ function UvReactiveJungleTheme({
         mount.removeChild(renderer.domElement);
       }
     };
-  }, [onDepthResonanceChange]);
+  }, []);
 
   return <div ref={mountRef} className="uv-reactive-jungle-scene" />;
 }

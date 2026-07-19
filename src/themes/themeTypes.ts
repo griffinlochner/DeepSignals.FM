@@ -15,14 +15,12 @@ export type ThemeSceneProps = {
   reducedMotion: boolean
   motionEnabled?: boolean
   displayMode?: MainDisplayMode
-  onDepthResonanceChange?: (value: number) => void
-}
-
-export type ThemeTelemetry = {
-  depthResonance: number
 }
 
 export type ThemePlayerOverlayProps = {
+  selectedThemeId: ThemeId
+  selectedThemeName: string
+  themeOptions: Array<{ id: ThemeId; name: string }>
   selectedSignalId: string | null
   signals: SignalSource[]
   signalLabel: string | null
@@ -30,7 +28,7 @@ export type ThemePlayerOverlayProps = {
   volume: number
   motionEnabled: boolean
   displayMode: MainDisplayMode
-  telemetry: ThemeTelemetry
+  onThemeChange: (id: ThemeId) => void
   onSignalChange: (id: string) => void
   onPlayToggle: (playing: boolean) => void
   onVolumeChange: (volume: number) => void
