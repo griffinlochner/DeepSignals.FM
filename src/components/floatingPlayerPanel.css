@@ -1,5 +1,15 @@
 .floating-player-panel {
   --floating-panel-edge-gap: clamp(12px, 2.2vw, 22px);
+  --player-font-family: 'Avenir Next', 'Segoe UI', sans-serif;
+  --player-font-size-label: 0.64rem;
+  --player-font-size-control: 0.82rem;
+  --player-font-size-status: 0.74rem;
+  --player-font-weight-label: 600;
+  --player-font-weight-control: 500;
+  --player-font-weight-action: 800;
+  --player-font-letter-spacing-label: 0.11em;
+  --player-font-letter-spacing-action: 0.11em;
+  --player-font-line-height: 1.2;
   position: absolute;
   top: var(--floating-panel-edge-gap);
   left: var(--floating-panel-edge-gap);
@@ -16,6 +26,9 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  font-family: var(--player-font-family);
+  font-size: var(--player-font-size-control);
+  line-height: var(--player-font-line-height);
 }
 
 .floating-player-panel__header {
@@ -39,6 +52,7 @@
   white-space: nowrap;
   font-size: 0.62rem;
   letter-spacing: 0.14em;
+  font-weight: var(--player-font-weight-label);
   color: rgba(123, 242, 217, 0.94);
 }
 
@@ -114,8 +128,9 @@
 
 .floating-player-panel__label {
   color: var(--theme-muted, rgba(189, 229, 223, 0.62));
-  font-size: 0.64rem;
-  letter-spacing: 0.11em;
+  font-size: var(--player-font-size-label);
+  letter-spacing: var(--player-font-letter-spacing-label);
+  font-weight: var(--player-font-weight-label);
   text-transform: uppercase;
 }
 
@@ -125,19 +140,32 @@
 .floating-player-panel .volume-control__range {
   height: 38px;
   min-height: 38px;
+  font-family: inherit;
 }
 
 .floating-player-panel .signal-source-selector__select,
 .floating-player-panel .theme-selector__select {
   padding: 0 34px 0 11px;
-  font-size: 0.82rem;
+  font-size: var(--player-font-size-control);
+  font-weight: var(--player-font-weight-control);
+  letter-spacing: 0.01em;
+  line-height: var(--player-font-line-height);
+}
+
+.floating-player-panel .signal-source-selector__select option,
+.floating-player-panel .theme-selector__select option {
+  font-family: inherit;
+  font-weight: var(--player-font-weight-control);
 }
 
 .floating-player-panel .track-marquee {
   width: 100%;
   min-width: 0;
   max-width: none;
-  font-size: 0.74rem;
+  font-size: var(--player-font-size-status);
+  font-weight: var(--player-font-weight-control);
+  letter-spacing: 0.04em;
+  line-height: var(--player-font-line-height);
 }
 
 .floating-player-panel__controls {
@@ -161,9 +189,9 @@
   min-width: 122px;
   min-height: 50px;
   padding: 0 16px;
-  font-size: 0.83rem;
-  font-weight: 800;
-  letter-spacing: 0.11em;
+  font-size: var(--player-font-size-control);
+  font-weight: var(--player-font-weight-action);
+  letter-spacing: var(--player-font-letter-spacing-action);
   border-radius: 10px;
 }
 
@@ -181,8 +209,10 @@
   border-radius: 9px;
   background: rgba(8, 21, 26, 0.72);
   color: var(--theme-text, #e9f8f4);
-  font-size: 0.72rem;
+  font-size: var(--player-font-size-status);
+  font-weight: var(--player-font-weight-control);
   letter-spacing: 0.08em;
+  line-height: var(--player-font-line-height);
   text-transform: uppercase;
 }
 

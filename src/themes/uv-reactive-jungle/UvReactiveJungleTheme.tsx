@@ -1,10 +1,14 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import type { ThemeSceneProps } from "../themeTypes";
 import {
   formatUvJunglePlaybackFilter,
   stepUvJunglePlaybackVisualMix,
 } from "./uvReactivePlaybackVisuals";
+import {
+  UV_JUNGLE_COLOR_IMAGE_URL,
+  UV_JUNGLE_DEPTH_MAP_URL,
+} from "./uvJungleTextureCache";
 import "./uvReactiveJungle.css";
 
 type DepthImageBreathingPreset = {
@@ -23,8 +27,8 @@ type DepthImageThemeProfile = {
 };
 
 const UV_JUNGLE_PROFILE: DepthImageThemeProfile = {
-  colorImageUrl: "/experiments/depth-lab/jungle-color.png",
-  depthMapUrl: "/experiments/depth-lab/jungle-depth.png",
+  colorImageUrl: UV_JUNGLE_COLOR_IMAGE_URL,
+  depthMapUrl: UV_JUNGLE_DEPTH_MAP_URL,
   breathing: {
     minimumDepth: 0,
     maximumDepth: 1,
@@ -42,6 +46,9 @@ function UvReactiveJungleTheme({
 }: ThemeSceneProps) {
   const mountRef = useRef<HTMLDivElement | null>(null);
   const visualStateRef = useRef({ isPlaying, reducedMotion, motionEnabled });
+  const [sceneReady, setSceneReady] = useState(false);
+  const [loadingState, setLoadingState] = useState<"loading" | "ready" | "error">("loading");
+  const [showCalibratingMessage, setShowCalibratingMessage] = useState(false);
 
   useEffect(() => {
     visualStateRef.current = { isPlaying, reducedMotion, motionEnabled };
@@ -56,8 +63,20 @@ function UvReactiveJungleTheme({
 
     let animationFrameId = 0;
     let disposed = false;
-    let colorTexture: THREE.Texture | null = null;
-    let depthTexture: THREE.Texture | null = null;
+    let planeSized = false;
+    let readySignaled = false;
+    let loadedColorTexture: THREE.Texture | null = null;
+    let loadedDepthTexture: THREE.Texture | null = null;
+
+    setSceneReady(false);
+    setLoadingState("loading");
+    setShowCalibratingMessage(false);
+
+    const calibratingMessageTimeout = window.setTimeout(() => {
+      if (!disposed && !readySignaled) {
+        setShowCalibratingMessage(true);
+      }
+    }, 320);
 
     const pointer = new THREE.Vector2(0, 0);
     const pointerTarget = new THREE.Vector2(0, 0);
@@ -78,13 +97,20 @@ function UvReactiveJungleTheme({
 
     const renderer = new THREE.WebGLRenderer({
       antialias: true,
+      alpha: false,
       powerPreference: "high-performance",
     });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(mount.clientWidth, mount.clientHeight);
+    renderer.setClearColor(0x08110d, 1);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.NoToneMapping;
     renderer.toneMappingExposure = 1;
+    renderer.domElement.className = "uv-reactive-jungle-scene__canvas";
+    renderer.domElement.style.backgroundColor = "#08110d";
+    renderer.domElement.style.opacity = "0";
+    renderer.domElement.style.transition =
+      visualStateRef.current.reducedMotion ? "none" : "opacity 280ms ease";
     mount.appendChild(renderer.domElement);
 
     const planeGroup = new THREE.Group();
@@ -121,35 +147,54 @@ function UvReactiveJungleTheme({
     glowPlane.position.z = -0.95;
     planeGroup.add(glowPlane);
 
-    const loadingManager = new THREE.LoadingManager();
-    const textureLoader = new THREE.TextureLoader(loadingManager);
-
-    textureLoader.load(UV_JUNGLE_PROFILE.colorImageUrl, (texture) => {
-      if (disposed) {
-        texture.dispose();
-        return;
+    const textureLoader = new THREE.TextureLoader();
+    const handleTextureError = () => {
+      if (!disposed) {
+        setLoadingState("error");
+        setShowCalibratingMessage(false);
       }
+    };
 
-      colorTexture = texture;
-      texture.colorSpace = THREE.SRGBColorSpace;
-      texture.minFilter = THREE.LinearFilter;
-      texture.magFilter = THREE.LinearFilter;
-      planeMaterial.map = texture;
-      planeMaterial.needsUpdate = true;
-    });
+    textureLoader.load(
+      UV_JUNGLE_PROFILE.colorImageUrl,
+      (colorTexture) => {
+        if (disposed) {
+          colorTexture.dispose();
+          return;
+        }
 
-    textureLoader.load(UV_JUNGLE_PROFILE.depthMapUrl, (texture) => {
-      if (disposed) {
-        texture.dispose();
-        return;
-      }
+        colorTexture.colorSpace = THREE.SRGBColorSpace;
+        colorTexture.minFilter = THREE.LinearFilter;
+        colorTexture.magFilter = THREE.LinearFilter;
+        colorTexture.generateMipmaps = false;
 
-      depthTexture = texture;
-      texture.minFilter = THREE.LinearFilter;
-      texture.magFilter = THREE.LinearFilter;
-      planeMaterial.displacementMap = texture;
-      planeMaterial.needsUpdate = true;
-    });
+        loadedColorTexture = colorTexture;
+        planeMaterial.map = colorTexture;
+        planeMaterial.needsUpdate = true;
+      },
+      undefined,
+      handleTextureError,
+    );
+
+    textureLoader.load(
+      UV_JUNGLE_PROFILE.depthMapUrl,
+      (depthTexture) => {
+        if (disposed) {
+          depthTexture.dispose();
+          return;
+        }
+
+        depthTexture.minFilter = THREE.LinearFilter;
+        depthTexture.magFilter = THREE.LinearFilter;
+        depthTexture.generateMipmaps = false;
+
+        loadedDepthTexture = depthTexture;
+        planeMaterial.displacementMap = depthTexture;
+        planeMaterial.needsUpdate = true;
+      },
+      undefined,
+      handleTextureError,
+    );
 
     const fitPlane = () => {
       const aspect = mount.clientWidth / Math.max(mount.clientHeight, 1);
@@ -161,6 +206,7 @@ function UvReactiveJungleTheme({
       planeScale.set(viewWidth * 1.18, viewHeight * 1.28);
       plane.scale.set(planeScale.x, planeScale.y, 1);
       glowPlane.scale.set(planeScale.x * 1.12, planeScale.y * 1.08, 1);
+      planeSized = true;
     };
 
     const handlePointerMove = (event: PointerEvent) => {
@@ -245,6 +291,14 @@ function UvReactiveJungleTheme({
       glowMaterial.opacity = 0.045 + effectiveDepth * 0.06;
 
       renderer.render(scene, camera);
+
+      if (!readySignaled && planeSized) {
+        readySignaled = true;
+        setSceneReady(true);
+        setLoadingState("ready");
+        setShowCalibratingMessage(false);
+        renderer.domElement.style.opacity = "1";
+      }
     };
 
     animate();
@@ -253,14 +307,16 @@ function UvReactiveJungleTheme({
       disposed = true;
       window.cancelAnimationFrame(animationFrameId);
       timer.disconnect();
+      window.clearTimeout(calibratingMessageTimeout);
       renderer.domElement.style.filter = "";
+      renderer.domElement.style.opacity = "";
 
       mount.removeEventListener("pointermove", handlePointerMove);
       mount.removeEventListener("pointerleave", handlePointerLeave);
       window.removeEventListener("resize", handleResize);
 
-      colorTexture?.dispose();
-      depthTexture?.dispose();
+      loadedColorTexture?.dispose();
+      loadedDepthTexture?.dispose();
       planeGeometry.dispose();
       planeMaterial.dispose();
       glowGeometry.dispose();
@@ -275,7 +331,18 @@ function UvReactiveJungleTheme({
     };
   }, []);
 
-  return <div ref={mountRef} className="uv-reactive-jungle-scene" />;
+  return (
+    <div
+      ref={mountRef}
+      className="uv-reactive-jungle-scene"
+      data-scene-ready={sceneReady ? "true" : "false"}
+      data-loading-state={loadingState}
+    >
+      {showCalibratingMessage && !sceneReady && loadingState !== "error" ? (
+        <p className="uv-reactive-jungle-scene__status">CALIBRATING ENVIRONMENT...</p>
+      ) : null}
+    </div>
+  );
 }
 
 export default UvReactiveJungleTheme;

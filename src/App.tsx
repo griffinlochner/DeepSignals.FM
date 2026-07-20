@@ -5,10 +5,7 @@ import PlayerPage from "./pages/PlayerPage";
 function App() {
   const pathname = window.location.pathname;
 
-  if (
-    pathname === "/experiments/environment-lab" ||
-    pathname === "/experiments/depth-lab"
-  ) {
+  if (pathname === "/experiments/environment-lab") {
     return <EnvironmentLabPage />;
   }
 

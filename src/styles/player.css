@@ -12,7 +12,7 @@
   flex-direction: column;
   background: var(--theme-background, #010104);
   color: var(--theme-text, #d8fff7);
-  font-family: 'Courier New', 'Lucida Console', monospace;
+  font-family: 'Avenir Next', 'Segoe UI', sans-serif;
   z-index: 1000;
   --transport-label-height: 20px;
   --transport-control-height: 44px;
@@ -32,6 +32,7 @@
   height: 100%;
   z-index: 0;
   pointer-events: none;
+  background: #05090b;
 }
 
 .player-shell__scene canvas {

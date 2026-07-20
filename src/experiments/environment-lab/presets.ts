@@ -12,8 +12,8 @@ export const IMAGE_ENVIRONMENT_ASSETS: ImageEnvironmentAsset[] = [
   {
     id: UV_JUNGLE_ASSET_ID,
     name: "UV Jungle",
-    colorImageUrl: "/experiments/depth-lab/jungle-color.png",
-    depthMapUrl: "/experiments/depth-lab/jungle-depth.png",
+    colorImageUrl: "/experiments/environment-lab/jungle-color.png",
+    depthMapUrl: "/experiments/environment-lab/jungle-depth.png",
     metadata: {
       description: "Experimental UV-reactive jungle artwork and aligned depth map.",
     },
@@ -53,37 +53,6 @@ export const NEUTRAL_BEHAVIOR_SETTINGS: EnvironmentBehaviorSettings = {
 
 export const CHILL_BEHAVIOR_SETTINGS: EnvironmentBehaviorSettings = {
   depth: {
-    motionIntensity: 0.26,
-    depthStrength: 0.38,
-    staticDepth: 0.54,
-    breathingMin: 0.18,
-    breathingMax: 0.74,
-    breathingCycleSeconds: 10.5,
-    pointerParallaxEnabled: true,
-    pointerParallaxStrength: 0.22,
-    ambientMotionEnabled: true,
-  },
-  color: {
-    driftEnabled: true,
-    hueRangeDegrees: 5,
-    cycleSeconds: 110,
-    saturation: 1.02,
-    glowPulseEnabled: true,
-    glowPulseAmount: 0.04,
-    glowPulseCycleSeconds: 18,
-  },
-  saturationPulse: {
-    enabled: false,
-    minimumSaturation: 0.9,
-    maximumSaturation: 1.08,
-    cycleSeconds: 12,
-    phaseOffset: 0,
-    syncToDepthBreathing: false,
-  },
-};
-
-export const FULL_ON_BEHAVIOR_SETTINGS: EnvironmentBehaviorSettings = {
-  depth: {
     motionIntensity: 0.52,
     depthStrength: 0.62,
     staticDepth: 0.6,
@@ -113,6 +82,37 @@ export const FULL_ON_BEHAVIOR_SETTINGS: EnvironmentBehaviorSettings = {
   },
 };
 
+export const FULL_ON_BEHAVIOR_SETTINGS: EnvironmentBehaviorSettings = {
+  depth: {
+    motionIntensity: 1,
+    depthStrength: 1,
+    staticDepth: 0,
+    breathingMin: 0,
+    breathingMax: 1,
+    breathingCycleSeconds: 1,
+    pointerParallaxEnabled: true,
+    pointerParallaxStrength: 1,
+    ambientMotionEnabled: true,
+  },
+  color: {
+    driftEnabled: true,
+    hueRangeDegrees: 60,
+    cycleSeconds: 10,
+    saturation: 0.75,
+    glowPulseEnabled: true,
+    glowPulseAmount: 0.4,
+    glowPulseCycleSeconds: 2,
+  },
+  saturationPulse: {
+    enabled: true,
+    minimumSaturation: 0.5,
+    maximumSaturation: 1.75,
+    cycleSeconds: 0.7,
+    phaseOffset: -0.01,
+    syncToDepthBreathing: false,
+  },
+};
+
 export const ENVIRONMENT_BEHAVIOR_PRESETS: EnvironmentBehaviorPreset[] = [
   {
     id: "neutral",
@@ -123,13 +123,14 @@ export const ENVIRONMENT_BEHAVIOR_PRESETS: EnvironmentBehaviorPreset[] = [
   {
     id: "chill",
     name: "Chill",
-    description: "Gentle breathing, mild parallax, slow hue drift, and restrained global glow.",
+    description: "A relaxed environment profile with gentle motion and restrained color evolution.",
     settings: CHILL_BEHAVIOR_SETTINGS,
   },
   {
     id: "full-on",
     name: "Full On",
-    description: "Aggressive laboratory demo with faster breathing, wider hue drift, and stronger global pulses.",
+    description:
+      "Psychedelic rave in the jungle with full-range depth breathing, maximum parallax, wide hue drift, and aggressive saturation pulse.",
     settings: FULL_ON_BEHAVIOR_SETTINGS,
   },
 ];

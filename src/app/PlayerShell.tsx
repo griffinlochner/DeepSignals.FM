@@ -1,9 +1,10 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import FloatingPlayerPanel from '../components/FloatingPlayerPanel'
 import VisualFeedWindow from '../components/VisualFeedWindow'
 import { themeRegistry } from '../themes/themeRegistry'
 import type { SignalSource, PlaybackState } from './playerTypes'
 import type { ThemeId, ThemeSceneProps } from '../themes/themeTypes'
+import { preloadUvJungleTextures } from '../themes/uv-reactive-jungle/uvJungleTextureCache'
 import '../styles/player.css'
 
 type PlayerShellProps = {
@@ -18,6 +19,10 @@ function PlayerShell({ className }: PlayerShellProps) {
   const [motionEnabled, setMotionEnabled] = useState(true)
   const [panelCollapsed, setPanelCollapsed] = useState(false)
   const [visualFeedOpen, setVisualFeedOpen] = useState(false)
+
+  useEffect(() => {
+    void preloadUvJungleTextures()
+  }, [])
 
   const signals: SignalSource[] = useMemo(
     () => [

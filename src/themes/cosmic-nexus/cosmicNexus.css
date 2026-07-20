@@ -34,15 +34,6 @@
   --nexus-orange: #ff7a00;
   --nexus-violet: #a45cff;
   --nexus-display-width: min(64vw, calc(51vh * 16 / 9), 980px);
-  font-family:
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    'Segoe UI',
-    Roboto,
-    Helvetica,
-    Arial,
-    sans-serif;
 }
 
 .player-shell.theme-cosmic-nexus::before {
