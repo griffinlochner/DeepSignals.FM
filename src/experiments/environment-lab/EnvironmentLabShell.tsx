@@ -11,7 +11,8 @@ import "./environmentLab.css";
 
 type EnvironmentLabShellProps = {
   playbackState: EnvironmentPlaybackState;
-  placementModeEnabled: boolean;
+  twinklePlacementModeEnabled: boolean;
+  surfaceGlowPlacementModeEnabled: boolean;
   preset: EnvironmentPreset;
   reducedMotionActive: boolean;
   status: string;
@@ -20,12 +21,17 @@ type EnvironmentLabShellProps = {
   feedbackMessage: string;
   feedbackTone: "idle" | "success" | "error";
   onPlaybackStateChange: (value: EnvironmentPlaybackState) => void;
-  onPlacementModeChange: (enabled: boolean) => void;
+  onTwinklePlacementModeChange: (enabled: boolean) => void;
+  onSurfaceGlowPlacementModeChange: (enabled: boolean) => void;
   onPresetChange: (next: EnvironmentPreset) => void;
-  onCreateHotspot: (u: number, v: number, phase: number) => void;
-  onRemoveNearestHotspot: (u: number, v: number) => void;
+  onCreateTwinkleHotspot: (u: number, v: number, phase: number) => void;
+  onRemoveNearestTwinkleHotspot: (u: number, v: number) => void;
+  onCreateSurfaceGlowHotspot: (u: number, v: number, phase: number) => void;
+  onRemoveNearestSurfaceGlowHotspot: (u: number, v: number) => void;
   onClearHotspots: () => void;
   onRandomizeHotspotPhases: () => void;
+  onClearSurfaceGlowHotspots: () => void;
+  onRandomizeSurfaceGlowPhases: () => void;
   onResetPreset: () => void;
   onCopyPresetJson: () => void;
   onImportTextChange: (value: string) => void;
@@ -36,7 +42,8 @@ type EnvironmentLabShellProps = {
 
 function EnvironmentLabShell({
   playbackState,
-  placementModeEnabled,
+  twinklePlacementModeEnabled,
+  surfaceGlowPlacementModeEnabled,
   preset,
   reducedMotionActive,
   status,
@@ -45,12 +52,17 @@ function EnvironmentLabShell({
   feedbackMessage,
   feedbackTone,
   onPlaybackStateChange,
-  onPlacementModeChange,
+  onTwinklePlacementModeChange,
+  onSurfaceGlowPlacementModeChange,
   onPresetChange,
-  onCreateHotspot,
-  onRemoveNearestHotspot,
+  onCreateTwinkleHotspot,
+  onRemoveNearestTwinkleHotspot,
+  onCreateSurfaceGlowHotspot,
+  onRemoveNearestSurfaceGlowHotspot,
   onClearHotspots,
   onRandomizeHotspotPhases,
+  onClearSurfaceGlowHotspots,
+  onRandomizeSurfaceGlowPhases,
   onResetPreset,
   onCopyPresetJson,
   onImportTextChange,
@@ -63,11 +75,14 @@ function EnvironmentLabShell({
       <div className="environment-lab__viewport" aria-hidden="true">
         <EnvironmentLabScene
           playbackState={playbackState}
-          placementModeEnabled={placementModeEnabled}
+          twinklePlacementModeEnabled={twinklePlacementModeEnabled}
+          surfaceGlowPlacementModeEnabled={surfaceGlowPlacementModeEnabled}
           preset={preset}
           reducedMotionActive={reducedMotionActive}
-          onCreateHotspot={onCreateHotspot}
-          onRemoveNearestHotspot={onRemoveNearestHotspot}
+          onCreateTwinkleHotspot={onCreateTwinkleHotspot}
+          onRemoveNearestTwinkleHotspot={onRemoveNearestTwinkleHotspot}
+          onCreateSurfaceGlowHotspot={onCreateSurfaceGlowHotspot}
+          onRemoveNearestSurfaceGlowHotspot={onRemoveNearestSurfaceGlowHotspot}
           onDiagnosticsChange={onDiagnosticsChange}
           onLoadingStateChange={onLoadingStateChange}
         />
@@ -80,15 +95,19 @@ function EnvironmentLabShell({
             preset={preset}
             reducedMotionActive={reducedMotionActive}
             diagnostics={diagnostics}
-            placementModeEnabled={placementModeEnabled}
+            twinklePlacementModeEnabled={twinklePlacementModeEnabled}
+            surfaceGlowPlacementModeEnabled={surfaceGlowPlacementModeEnabled}
             importText={importText}
             feedbackMessage={feedbackMessage}
             feedbackTone={feedbackTone}
             onPlaybackStateChange={onPlaybackStateChange}
             onPresetChange={onPresetChange}
-            onPlacementModeChange={onPlacementModeChange}
+            onTwinklePlacementModeChange={onTwinklePlacementModeChange}
+            onSurfaceGlowPlacementModeChange={onSurfaceGlowPlacementModeChange}
             onClearHotspots={onClearHotspots}
             onRandomizeHotspotPhases={onRandomizeHotspotPhases}
+            onClearSurfaceGlowHotspots={onClearSurfaceGlowHotspots}
+            onRandomizeSurfaceGlowPhases={onRandomizeSurfaceGlowPhases}
             onResetPreset={onResetPreset}
             onCopyPresetJson={onCopyPresetJson}
             onImportTextChange={onImportTextChange}

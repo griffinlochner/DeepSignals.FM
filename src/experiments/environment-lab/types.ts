@@ -11,6 +11,20 @@ export type TwinkleHotspot = {
   phase?: number;
 };
 
+export type SurfaceGlowHotspot = {
+  id: string;
+  u: number;
+  v: number;
+  color: string;
+  radius: number;
+  softness: number;
+  intensity: number;
+  pulseEnabled: boolean;
+  pulseAmount: number;
+  pulseCycleSeconds: number;
+  phase: number;
+};
+
 export type EnvironmentPreset = {
   id: string;
   name: string;
@@ -38,6 +52,14 @@ export type EnvironmentPreset = {
     glowPulseAmount: number;
     glowPulseCycleSeconds: number;
   };
+  saturationPulse: {
+    enabled: boolean;
+    minimumSaturation: number;
+    maximumSaturation: number;
+    cycleSeconds: number;
+    phaseOffset: number;
+    syncToDepthBreathing: boolean;
+  };
   twinkles: {
     enabled: boolean;
     hotspots: TwinkleHotspot[];
@@ -45,6 +67,17 @@ export type EnvironmentPreset = {
     defaultSize: number;
     defaultIntensity: number;
     pulseSpeed: number;
+  };
+  surfaceGlows: {
+    enabled: boolean;
+    hotspots: SurfaceGlowHotspot[];
+    defaultColor: string;
+    defaultRadius: number;
+    defaultSoftness: number;
+    defaultIntensity: number;
+    defaultPulseEnabled: boolean;
+    defaultPulseAmount: number;
+    defaultPulseCycleSeconds: number;
   };
   particles: {
     enabled: boolean;
@@ -69,18 +102,26 @@ export type EnvironmentDiagnostics = {
   fps: number;
   effectiveDepth: number;
   twinkleCount: number;
+  surfaceGlowCount: number;
   particleCount: number;
   hueOffsetDegrees: number;
+  currentSaturation: number;
+  shaderSurfaceGlowCapacity: number;
+  surfaceGlowDefaultIntensity: number;
+  surfaceGlowAnimationActive: boolean;
   automaticMotionActive: boolean;
 };
 
 export type EnvironmentLabSceneProps = {
   playbackState: EnvironmentPlaybackState;
-  placementModeEnabled: boolean;
+  twinklePlacementModeEnabled: boolean;
+  surfaceGlowPlacementModeEnabled: boolean;
   preset: EnvironmentPreset;
   reducedMotionActive: boolean;
   onLoadingStateChange?: (state: EnvironmentLoadingState) => void;
   onDiagnosticsChange?: (diagnostics: EnvironmentDiagnostics) => void;
-  onCreateHotspot?: (u: number, v: number, phase: number) => void;
-  onRemoveNearestHotspot?: (u: number, v: number) => void;
+  onCreateTwinkleHotspot?: (u: number, v: number, phase: number) => void;
+  onRemoveNearestTwinkleHotspot?: (u: number, v: number) => void;
+  onCreateSurfaceGlowHotspot?: (u: number, v: number, phase: number) => void;
+  onRemoveNearestSurfaceGlowHotspot?: (u: number, v: number) => void;
 };

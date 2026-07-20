@@ -10,15 +10,19 @@ type EnvironmentLabControlsProps = {
   preset: EnvironmentPreset;
   reducedMotionActive: boolean;
   diagnostics: EnvironmentDiagnostics;
-  placementModeEnabled: boolean;
+  twinklePlacementModeEnabled: boolean;
+  surfaceGlowPlacementModeEnabled: boolean;
   importText: string;
   feedbackMessage: string;
   feedbackTone: "idle" | "success" | "error";
   onPlaybackStateChange: (value: EnvironmentPlaybackState) => void;
   onPresetChange: (next: EnvironmentPreset) => void;
-  onPlacementModeChange: (enabled: boolean) => void;
+  onTwinklePlacementModeChange: (enabled: boolean) => void;
+  onSurfaceGlowPlacementModeChange: (enabled: boolean) => void;
   onClearHotspots: () => void;
   onRandomizeHotspotPhases: () => void;
+  onClearSurfaceGlowHotspots: () => void;
+  onRandomizeSurfaceGlowPhases: () => void;
   onResetPreset: () => void;
   onCopyPresetJson: () => void;
   onImportTextChange: (value: string) => void;
@@ -30,15 +34,19 @@ function EnvironmentLabControls({
   preset,
   reducedMotionActive,
   diagnostics,
-  placementModeEnabled,
+  twinklePlacementModeEnabled,
+  surfaceGlowPlacementModeEnabled,
   importText,
   feedbackMessage,
   feedbackTone,
   onPlaybackStateChange,
   onPresetChange,
-  onPlacementModeChange,
+  onTwinklePlacementModeChange,
+  onSurfaceGlowPlacementModeChange,
   onClearHotspots,
   onRandomizeHotspotPhases,
+  onClearSurfaceGlowHotspots,
+  onRandomizeSurfaceGlowPhases,
   onResetPreset,
   onCopyPresetJson,
   onImportTextChange,
@@ -104,6 +112,34 @@ function EnvironmentLabControls({
       ...preset,
       haze: {
         ...preset.haze,
+        [key]: value,
+      },
+    });
+  };
+
+  const updateSaturationPulse = <
+    K extends keyof EnvironmentPreset["saturationPulse"],
+  >(
+    key: K,
+    value: EnvironmentPreset["saturationPulse"][K],
+  ) => {
+    onPresetChange({
+      ...preset,
+      saturationPulse: {
+        ...preset.saturationPulse,
+        [key]: value,
+      },
+    });
+  };
+
+  const updateSurfaceGlows = <K extends keyof EnvironmentPreset["surfaceGlows"]>(
+    key: K,
+    value: EnvironmentPreset["surfaceGlows"][K],
+  ) => {
+    onPresetChange({
+      ...preset,
+      surfaceGlows: {
+        ...preset.surfaceGlows,
         [key]: value,
       },
     });
@@ -344,6 +380,96 @@ function EnvironmentLabControls({
           />
           <strong>{preset.color.glowPulseCycleSeconds.toFixed(1)}s</strong>
         </label>
+
+        <label className="environment-lab__toggle">
+          <span>Saturation Pulse enabled</span>
+          <input
+            type="checkbox"
+            checked={preset.saturationPulse.enabled}
+            onChange={(event) =>
+              updateSaturationPulse("enabled", event.target.checked)
+            }
+          />
+        </label>
+
+        <label className="environment-lab__field">
+          <span>Minimum saturation</span>
+          <input
+            type="range"
+            min="0"
+            max="2.4"
+            step="0.01"
+            value={preset.saturationPulse.minimumSaturation}
+            onChange={(event) =>
+              handleRangeChange(event, (value) =>
+                updateSaturationPulse("minimumSaturation", value),
+              )
+            }
+          />
+          <strong>{preset.saturationPulse.minimumSaturation.toFixed(2)}</strong>
+        </label>
+
+        <label className="environment-lab__field">
+          <span>Maximum saturation</span>
+          <input
+            type="range"
+            min="0"
+            max="2.8"
+            step="0.01"
+            value={preset.saturationPulse.maximumSaturation}
+            onChange={(event) =>
+              handleRangeChange(event, (value) =>
+                updateSaturationPulse("maximumSaturation", value),
+              )
+            }
+          />
+          <strong>{preset.saturationPulse.maximumSaturation.toFixed(2)}</strong>
+        </label>
+
+        <label className="environment-lab__field">
+          <span>Saturation pulse cycle (seconds)</span>
+          <input
+            type="range"
+            min="0.2"
+            max="60"
+            step="0.1"
+            value={preset.saturationPulse.cycleSeconds}
+            onChange={(event) =>
+              handleRangeChange(event, (value) =>
+                updateSaturationPulse("cycleSeconds", value),
+              )
+            }
+          />
+          <strong>{preset.saturationPulse.cycleSeconds.toFixed(1)}s</strong>
+        </label>
+
+        <label className="environment-lab__field">
+          <span>Phase offset</span>
+          <input
+            type="range"
+            min={(-Math.PI * 2).toFixed(2)}
+            max={(Math.PI * 2).toFixed(2)}
+            step="0.01"
+            value={preset.saturationPulse.phaseOffset}
+            onChange={(event) =>
+              handleRangeChange(event, (value) =>
+                updateSaturationPulse("phaseOffset", value),
+              )
+            }
+          />
+          <strong>{preset.saturationPulse.phaseOffset.toFixed(2)} rad</strong>
+        </label>
+
+        <label className="environment-lab__toggle">
+          <span>Sync to Depth Breathing</span>
+          <input
+            type="checkbox"
+            checked={preset.saturationPulse.syncToDepthBreathing}
+            onChange={(event) =>
+              updateSaturationPulse("syncToDepthBreathing", event.target.checked)
+            }
+          />
+        </label>
       </details>
 
       <details className="environment-lab__group">
@@ -362,8 +488,8 @@ function EnvironmentLabControls({
           <span>Placement mode enabled</span>
           <input
             type="checkbox"
-            checked={placementModeEnabled}
-            onChange={(event) => onPlacementModeChange(event.target.checked)}
+            checked={twinklePlacementModeEnabled}
+            onChange={(event) => onTwinklePlacementModeChange(event.target.checked)}
           />
         </label>
 
@@ -435,6 +561,153 @@ function EnvironmentLabControls({
         </p>
         <p className="environment-lab__hint">
           Placement mode: click to add. Hold Shift or Alt while clicking to remove the nearest hotspot.
+        </p>
+      </details>
+
+      <details className="environment-lab__group">
+        <summary>Surface Glow Hotspots</summary>
+
+        <label className="environment-lab__toggle">
+          <span>Enabled</span>
+          <input
+            type="checkbox"
+            checked={preset.surfaceGlows.enabled}
+            onChange={(event) => updateSurfaceGlows("enabled", event.target.checked)}
+          />
+        </label>
+
+        <label className="environment-lab__toggle">
+          <span>Surface Glow Placement Mode</span>
+          <input
+            type="checkbox"
+            checked={surfaceGlowPlacementModeEnabled}
+            onChange={(event) =>
+              onSurfaceGlowPlacementModeChange(event.target.checked)
+            }
+          />
+        </label>
+
+        <label className="environment-lab__field">
+          <span>Color</span>
+          <input
+            type="color"
+            value={preset.surfaceGlows.defaultColor}
+            onChange={(event) =>
+              updateSurfaceGlows("defaultColor", event.target.value)
+            }
+          />
+        </label>
+
+        <label className="environment-lab__field">
+          <span>Radius</span>
+          <input
+            type="range"
+            min="0.002"
+            max="0.09"
+            step="0.001"
+            value={preset.surfaceGlows.defaultRadius}
+            onChange={(event) =>
+              handleRangeChange(event, (value) =>
+                updateSurfaceGlows("defaultRadius", value),
+              )
+            }
+          />
+          <strong>{preset.surfaceGlows.defaultRadius.toFixed(3)}</strong>
+        </label>
+
+        <label className="environment-lab__field">
+          <span>Softness</span>
+          <input
+            type="range"
+            min="0.05"
+            max="0.98"
+            step="0.01"
+            value={preset.surfaceGlows.defaultSoftness}
+            onChange={(event) =>
+              handleRangeChange(event, (value) =>
+                updateSurfaceGlows("defaultSoftness", value),
+              )
+            }
+          />
+          <strong>{preset.surfaceGlows.defaultSoftness.toFixed(2)}</strong>
+        </label>
+
+        <label className="environment-lab__field">
+          <span>Intensity</span>
+          <input
+            type="range"
+            min="0"
+            max="4"
+            step="0.01"
+            value={preset.surfaceGlows.defaultIntensity}
+            onChange={(event) =>
+              handleRangeChange(event, (value) =>
+                updateSurfaceGlows("defaultIntensity", value),
+              )
+            }
+          />
+          <strong>{preset.surfaceGlows.defaultIntensity.toFixed(2)}</strong>
+        </label>
+
+        <label className="environment-lab__toggle">
+          <span>Pulse Enabled</span>
+          <input
+            type="checkbox"
+            checked={preset.surfaceGlows.defaultPulseEnabled}
+            onChange={(event) =>
+              updateSurfaceGlows("defaultPulseEnabled", event.target.checked)
+            }
+          />
+        </label>
+
+        <label className="environment-lab__field">
+          <span>Pulse Amount</span>
+          <input
+            type="range"
+            min="0"
+            max="2"
+            step="0.01"
+            value={preset.surfaceGlows.defaultPulseAmount}
+            onChange={(event) =>
+              handleRangeChange(event, (value) =>
+                updateSurfaceGlows("defaultPulseAmount", value),
+              )
+            }
+          />
+          <strong>{preset.surfaceGlows.defaultPulseAmount.toFixed(2)}</strong>
+        </label>
+
+        <label className="environment-lab__field">
+          <span>Pulse Cycle</span>
+          <input
+            type="range"
+            min="0.2"
+            max="20"
+            step="0.1"
+            value={preset.surfaceGlows.defaultPulseCycleSeconds}
+            onChange={(event) =>
+              handleRangeChange(event, (value) =>
+                updateSurfaceGlows("defaultPulseCycleSeconds", value),
+              )
+            }
+          />
+          <strong>{preset.surfaceGlows.defaultPulseCycleSeconds.toFixed(1)}s</strong>
+        </label>
+
+        <div className="environment-lab__button-row">
+          <button type="button" onClick={onClearSurfaceGlowHotspots}>
+            Clear All
+          </button>
+          <button type="button" onClick={onRandomizeSurfaceGlowPhases}>
+            Randomize Phases
+          </button>
+        </div>
+
+        <p className="environment-lab__diagnostic">
+          hotspot count: {preset.surfaceGlows.hotspots.length}
+        </p>
+        <p className="environment-lab__hint">
+          Placement mode: click to add surface glow. Hold Shift or Alt while clicking to remove nearest glow.
         </p>
       </details>
 
@@ -649,8 +922,15 @@ function EnvironmentLabControls({
         <ul className="environment-lab__stats" aria-label="Laboratory diagnostics">
           <li>Approx FPS: {diagnostics.fps.toFixed(1)}</li>
           <li>Active twinkle count: {diagnostics.twinkleCount}</li>
+          <li>Surface hotspot count: {diagnostics.surfaceGlowCount}</li>
           <li>Active particle count: {diagnostics.particleCount}</li>
           <li>Current hue offset: {diagnostics.hueOffsetDegrees.toFixed(2)}deg</li>
+          <li>Current saturation: {diagnostics.currentSaturation.toFixed(2)}</li>
+          <li>Default glow intensity: {diagnostics.surfaceGlowDefaultIntensity.toFixed(2)}</li>
+          <li>Shader hotspot capacity: {diagnostics.shaderSurfaceGlowCapacity}</li>
+          <li>
+            Surface glow animation active: {diagnostics.surfaceGlowAnimationActive ? "yes" : "no"}
+          </li>
           <li>Automatic motion active: {diagnostics.automaticMotionActive ? "yes" : "no"}</li>
         </ul>
 

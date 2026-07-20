@@ -6,6 +6,7 @@ import type {
   EnvironmentLoadingState,
   EnvironmentPlaybackState,
   EnvironmentPreset,
+  SurfaceGlowHotspot,
   TwinkleHotspot,
 } from "./types";
 import { parseEnvironmentPresetJson } from "./validation";
@@ -14,13 +15,18 @@ const INITIAL_DIAGNOSTICS: EnvironmentDiagnostics = {
   fps: 0,
   effectiveDepth: 0,
   twinkleCount: 0,
+  surfaceGlowCount: 0,
   particleCount: 0,
   hueOffsetDegrees: 0,
+  currentSaturation: 1,
+  shaderSurfaceGlowCapacity: 0,
+  surfaceGlowDefaultIntensity: 0,
+  surfaceGlowAnimationActive: false,
   automaticMotionActive: false,
 };
 
-function removeNearestHotspot(
-  hotspots: TwinkleHotspot[],
+function removeNearestHotspot<T extends { u: number; v: number }>(
+  hotspots: T[],
   u: number,
   v: number,
   threshold: number,
@@ -49,7 +55,9 @@ function EnvironmentLabPage() {
   const [preset, setPreset] = useState<EnvironmentPreset>(() =>
     cloneEnvironmentPreset(UV_JUNGLE_LAB_PRESET),
   );
-  const [placementModeEnabled, setPlacementModeEnabled] = useState(false);
+  const [twinklePlacementModeEnabled, setTwinklePlacementModeEnabled] = useState(false);
+  const [surfaceGlowPlacementModeEnabled, setSurfaceGlowPlacementModeEnabled] =
+    useState(false);
   const [loadingState, setLoadingState] =
     useState<EnvironmentLoadingState>("loading");
   const [reducedMotionActive, setReducedMotionActive] = useState(false);
@@ -128,7 +136,8 @@ function EnvironmentLabPage() {
   return (
     <EnvironmentLabShell
       playbackState={playbackState}
-      placementModeEnabled={placementModeEnabled}
+      twinklePlacementModeEnabled={twinklePlacementModeEnabled}
+      surfaceGlowPlacementModeEnabled={surfaceGlowPlacementModeEnabled}
       preset={preset}
       reducedMotionActive={reducedMotionActive}
       status={status}
@@ -137,9 +146,10 @@ function EnvironmentLabPage() {
       feedbackMessage={feedbackMessage}
       feedbackTone={feedbackTone}
       onPlaybackStateChange={setPlaybackState}
-      onPlacementModeChange={setPlacementModeEnabled}
+      onTwinklePlacementModeChange={setTwinklePlacementModeEnabled}
+      onSurfaceGlowPlacementModeChange={setSurfaceGlowPlacementModeEnabled}
       onPresetChange={setPreset}
-      onCreateHotspot={(u, v, phase) => {
+      onCreateTwinkleHotspot={(u, v, phase) => {
         setPreset((current) => {
           const nextHotspot: TwinkleHotspot = {
             id: `twk-${Date.now().toString(36)}-${Math.floor(Math.random() * 1000)}`,
@@ -157,12 +167,46 @@ function EnvironmentLabPage() {
           };
         });
       }}
-      onRemoveNearestHotspot={(u, v) => {
+      onRemoveNearestTwinkleHotspot={(u, v) => {
         setPreset((current) => ({
           ...current,
           twinkles: {
             ...current.twinkles,
             hotspots: removeNearestHotspot(current.twinkles.hotspots, u, v, 0.08),
+          },
+        }));
+      }}
+      onCreateSurfaceGlowHotspot={(u, v, phase) => {
+        setPreset((current) => {
+          const nextHotspot: SurfaceGlowHotspot = {
+            id: `surface-${Date.now().toString(36)}-${Math.floor(Math.random() * 1000)}`,
+            u,
+            v,
+            color: current.surfaceGlows.defaultColor,
+            radius: current.surfaceGlows.defaultRadius,
+            softness: current.surfaceGlows.defaultSoftness,
+            intensity: current.surfaceGlows.defaultIntensity,
+            pulseEnabled: current.surfaceGlows.defaultPulseEnabled,
+            pulseAmount: current.surfaceGlows.defaultPulseAmount,
+            pulseCycleSeconds: current.surfaceGlows.defaultPulseCycleSeconds,
+            phase,
+          };
+
+          return {
+            ...current,
+            surfaceGlows: {
+              ...current.surfaceGlows,
+              hotspots: [...current.surfaceGlows.hotspots, nextHotspot],
+            },
+          };
+        });
+      }}
+      onRemoveNearestSurfaceGlowHotspot={(u, v) => {
+        setPreset((current) => ({
+          ...current,
+          surfaceGlows: {
+            ...current.surfaceGlows,
+            hotspots: removeNearestHotspot(current.surfaceGlows.hotspots, u, v, 0.06),
           },
         }));
       }}
@@ -189,8 +233,33 @@ function EnvironmentLabPage() {
         }));
         setFeedback("Randomized twinkle hotspot phases.", "success");
       }}
+      onClearSurfaceGlowHotspots={() => {
+        setPreset((current) => ({
+          ...current,
+          surfaceGlows: {
+            ...current.surfaceGlows,
+            hotspots: [],
+          },
+        }));
+        setFeedback("Cleared all surface glow hotspots.", "success");
+      }}
+      onRandomizeSurfaceGlowPhases={() => {
+        setPreset((current) => ({
+          ...current,
+          surfaceGlows: {
+            ...current.surfaceGlows,
+            hotspots: current.surfaceGlows.hotspots.map((hotspot) => ({
+              ...hotspot,
+              phase: Math.random(),
+            })),
+          },
+        }));
+        setFeedback("Randomized surface glow phases.", "success");
+      }}
       onResetPreset={() => {
         setPreset(cloneEnvironmentPreset(UV_JUNGLE_LAB_PRESET));
+        setTwinklePlacementModeEnabled(false);
+        setSurfaceGlowPlacementModeEnabled(false);
         setFeedback("Reset to UV Jungle laboratory defaults.", "success");
       }}
       onCopyPresetJson={handleCopyPresetJson}

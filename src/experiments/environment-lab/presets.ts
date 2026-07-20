@@ -27,6 +27,14 @@ export const UV_JUNGLE_LAB_PRESET: EnvironmentPreset = {
     glowPulseAmount: 0.08,
     glowPulseCycleSeconds: 11,
   },
+  saturationPulse: {
+    enabled: false,
+    minimumSaturation: 0.75,
+    maximumSaturation: 1.15,
+    cycleSeconds: 8,
+    phaseOffset: 0,
+    syncToDepthBreathing: false,
+  },
   twinkles: {
     enabled: true,
     hotspots: [
@@ -63,6 +71,17 @@ export const UV_JUNGLE_LAB_PRESET: EnvironmentPreset = {
     defaultIntensity: 0.88,
     pulseSpeed: 0.75,
   },
+  surfaceGlows: {
+    enabled: true,
+    hotspots: [],
+    defaultColor: "#8fffe2",
+    defaultRadius: 0.012,
+    defaultSoftness: 0.65,
+    defaultIntensity: 1.2,
+    defaultPulseEnabled: true,
+    defaultPulseAmount: 0.55,
+    defaultPulseCycleSeconds: 3.5,
+  },
   particles: {
     enabled: true,
     count: 80,
@@ -88,9 +107,14 @@ export function cloneEnvironmentPreset(preset: EnvironmentPreset): EnvironmentPr
     assets: { ...preset.assets },
     depth: { ...preset.depth },
     color: { ...preset.color },
+    saturationPulse: { ...preset.saturationPulse },
     twinkles: {
       ...preset.twinkles,
       hotspots: preset.twinkles.hotspots.map((hotspot) => ({ ...hotspot })),
+    },
+    surfaceGlows: {
+      ...preset.surfaceGlows,
+      hotspots: preset.surfaceGlows.hotspots.map((hotspot) => ({ ...hotspot })),
     },
     particles: { ...preset.particles },
     haze: { ...preset.haze },
