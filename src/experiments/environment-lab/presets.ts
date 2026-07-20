@@ -1,4 +1,10 @@
-import type { ImageEnvironmentAsset, ImageEnvironmentPreset } from "./types";
+import type {
+  EnvironmentBehaviorPreset,
+  EnvironmentBehaviorSettings,
+  ImageEnvironmentAsset,
+  ImageEnvironmentScenePreset,
+  SurfaceGlowDefaultSettings,
+} from "./types";
 
 export const UV_JUNGLE_ASSET_ID = "uv-jungle";
 
@@ -14,10 +20,7 @@ export const IMAGE_ENVIRONMENT_ASSETS: ImageEnvironmentAsset[] = [
   },
 ];
 
-export const UV_JUNGLE_SHOWCASE_PRESET: ImageEnvironmentPreset = {
-  id: "uv-jungle-showcase",
-  name: "UV Jungle Showcase",
-  assetId: UV_JUNGLE_ASSET_ID,
+export const NEUTRAL_BEHAVIOR_SETTINGS: EnvironmentBehaviorSettings = {
   depth: {
     motionIntensity: 0.35,
     depthStrength: 0.45,
@@ -25,16 +28,16 @@ export const UV_JUNGLE_SHOWCASE_PRESET: ImageEnvironmentPreset = {
     breathingMin: 0,
     breathingMax: 1,
     breathingCycleSeconds: 4,
-    pointerParallaxEnabled: true,
+    pointerParallaxEnabled: false,
     pointerParallaxStrength: 0.42,
-    ambientMotionEnabled: true,
+    ambientMotionEnabled: false,
   },
   color: {
-    driftEnabled: true,
+    driftEnabled: false,
     hueRangeDegrees: 10,
     cycleSeconds: 75,
     saturation: 1.05,
-    glowPulseEnabled: true,
+    glowPulseEnabled: false,
     glowPulseAmount: 0.08,
     glowPulseCycleSeconds: 11,
   },
@@ -46,142 +49,209 @@ export const UV_JUNGLE_SHOWCASE_PRESET: ImageEnvironmentPreset = {
     phaseOffset: 0,
     syncToDepthBreathing: false,
   },
-  twinkles: {
+};
+
+export const CHILL_BEHAVIOR_SETTINGS: EnvironmentBehaviorSettings = {
+  depth: {
+    motionIntensity: 0.26,
+    depthStrength: 0.38,
+    staticDepth: 0.54,
+    breathingMin: 0.18,
+    breathingMax: 0.74,
+    breathingCycleSeconds: 10.5,
+    pointerParallaxEnabled: true,
+    pointerParallaxStrength: 0.22,
+    ambientMotionEnabled: true,
+  },
+  color: {
+    driftEnabled: true,
+    hueRangeDegrees: 5,
+    cycleSeconds: 110,
+    saturation: 1.02,
+    glowPulseEnabled: true,
+    glowPulseAmount: 0.04,
+    glowPulseCycleSeconds: 18,
+  },
+  saturationPulse: {
+    enabled: false,
+    minimumSaturation: 0.9,
+    maximumSaturation: 1.08,
+    cycleSeconds: 12,
+    phaseOffset: 0,
+    syncToDepthBreathing: false,
+  },
+};
+
+export const FULL_ON_BEHAVIOR_SETTINGS: EnvironmentBehaviorSettings = {
+  depth: {
+    motionIntensity: 0.52,
+    depthStrength: 0.62,
+    staticDepth: 0.6,
+    breathingMin: 0.04,
+    breathingMax: 1,
+    breathingCycleSeconds: 2.8,
+    pointerParallaxEnabled: true,
+    pointerParallaxStrength: 0.62,
+    ambientMotionEnabled: true,
+  },
+  color: {
+    driftEnabled: true,
+    hueRangeDegrees: 24,
+    cycleSeconds: 26,
+    saturation: 1.16,
+    glowPulseEnabled: true,
+    glowPulseAmount: 0.18,
+    glowPulseCycleSeconds: 5.2,
+  },
+  saturationPulse: {
     enabled: true,
-    hotspots: [
-      {
-        id: "twk-0",
-        u: 0.23,
-        v: 0.34,
-        color: "#7fffe2",
-        size: 0.16,
-        intensity: 0.9,
-        phase: 0.14,
-      },
-      {
-        id: "twk-1",
-        u: 0.76,
-        v: 0.47,
-        color: "#9fffd3",
-        size: 0.2,
-        intensity: 0.82,
-        phase: 0.52,
-      },
-      {
-        id: "twk-2",
-        u: 0.64,
-        v: 0.23,
-        color: "#83ffe8",
-        size: 0.14,
-        intensity: 0.94,
-        phase: 0.81,
-      },
-    ],
-    defaultColor: "#8fffe2",
-    defaultSize: 0.18,
-    defaultIntensity: 0.88,
-    pulseSpeed: 0.75,
+    minimumSaturation: 0.72,
+    maximumSaturation: 1.38,
+    cycleSeconds: 4.2,
+    phaseOffset: 0,
+    syncToDepthBreathing: false,
+  },
+};
+
+export const ENVIRONMENT_BEHAVIOR_PRESETS: EnvironmentBehaviorPreset[] = [
+  {
+    id: "neutral",
+    name: "Neutral",
+    description: "Global motion and optional color effects disabled. Surface Glow layout is preserved.",
+    settings: NEUTRAL_BEHAVIOR_SETTINGS,
+  },
+  {
+    id: "chill",
+    name: "Chill",
+    description: "Gentle breathing, mild parallax, slow hue drift, and restrained global glow.",
+    settings: CHILL_BEHAVIOR_SETTINGS,
+  },
+  {
+    id: "full-on",
+    name: "Full On",
+    description: "Aggressive laboratory demo with faster breathing, wider hue drift, and stronger global pulses.",
+    settings: FULL_ON_BEHAVIOR_SETTINGS,
+  },
+];
+
+export const DEFAULT_SURFACE_GLOW_SETTINGS: SurfaceGlowDefaultSettings = {
+  color: "#8fffe2",
+  radius: 0.01,
+  softness: 0.65,
+  intensity: 1.05,
+  pulseEnabled: true,
+  pulseMode: "brightness-bloom",
+  pulseAmount: 0.6,
+  minimumIntensityMultiplier: 0.7,
+  maximumIntensityMultiplier: 1.35,
+  radiusExpansionMultiplier: 1.18,
+  pulseCycleSeconds: 3.5,
+  hueDriftEnabled: true,
+  hueDriftRangeDegrees: 14,
+  hueDriftCycleSeconds: 20,
+};
+
+export const NEUTRAL_BASELINE_SCENE_PRESET: ImageEnvironmentScenePreset = {
+  id: "neutral-baseline",
+  name: "Neutral Baseline",
+  assetId: UV_JUNGLE_ASSET_ID,
+  behavior: NEUTRAL_BEHAVIOR_SETTINGS,
+  surfaceGlows: {
+    enabled: false,
+    hotspots: [],
+    defaults: DEFAULT_SURFACE_GLOW_SETTINGS,
+  },
+};
+
+export const UV_JUNGLE_SHOWCASE_SCENE_PRESET: ImageEnvironmentScenePreset = {
+  id: "uv-jungle-showcase",
+  name: "UV Jungle Showcase",
+  assetId: UV_JUNGLE_ASSET_ID,
+  behavior: {
+    depth: {
+      motionIntensity: 0.35,
+      depthStrength: 0.45,
+      staticDepth: 0.56,
+      breathingMin: 0,
+      breathingMax: 1,
+      breathingCycleSeconds: 4,
+      pointerParallaxEnabled: true,
+      pointerParallaxStrength: 0.42,
+      ambientMotionEnabled: true,
+    },
+    color: {
+      driftEnabled: true,
+      hueRangeDegrees: 10,
+      cycleSeconds: 75,
+      saturation: 1.05,
+      glowPulseEnabled: true,
+      glowPulseAmount: 0.08,
+      glowPulseCycleSeconds: 11,
+    },
+    saturationPulse: {
+      enabled: true,
+      minimumSaturation: 0.82,
+      maximumSaturation: 1.22,
+      cycleSeconds: 7,
+      phaseOffset: 0,
+      syncToDepthBreathing: false,
+    },
   },
   surfaceGlows: {
     enabled: true,
     hotspots: [],
-    defaultColor: "#8fffe2",
-    defaultRadius: 0.01,
-    defaultSoftness: 0.65,
-    defaultIntensity: 1.05,
-    defaultPulseEnabled: true,
-    defaultPulseMode: "brightness-bloom",
-    defaultPulseAmount: 0.6,
-    defaultMinimumIntensityMultiplier: 0.7,
-    defaultMaximumIntensityMultiplier: 1.35,
-    defaultRadiusExpansionMultiplier: 1.18,
-    defaultPulseCycleSeconds: 3.5,
-    defaultHueDriftEnabled: true,
-    defaultHueDriftRangeDegrees: 14,
-    defaultHueDriftCycleSeconds: 20,
-  },
-  particles: {
-    enabled: true,
-    count: 80,
-    speed: 0.055,
-    size: 0.03,
-    opacity: 0.24,
-    color: "#83ffd7",
-    seed: 14,
-  },
-  haze: {
-    enabled: true,
-    opacity: 0.1,
-    blurPixels: 28,
-    driftCycleSeconds: 60,
-    driftDistance: 24,
-    driftBiasX: 1,
-    driftBiasY: 0.65,
-    primaryColor: "#52f4d1",
-    secondaryColor: "#7a54ff",
+    defaults: DEFAULT_SURFACE_GLOW_SETTINGS,
   },
 };
 
-export const NEUTRAL_BASELINE_PRESET: ImageEnvironmentPreset = {
-  ...UV_JUNGLE_SHOWCASE_PRESET,
-  id: "neutral-baseline",
-  name: "Neutral Baseline",
-  depth: {
-    ...UV_JUNGLE_SHOWCASE_PRESET.depth,
-    pointerParallaxEnabled: false,
-    ambientMotionEnabled: false,
-  },
-  color: {
-    ...UV_JUNGLE_SHOWCASE_PRESET.color,
-    driftEnabled: false,
-    glowPulseEnabled: false,
-  },
-  saturationPulse: {
-    ...UV_JUNGLE_SHOWCASE_PRESET.saturationPulse,
-    enabled: false,
-  },
-  twinkles: {
-    ...UV_JUNGLE_SHOWCASE_PRESET.twinkles,
-    enabled: false,
-  },
-  surfaceGlows: {
-    ...UV_JUNGLE_SHOWCASE_PRESET.surfaceGlows,
-    enabled: false,
-  },
-  particles: {
-    ...UV_JUNGLE_SHOWCASE_PRESET.particles,
-    enabled: false,
-  },
-  haze: {
-    ...UV_JUNGLE_SHOWCASE_PRESET.haze,
-    enabled: false,
-  },
-};
-
-export const IMAGE_ENVIRONMENT_PRESETS: ImageEnvironmentPreset[] = [
-  NEUTRAL_BASELINE_PRESET,
-  UV_JUNGLE_SHOWCASE_PRESET,
+export const IMAGE_ENVIRONMENT_SCENE_PRESETS: ImageEnvironmentScenePreset[] = [
+  NEUTRAL_BASELINE_SCENE_PRESET,
+  UV_JUNGLE_SHOWCASE_SCENE_PRESET,
 ];
 
 export function getImageEnvironmentAssetById(assetId: string) {
   return IMAGE_ENVIRONMENT_ASSETS.find((asset) => asset.id === assetId) ?? null;
 }
 
-export function cloneEnvironmentPreset(preset: ImageEnvironmentPreset): ImageEnvironmentPreset {
+export function getBehaviorPresetById(presetId: string) {
+  return ENVIRONMENT_BEHAVIOR_PRESETS.find((preset) => preset.id === presetId) ?? null;
+}
+
+export function getScenePresetById(presetId: string) {
+  return IMAGE_ENVIRONMENT_SCENE_PRESETS.find((preset) => preset.id === presetId) ?? null;
+}
+
+export function cloneBehaviorSettings(settings: EnvironmentBehaviorSettings): EnvironmentBehaviorSettings {
+  return {
+    depth: { ...settings.depth },
+    color: { ...settings.color },
+    saturationPulse: { ...settings.saturationPulse },
+  };
+}
+
+export function cloneScenePreset(preset: ImageEnvironmentScenePreset): ImageEnvironmentScenePreset {
   return {
     ...preset,
-    depth: { ...preset.depth },
-    color: { ...preset.color },
-    saturationPulse: { ...preset.saturationPulse },
-    twinkles: {
-      ...preset.twinkles,
-      hotspots: preset.twinkles.hotspots.map((hotspot) => ({ ...hotspot })),
-    },
+    behavior: cloneBehaviorSettings(preset.behavior),
     surfaceGlows: {
       ...preset.surfaceGlows,
+      defaults: { ...preset.surfaceGlows.defaults },
       hotspots: preset.surfaceGlows.hotspots.map((hotspot) => ({ ...hotspot })),
     },
-    particles: { ...preset.particles },
-    haze: { ...preset.haze },
+  };
+}
+
+export function applyBehaviorPreset(
+  scenePreset: ImageEnvironmentScenePreset,
+  behaviorPreset: EnvironmentBehaviorPreset,
+): ImageEnvironmentScenePreset {
+  return {
+    ...scenePreset,
+    behavior: cloneBehaviorSettings(behaviorPreset.settings),
+    surfaceGlows: {
+      ...scenePreset.surfaceGlows,
+      defaults: { ...scenePreset.surfaceGlows.defaults },
+      hotspots: scenePreset.surfaceGlows.hotspots.map((hotspot) => ({ ...hotspot })),
+    },
   };
 }

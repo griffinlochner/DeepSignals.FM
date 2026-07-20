@@ -5,9 +5,8 @@ import { stepUvJunglePlaybackVisualMix } from "../../../themes/uv-reactive-jungl
 import type {
   EnvironmentDiagnostics,
   EnvironmentLabSceneProps,
-  ImageEnvironmentPreset,
+  ImageEnvironmentScenePreset,
   SurfaceGlowHotspot,
-  TwinkleHotspot,
 } from "../types";
 
 const DIAGNOSTIC_UPDATE_INTERVAL_SECONDS = 0.16;
@@ -29,23 +28,9 @@ const EMPTY_ASSET_DIAGNOSTICS = {
   aspectMatch: false,
 };
 
-type TwinkleRuntime = {
-  sprite: THREE.Sprite;
-  hotspot: TwinkleHotspot;
-  depthSample: number;
-};
-
-type ParticleRuntime = {
-  points: THREE.Points<THREE.BufferGeometry, THREE.PointsMaterial>;
-  velocities: Float32Array;
-  drifts: Float32Array;
-};
-
 type SceneCallbacks = {
   onLoadingStateChange?: EnvironmentLabSceneProps["onLoadingStateChange"];
   onDiagnosticsChange?: EnvironmentLabSceneProps["onDiagnosticsChange"];
-  onCreateTwinkleHotspot?: EnvironmentLabSceneProps["onCreateTwinkleHotspot"];
-  onRemoveNearestTwinkleHotspot?: EnvironmentLabSceneProps["onRemoveNearestTwinkleHotspot"];
   onCreateSurfaceGlowHotspot?: EnvironmentLabSceneProps["onCreateSurfaceGlowHotspot"];
   onRemoveNearestSurfaceGlowHotspot?: EnvironmentLabSceneProps["onRemoveNearestSurfaceGlowHotspot"];
   onSurfaceGlowCapacityReached?: EnvironmentLabSceneProps["onSurfaceGlowCapacityReached"];
@@ -76,16 +61,6 @@ type SurfaceGlowUniformState = {
   uSurfaceGlowHueDriftCycles: { value: number[] };
   uSurfaceGlowPhases: { value: number[] };
 };
-
-function createRng(seed: number) {
-  let state = seed >>> 0;
-  return () => {
-    state = (state + 0x6d2b79f5) | 0;
-    let value = Math.imul(state ^ (state >>> 15), 1 | state);
-    value ^= value + Math.imul(value ^ (value >>> 7), 61 | value);
-    return ((value ^ (value >>> 14)) >>> 0) / 4294967296;
-  };
-}
 
 function createSurfaceGlowUniformState(): SurfaceGlowUniformState {
   return {
@@ -154,52 +129,6 @@ function buildEnvironmentFilter(params: {
     `saturate(${Math.max(saturation, 0).toFixed(3)})`,
     `brightness(${Math.max(brightness, 0).toFixed(3)})`,
   ].join(" ");
-}
-
-function createDepthSampler(
-  image: HTMLImageElement | HTMLCanvasElement | ImageBitmap,
-): ((u: number, v: number) => number) | null {
-  const canvas = document.createElement("canvas");
-  const width = (image as { width?: number }).width;
-  const height = (image as { height?: number }).height;
-
-  if (!width || !height) {
-    return null;
-  }
-
-  canvas.width = width;
-  canvas.height = height;
-  const context = canvas.getContext("2d");
-
-  if (!context) {
-    return null;
-  }
-
-  context.drawImage(image, 0, 0, width, height);
-  const pixelData = context.getImageData(0, 0, width, height).data;
-
-  return (u: number, v: number) => {
-    const x = Math.max(0, Math.min(width - 1, Math.round(u * (width - 1))));
-    const y = Math.max(0, Math.min(height - 1, Math.round((1 - v) * (height - 1))));
-    const index = (y * width + x) * 4;
-    return pixelData[index] / 255;
-  };
-}
-
-function hotspotSignature(hotspots: TwinkleHotspot[]) {
-  return hotspots
-    .map((hotspot) => {
-      return [
-        hotspot.id,
-        hotspot.u.toFixed(4),
-        hotspot.v.toFixed(4),
-        hotspot.color ?? "",
-        hotspot.size?.toFixed(3) ?? "",
-        hotspot.intensity?.toFixed(3) ?? "",
-        hotspot.phase?.toFixed(3) ?? "",
-      ].join("|");
-    })
-    .join(";");
 }
 
 function surfaceGlowSignature(hotspots: SurfaceGlowHotspot[]) {
@@ -272,30 +201,23 @@ function describeAnimationStatus(params: {
 
 function EnvironmentLabScene({
   playbackState,
-  twinklePlacementModeEnabled,
   surfaceGlowPlacementModeEnabled,
-  hazeMotionPreview4xEnabled,
   preset,
   asset,
   reducedMotionActive,
   onLoadingStateChange,
   onDiagnosticsChange,
-  onCreateTwinkleHotspot,
-  onRemoveNearestTwinkleHotspot,
   onCreateSurfaceGlowHotspot,
   onRemoveNearestSurfaceGlowHotspot,
   onSurfaceGlowCapacityReached,
 }: EnvironmentLabSceneProps) {
   const mountRef = useRef<HTMLDivElement | null>(null);
-  const hazeRef = useRef<HTMLDivElement | null>(null);
   const clickMarkerRef = useRef<HTMLDivElement | null>(null);
   const uvMarkerRef = useRef<HTMLDivElement | null>(null);
   const placementFlashRef = useRef<HTMLDivElement | null>(null);
   const configRef = useRef({
     playbackState,
-    twinklePlacementModeEnabled,
     surfaceGlowPlacementModeEnabled,
-    hazeMotionPreview4xEnabled,
     reducedMotionActive,
     preset,
     asset,
@@ -303,55 +225,33 @@ function EnvironmentLabScene({
   const callbackRef = useRef<SceneCallbacks>({
     onLoadingStateChange,
     onDiagnosticsChange,
-    onCreateTwinkleHotspot,
-    onRemoveNearestTwinkleHotspot,
     onCreateSurfaceGlowHotspot,
     onRemoveNearestSurfaceGlowHotspot,
     onSurfaceGlowCapacityReached,
   });
 
   const placementNote = useMemo(() => {
-    if (surfaceGlowPlacementModeEnabled && twinklePlacementModeEnabled) {
-      return `Surface Glow and Twinkle placement enabled: click to place Surface Glow, Shift/Alt-click removes nearest Surface Glow. Capacity ${MAX_SURFACE_GLOW_HOTSPOTS}.`;
-    }
-
     if (surfaceGlowPlacementModeEnabled) {
       return `Surface Glow placement enabled: click to add glow, Shift/Alt-click removes nearest glow. Capacity ${MAX_SURFACE_GLOW_HOTSPOTS}.`;
     }
 
-    if (twinklePlacementModeEnabled) {
-      return "Twinkle placement enabled: click to add twinkle, Shift/Alt-click removes nearest twinkle.";
-    }
-
     return "";
-  }, [surfaceGlowPlacementModeEnabled, twinklePlacementModeEnabled]);
+  }, [surfaceGlowPlacementModeEnabled]);
 
   useEffect(() => {
     configRef.current = {
       playbackState,
-      twinklePlacementModeEnabled,
       surfaceGlowPlacementModeEnabled,
-      hazeMotionPreview4xEnabled,
       reducedMotionActive,
       preset,
       asset,
     };
-  }, [
-    playbackState,
-    twinklePlacementModeEnabled,
-    surfaceGlowPlacementModeEnabled,
-    hazeMotionPreview4xEnabled,
-    reducedMotionActive,
-    preset,
-    asset,
-  ]);
+  }, [playbackState, surfaceGlowPlacementModeEnabled, reducedMotionActive, preset, asset]);
 
   useEffect(() => {
     callbackRef.current = {
       onLoadingStateChange,
       onDiagnosticsChange,
-      onCreateTwinkleHotspot,
-      onRemoveNearestTwinkleHotspot,
       onCreateSurfaceGlowHotspot,
       onRemoveNearestSurfaceGlowHotspot,
       onSurfaceGlowCapacityReached,
@@ -359,8 +259,6 @@ function EnvironmentLabScene({
   }, [
     onLoadingStateChange,
     onDiagnosticsChange,
-    onCreateTwinkleHotspot,
-    onRemoveNearestTwinkleHotspot,
     onCreateSurfaceGlowHotspot,
     onRemoveNearestSurfaceGlowHotspot,
     onSurfaceGlowCapacityReached,
@@ -368,9 +266,7 @@ function EnvironmentLabScene({
 
   useEffect(() => {
     const mount = mountRef.current;
-    const hazeElement = hazeRef.current;
-
-    if (!mount || !hazeElement) {
+    if (!mount) {
       return;
     }
 
@@ -380,7 +276,6 @@ function EnvironmentLabScene({
     let disposed = false;
     let colorTexture: THREE.Texture | null = null;
     let depthTexture: THREE.Texture | null = null;
-    let depthSampler: ((u: number, v: number) => number) | null = null;
 
     const pointerTarget = new THREE.Vector2(0, 0);
     const pointer = new THREE.Vector2(0, 0);
@@ -398,13 +293,11 @@ function EnvironmentLabScene({
     let playbackVisualMix = 0;
     let huePhase = 0;
     let glowPhase = 0;
-    let twinklePhase = 0;
-    let hazePhase = 0;
     let saturationPulsePhase = 0;
     let surfaceGlowPulseTimeSeconds = 0;
     let currentHueOffset = 0;
     let currentGlowOffset = 0;
-    let currentSaturation = configRef.current.preset.color.saturation;
+    let currentSaturation = configRef.current.preset.behavior.color.saturation;
     let currentEffectiveDepth = 0;
     let currentDisplacementScale = 0;
 
@@ -466,15 +359,11 @@ function EnvironmentLabScene({
       shader.uniforms.uSurfaceGlowPulseEnabled = surfaceGlowUniforms.uSurfaceGlowPulseEnabled;
       shader.uniforms.uSurfaceGlowPulseMode = surfaceGlowUniforms.uSurfaceGlowPulseMode;
       shader.uniforms.uSurfaceGlowPulseAmount = surfaceGlowUniforms.uSurfaceGlowPulseAmount;
-      shader.uniforms.uSurfaceGlowPulseMinIntensity =
-        surfaceGlowUniforms.uSurfaceGlowPulseMinIntensity;
-      shader.uniforms.uSurfaceGlowPulseMaxIntensity =
-        surfaceGlowUniforms.uSurfaceGlowPulseMaxIntensity;
-      shader.uniforms.uSurfaceGlowPulseRadiusExpansion =
-        surfaceGlowUniforms.uSurfaceGlowPulseRadiusExpansion;
+      shader.uniforms.uSurfaceGlowPulseMinIntensity = surfaceGlowUniforms.uSurfaceGlowPulseMinIntensity;
+      shader.uniforms.uSurfaceGlowPulseMaxIntensity = surfaceGlowUniforms.uSurfaceGlowPulseMaxIntensity;
+      shader.uniforms.uSurfaceGlowPulseRadiusExpansion = surfaceGlowUniforms.uSurfaceGlowPulseRadiusExpansion;
       shader.uniforms.uSurfaceGlowPulseCycles = surfaceGlowUniforms.uSurfaceGlowPulseCycles;
-      shader.uniforms.uSurfaceGlowHueDriftEnabled =
-        surfaceGlowUniforms.uSurfaceGlowHueDriftEnabled;
+      shader.uniforms.uSurfaceGlowHueDriftEnabled = surfaceGlowUniforms.uSurfaceGlowHueDriftEnabled;
       shader.uniforms.uSurfaceGlowHueDriftRange = surfaceGlowUniforms.uSurfaceGlowHueDriftRange;
       shader.uniforms.uSurfaceGlowHueDriftCycles = surfaceGlowUniforms.uSurfaceGlowHueDriftCycles;
       shader.uniforms.uSurfaceGlowPhases = surfaceGlowUniforms.uSurfaceGlowPhases;
@@ -576,7 +465,6 @@ if (uSurfaceGlowEnabled > 0.5) {
     float intensityMultiplier = mix(minIntensity, maxIntensity, brightnessMix);
 
     float expansion = 1.0 + (max(uSurfaceGlowPulseRadiusExpansion[i], 1.0) - 1.0) * bloomMix;
-
     float baseRadius = max(uSurfaceGlowRadii[i], 0.0001);
     float animatedRadius = baseRadius * mix(1.0, expansion, uSurfaceGlowPulseAmount[i]);
     float softness = clamp(uSurfaceGlowSoftness[i], 0.05, 0.98);
@@ -600,7 +488,6 @@ if (uSurfaceGlowEnabled > 0.5) {
     surfaceGlowAccum += glowColor * radialFalloff * uSurfaceGlowIntensity[i] * intensityMultiplier;
   }
 
-  // Soft compression avoids clipped flat color at high intensities while preserving pulse contrast.
   vec3 compressed = surfaceGlowAccum / (vec3(1.0) + surfaceGlowAccum);
   diffuseColor.rgb += compressed * uSurfaceGlowGlobalDim;
 }`,
@@ -879,20 +766,7 @@ void main() {
     glowPlane.position.z = -0.8;
     planeGroup.add(glowPlane);
 
-    const twinkleGroup = new THREE.Group();
-    twinkleGroup.position.z = 0.02;
-    planeGroup.add(twinkleGroup);
-
-    const particleGroup = new THREE.Group();
-    particleGroup.position.z = 0.32;
-    planeGroup.add(particleGroup);
-
-    const twinkleRuntimes: TwinkleRuntime[] = [];
-    let particlesRuntime: ParticleRuntime | null = null;
-
-    let lastTwinkleSignature = "";
     let lastSurfaceGlowSignature = "";
-    let lastParticlesSignature = "";
 
     const loadingManager = new THREE.LoadingManager();
     const textureLoader = new THREE.TextureLoader(loadingManager);
@@ -927,13 +801,7 @@ void main() {
       );
     };
 
-    const toPlanePosition = (u: number, v: number) => {
-      const x = (u - 0.5) * planeScale.x;
-      const y = (0.5 - v) * planeScale.y;
-      return new THREE.Vector3(x, y, 0);
-    };
-
-    const syncSurfaceGlowUniforms = (activePreset: ImageEnvironmentPreset) => {
+    const syncSurfaceGlowUniforms = (activePreset: ImageEnvironmentScenePreset) => {
       const activeHotspots = activePreset.surfaceGlows.hotspots.slice(0, MAX_SURFACE_GLOW_HOTSPOTS);
       surfaceGlowUniforms.uSurfaceGlowCount.value = activeHotspots.length;
 
@@ -959,12 +827,9 @@ void main() {
           surfaceGlowUniforms.uSurfaceGlowPulseEnabled.value[index] = hotspot.pulseEnabled ? 1 : 0;
           surfaceGlowUniforms.uSurfaceGlowPulseMode.value[index] = getPulseModeIndex(hotspot);
           surfaceGlowUniforms.uSurfaceGlowPulseAmount.value[index] = hotspot.pulseAmount;
-          surfaceGlowUniforms.uSurfaceGlowPulseMinIntensity.value[index] =
-            hotspot.minimumIntensityMultiplier;
-          surfaceGlowUniforms.uSurfaceGlowPulseMaxIntensity.value[index] =
-            hotspot.maximumIntensityMultiplier;
-          surfaceGlowUniforms.uSurfaceGlowPulseRadiusExpansion.value[index] =
-            hotspot.radiusExpansionMultiplier;
+          surfaceGlowUniforms.uSurfaceGlowPulseMinIntensity.value[index] = hotspot.minimumIntensityMultiplier;
+          surfaceGlowUniforms.uSurfaceGlowPulseMaxIntensity.value[index] = hotspot.maximumIntensityMultiplier;
+          surfaceGlowUniforms.uSurfaceGlowPulseRadiusExpansion.value[index] = hotspot.radiusExpansionMultiplier;
           surfaceGlowUniforms.uSurfaceGlowPulseCycles.value[index] = hotspot.pulseCycleSeconds;
           surfaceGlowUniforms.uSurfaceGlowHueDriftEnabled.value[index] = hotspot.hueDriftEnabled ? 1 : 0;
           surfaceGlowUniforms.uSurfaceGlowHueDriftRange.value[index] = hotspot.hueDriftRangeDegrees;
@@ -991,117 +856,6 @@ void main() {
       }
     };
 
-    const clearTwinkles = () => {
-      while (twinkleGroup.children.length > 0) {
-        const child = twinkleGroup.children.pop();
-
-        if (!child) {
-          continue;
-        }
-
-        const sprite = child as THREE.Sprite;
-        const material = sprite.material;
-
-        if (material instanceof THREE.SpriteMaterial) {
-          material.dispose();
-        }
-
-        twinkleGroup.remove(sprite);
-      }
-      twinkleRuntimes.length = 0;
-    };
-
-    const rebuildTwinkles = (activePreset: ImageEnvironmentPreset) => {
-      clearTwinkles();
-
-      activePreset.twinkles.hotspots.forEach((hotspot) => {
-        const color = new THREE.Color(hotspot.color ?? activePreset.twinkles.defaultColor);
-        const material = new THREE.SpriteMaterial({
-          color,
-          transparent: true,
-          opacity: 0.5,
-          depthWrite: false,
-          blending: THREE.AdditiveBlending,
-        });
-        const sprite = new THREE.Sprite(material);
-        const localPosition = toPlanePosition(hotspot.u, hotspot.v);
-        const size = hotspot.size ?? activePreset.twinkles.defaultSize;
-        sprite.position.set(localPosition.x, localPosition.y, 0.04);
-        sprite.scale.set(size, size, 1);
-        twinkleGroup.add(sprite);
-
-        twinkleRuntimes.push({
-          sprite,
-          hotspot,
-          depthSample: depthSampler ? depthSampler(hotspot.u, hotspot.v) : 0,
-        });
-      });
-    };
-
-    const clearParticles = () => {
-      if (!particlesRuntime) {
-        return;
-      }
-
-      particleGroup.remove(particlesRuntime.points);
-      particlesRuntime.points.geometry.dispose();
-      particlesRuntime.points.material.dispose();
-      particlesRuntime = null;
-    };
-
-    const rebuildParticles = (activePreset: ImageEnvironmentPreset) => {
-      clearParticles();
-
-      if (activePreset.particles.count <= 0) {
-        return;
-      }
-
-      const count = activePreset.particles.count;
-      const rng = createRng(activePreset.particles.seed);
-      const positions = new Float32Array(count * 3);
-      const velocities = new Float32Array(count * 3);
-      const drifts = new Float32Array(count);
-
-      const width = planeScale.x * 0.9;
-      const height = planeScale.y * 0.9;
-
-      for (let index = 0; index < count; index += 1) {
-        const base = index * 3;
-
-        positions[base] = (rng() * 2 - 1) * width;
-        positions[base + 1] = (rng() * 2 - 1) * height;
-        positions[base + 2] = 0.12 + rng() * 0.24;
-
-        velocities[base] = (rng() * 2 - 1) * 0.024;
-        velocities[base + 1] = 0.008 + rng() * 0.02;
-        velocities[base + 2] = 0;
-
-        drifts[index] = rng() * Math.PI * 2;
-      }
-
-      const geometry = new THREE.BufferGeometry();
-      geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-
-      const material = new THREE.PointsMaterial({
-        color: new THREE.Color(activePreset.particles.color),
-        size: activePreset.particles.size,
-        transparent: true,
-        opacity: activePreset.particles.opacity,
-        depthWrite: false,
-        blending: THREE.AdditiveBlending,
-        sizeAttenuation: true,
-      });
-
-      const points = new THREE.Points(geometry, material);
-      particleGroup.add(points);
-
-      particlesRuntime = {
-        points,
-        velocities,
-        drifts,
-      };
-    };
-
     const handlePointerMove = (event: PointerEvent) => {
       const rect = renderer.domElement.getBoundingClientRect();
       pointerTarget.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
@@ -1121,69 +875,34 @@ void main() {
       fitPlane();
 
       const currentPreset = configRef.current.preset;
-      rebuildParticles(currentPreset);
-      rebuildTwinkles(currentPreset);
       syncSurfaceGlowUniforms(currentPreset);
-      lastParticlesSignature = `${currentPreset.particles.count}|${currentPreset.particles.seed}`;
-      lastTwinkleSignature = hotspotSignature(currentPreset.twinkles.hotspots);
       lastSurfaceGlowSignature = surfaceGlowSignature(currentPreset.surfaceGlows.hotspots);
     };
 
     const handlePlacementClick = (event: PointerEvent) => {
       const currentConfig = configRef.current;
 
-      if (!currentConfig.twinklePlacementModeEnabled && !currentConfig.surfaceGlowPlacementModeEnabled) {
+      if (!currentConfig.surfaceGlowPlacementModeEnabled) {
         return;
       }
 
-      if (currentConfig.surfaceGlowPlacementModeEnabled) {
-        const pickedSurfaceUv = tryPickSurfaceUv(event, diagnostics);
+      const pickedSurfaceUv = tryPickSurfaceUv(event, diagnostics);
 
-        if (!pickedSurfaceUv) {
-          return;
-        }
-
-        if (event.shiftKey || event.altKey) {
-          callbackRef.current.onRemoveNearestSurfaceGlowHotspot?.(pickedSurfaceUv.u, pickedSurfaceUv.v);
-          return;
-        }
-
-        if (currentConfig.preset.surfaceGlows.hotspots.length >= MAX_SURFACE_GLOW_HOTSPOTS) {
-          callbackRef.current.onSurfaceGlowCapacityReached?.();
-          return;
-        }
-
-        callbackRef.current.onCreateSurfaceGlowHotspot?.(pickedSurfaceUv.u, pickedSurfaceUv.v, Math.random());
+      if (!pickedSurfaceUv) {
         return;
       }
 
-      const rect = renderer.domElement.getBoundingClientRect();
-      ndcPointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-      ndcPointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-
-      raycaster.setFromCamera(ndcPointer, camera);
-      const intersections = raycaster.intersectObject(plane, false);
-
-      if (intersections.length === 0) {
+      if (event.shiftKey || event.altKey) {
+        callbackRef.current.onRemoveNearestSurfaceGlowHotspot?.(pickedSurfaceUv.u, pickedSurfaceUv.v);
         return;
       }
 
-      const hitUv = intersections[0].uv;
-
-      if (!hitUv) {
+      if (currentConfig.preset.surfaceGlows.hotspots.length >= MAX_SURFACE_GLOW_HOTSPOTS) {
+        callbackRef.current.onSurfaceGlowCapacityReached?.();
         return;
       }
 
-      const normalizedV = 1 - hitUv.y;
-
-      if (currentConfig.twinklePlacementModeEnabled) {
-        if (event.shiftKey || event.altKey) {
-          callbackRef.current.onRemoveNearestTwinkleHotspot?.(hitUv.x, normalizedV);
-          return;
-        }
-
-        callbackRef.current.onCreateTwinkleHotspot?.(hitUv.x, normalizedV, Math.random());
-      }
+      callbackRef.current.onCreateSurfaceGlowHotspot?.(pickedSurfaceUv.u, pickedSurfaceUv.v, Math.random());
     };
 
     const reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -1217,10 +936,7 @@ void main() {
         depthDimensions.height > 0 &&
         colorDimensions.width === depthDimensions.width &&
         colorDimensions.height === depthDimensions.height;
-      const aspectMatch =
-        colorAspect > 0 && depthAspect > 0
-          ? Math.abs(colorAspect - depthAspect) < 0.005
-          : false;
+      const aspectMatch = colorAspect > 0 && depthAspect > 0 ? Math.abs(colorAspect - depthAspect) < 0.005 : false;
 
       diagnostics.assetDiagnostics = {
         colorWidth: colorDimensions.width,
@@ -1274,55 +990,37 @@ void main() {
         planeMaterial.displacementMap = texture;
         planeMaterial.needsUpdate = true;
 
-        const image = texture.image as unknown;
-        if (
-          image instanceof HTMLImageElement ||
-          image instanceof HTMLCanvasElement ||
-          image instanceof ImageBitmap
-        ) {
-          depthSampler = createDepthSampler(image);
-        }
-
         const depthImage = texture.image as { width?: number; height?: number };
         depthDimensions = {
           width: Number(depthImage.width ?? 0),
           height: Number(depthImage.height ?? 0),
         };
         updateAssetDiagnostics();
-
-        rebuildTwinkles(configRef.current.preset);
-        lastTwinkleSignature = hotspotSignature(configRef.current.preset.twinkles.hotspots);
       },
       undefined,
       () => callbackRef.current.onLoadingStateChange?.("error"),
     );
 
-    rebuildParticles(currentPresetAtMount);
     syncSurfaceGlowUniforms(currentPresetAtMount);
-
-    lastParticlesSignature = `${currentPresetAtMount.particles.count}|${currentPresetAtMount.particles.seed}`;
-    rebuildTwinkles(currentPresetAtMount);
-    lastTwinkleSignature = hotspotSignature(currentPresetAtMount.twinkles.hotspots);
     lastSurfaceGlowSignature = surfaceGlowSignature(currentPresetAtMount.surfaceGlows.hotspots);
 
     const diagnostics: EnvironmentDiagnostics = {
       fps: 0,
       effectiveDepth: 0,
-      twinkleCount: currentPresetAtMount.twinkles.hotspots.length,
       surfaceGlowCount: currentPresetAtMount.surfaceGlows.hotspots.length,
-      particleCount: currentPresetAtMount.particles.count,
       hueOffsetDegrees: 0,
-      currentSaturation: currentPresetAtMount.color.saturation,
+      currentSaturation: currentPresetAtMount.behavior.color.saturation,
       shaderSurfaceGlowCapacity: MAX_SURFACE_GLOW_HOTSPOTS,
-      surfaceGlowDefaultIntensity: currentPresetAtMount.surfaceGlows.defaultIntensity,
+      surfaceGlowDefaultIntensity: currentPresetAtMount.surfaceGlows.defaults.intensity,
       surfaceGlowAnimationActive: false,
       automaticMotionActive: false,
       surfaceGlowAnimationStatus: "Disabled",
       surfaceGlowPulseFactor: 1,
-      hazeAnimationStatus: "Disabled",
-      hazeOffsetX: 0,
-      hazeOffsetY: 0,
       assetDiagnostics: EMPTY_ASSET_DIAGNOSTICS,
+      mostRecentSurfaceGlowU:
+        currentPresetAtMount.surfaceGlows.hotspots[currentPresetAtMount.surfaceGlows.hotspots.length - 1]?.u,
+      mostRecentSurfaceGlowV:
+        currentPresetAtMount.surfaceGlows.hotspots[currentPresetAtMount.surfaceGlows.hotspots.length - 1]?.v,
     };
 
     const animate = (now: number) => {
@@ -1334,21 +1032,10 @@ void main() {
 
       const current = configRef.current;
       const activePreset = current.preset;
+      const behavior = activePreset.behavior;
       const isPlaying = current.playbackState === "playing";
       const automaticMotionActive =
-        isPlaying && activePreset.depth.ambientMotionEnabled && !current.reducedMotionActive;
-
-      const particlesSignature = `${activePreset.particles.count}|${activePreset.particles.seed}`;
-      if (particlesSignature !== lastParticlesSignature) {
-        rebuildParticles(activePreset);
-        lastParticlesSignature = particlesSignature;
-      }
-
-      const currentTwinkleSignature = hotspotSignature(activePreset.twinkles.hotspots);
-      if (currentTwinkleSignature !== lastTwinkleSignature) {
-        rebuildTwinkles(activePreset);
-        lastTwinkleSignature = currentTwinkleSignature;
-      }
+        isPlaying && behavior.depth.ambientMotionEnabled && !current.reducedMotionActive;
 
       const currentSurfaceSignature = surfaceGlowSignature(activePreset.surfaceGlows.hotspots);
       if (currentSurfaceSignature !== lastSurfaceGlowSignature) {
@@ -1360,12 +1047,11 @@ void main() {
 
       const motionAmount =
         isPlaying && !current.reducedMotionActive
-          ? activePreset.depth.motionIntensity * activePreset.depth.pointerParallaxStrength
+          ? behavior.depth.motionIntensity * behavior.depth.pointerParallaxStrength
           : 0;
       const autoAmount = automaticMotionActive ? motionAmount : 0;
 
-      autonomousPointer.x =
-        Math.sin(elapsedSeconds * PLAYING_DRIFT_SPEED) * PLAYING_DRIFT_AMOUNT * autoAmount;
+      autonomousPointer.x = Math.sin(elapsedSeconds * PLAYING_DRIFT_SPEED) * PLAYING_DRIFT_AMOUNT * autoAmount;
       autonomousPointer.y =
         Math.sin(elapsedSeconds * PLAYING_DRIFT_SPEED * 0.65) *
         Math.cos(elapsedSeconds * PLAYING_DRIFT_SPEED * 0.42) *
@@ -1374,7 +1060,7 @@ void main() {
         0.82;
 
       const pointerIsActive = elapsedSeconds - lastPointerInputAt <= POINTER_IDLE_TIMEOUT_SECONDS;
-      const pointerEnabled = activePreset.depth.pointerParallaxEnabled && !current.reducedMotionActive;
+      const pointerEnabled = behavior.depth.pointerParallaxEnabled && !current.reducedMotionActive;
       const pointerInfluenceTarget = pointerEnabled && pointerIsActive ? 1 : 0;
       pointerInfluence = THREE.MathUtils.lerp(pointerInfluence, pointerInfluenceTarget, 0.045);
 
@@ -1384,29 +1070,20 @@ void main() {
           : STOPPED_POINTER_PARALLAX_MULTIPLIER
         : 0;
 
-      blendedPointer.x = THREE.MathUtils.lerp(
-        autonomousPointer.x,
-        pointer.x * pointerMotionAmount,
-        pointerInfluence,
-      );
-      blendedPointer.y = THREE.MathUtils.lerp(
-        autonomousPointer.y,
-        pointer.y * pointerMotionAmount,
-        pointerInfluence,
-      );
+      blendedPointer.x = THREE.MathUtils.lerp(autonomousPointer.x, pointer.x * pointerMotionAmount, pointerInfluence);
+      blendedPointer.y = THREE.MathUtils.lerp(autonomousPointer.y, pointer.y * pointerMotionAmount, pointerInfluence);
 
-      const minBreathingDepth = Math.min(activePreset.depth.breathingMin, activePreset.depth.breathingMax);
-      const maxBreathingDepth = Math.max(activePreset.depth.breathingMin, activePreset.depth.breathingMax);
-      const breathingFrequency =
-        (Math.PI * 2) / Math.max(activePreset.depth.breathingCycleSeconds, 0.4);
+      const minBreathingDepth = Math.min(behavior.depth.breathingMin, behavior.depth.breathingMax);
+      const maxBreathingDepth = Math.max(behavior.depth.breathingMin, behavior.depth.breathingMax);
+      const breathingFrequency = (Math.PI * 2) / Math.max(behavior.depth.breathingCycleSeconds, 0.4);
 
       const breathingWave = Math.sin(elapsedSeconds * breathingFrequency);
       const breathingProgress = (breathingWave + 1) / 2;
       const breathingDepth = automaticMotionActive
         ? THREE.MathUtils.lerp(minBreathingDepth, maxBreathingDepth, breathingProgress)
-        : THREE.MathUtils.lerp(minBreathingDepth, maxBreathingDepth, activePreset.depth.staticDepth);
+        : THREE.MathUtils.lerp(minBreathingDepth, maxBreathingDepth, behavior.depth.staticDepth);
 
-      const effectiveDepth = isPlaying ? breathingDepth : activePreset.depth.staticDepth;
+      const effectiveDepth = isPlaying ? breathingDepth : behavior.depth.staticDepth;
 
       playbackVisualMix = stepUvJunglePlaybackVisualMix(
         playbackVisualMix,
@@ -1414,67 +1091,43 @@ void main() {
         current.reducedMotionActive,
       );
 
-      if (automaticMotionActive && activePreset.color.driftEnabled) {
-        huePhase += (deltaSeconds / Math.max(activePreset.color.cycleSeconds, 1)) * Math.PI * 2;
+      if (automaticMotionActive && behavior.color.driftEnabled) {
+        huePhase += (deltaSeconds / Math.max(behavior.color.cycleSeconds, 1)) * Math.PI * 2;
       }
 
-      if (automaticMotionActive && activePreset.color.glowPulseEnabled) {
-        glowPhase +=
-          (deltaSeconds / Math.max(activePreset.color.glowPulseCycleSeconds, 1)) * Math.PI * 2;
+      if (automaticMotionActive && behavior.color.glowPulseEnabled) {
+        glowPhase += (deltaSeconds / Math.max(behavior.color.glowPulseCycleSeconds, 1)) * Math.PI * 2;
       }
 
-      if (automaticMotionActive && activePreset.twinkles.enabled) {
-        twinklePhase += deltaSeconds * activePreset.twinkles.pulseSpeed * Math.PI * 2;
+      if (activePreset.surfaceGlows.enabled && !current.reducedMotionActive && automaticMotionActive) {
+        surfaceGlowPulseTimeSeconds += deltaSeconds;
       }
 
-      const hazeAnimationSpeed = current.hazeMotionPreview4xEnabled ? 4 : 1;
-      if (automaticMotionActive && activePreset.haze.enabled) {
-        hazePhase +=
-          (deltaSeconds / Math.max(activePreset.haze.driftCycleSeconds, 2)) *
-          Math.PI *
-          2 *
-          hazeAnimationSpeed;
-      }
-
-      if (activePreset.surfaceGlows.enabled && !current.reducedMotionActive) {
-        if (automaticMotionActive) {
-          surfaceGlowPulseTimeSeconds += deltaSeconds;
-        }
-      }
-
-      if (activePreset.saturationPulse.enabled && automaticMotionActive) {
-        if (activePreset.saturationPulse.syncToDepthBreathing) {
-          const syncAngle =
-            breathingProgress * Math.PI * 2 + activePreset.saturationPulse.phaseOffset;
+      if (behavior.saturationPulse.enabled && automaticMotionActive) {
+        if (behavior.saturationPulse.syncToDepthBreathing) {
+          const syncAngle = breathingProgress * Math.PI * 2 + behavior.saturationPulse.phaseOffset;
           const pulseProgress = (Math.sin(syncAngle) + 1) / 2;
           currentSaturation = THREE.MathUtils.lerp(
-            activePreset.saturationPulse.minimumSaturation,
-            activePreset.saturationPulse.maximumSaturation,
+            behavior.saturationPulse.minimumSaturation,
+            behavior.saturationPulse.maximumSaturation,
             pulseProgress,
           );
         } else {
-          saturationPulsePhase +=
-            (deltaSeconds / Math.max(activePreset.saturationPulse.cycleSeconds, 0.2)) *
-            Math.PI *
-            2;
-          const pulseProgress =
-            (Math.sin(saturationPulsePhase + activePreset.saturationPulse.phaseOffset) + 1) /
-            2;
+          saturationPulsePhase += (deltaSeconds / Math.max(behavior.saturationPulse.cycleSeconds, 0.2)) * Math.PI * 2;
+          const pulseProgress = (Math.sin(saturationPulsePhase + behavior.saturationPulse.phaseOffset) + 1) / 2;
           currentSaturation = THREE.MathUtils.lerp(
-            activePreset.saturationPulse.minimumSaturation,
-            activePreset.saturationPulse.maximumSaturation,
+            behavior.saturationPulse.minimumSaturation,
+            behavior.saturationPulse.maximumSaturation,
             pulseProgress,
           );
         }
-      } else if (!activePreset.saturationPulse.enabled) {
-        currentSaturation = activePreset.color.saturation;
+      } else if (!behavior.saturationPulse.enabled) {
+        currentSaturation = behavior.color.saturation;
       }
 
-      currentHueOffset = activePreset.color.driftEnabled
-        ? Math.sin(huePhase) * activePreset.color.hueRangeDegrees
-        : 0;
-      currentGlowOffset = activePreset.color.glowPulseEnabled
-        ? (Math.sin(glowPhase) * 0.5 + 0.5) * activePreset.color.glowPulseAmount
+      currentHueOffset = behavior.color.driftEnabled ? Math.sin(huePhase) * behavior.color.hueRangeDegrees : 0;
+      currentGlowOffset = behavior.color.glowPulseEnabled
+        ? (Math.sin(glowPhase) * 0.5 + 0.5) * behavior.color.glowPulseAmount
         : 0;
 
       renderer.domElement.style.filter = buildEnvironmentFilter({
@@ -1488,109 +1141,17 @@ void main() {
       surfaceGlowUniforms.uSurfaceGlowGlobalDim.value = isPlaying ? 1 : 0.3;
       surfaceGlowUniforms.uSurfaceGlowTime.value = surfaceGlowPulseTimeSeconds;
 
-      planeMaterial.displacementScale =
-        effectiveDepth * activePreset.depth.depthStrength * DISPLACEMENT_SCALE_MULTIPLIER;
+      planeMaterial.displacementScale = effectiveDepth * behavior.depth.depthStrength * DISPLACEMENT_SCALE_MULTIPLIER;
       currentEffectiveDepth = effectiveDepth;
       currentDisplacementScale = planeMaterial.displacementScale;
       planeMaterial.bumpScale = effectiveDepth * 0.04;
 
-      planeGroup.position.x =
-        Math.sin(elapsedSeconds * 0.16) * 0.06 * autoAmount + blendedPointer.x * 0.14;
-      planeGroup.position.y =
-        Math.cos(elapsedSeconds * 0.12) * 0.04 * autoAmount - blendedPointer.y * 0.11;
-      planeGroup.rotation.y =
-        Math.sin(elapsedSeconds * 0.1) * 0.022 * autoAmount + blendedPointer.x * 0.13;
-      planeGroup.rotation.x =
-        Math.cos(elapsedSeconds * 0.085) * 0.016 * autoAmount - blendedPointer.y * 0.1;
+      planeGroup.position.x = Math.sin(elapsedSeconds * 0.16) * 0.06 * autoAmount + blendedPointer.x * 0.14;
+      planeGroup.position.y = Math.cos(elapsedSeconds * 0.12) * 0.04 * autoAmount - blendedPointer.y * 0.11;
+      planeGroup.rotation.y = Math.sin(elapsedSeconds * 0.1) * 0.022 * autoAmount + blendedPointer.x * 0.13;
+      planeGroup.rotation.x = Math.cos(elapsedSeconds * 0.085) * 0.016 * autoAmount - blendedPointer.y * 0.1;
       plane.position.z = -0.15 + Math.sin(elapsedSeconds * 0.22) * 0.06 * autoAmount;
       glowPlane.material.opacity = 0.05 + effectiveDepth * 0.06 + currentGlowOffset * 0.8;
-
-      twinkleGroup.visible = activePreset.twinkles.enabled;
-      twinkleRuntimes.forEach((entry) => {
-        const entrySize = entry.hotspot.size ?? activePreset.twinkles.defaultSize;
-        const entryIntensity = entry.hotspot.intensity ?? activePreset.twinkles.defaultIntensity;
-        const point = toPlanePosition(entry.hotspot.u, entry.hotspot.v);
-
-        entry.sprite.position.x = point.x;
-        entry.sprite.position.y = point.y;
-        entry.sprite.position.z =
-          0.06 + entry.depthSample * effectiveDepth * activePreset.depth.depthStrength * 0.12;
-
-        const phaseOffset = (entry.hotspot.phase ?? 0) * Math.PI * 2;
-        const twinkleWave = activePreset.twinkles.enabled
-          ? Math.sin(twinklePhase + phaseOffset) * 0.5 + 0.5
-          : 0.5;
-        const pulseMix = automaticMotionActive ? twinkleWave : 0.45;
-        const opacity = 0.12 + pulseMix * 0.78 * entryIntensity;
-
-        entry.sprite.scale.set(entrySize, entrySize, 1);
-        const material = entry.sprite.material;
-        if (material instanceof THREE.SpriteMaterial) {
-          material.opacity = opacity * (isPlaying ? 1 : 0.85);
-        }
-      });
-
-      if (particlesRuntime) {
-        particlesRuntime.points.visible = activePreset.particles.enabled;
-        particlesRuntime.points.material.size = activePreset.particles.size;
-        particlesRuntime.points.material.color.set(activePreset.particles.color);
-        particlesRuntime.points.material.opacity =
-          activePreset.particles.opacity * (isPlaying ? 1 : 0.55);
-
-        if (automaticMotionActive && activePreset.particles.enabled) {
-          const positionAttribute = particlesRuntime.points.geometry.getAttribute(
-            "position",
-          ) as THREE.BufferAttribute;
-          const positions = positionAttribute.array as Float32Array;
-          const width = planeScale.x * 0.95;
-          const height = planeScale.y * 0.95;
-
-          for (let index = 0; index < activePreset.particles.count; index += 1) {
-            const base = index * 3;
-            const drift =
-              Math.sin(elapsedSeconds * 0.35 + particlesRuntime.drifts[index]) * 0.016;
-            positions[base] +=
-              (particlesRuntime.velocities[base] + drift) *
-              activePreset.particles.speed *
-              deltaSeconds;
-            positions[base + 1] +=
-              particlesRuntime.velocities[base + 1] *
-              activePreset.particles.speed *
-              deltaSeconds;
-
-            if (positions[base] > width) {
-              positions[base] = -width;
-            } else if (positions[base] < -width) {
-              positions[base] = width;
-            }
-
-            if (positions[base + 1] > height) {
-              positions[base + 1] = -height;
-            }
-          }
-
-          positionAttribute.needsUpdate = true;
-        }
-      }
-
-      const hazeOpacity = activePreset.haze.enabled
-        ? activePreset.haze.opacity * (isPlaying ? 1 : 0.62)
-        : 0;
-      const hazeDistance = activePreset.haze.driftDistance;
-      const biasX = activePreset.haze.driftBiasX;
-      const biasY = activePreset.haze.driftBiasY;
-      const baseX = Math.sin(hazePhase) * hazeDistance;
-      const baseY = Math.cos(hazePhase * 0.72) * hazeDistance;
-      const hazeOffsetX = baseX * (0.25 + Math.abs(biasX)) * Math.sign(biasX || 1);
-      const hazeOffsetY = baseY * (0.25 + Math.abs(biasY)) * Math.sign(biasY || 1);
-
-      hazeElement.style.opacity = `${hazeOpacity.toFixed(3)}`;
-      hazeElement.style.filter = `blur(${activePreset.haze.blurPixels.toFixed(1)}px)`;
-      hazeElement.style.transform = `translate3d(${hazeOffsetX.toFixed(2)}px, ${hazeOffsetY.toFixed(2)}px, 0)`;
-      hazeElement.style.background = `
-        radial-gradient(circle at 24% 34%, ${activePreset.haze.primaryColor}, transparent 56%),
-        radial-gradient(circle at 76% 62%, ${activePreset.haze.secondaryColor}, transparent 58%)
-      `;
 
       camera.position.x = blendedPointer.x * 0.06;
       camera.position.y = -blendedPointer.y * 0.045;
@@ -1600,48 +1161,28 @@ void main() {
 
       if (elapsedSeconds - lastDiagnosticUpdateAt >= DIAGNOSTIC_UPDATE_INTERVAL_SECONDS) {
         lastDiagnosticUpdateAt = elapsedSeconds;
-        diagnostics.fps =
-          diagnostics.fps === 0
-            ? 1 / deltaSeconds
-            : diagnostics.fps * 0.65 + (1 / deltaSeconds) * 0.35;
+        diagnostics.fps = diagnostics.fps === 0 ? 1 / deltaSeconds : diagnostics.fps * 0.65 + (1 / deltaSeconds) * 0.35;
         diagnostics.effectiveDepth = effectiveDepth;
-        diagnostics.twinkleCount = activePreset.twinkles.hotspots.length;
         diagnostics.surfaceGlowCount = activePreset.surfaceGlows.hotspots.length;
-        diagnostics.particleCount = activePreset.particles.count;
         diagnostics.hueOffsetDegrees = currentHueOffset;
         diagnostics.currentSaturation = currentSaturation;
         diagnostics.shaderSurfaceGlowCapacity = MAX_SURFACE_GLOW_HOTSPOTS;
-        diagnostics.surfaceGlowDefaultIntensity = activePreset.surfaceGlows.defaultIntensity;
-        diagnostics.surfaceGlowAnimationActive =
-          automaticMotionActive && activePreset.surfaceGlows.enabled;
+        diagnostics.surfaceGlowDefaultIntensity = activePreset.surfaceGlows.defaults.intensity;
+        diagnostics.surfaceGlowAnimationActive = automaticMotionActive && activePreset.surfaceGlows.enabled;
         diagnostics.automaticMotionActive = automaticMotionActive;
         diagnostics.surfaceGlowAnimationStatus = describeAnimationStatus({
           enabled: activePreset.surfaceGlows.enabled,
           isPlaying,
-          ambientMotionEnabled: activePreset.depth.ambientMotionEnabled,
+          ambientMotionEnabled: behavior.depth.ambientMotionEnabled,
           reducedMotionActive: current.reducedMotionActive,
         });
-        diagnostics.hazeAnimationStatus = describeAnimationStatus({
-          enabled: activePreset.haze.enabled,
-          isPlaying,
-          ambientMotionEnabled: activePreset.depth.ambientMotionEnabled,
-          reducedMotionActive: current.reducedMotionActive,
-        });
-        diagnostics.hazeOffsetX = hazeOffsetX;
-        diagnostics.hazeOffsetY = hazeOffsetY;
 
         const firstGlow = activePreset.surfaceGlows.hotspots[0];
         if (!firstGlow || !firstGlow.pulseEnabled) {
           diagnostics.surfaceGlowPulseFactor = 1;
         } else {
           const cycle = Math.max(firstGlow.pulseCycleSeconds, 0.2);
-          const wave =
-            Math.sin(
-              (surfaceGlowPulseTimeSeconds / cycle) * Math.PI * 2 +
-                firstGlow.phase * Math.PI * 2,
-            ) *
-              0.5 +
-            0.5;
+          const wave = Math.sin((surfaceGlowPulseTimeSeconds / cycle) * Math.PI * 2 + firstGlow.phase * Math.PI * 2) * 0.5 + 0.5;
           const pulseShape = THREE.MathUtils.smoothstep(wave, 0.08, 0.92);
           diagnostics.surfaceGlowPulseFactor = THREE.MathUtils.lerp(
             firstGlow.minimumIntensityMultiplier,
@@ -1650,6 +1191,8 @@ void main() {
           );
         }
 
+        diagnostics.mostRecentSurfaceGlowU = activePreset.surfaceGlows.hotspots[activePreset.surfaceGlows.hotspots.length - 1]?.u;
+        diagnostics.mostRecentSurfaceGlowV = activePreset.surfaceGlows.hotspots[activePreset.surfaceGlows.hotspots.length - 1]?.v;
         callbackRef.current.onDiagnosticsChange?.({ ...diagnostics });
       }
     };
@@ -1664,9 +1207,6 @@ void main() {
       mount.removeEventListener("pointerdown", handlePlacementClick);
       window.removeEventListener("resize", handleResize);
       reducedMotionQuery.removeEventListener("change", syncReducedMotion);
-
-      clearTwinkles();
-      clearParticles();
 
       colorTexture?.dispose();
       depthTexture?.dispose();
@@ -1692,7 +1232,6 @@ void main() {
   return (
     <>
       <div ref={mountRef} className="environment-lab__scene-root" />
-      <div ref={hazeRef} className="environment-lab__haze" aria-hidden="true" />
       <div ref={placementFlashRef} className="environment-lab__placement-flash" aria-hidden="true" />
       {import.meta.env.DEV && (
         <>

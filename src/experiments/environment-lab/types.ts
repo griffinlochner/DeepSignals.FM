@@ -28,41 +28,7 @@ export type RuntimeAssetDiagnostics = {
   aspectMatch: boolean;
 };
 
-export type TwinkleHotspot = {
-  id: string;
-  u: number;
-  v: number;
-  color?: string;
-  size?: number;
-  intensity?: number;
-  phase?: number;
-};
-
-export type SurfaceGlowHotspot = {
-  id: string;
-  u: number;
-  v: number;
-  color: string;
-  radius: number;
-  softness: number;
-  intensity: number;
-  pulseEnabled: boolean;
-  pulseMode: SurfaceGlowPulseMode;
-  pulseAmount: number;
-  minimumIntensityMultiplier: number;
-  maximumIntensityMultiplier: number;
-  radiusExpansionMultiplier: number;
-  pulseCycleSeconds: number;
-  hueDriftEnabled: boolean;
-  hueDriftRangeDegrees: number;
-  hueDriftCycleSeconds: number;
-  phase: number;
-};
-
-export type ImageEnvironmentPreset = {
-  id: string;
-  name: string;
-  assetId: string;
+export type EnvironmentBehaviorSettings = {
   depth: {
     motionIntensity: number;
     depthStrength: number;
@@ -91,67 +57,76 @@ export type ImageEnvironmentPreset = {
     phaseOffset: number;
     syncToDepthBreathing: boolean;
   };
-  twinkles: {
-    enabled: boolean;
-    hotspots: TwinkleHotspot[];
-    defaultColor: string;
-    defaultSize: number;
-    defaultIntensity: number;
-    pulseSpeed: number;
-  };
-  surfaceGlows: {
-    enabled: boolean;
-    hotspots: SurfaceGlowHotspot[];
-    defaultColor: string;
-    defaultRadius: number;
-    defaultSoftness: number;
-    defaultIntensity: number;
-    defaultPulseEnabled: boolean;
-    defaultPulseMode: SurfaceGlowPulseMode;
-    defaultPulseAmount: number;
-    defaultMinimumIntensityMultiplier: number;
-    defaultMaximumIntensityMultiplier: number;
-    defaultRadiusExpansionMultiplier: number;
-    defaultPulseCycleSeconds: number;
-    defaultHueDriftEnabled: boolean;
-    defaultHueDriftRangeDegrees: number;
-    defaultHueDriftCycleSeconds: number;
-  };
-  particles: {
-    enabled: boolean;
-    count: number;
-    speed: number;
-    size: number;
-    opacity: number;
-    color: string;
-    seed: number;
-  };
-  haze: {
-    enabled: boolean;
-    opacity: number;
-    blurPixels: number;
-    driftCycleSeconds: number;
-    driftDistance: number;
-    driftBiasX: number;
-    driftBiasY: number;
-    primaryColor: string;
-    secondaryColor: string;
-  };
+};
+
+export type EnvironmentBehaviorPreset = {
+  id: string;
+  name: string;
+  description?: string;
+  settings: EnvironmentBehaviorSettings;
+};
+
+export type SurfaceGlowHotspot = {
+  id: string;
+  u: number;
+  v: number;
+  color: string;
+  radius: number;
+  softness: number;
+  intensity: number;
+  pulseEnabled: boolean;
+  pulseMode: SurfaceGlowPulseMode;
+  pulseAmount: number;
+  minimumIntensityMultiplier: number;
+  maximumIntensityMultiplier: number;
+  radiusExpansionMultiplier: number;
+  pulseCycleSeconds: number;
+  hueDriftEnabled: boolean;
+  hueDriftRangeDegrees: number;
+  hueDriftCycleSeconds: number;
+  phase: number;
+};
+
+export type SurfaceGlowDefaultSettings = {
+  color: string;
+  radius: number;
+  softness: number;
+  intensity: number;
+  pulseEnabled: boolean;
+  pulseMode: SurfaceGlowPulseMode;
+  pulseAmount: number;
+  minimumIntensityMultiplier: number;
+  maximumIntensityMultiplier: number;
+  radiusExpansionMultiplier: number;
+  pulseCycleSeconds: number;
+  hueDriftEnabled: boolean;
+  hueDriftRangeDegrees: number;
+  hueDriftCycleSeconds: number;
+};
+
+export type SurfaceGlowSceneSettings = {
+  enabled: boolean;
+  hotspots: SurfaceGlowHotspot[];
+  defaults: SurfaceGlowDefaultSettings;
+};
+
+export type ImageEnvironmentScenePreset = {
+  id: string;
+  name: string;
+  assetId: string;
+  behavior: EnvironmentBehaviorSettings;
+  surfaceGlows: SurfaceGlowSceneSettings;
 };
 
 export type EnvironmentLabSessionState = {
   playbackState: EnvironmentPlaybackState;
-  twinklePlacementModeEnabled: boolean;
   surfaceGlowPlacementModeEnabled: boolean;
-  hazeMotionPreview4xEnabled: boolean;
 };
 
 export type EnvironmentDiagnostics = {
   fps: number;
   effectiveDepth: number;
-  twinkleCount: number;
   surfaceGlowCount: number;
-  particleCount: number;
   hueOffsetDegrees: number;
   currentSaturation: number;
   shaderSurfaceGlowCapacity: number;
@@ -160,10 +135,9 @@ export type EnvironmentDiagnostics = {
   automaticMotionActive: boolean;
   surfaceGlowAnimationStatus: string;
   surfaceGlowPulseFactor: number;
-  hazeAnimationStatus: string;
-  hazeOffsetX: number;
-  hazeOffsetY: number;
   assetDiagnostics: RuntimeAssetDiagnostics;
+  mostRecentSurfaceGlowU?: number;
+  mostRecentSurfaceGlowV?: number;
   surfaceGlowPickCanvasX?: number;
   surfaceGlowPickCanvasY?: number;
   surfaceGlowPickU?: number;
@@ -174,16 +148,12 @@ export type EnvironmentDiagnostics = {
 
 export type EnvironmentLabSceneProps = {
   playbackState: EnvironmentPlaybackState;
-  twinklePlacementModeEnabled: boolean;
   surfaceGlowPlacementModeEnabled: boolean;
-  hazeMotionPreview4xEnabled: boolean;
-  preset: ImageEnvironmentPreset;
+  preset: ImageEnvironmentScenePreset;
   asset: ImageEnvironmentAsset;
   reducedMotionActive: boolean;
   onLoadingStateChange?: (state: EnvironmentLoadingState) => void;
   onDiagnosticsChange?: (diagnostics: EnvironmentDiagnostics) => void;
-  onCreateTwinkleHotspot?: (u: number, v: number, phase: number) => void;
-  onRemoveNearestTwinkleHotspot?: (u: number, v: number) => void;
   onCreateSurfaceGlowHotspot?: (u: number, v: number, phase: number) => void;
   onRemoveNearestSurfaceGlowHotspot?: (u: number, v: number) => void;
   onSurfaceGlowCapacityReached?: () => void;

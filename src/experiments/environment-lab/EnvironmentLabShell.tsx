@@ -2,48 +2,44 @@ import EnvironmentLabControls from "./components/EnvironmentLabControls";
 import EnvironmentLabOverlay from "./components/EnvironmentLabOverlay";
 import EnvironmentLabScene from "./scenes/EnvironmentLabScene";
 import type {
+  EnvironmentBehaviorPreset,
   EnvironmentDiagnostics,
   EnvironmentLoadingState,
   EnvironmentPlaybackState,
   ImageEnvironmentAsset,
-  ImageEnvironmentPreset,
+  ImageEnvironmentScenePreset,
 } from "./types";
 import "./environmentLab.css";
 
 type EnvironmentLabShellProps = {
   playbackState: EnvironmentPlaybackState;
-  twinklePlacementModeEnabled: boolean;
   surfaceGlowPlacementModeEnabled: boolean;
-  hazeMotionPreview4xEnabled: boolean;
   surfaceGlowCapacityReached: boolean;
-  preset: ImageEnvironmentPreset;
-  selectedBuiltinPresetId: string;
+  scenePreset: ImageEnvironmentScenePreset;
+  selectedBehaviorPresetId: string;
+  selectedScenePresetId: string;
   reducedMotionActive: boolean;
   status: string;
   diagnostics: EnvironmentDiagnostics;
   importText: string;
   feedbackMessage: string;
   feedbackTone: "idle" | "success" | "error";
+  behaviorPresets: EnvironmentBehaviorPreset[];
   onPlaybackStateChange: (value: EnvironmentPlaybackState) => void;
-  onTwinklePlacementModeChange: (enabled: boolean) => void;
   onSurfaceGlowPlacementModeChange: (enabled: boolean) => void;
-  onHazeMotionPreview4xChange: (enabled: boolean) => void;
-  onPresetChange: (next: ImageEnvironmentPreset) => void;
-  onLoadBuiltinPreset: (presetId: string) => void;
-  onCreateTwinkleHotspot: (u: number, v: number, phase: number) => void;
-  onRemoveNearestTwinkleHotspot: (u: number, v: number) => void;
+  onScenePresetChange: (next: ImageEnvironmentScenePreset) => void;
+  onLoadBehaviorPreset: (presetId: string) => void;
+  onLoadScenePreset: (presetId: string) => void;
   onCreateSurfaceGlowHotspot: (u: number, v: number, phase: number) => void;
   onSurfaceGlowCapacityReached: () => void;
   onRemoveNearestSurfaceGlowHotspot: (u: number, v: number) => void;
-  onClearHotspots: () => void;
-  onRandomizeHotspotPhases: () => void;
   onClearSurfaceGlowHotspots: () => void;
   onRandomizeSurfaceGlowPhases: () => void;
   onApplySurfaceGlowDefaultsToAll: () => void;
-  onResetPreset: () => void;
-  onCopyPresetJson: () => void;
+  onResetScene: () => void;
+  onCopySceneJson: () => void;
   onImportTextChange: (value: string) => void;
-  onApplyImportedPreset: () => void;
+  onApplyImportedScene: () => void;
   onDiagnosticsChange: (diagnostics: EnvironmentDiagnostics) => void;
   onLoadingStateChange: (state: EnvironmentLoadingState) => void;
   sceneAsset: ImageEnvironmentAsset | null;
@@ -52,38 +48,33 @@ type EnvironmentLabShellProps = {
 
 function EnvironmentLabShell({
   playbackState,
-  twinklePlacementModeEnabled,
   surfaceGlowPlacementModeEnabled,
-  hazeMotionPreview4xEnabled,
   surfaceGlowCapacityReached,
-  preset,
-  selectedBuiltinPresetId,
+  scenePreset,
+  selectedBehaviorPresetId,
+  selectedScenePresetId,
   reducedMotionActive,
   status,
   diagnostics,
   importText,
   feedbackMessage,
   feedbackTone,
+  behaviorPresets,
   onPlaybackStateChange,
-  onTwinklePlacementModeChange,
   onSurfaceGlowPlacementModeChange,
-  onHazeMotionPreview4xChange,
-  onPresetChange,
-  onLoadBuiltinPreset,
-  onCreateTwinkleHotspot,
-  onRemoveNearestTwinkleHotspot,
+  onScenePresetChange,
+  onLoadBehaviorPreset,
+  onLoadScenePreset,
   onCreateSurfaceGlowHotspot,
   onSurfaceGlowCapacityReached,
   onRemoveNearestSurfaceGlowHotspot,
-  onClearHotspots,
-  onRandomizeHotspotPhases,
   onClearSurfaceGlowHotspots,
   onRandomizeSurfaceGlowPhases,
   onApplySurfaceGlowDefaultsToAll,
-  onResetPreset,
-  onCopyPresetJson,
+  onResetScene,
+  onCopySceneJson,
   onImportTextChange,
-  onApplyImportedPreset,
+  onApplyImportedScene,
   onDiagnosticsChange,
   onLoadingStateChange,
   sceneAsset,
@@ -100,14 +91,10 @@ function EnvironmentLabShell({
       <div className="environment-lab__viewport" aria-hidden="true">
         <EnvironmentLabScene
           playbackState={playbackState}
-          twinklePlacementModeEnabled={twinklePlacementModeEnabled}
           surfaceGlowPlacementModeEnabled={surfaceGlowPlacementModeEnabled}
-          hazeMotionPreview4xEnabled={hazeMotionPreview4xEnabled}
-          preset={preset}
+          preset={scenePreset}
           asset={activeAsset}
           reducedMotionActive={reducedMotionActive}
-          onCreateTwinkleHotspot={onCreateTwinkleHotspot}
-          onRemoveNearestTwinkleHotspot={onRemoveNearestTwinkleHotspot}
           onCreateSurfaceGlowHotspot={onCreateSurfaceGlowHotspot}
           onSurfaceGlowCapacityReached={onSurfaceGlowCapacityReached}
           onRemoveNearestSurfaceGlowHotspot={onRemoveNearestSurfaceGlowHotspot}
@@ -120,32 +107,29 @@ function EnvironmentLabShell({
         <div className="environment-lab__panel-scroll">
           <EnvironmentLabControls
             playbackState={playbackState}
-            preset={preset}
+            scenePreset={scenePreset}
+            selectedBehaviorPresetId={selectedBehaviorPresetId}
+            selectedScenePresetId={selectedScenePresetId}
             reducedMotionActive={reducedMotionActive}
             diagnostics={diagnostics}
-            twinklePlacementModeEnabled={twinklePlacementModeEnabled}
             surfaceGlowPlacementModeEnabled={surfaceGlowPlacementModeEnabled}
-            hazeMotionPreview4xEnabled={hazeMotionPreview4xEnabled}
             surfaceGlowCapacityReached={surfaceGlowCapacityReached}
-            selectedBuiltinPresetId={selectedBuiltinPresetId}
             importText={importText}
             feedbackMessage={feedbackMessage}
             feedbackTone={feedbackTone}
+            behaviorPresets={behaviorPresets}
             onPlaybackStateChange={onPlaybackStateChange}
-            onPresetChange={onPresetChange}
-            onLoadBuiltinPreset={onLoadBuiltinPreset}
-            onTwinklePlacementModeChange={onTwinklePlacementModeChange}
+            onScenePresetChange={onScenePresetChange}
+            onLoadBehaviorPreset={onLoadBehaviorPreset}
+            onLoadScenePreset={onLoadScenePreset}
             onSurfaceGlowPlacementModeChange={onSurfaceGlowPlacementModeChange}
-            onHazeMotionPreview4xChange={onHazeMotionPreview4xChange}
-            onClearHotspots={onClearHotspots}
-            onRandomizeHotspotPhases={onRandomizeHotspotPhases}
             onClearSurfaceGlowHotspots={onClearSurfaceGlowHotspots}
             onRandomizeSurfaceGlowPhases={onRandomizeSurfaceGlowPhases}
             onApplySurfaceGlowDefaultsToAll={onApplySurfaceGlowDefaultsToAll}
-            onResetPreset={onResetPreset}
-            onCopyPresetJson={onCopyPresetJson}
+            onResetScene={onResetScene}
+            onCopySceneJson={onCopySceneJson}
             onImportTextChange={onImportTextChange}
-            onApplyImportedPreset={onApplyImportedPreset}
+            onApplyImportedScene={onApplyImportedScene}
           />
         </div>
       </EnvironmentLabOverlay>

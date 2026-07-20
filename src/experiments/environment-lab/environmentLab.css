@@ -36,14 +36,6 @@
   inset: 0;
 }
 
-.environment-lab__haze {
-  position: absolute;
-  inset: -8%;
-  z-index: 1;
-  pointer-events: none;
-  will-change: transform, opacity, filter;
-}
-
 .environment-lab__placement-note {
   position: absolute;
   bottom: 16px;

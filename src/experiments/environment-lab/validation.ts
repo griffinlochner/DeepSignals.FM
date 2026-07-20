@@ -1,14 +1,17 @@
 import { MAX_SURFACE_GLOW_HOTSPOTS } from "./constants";
 import {
-  cloneEnvironmentPreset,
+  cloneBehaviorSettings,
+  cloneScenePreset,
+  DEFAULT_SURFACE_GLOW_SETTINGS,
   getImageEnvironmentAssetById,
-  UV_JUNGLE_SHOWCASE_PRESET,
+  UV_JUNGLE_SHOWCASE_SCENE_PRESET,
 } from "./presets";
 import type {
-  ImageEnvironmentPreset,
+  EnvironmentBehaviorSettings,
+  ImageEnvironmentScenePreset,
+  SurfaceGlowDefaultSettings,
   SurfaceGlowHotspot,
   SurfaceGlowPulseMode,
-  TwinkleHotspot,
 } from "./types";
 
 const HEX_COLOR_PATTERN = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i;
@@ -19,24 +22,16 @@ const PULSE_MODES: SurfaceGlowPulseMode[] = [
   "soft-blink",
 ];
 
+type ParseResult =
+  | { ok: true; preset: ImageEnvironmentScenePreset; warnings: string[] }
+  | { ok: false; error: string };
+
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
 function readNumber(value: unknown, fallback: number): number {
   return typeof value === "number" && Number.isFinite(value) ? value : fallback;
-}
-
-function isValidColor(value: unknown): value is string {
-  if (typeof value !== "string") {
-    return false;
-  }
-
-  if (typeof CSS !== "undefined" && typeof CSS.supports === "function") {
-    return CSS.supports("color", value);
-  }
-
-  return HEX_COLOR_PATTERN.test(value);
 }
 
 function isHexColor(value: unknown): value is string {
@@ -53,42 +48,159 @@ function readPulseMode(value: unknown, fallback: SurfaceGlowPulseMode): SurfaceG
     : fallback;
 }
 
-function sanitizeHotspot(raw: unknown, index: number): TwinkleHotspot | null {
-  if (!isObject(raw)) {
-    return null;
-  }
+function sanitizeBehaviorSettings(
+  raw: unknown,
+  fallback: EnvironmentBehaviorSettings,
+): EnvironmentBehaviorSettings {
+  const settingsSource = isObject(raw) ? raw : {};
+  const depth = isObject(settingsSource.depth) ? settingsSource.depth : {};
+  const color = isObject(settingsSource.color) ? settingsSource.color : {};
+  const saturationPulse = isObject(settingsSource.saturationPulse)
+    ? settingsSource.saturationPulse
+    : {};
 
-  const u = readNumber(raw.u, NaN);
-  const v = readNumber(raw.v, NaN);
-
-  if (!Number.isFinite(u) || !Number.isFinite(v) || u < 0 || u > 1 || v < 0 || v > 1) {
-    return null;
-  }
-
-  const phase = readNumber(raw.phase, Math.random());
-  const size = readNumber(raw.size, NaN);
-  const intensity = readNumber(raw.intensity, NaN);
-
-  const hotspot: TwinkleHotspot = {
-    id: typeof raw.id === "string" && raw.id.trim() ? raw.id : `twk-${index}`,
-    u,
-    v,
-    phase: clamp(phase, 0, 1),
+  return {
+    depth: {
+      motionIntensity: clamp(readNumber(depth.motionIntensity, fallback.depth.motionIntensity), 0, 1),
+      depthStrength: clamp(readNumber(depth.depthStrength, fallback.depth.depthStrength), 0, 1),
+      staticDepth: clamp(readNumber(depth.staticDepth, fallback.depth.staticDepth), 0, 1),
+      breathingMin: clamp(readNumber(depth.breathingMin, fallback.depth.breathingMin), 0, 1),
+      breathingMax: clamp(readNumber(depth.breathingMax, fallback.depth.breathingMax), 0, 1),
+      breathingCycleSeconds: clamp(
+        readNumber(depth.breathingCycleSeconds, fallback.depth.breathingCycleSeconds),
+        0.4,
+        240,
+      ),
+      pointerParallaxEnabled:
+        typeof depth.pointerParallaxEnabled === "boolean"
+          ? depth.pointerParallaxEnabled
+          : fallback.depth.pointerParallaxEnabled,
+      pointerParallaxStrength: clamp(
+        readNumber(depth.pointerParallaxStrength, fallback.depth.pointerParallaxStrength),
+        0,
+        1.2,
+      ),
+      ambientMotionEnabled:
+        typeof depth.ambientMotionEnabled === "boolean"
+          ? depth.ambientMotionEnabled
+          : fallback.depth.ambientMotionEnabled,
+    },
+    color: {
+      driftEnabled:
+        typeof color.driftEnabled === "boolean"
+          ? color.driftEnabled
+          : fallback.color.driftEnabled,
+      hueRangeDegrees: clamp(
+        readNumber(color.hueRangeDegrees, fallback.color.hueRangeDegrees),
+        0,
+        180,
+      ),
+      cycleSeconds: clamp(readNumber(color.cycleSeconds, fallback.color.cycleSeconds), 1, 600),
+      saturation: clamp(readNumber(color.saturation, fallback.color.saturation), 0, 2.2),
+      glowPulseEnabled:
+        typeof color.glowPulseEnabled === "boolean"
+          ? color.glowPulseEnabled
+          : fallback.color.glowPulseEnabled,
+      glowPulseAmount: clamp(
+        readNumber(color.glowPulseAmount, fallback.color.glowPulseAmount),
+        0,
+        0.7,
+      ),
+      glowPulseCycleSeconds: clamp(
+        readNumber(color.glowPulseCycleSeconds, fallback.color.glowPulseCycleSeconds),
+        1,
+        300,
+      ),
+    },
+    saturationPulse: {
+      enabled:
+        typeof saturationPulse.enabled === "boolean"
+          ? saturationPulse.enabled
+          : fallback.saturationPulse.enabled,
+      minimumSaturation: clamp(
+        readNumber(
+          saturationPulse.minimumSaturation,
+          fallback.saturationPulse.minimumSaturation,
+        ),
+        0,
+        3,
+      ),
+      maximumSaturation: clamp(
+        readNumber(
+          saturationPulse.maximumSaturation,
+          fallback.saturationPulse.maximumSaturation,
+        ),
+        0,
+        3,
+      ),
+      cycleSeconds: clamp(
+        readNumber(saturationPulse.cycleSeconds, fallback.saturationPulse.cycleSeconds),
+        0.2,
+        300,
+      ),
+      phaseOffset: clamp(
+        readNumber(saturationPulse.phaseOffset, fallback.saturationPulse.phaseOffset),
+        -Math.PI * 2,
+        Math.PI * 2,
+      ),
+      syncToDepthBreathing:
+        typeof saturationPulse.syncToDepthBreathing === "boolean"
+          ? saturationPulse.syncToDepthBreathing
+          : fallback.saturationPulse.syncToDepthBreathing,
+    },
   };
+}
 
-  if (isValidColor(raw.color)) {
-    hotspot.color = raw.color;
-  }
+function sanitizeSurfaceGlowDefaults(
+  raw: unknown,
+  fallback: SurfaceGlowDefaultSettings,
+): SurfaceGlowDefaultSettings {
+  const source = isObject(raw) ? raw : {};
 
-  if (Number.isFinite(size)) {
-    hotspot.size = clamp(size, 0.04, 0.6);
-  }
-
-  if (Number.isFinite(intensity)) {
-    hotspot.intensity = clamp(intensity, 0.05, 2);
-  }
-
-  return hotspot;
+  return {
+    color: isHexColor(source.color) ? source.color : fallback.color,
+    radius: clamp(readNumber(source.radius, fallback.radius), 0.002, 0.09),
+    softness: clamp(readNumber(source.softness, fallback.softness), 0.05, 0.98),
+    intensity: clamp(readNumber(source.intensity, fallback.intensity), 0, 4),
+    pulseEnabled:
+      typeof source.pulseEnabled === "boolean" ? source.pulseEnabled : fallback.pulseEnabled,
+    pulseMode: readPulseMode(source.pulseMode, fallback.pulseMode),
+    pulseAmount: clamp(readNumber(source.pulseAmount, fallback.pulseAmount), 0, 2),
+    minimumIntensityMultiplier: clamp(
+      readNumber(source.minimumIntensityMultiplier, fallback.minimumIntensityMultiplier),
+      0,
+      2,
+    ),
+    maximumIntensityMultiplier: clamp(
+      readNumber(source.maximumIntensityMultiplier, fallback.maximumIntensityMultiplier),
+      0.1,
+      3.5,
+    ),
+    radiusExpansionMultiplier: clamp(
+      readNumber(source.radiusExpansionMultiplier, fallback.radiusExpansionMultiplier),
+      1,
+      2.5,
+    ),
+    pulseCycleSeconds: clamp(
+      readNumber(source.pulseCycleSeconds, fallback.pulseCycleSeconds),
+      0.2,
+      120,
+    ),
+    hueDriftEnabled:
+      typeof source.hueDriftEnabled === "boolean"
+        ? source.hueDriftEnabled
+        : fallback.hueDriftEnabled,
+    hueDriftRangeDegrees: clamp(
+      readNumber(source.hueDriftRangeDegrees, fallback.hueDriftRangeDegrees),
+      0,
+      180,
+    ),
+    hueDriftCycleSeconds: clamp(
+      readNumber(source.hueDriftCycleSeconds, fallback.hueDriftCycleSeconds),
+      0.4,
+      240,
+    ),
+  };
 }
 
 function sanitizeSurfaceGlowHotspot(raw: unknown, index: number): SurfaceGlowHotspot | null {
@@ -96,67 +208,104 @@ function sanitizeSurfaceGlowHotspot(raw: unknown, index: number): SurfaceGlowHot
     return null;
   }
 
-  const u = readNumber(raw.u, NaN);
-  const v = readNumber(raw.v, NaN);
+  const u = readNumber(raw.u, Number.NaN);
+  const v = readNumber(raw.v, Number.NaN);
 
   if (!Number.isFinite(u) || !Number.isFinite(v) || u < 0 || u > 1 || v < 0 || v > 1) {
     return null;
   }
 
-  const color = isHexColor(raw.color) ? raw.color : "#8fffe2";
-
   return {
     id: typeof raw.id === "string" && raw.id.trim() ? raw.id : `surface-${index}`,
     u,
     v,
-    color,
-    radius: clamp(readNumber(raw.radius, 0.01), 0.002, 0.09),
-    softness: clamp(readNumber(raw.softness, 0.65), 0.05, 0.98),
-    intensity: clamp(readNumber(raw.intensity, 1.05), 0, 4),
-    pulseEnabled: typeof raw.pulseEnabled === "boolean" ? raw.pulseEnabled : true,
-    pulseMode: readPulseMode(raw.pulseMode, "brightness-bloom"),
-    pulseAmount: clamp(readNumber(raw.pulseAmount, 0.6), 0, 2),
-    minimumIntensityMultiplier: clamp(readNumber(raw.minimumIntensityMultiplier, 0.7), 0, 2),
-    maximumIntensityMultiplier: clamp(readNumber(raw.maximumIntensityMultiplier, 1.35), 0.1, 3.5),
-    radiusExpansionMultiplier: clamp(readNumber(raw.radiusExpansionMultiplier, 1.18), 1, 2.5),
-    pulseCycleSeconds: clamp(readNumber(raw.pulseCycleSeconds, 3.5), 0.2, 120),
-    hueDriftEnabled: typeof raw.hueDriftEnabled === "boolean" ? raw.hueDriftEnabled : false,
-    hueDriftRangeDegrees: clamp(readNumber(raw.hueDriftRangeDegrees, 12), 0, 180),
-    hueDriftCycleSeconds: clamp(readNumber(raw.hueDriftCycleSeconds, 20), 0.4, 240),
+    color: isHexColor(raw.color) ? raw.color : DEFAULT_SURFACE_GLOW_SETTINGS.color,
+    radius: clamp(readNumber(raw.radius, DEFAULT_SURFACE_GLOW_SETTINGS.radius), 0.002, 0.09),
+    softness: clamp(
+      readNumber(raw.softness, DEFAULT_SURFACE_GLOW_SETTINGS.softness),
+      0.05,
+      0.98,
+    ),
+    intensity: clamp(
+      readNumber(raw.intensity, DEFAULT_SURFACE_GLOW_SETTINGS.intensity),
+      0,
+      4,
+    ),
+    pulseEnabled:
+      typeof raw.pulseEnabled === "boolean"
+        ? raw.pulseEnabled
+        : DEFAULT_SURFACE_GLOW_SETTINGS.pulseEnabled,
+    pulseMode: readPulseMode(raw.pulseMode, DEFAULT_SURFACE_GLOW_SETTINGS.pulseMode),
+    pulseAmount: clamp(
+      readNumber(raw.pulseAmount, DEFAULT_SURFACE_GLOW_SETTINGS.pulseAmount),
+      0,
+      2,
+    ),
+    minimumIntensityMultiplier: clamp(
+      readNumber(
+        raw.minimumIntensityMultiplier,
+        DEFAULT_SURFACE_GLOW_SETTINGS.minimumIntensityMultiplier,
+      ),
+      0,
+      2,
+    ),
+    maximumIntensityMultiplier: clamp(
+      readNumber(
+        raw.maximumIntensityMultiplier,
+        DEFAULT_SURFACE_GLOW_SETTINGS.maximumIntensityMultiplier,
+      ),
+      0.1,
+      3.5,
+    ),
+    radiusExpansionMultiplier: clamp(
+      readNumber(
+        raw.radiusExpansionMultiplier,
+        DEFAULT_SURFACE_GLOW_SETTINGS.radiusExpansionMultiplier,
+      ),
+      1,
+      2.5,
+    ),
+    pulseCycleSeconds: clamp(
+      readNumber(raw.pulseCycleSeconds, DEFAULT_SURFACE_GLOW_SETTINGS.pulseCycleSeconds),
+      0.2,
+      120,
+    ),
+    hueDriftEnabled:
+      typeof raw.hueDriftEnabled === "boolean"
+        ? raw.hueDriftEnabled
+        : DEFAULT_SURFACE_GLOW_SETTINGS.hueDriftEnabled,
+    hueDriftRangeDegrees: clamp(
+      readNumber(raw.hueDriftRangeDegrees, DEFAULT_SURFACE_GLOW_SETTINGS.hueDriftRangeDegrees),
+      0,
+      180,
+    ),
+    hueDriftCycleSeconds: clamp(
+      readNumber(raw.hueDriftCycleSeconds, DEFAULT_SURFACE_GLOW_SETTINGS.hueDriftCycleSeconds),
+      0.4,
+      240,
+    ),
     phase: clamp(readNumber(raw.phase, Math.random()), 0, 1),
   };
 }
 
-export function parseEnvironmentPresetJson(rawText: string):
-  | { ok: true; preset: ImageEnvironmentPreset }
-  | { ok: false; error: string } {
+export function parseFullScenePresetJson(rawText: string): ParseResult {
   let parsed: unknown;
 
   try {
     parsed = JSON.parse(rawText);
   } catch {
-    return { ok: false, error: "Invalid JSON. Please provide valid preset JSON." };
+    return { ok: false, error: "Invalid JSON. Please provide valid full scene JSON." };
   }
 
   if (!isObject(parsed)) {
-    return { ok: false, error: "Preset payload must be a JSON object." };
+    return { ok: false, error: "Full scene payload must be a JSON object." };
   }
 
-  const defaults = cloneEnvironmentPreset(UV_JUNGLE_SHOWCASE_PRESET);
-  const depth = isObject(parsed.depth) ? parsed.depth : {};
-  const color = isObject(parsed.color) ? parsed.color : {};
-  const twinkles = isObject(parsed.twinkles) ? parsed.twinkles : {};
-  const surfaceGlows = isObject(parsed.surfaceGlows) ? parsed.surfaceGlows : {};
-  const saturationPulse = isObject(parsed.saturationPulse) ? parsed.saturationPulse : {};
-  const particles = isObject(parsed.particles) ? parsed.particles : {};
-  const haze = isObject(parsed.haze) ? parsed.haze : {};
+  const warnings: string[] = [];
+  const defaults = cloneScenePreset(UV_JUNGLE_SHOWCASE_SCENE_PRESET);
 
-  const hotspotEntries = Array.isArray(surfaceGlows.hotspots) ? surfaceGlows.hotspots : null;
-  if (hotspotEntries && hotspotEntries.length > MAX_SURFACE_GLOW_HOTSPOTS) {
-    return {
-      ok: false,
-      error: `Surface Glow hotspot limit exceeded. Maximum of ${MAX_SURFACE_GLOW_HOTSPOTS} Surface Glow Hotspots reached.`,
-    };
+  if ("twinkles" in parsed || "particles" in parsed || "haze" in parsed) {
+    warnings.push("Legacy twinkle/particle/haze fields were ignored.");
   }
 
   const assetId =
@@ -171,205 +320,86 @@ export function parseEnvironmentPresetJson(rawText: string):
     };
   }
 
-  const merged: ImageEnvironmentPreset = {
+  const behaviorSource = isObject(parsed.behavior)
+    ? parsed.behavior
+    : isObject(parsed)
+      ? parsed
+      : {};
+  const behavior = sanitizeBehaviorSettings(behaviorSource, defaults.behavior);
+
+  const surfaceGlowsSource = isObject(parsed.surfaceGlows) ? parsed.surfaceGlows : {};
+  const hotspotEntries = Array.isArray(surfaceGlowsSource.hotspots)
+    ? surfaceGlowsSource.hotspots
+    : Array.isArray(defaults.surfaceGlows.hotspots)
+      ? defaults.surfaceGlows.hotspots
+      : [];
+
+  if (hotspotEntries.length > MAX_SURFACE_GLOW_HOTSPOTS) {
+    return {
+      ok: false,
+      error: `Surface Glow hotspot limit exceeded. Maximum of ${MAX_SURFACE_GLOW_HOTSPOTS} Surface Glow Hotspots reached.`,
+    };
+  }
+
+  const defaultsSource = isObject(surfaceGlowsSource.defaults)
+    ? surfaceGlowsSource.defaults
+    : surfaceGlowsSource;
+
+  const merged: ImageEnvironmentScenePreset = {
     id: typeof parsed.id === "string" && parsed.id.trim() ? parsed.id : defaults.id,
     name: typeof parsed.name === "string" && parsed.name.trim() ? parsed.name : defaults.name,
     assetId,
-    depth: {
-      motionIntensity: clamp(readNumber(depth.motionIntensity, defaults.depth.motionIntensity), 0, 1),
-      depthStrength: clamp(readNumber(depth.depthStrength, defaults.depth.depthStrength), 0, 1),
-      staticDepth: clamp(readNumber(depth.staticDepth, defaults.depth.staticDepth), 0, 1),
-      breathingMin: clamp(readNumber(depth.breathingMin, defaults.depth.breathingMin), 0, 1),
-      breathingMax: clamp(readNumber(depth.breathingMax, defaults.depth.breathingMax), 0, 1),
-      breathingCycleSeconds: clamp(
-        readNumber(depth.breathingCycleSeconds, defaults.depth.breathingCycleSeconds),
-        0.4,
-        240,
-      ),
-      pointerParallaxEnabled:
-        typeof depth.pointerParallaxEnabled === "boolean"
-          ? depth.pointerParallaxEnabled
-          : defaults.depth.pointerParallaxEnabled,
-      pointerParallaxStrength: clamp(
-        readNumber(depth.pointerParallaxStrength, defaults.depth.pointerParallaxStrength),
-        0,
-        1.2,
-      ),
-      ambientMotionEnabled:
-        typeof depth.ambientMotionEnabled === "boolean"
-          ? depth.ambientMotionEnabled
-          : defaults.depth.ambientMotionEnabled,
-    },
-    color: {
-      driftEnabled:
-        typeof color.driftEnabled === "boolean" ? color.driftEnabled : defaults.color.driftEnabled,
-      hueRangeDegrees: clamp(readNumber(color.hueRangeDegrees, defaults.color.hueRangeDegrees), 0, 180),
-      cycleSeconds: clamp(readNumber(color.cycleSeconds, defaults.color.cycleSeconds), 1, 600),
-      saturation: clamp(readNumber(color.saturation, defaults.color.saturation), 0, 2.2),
-      glowPulseEnabled:
-        typeof color.glowPulseEnabled === "boolean"
-          ? color.glowPulseEnabled
-          : defaults.color.glowPulseEnabled,
-      glowPulseAmount: clamp(readNumber(color.glowPulseAmount, defaults.color.glowPulseAmount), 0, 0.7),
-      glowPulseCycleSeconds: clamp(
-        readNumber(color.glowPulseCycleSeconds, defaults.color.glowPulseCycleSeconds),
-        1,
-        300,
-      ),
-    },
-    saturationPulse: {
-      enabled:
-        typeof saturationPulse.enabled === "boolean"
-          ? saturationPulse.enabled
-          : defaults.saturationPulse.enabled,
-      minimumSaturation: clamp(
-        readNumber(saturationPulse.minimumSaturation, defaults.saturationPulse.minimumSaturation),
-        0,
-        3,
-      ),
-      maximumSaturation: clamp(
-        readNumber(saturationPulse.maximumSaturation, defaults.saturationPulse.maximumSaturation),
-        0,
-        3,
-      ),
-      cycleSeconds: clamp(
-        readNumber(saturationPulse.cycleSeconds, defaults.saturationPulse.cycleSeconds),
-        0.2,
-        300,
-      ),
-      phaseOffset: clamp(
-        readNumber(saturationPulse.phaseOffset, defaults.saturationPulse.phaseOffset),
-        -Math.PI * 2,
-        Math.PI * 2,
-      ),
-      syncToDepthBreathing:
-        typeof saturationPulse.syncToDepthBreathing === "boolean"
-          ? saturationPulse.syncToDepthBreathing
-          : defaults.saturationPulse.syncToDepthBreathing,
-    },
-    twinkles: {
-      enabled: typeof twinkles.enabled === "boolean" ? twinkles.enabled : defaults.twinkles.enabled,
-      hotspots: Array.isArray(twinkles.hotspots)
-        ? twinkles.hotspots
-            .map((entry, index) => sanitizeHotspot(entry, index))
-            .filter((entry): entry is TwinkleHotspot => entry !== null)
-        : defaults.twinkles.hotspots,
-      defaultColor:
-        isValidColor(twinkles.defaultColor) && isHexColor(twinkles.defaultColor)
-          ? twinkles.defaultColor
-          : defaults.twinkles.defaultColor,
-      defaultSize: clamp(readNumber(twinkles.defaultSize, defaults.twinkles.defaultSize), 0.04, 0.6),
-      defaultIntensity: clamp(readNumber(twinkles.defaultIntensity, defaults.twinkles.defaultIntensity), 0.05, 2),
-      pulseSpeed: clamp(readNumber(twinkles.pulseSpeed, defaults.twinkles.pulseSpeed), 0, 3),
-    },
+    behavior,
     surfaceGlows: {
       enabled:
-        typeof surfaceGlows.enabled === "boolean"
-          ? surfaceGlows.enabled
+        typeof surfaceGlowsSource.enabled === "boolean"
+          ? surfaceGlowsSource.enabled
           : defaults.surfaceGlows.enabled,
+      defaults: sanitizeSurfaceGlowDefaults(defaultsSource, defaults.surfaceGlows.defaults),
       hotspots: hotspotEntries
-        ? hotspotEntries
-            .map((entry, index) => sanitizeSurfaceGlowHotspot(entry, index))
-            .filter((entry): entry is SurfaceGlowHotspot => entry !== null)
-        : defaults.surfaceGlows.hotspots,
-      defaultColor: isHexColor(surfaceGlows.defaultColor)
-        ? surfaceGlows.defaultColor
-        : defaults.surfaceGlows.defaultColor,
-      defaultRadius: clamp(readNumber(surfaceGlows.defaultRadius, defaults.surfaceGlows.defaultRadius), 0.002, 0.09),
-      defaultSoftness: clamp(readNumber(surfaceGlows.defaultSoftness, defaults.surfaceGlows.defaultSoftness), 0.05, 0.98),
-      defaultIntensity: clamp(readNumber(surfaceGlows.defaultIntensity, defaults.surfaceGlows.defaultIntensity), 0, 4),
-      defaultPulseEnabled:
-        typeof surfaceGlows.defaultPulseEnabled === "boolean"
-          ? surfaceGlows.defaultPulseEnabled
-          : defaults.surfaceGlows.defaultPulseEnabled,
-      defaultPulseMode: readPulseMode(surfaceGlows.defaultPulseMode, defaults.surfaceGlows.defaultPulseMode),
-      defaultPulseAmount: clamp(readNumber(surfaceGlows.defaultPulseAmount, defaults.surfaceGlows.defaultPulseAmount), 0, 2),
-      defaultMinimumIntensityMultiplier: clamp(
-        readNumber(
-          surfaceGlows.defaultMinimumIntensityMultiplier,
-          defaults.surfaceGlows.defaultMinimumIntensityMultiplier,
-        ),
-        0,
-        2,
-      ),
-      defaultMaximumIntensityMultiplier: clamp(
-        readNumber(
-          surfaceGlows.defaultMaximumIntensityMultiplier,
-          defaults.surfaceGlows.defaultMaximumIntensityMultiplier,
-        ),
-        0.1,
-        3.5,
-      ),
-      defaultRadiusExpansionMultiplier: clamp(
-        readNumber(
-          surfaceGlows.defaultRadiusExpansionMultiplier,
-          defaults.surfaceGlows.defaultRadiusExpansionMultiplier,
-        ),
-        1,
-        2.5,
-      ),
-      defaultPulseCycleSeconds: clamp(
-        readNumber(surfaceGlows.defaultPulseCycleSeconds, defaults.surfaceGlows.defaultPulseCycleSeconds),
-        0.2,
-        120,
-      ),
-      defaultHueDriftEnabled:
-        typeof surfaceGlows.defaultHueDriftEnabled === "boolean"
-          ? surfaceGlows.defaultHueDriftEnabled
-          : defaults.surfaceGlows.defaultHueDriftEnabled,
-      defaultHueDriftRangeDegrees: clamp(
-        readNumber(surfaceGlows.defaultHueDriftRangeDegrees, defaults.surfaceGlows.defaultHueDriftRangeDegrees),
-        0,
-        180,
-      ),
-      defaultHueDriftCycleSeconds: clamp(
-        readNumber(surfaceGlows.defaultHueDriftCycleSeconds, defaults.surfaceGlows.defaultHueDriftCycleSeconds),
-        0.4,
-        240,
-      ),
-    },
-    particles: {
-      enabled: typeof particles.enabled === "boolean" ? particles.enabled : defaults.particles.enabled,
-      count: Math.round(clamp(readNumber(particles.count, defaults.particles.count), 0, 240)),
-      speed: clamp(readNumber(particles.speed, defaults.particles.speed), 0, 0.6),
-      size: clamp(readNumber(particles.size, defaults.particles.size), 0.004, 0.2),
-      opacity: clamp(readNumber(particles.opacity, defaults.particles.opacity), 0, 1),
-      color: isHexColor(particles.color) ? particles.color : defaults.particles.color,
-      seed: Math.round(clamp(readNumber(particles.seed, defaults.particles.seed), 0, 1_000_000)),
-    },
-    haze: {
-      enabled: typeof haze.enabled === "boolean" ? haze.enabled : defaults.haze.enabled,
-      opacity: clamp(readNumber(haze.opacity, defaults.haze.opacity), 0, 1),
-      blurPixels: clamp(readNumber(haze.blurPixels, defaults.haze.blurPixels), 0, 120),
-      driftCycleSeconds: clamp(readNumber(haze.driftCycleSeconds, defaults.haze.driftCycleSeconds), 2, 120),
-      driftDistance: clamp(readNumber(haze.driftDistance, defaults.haze.driftDistance), 0, 120),
-      driftBiasX: clamp(readNumber(haze.driftBiasX, defaults.haze.driftBiasX), -1, 1),
-      driftBiasY: clamp(readNumber(haze.driftBiasY, defaults.haze.driftBiasY), -1, 1),
-      primaryColor: isHexColor(haze.primaryColor) ? haze.primaryColor : defaults.haze.primaryColor,
-      secondaryColor: isHexColor(haze.secondaryColor) ? haze.secondaryColor : defaults.haze.secondaryColor,
+        .map((entry, index) => sanitizeSurfaceGlowHotspot(entry, index))
+        .filter((entry): entry is SurfaceGlowHotspot => entry !== null),
     },
   };
 
-  if (merged.depth.breathingMin > merged.depth.breathingMax) {
+  if (merged.behavior.depth.breathingMin > merged.behavior.depth.breathingMax) {
     return {
       ok: false,
       error: "Depth breathingMin must be less than or equal to breathingMax.",
     };
   }
 
-  if (merged.saturationPulse.minimumSaturation > merged.saturationPulse.maximumSaturation) {
+  if (
+    merged.behavior.saturationPulse.minimumSaturation >
+    merged.behavior.saturationPulse.maximumSaturation
+  ) {
     return {
       ok: false,
       error: "Saturation pulse minimum must be less than or equal to maximum.",
     };
   }
 
-  if (merged.surfaceGlows.defaultMinimumIntensityMultiplier > merged.surfaceGlows.defaultMaximumIntensityMultiplier) {
+  if (
+    merged.surfaceGlows.defaults.minimumIntensityMultiplier >
+    merged.surfaceGlows.defaults.maximumIntensityMultiplier
+  ) {
     return {
       ok: false,
       error: "Surface Glow minimum intensity multiplier must be less than or equal to maximum.",
     };
   }
 
-  return { ok: true, preset: merged };
+  return {
+    ok: true,
+    preset: {
+      ...merged,
+      behavior: cloneBehaviorSettings(merged.behavior),
+      surfaceGlows: {
+        ...merged.surfaceGlows,
+        defaults: { ...merged.surfaceGlows.defaults },
+        hotspots: merged.surfaceGlows.hotspots.map((hotspot) => ({ ...hotspot })),
+      },
+    },
+    warnings,
+  };
 }

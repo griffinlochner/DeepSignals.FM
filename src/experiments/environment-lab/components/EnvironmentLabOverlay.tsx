@@ -9,11 +9,11 @@ function EnvironmentLabOverlay({ status, children }: EnvironmentLabOverlayProps)
     <aside className="environment-lab__overlay">
       <p className="environment-lab__eyebrow">DEEPSIGNALS.FM ENVIRONMENT LABORATORY</p>
       <h1 className="environment-lab__title">
-        Depth, motion, color, and atmospheric environment authoring
+        Depth, motion, color, and Surface Glow environment authoring
       </h1>
       <p className="environment-lab__caption">
-        Tune reusable immersive environment presets with depth-image behavior plus
-        atmospheric effects for future scene authoring.
+        Tune reusable behavior presets and full image-environment scene presets while preserving
+        image-relative Surface Glow placement.
       </p>
       {children}
       <p className="environment-lab__status">{status}</p>

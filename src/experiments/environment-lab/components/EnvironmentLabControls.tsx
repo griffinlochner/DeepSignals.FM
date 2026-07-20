@@ -1,41 +1,39 @@
 import type { ChangeEvent } from "react";
 import { MAX_SURFACE_GLOW_HOTSPOTS } from "../constants";
-import { IMAGE_ENVIRONMENT_PRESETS } from "../presets";
+import { ENVIRONMENT_BEHAVIOR_PRESETS } from "../presets";
 import type {
+  EnvironmentBehaviorPreset,
   EnvironmentDiagnostics,
   EnvironmentPlaybackState,
-  ImageEnvironmentPreset,
+  ImageEnvironmentScenePreset,
   SurfaceGlowPulseMode,
 } from "../types";
 
 type EnvironmentLabControlsProps = {
   playbackState: EnvironmentPlaybackState;
-  preset: ImageEnvironmentPreset;
-  selectedBuiltinPresetId: string;
+  scenePreset: ImageEnvironmentScenePreset;
+  selectedBehaviorPresetId: string;
+  selectedScenePresetId: string;
   reducedMotionActive: boolean;
   diagnostics: EnvironmentDiagnostics;
-  twinklePlacementModeEnabled: boolean;
   surfaceGlowPlacementModeEnabled: boolean;
-  hazeMotionPreview4xEnabled: boolean;
   surfaceGlowCapacityReached: boolean;
   importText: string;
   feedbackMessage: string;
   feedbackTone: "idle" | "success" | "error";
+  behaviorPresets: EnvironmentBehaviorPreset[];
   onPlaybackStateChange: (value: EnvironmentPlaybackState) => void;
-  onPresetChange: (next: ImageEnvironmentPreset) => void;
-  onLoadBuiltinPreset: (presetId: string) => void;
-  onTwinklePlacementModeChange: (enabled: boolean) => void;
+  onScenePresetChange: (next: ImageEnvironmentScenePreset) => void;
+  onLoadBehaviorPreset: (presetId: string) => void;
+  onLoadScenePreset: (presetId: string) => void;
   onSurfaceGlowPlacementModeChange: (enabled: boolean) => void;
-  onHazeMotionPreview4xChange: (enabled: boolean) => void;
-  onClearHotspots: () => void;
-  onRandomizeHotspotPhases: () => void;
   onClearSurfaceGlowHotspots: () => void;
   onRandomizeSurfaceGlowPhases: () => void;
   onApplySurfaceGlowDefaultsToAll: () => void;
-  onResetPreset: () => void;
-  onCopyPresetJson: () => void;
+  onResetScene: () => void;
+  onCopySceneJson: () => void;
   onImportTextChange: (value: string) => void;
-  onApplyImportedPreset: () => void;
+  onApplyImportedScene: () => void;
 };
 
 function pulseModeLabel(mode: SurfaceGlowPulseMode): string {
@@ -56,122 +54,121 @@ function pulseModeLabel(mode: SurfaceGlowPulseMode): string {
 
 function EnvironmentLabControls({
   playbackState,
-  preset,
-  selectedBuiltinPresetId,
+  scenePreset,
+  selectedBehaviorPresetId,
+  selectedScenePresetId,
   reducedMotionActive,
   diagnostics,
-  twinklePlacementModeEnabled,
   surfaceGlowPlacementModeEnabled,
-  hazeMotionPreview4xEnabled,
   surfaceGlowCapacityReached,
   importText,
   feedbackMessage,
   feedbackTone,
+  behaviorPresets,
   onPlaybackStateChange,
-  onPresetChange,
-  onLoadBuiltinPreset,
-  onTwinklePlacementModeChange,
+  onScenePresetChange,
+  onLoadBehaviorPreset,
+  onLoadScenePreset,
   onSurfaceGlowPlacementModeChange,
-  onHazeMotionPreview4xChange,
-  onClearHotspots,
-  onRandomizeHotspotPhases,
   onClearSurfaceGlowHotspots,
   onRandomizeSurfaceGlowPhases,
   onApplySurfaceGlowDefaultsToAll,
-  onResetPreset,
-  onCopyPresetJson,
+  onResetScene,
+  onCopySceneJson,
   onImportTextChange,
-  onApplyImportedPreset,
+  onApplyImportedScene,
 }: EnvironmentLabControlsProps) {
-  const updateDepth = <K extends keyof ImageEnvironmentPreset["depth"]>(
+  const updateBehaviorDepth = <K extends keyof ImageEnvironmentScenePreset["behavior"]["depth"]>(
     key: K,
-    value: ImageEnvironmentPreset["depth"][K],
+    value: ImageEnvironmentScenePreset["behavior"]["depth"][K],
   ) => {
-    onPresetChange({
-      ...preset,
-      depth: {
-        ...preset.depth,
-        [key]: value,
+    onScenePresetChange({
+      ...scenePreset,
+      behavior: {
+        ...scenePreset.behavior,
+        depth: {
+          ...scenePreset.behavior.depth,
+          [key]: value,
+        },
+        color: { ...scenePreset.behavior.color },
+        saturationPulse: { ...scenePreset.behavior.saturationPulse },
+      },
+      surfaceGlows: {
+        ...scenePreset.surfaceGlows,
+        defaults: { ...scenePreset.surfaceGlows.defaults },
+        hotspots: scenePreset.surfaceGlows.hotspots.map((hotspot) => ({ ...hotspot })),
       },
     });
   };
 
-  const updateColor = <K extends keyof ImageEnvironmentPreset["color"]>(
+  const updateBehaviorColor = <K extends keyof ImageEnvironmentScenePreset["behavior"]["color"]>(
     key: K,
-    value: ImageEnvironmentPreset["color"][K],
+    value: ImageEnvironmentScenePreset["behavior"]["color"][K],
   ) => {
-    onPresetChange({
-      ...preset,
-      color: {
-        ...preset.color,
-        [key]: value,
+    onScenePresetChange({
+      ...scenePreset,
+      behavior: {
+        ...scenePreset.behavior,
+        depth: { ...scenePreset.behavior.depth },
+        color: {
+          ...scenePreset.behavior.color,
+          [key]: value,
+        },
+        saturationPulse: { ...scenePreset.behavior.saturationPulse },
       },
-    });
-  };
-
-  const updateTwinkles = <K extends keyof ImageEnvironmentPreset["twinkles"]>(
-    key: K,
-    value: ImageEnvironmentPreset["twinkles"][K],
-  ) => {
-    onPresetChange({
-      ...preset,
-      twinkles: {
-        ...preset.twinkles,
-        [key]: value,
-      },
-    });
-  };
-
-  const updateParticles = <K extends keyof ImageEnvironmentPreset["particles"]>(
-    key: K,
-    value: ImageEnvironmentPreset["particles"][K],
-  ) => {
-    onPresetChange({
-      ...preset,
-      particles: {
-        ...preset.particles,
-        [key]: value,
-      },
-    });
-  };
-
-  const updateHaze = <K extends keyof ImageEnvironmentPreset["haze"]>(
-    key: K,
-    value: ImageEnvironmentPreset["haze"][K],
-  ) => {
-    onPresetChange({
-      ...preset,
-      haze: {
-        ...preset.haze,
-        [key]: value,
+      surfaceGlows: {
+        ...scenePreset.surfaceGlows,
+        defaults: { ...scenePreset.surfaceGlows.defaults },
+        hotspots: scenePreset.surfaceGlows.hotspots.map((hotspot) => ({ ...hotspot })),
       },
     });
   };
 
   const updateSaturationPulse = <
-    K extends keyof ImageEnvironmentPreset["saturationPulse"],
+    K extends keyof ImageEnvironmentScenePreset["behavior"]["saturationPulse"],
   >(
     key: K,
-    value: ImageEnvironmentPreset["saturationPulse"][K],
+    value: ImageEnvironmentScenePreset["behavior"]["saturationPulse"][K],
   ) => {
-    onPresetChange({
-      ...preset,
-      saturationPulse: {
-        ...preset.saturationPulse,
-        [key]: value,
+    onScenePresetChange({
+      ...scenePreset,
+      behavior: {
+        ...scenePreset.behavior,
+        depth: { ...scenePreset.behavior.depth },
+        color: { ...scenePreset.behavior.color },
+        saturationPulse: {
+          ...scenePreset.behavior.saturationPulse,
+          [key]: value,
+        },
+      },
+      surfaceGlows: {
+        ...scenePreset.surfaceGlows,
+        defaults: { ...scenePreset.surfaceGlows.defaults },
+        hotspots: scenePreset.surfaceGlows.hotspots.map((hotspot) => ({ ...hotspot })),
       },
     });
   };
 
-  const updateSurfaceGlows = <K extends keyof ImageEnvironmentPreset["surfaceGlows"]>(
+  const updateSurfaceGlowDefaults = <
+    K extends keyof ImageEnvironmentScenePreset["surfaceGlows"]["defaults"],
+  >(
     key: K,
-    value: ImageEnvironmentPreset["surfaceGlows"][K],
+    value: ImageEnvironmentScenePreset["surfaceGlows"]["defaults"][K],
   ) => {
-    onPresetChange({
-      ...preset,
+    onScenePresetChange({
+      ...scenePreset,
+      behavior: {
+        depth: { ...scenePreset.behavior.depth },
+        color: { ...scenePreset.behavior.color },
+        saturationPulse: { ...scenePreset.behavior.saturationPulse },
+      },
       surfaceGlows: {
-        ...preset.surfaceGlows,
-        [key]: value,
+        ...scenePreset.surfaceGlows,
+        defaults: {
+          ...scenePreset.surfaceGlows.defaults,
+          [key]: value,
+        },
+        hotspots: scenePreset.surfaceGlows.hotspots.map((hotspot) => ({ ...hotspot })),
       },
     });
   };
@@ -183,35 +180,14 @@ function EnvironmentLabControls({
     onChange(Number(event.target.value));
   };
 
+  const activeBehaviorPreset =
+    behaviorPresets.find((preset) => preset.id === selectedBehaviorPresetId) ??
+    ENVIRONMENT_BEHAVIOR_PRESETS[0];
+  const latestHotspot =
+    scenePreset.surfaceGlows.hotspots[scenePreset.surfaceGlows.hotspots.length - 1] ?? null;
+
   return (
     <div className="environment-lab__controls">
-      <details className="environment-lab__group" open>
-        <summary>Built-in Presets</summary>
-
-        <label className="environment-lab__field">
-          <span>Preset</span>
-          <select
-            value={selectedBuiltinPresetId}
-            onChange={(event) => onLoadBuiltinPreset(event.target.value)}
-          >
-            {IMAGE_ENVIRONMENT_PRESETS.map((entry) => (
-              <option key={entry.id} value={entry.id}>
-                {entry.name}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <div className="environment-lab__button-row">
-          <button type="button" onClick={() => onLoadBuiltinPreset("neutral-baseline")}>
-            Load Neutral Baseline
-          </button>
-          <button type="button" onClick={() => onLoadBuiltinPreset("uv-jungle-showcase")}>
-            Load UV Jungle Showcase
-          </button>
-        </div>
-      </details>
-
       <details className="environment-lab__group" open>
         <summary>Playback &amp; Depth</summary>
 
@@ -237,12 +213,12 @@ function EnvironmentLabControls({
             min="0"
             max="1"
             step="0.01"
-            value={preset.depth.motionIntensity}
+            value={scenePreset.behavior.depth.motionIntensity}
             onChange={(event) =>
-              handleRangeChange(event, (value) => updateDepth("motionIntensity", value))
+              handleRangeChange(event, (value) => updateBehaviorDepth("motionIntensity", value))
             }
           />
-          <strong>{preset.depth.motionIntensity.toFixed(2)}</strong>
+          <strong>{scenePreset.behavior.depth.motionIntensity.toFixed(2)}</strong>
         </label>
 
         <label className="environment-lab__field">
@@ -252,12 +228,27 @@ function EnvironmentLabControls({
             min="0"
             max="1"
             step="0.01"
-            value={preset.depth.depthStrength}
+            value={scenePreset.behavior.depth.depthStrength}
             onChange={(event) =>
-              handleRangeChange(event, (value) => updateDepth("depthStrength", value))
+              handleRangeChange(event, (value) => updateBehaviorDepth("depthStrength", value))
             }
           />
-          <strong>{preset.depth.depthStrength.toFixed(2)}</strong>
+          <strong>{scenePreset.behavior.depth.depthStrength.toFixed(2)}</strong>
+        </label>
+
+        <label className="environment-lab__field">
+          <span>Static depth</span>
+          <input
+            type="range"
+            min="0"
+            max="1"
+            step="0.01"
+            value={scenePreset.behavior.depth.staticDepth}
+            onChange={(event) =>
+              handleRangeChange(event, (value) => updateBehaviorDepth("staticDepth", value))
+            }
+          />
+          <strong>{scenePreset.behavior.depth.staticDepth.toFixed(2)}</strong>
         </label>
 
         <label className="environment-lab__field">
@@ -267,12 +258,12 @@ function EnvironmentLabControls({
             min="0"
             max="1"
             step="0.01"
-            value={preset.depth.breathingMin}
+            value={scenePreset.behavior.depth.breathingMin}
             onChange={(event) =>
-              handleRangeChange(event, (value) => updateDepth("breathingMin", value))
+              handleRangeChange(event, (value) => updateBehaviorDepth("breathingMin", value))
             }
           />
-          <strong>{preset.depth.breathingMin.toFixed(2)}</strong>
+          <strong>{scenePreset.behavior.depth.breathingMin.toFixed(2)}</strong>
         </label>
 
         <label className="environment-lab__field">
@@ -282,12 +273,12 @@ function EnvironmentLabControls({
             min="0"
             max="1"
             step="0.01"
-            value={preset.depth.breathingMax}
+            value={scenePreset.behavior.depth.breathingMax}
             onChange={(event) =>
-              handleRangeChange(event, (value) => updateDepth("breathingMax", value))
+              handleRangeChange(event, (value) => updateBehaviorDepth("breathingMax", value))
             }
           />
-          <strong>{preset.depth.breathingMax.toFixed(2)}</strong>
+          <strong>{scenePreset.behavior.depth.breathingMax.toFixed(2)}</strong>
         </label>
 
         <label className="environment-lab__field">
@@ -297,20 +288,24 @@ function EnvironmentLabControls({
             min="1"
             max="20"
             step="0.1"
-            value={preset.depth.breathingCycleSeconds}
+            value={scenePreset.behavior.depth.breathingCycleSeconds}
             onChange={(event) =>
-              handleRangeChange(event, (value) => updateDepth("breathingCycleSeconds", value))
+              handleRangeChange(event, (value) =>
+                updateBehaviorDepth("breathingCycleSeconds", value),
+              )
             }
           />
-          <strong>{preset.depth.breathingCycleSeconds.toFixed(1)}s</strong>
+          <strong>{scenePreset.behavior.depth.breathingCycleSeconds.toFixed(1)}s</strong>
         </label>
 
         <label className="environment-lab__toggle">
           <span>Pointer parallax</span>
           <input
             type="checkbox"
-            checked={preset.depth.pointerParallaxEnabled}
-            onChange={(event) => updateDepth("pointerParallaxEnabled", event.target.checked)}
+            checked={scenePreset.behavior.depth.pointerParallaxEnabled}
+            onChange={(event) =>
+              updateBehaviorDepth("pointerParallaxEnabled", event.target.checked)
+            }
           />
         </label>
 
@@ -321,20 +316,22 @@ function EnvironmentLabControls({
             min="0"
             max="1"
             step="0.01"
-            value={preset.depth.pointerParallaxStrength}
+            value={scenePreset.behavior.depth.pointerParallaxStrength}
             onChange={(event) =>
-              handleRangeChange(event, (value) => updateDepth("pointerParallaxStrength", value))
+              handleRangeChange(event, (value) =>
+                updateBehaviorDepth("pointerParallaxStrength", value),
+              )
             }
           />
-          <strong>{preset.depth.pointerParallaxStrength.toFixed(2)}</strong>
+          <strong>{scenePreset.behavior.depth.pointerParallaxStrength.toFixed(2)}</strong>
         </label>
 
         <label className="environment-lab__toggle">
           <span>Ambient Motion</span>
           <input
             type="checkbox"
-            checked={preset.depth.ambientMotionEnabled}
-            onChange={(event) => updateDepth("ambientMotionEnabled", event.target.checked)}
+            checked={scenePreset.behavior.depth.ambientMotionEnabled}
+            onChange={(event) => updateBehaviorDepth("ambientMotionEnabled", event.target.checked)}
           />
         </label>
 
@@ -350,8 +347,8 @@ function EnvironmentLabControls({
           <span>Color Drift enabled</span>
           <input
             type="checkbox"
-            checked={preset.color.driftEnabled}
-            onChange={(event) => updateColor("driftEnabled", event.target.checked)}
+            checked={scenePreset.behavior.color.driftEnabled}
+            onChange={(event) => updateBehaviorColor("driftEnabled", event.target.checked)}
           />
         </label>
 
@@ -362,12 +359,12 @@ function EnvironmentLabControls({
             min="0"
             max="60"
             step="0.1"
-            value={preset.color.hueRangeDegrees}
+            value={scenePreset.behavior.color.hueRangeDegrees}
             onChange={(event) =>
-              handleRangeChange(event, (value) => updateColor("hueRangeDegrees", value))
+              handleRangeChange(event, (value) => updateBehaviorColor("hueRangeDegrees", value))
             }
           />
-          <strong>{preset.color.hueRangeDegrees.toFixed(1)}deg</strong>
+          <strong>{scenePreset.behavior.color.hueRangeDegrees.toFixed(1)}deg</strong>
         </label>
 
         <label className="environment-lab__field">
@@ -377,12 +374,12 @@ function EnvironmentLabControls({
             min="10"
             max="240"
             step="0.5"
-            value={preset.color.cycleSeconds}
+            value={scenePreset.behavior.color.cycleSeconds}
             onChange={(event) =>
-              handleRangeChange(event, (value) => updateColor("cycleSeconds", value))
+              handleRangeChange(event, (value) => updateBehaviorColor("cycleSeconds", value))
             }
           />
-          <strong>{preset.color.cycleSeconds.toFixed(1)}s</strong>
+          <strong>{scenePreset.behavior.color.cycleSeconds.toFixed(1)}s</strong>
         </label>
 
         <label className="environment-lab__field">
@@ -392,20 +389,20 @@ function EnvironmentLabControls({
             min="0"
             max="2"
             step="0.01"
-            value={preset.color.saturation}
+            value={scenePreset.behavior.color.saturation}
             onChange={(event) =>
-              handleRangeChange(event, (value) => updateColor("saturation", value))
+              handleRangeChange(event, (value) => updateBehaviorColor("saturation", value))
             }
           />
-          <strong>{preset.color.saturation.toFixed(2)}</strong>
+          <strong>{scenePreset.behavior.color.saturation.toFixed(2)}</strong>
         </label>
 
         <label className="environment-lab__toggle">
           <span>Global Glow Pulse enabled</span>
           <input
             type="checkbox"
-            checked={preset.color.glowPulseEnabled}
-            onChange={(event) => updateColor("glowPulseEnabled", event.target.checked)}
+            checked={scenePreset.behavior.color.glowPulseEnabled}
+            onChange={(event) => updateBehaviorColor("glowPulseEnabled", event.target.checked)}
           />
         </label>
 
@@ -416,12 +413,12 @@ function EnvironmentLabControls({
             min="0"
             max="0.4"
             step="0.005"
-            value={preset.color.glowPulseAmount}
+            value={scenePreset.behavior.color.glowPulseAmount}
             onChange={(event) =>
-              handleRangeChange(event, (value) => updateColor("glowPulseAmount", value))
+              handleRangeChange(event, (value) => updateBehaviorColor("glowPulseAmount", value))
             }
           />
-          <strong>{preset.color.glowPulseAmount.toFixed(3)}</strong>
+          <strong>{scenePreset.behavior.color.glowPulseAmount.toFixed(3)}</strong>
         </label>
 
         <label className="environment-lab__field">
@@ -431,21 +428,21 @@ function EnvironmentLabControls({
             min="2"
             max="60"
             step="0.2"
-            value={preset.color.glowPulseCycleSeconds}
+            value={scenePreset.behavior.color.glowPulseCycleSeconds}
             onChange={(event) =>
               handleRangeChange(event, (value) =>
-                updateColor("glowPulseCycleSeconds", value),
+                updateBehaviorColor("glowPulseCycleSeconds", value),
               )
             }
           />
-          <strong>{preset.color.glowPulseCycleSeconds.toFixed(1)}s</strong>
+          <strong>{scenePreset.behavior.color.glowPulseCycleSeconds.toFixed(1)}s</strong>
         </label>
 
         <label className="environment-lab__toggle">
           <span>Saturation Pulse enabled</span>
           <input
             type="checkbox"
-            checked={preset.saturationPulse.enabled}
+            checked={scenePreset.behavior.saturationPulse.enabled}
             onChange={(event) => updateSaturationPulse("enabled", event.target.checked)}
           />
         </label>
@@ -457,14 +454,14 @@ function EnvironmentLabControls({
             min="0"
             max="2.4"
             step="0.01"
-            value={preset.saturationPulse.minimumSaturation}
+            value={scenePreset.behavior.saturationPulse.minimumSaturation}
             onChange={(event) =>
               handleRangeChange(event, (value) =>
                 updateSaturationPulse("minimumSaturation", value),
               )
             }
           />
-          <strong>{preset.saturationPulse.minimumSaturation.toFixed(2)}</strong>
+          <strong>{scenePreset.behavior.saturationPulse.minimumSaturation.toFixed(2)}</strong>
         </label>
 
         <label className="environment-lab__field">
@@ -474,59 +471,56 @@ function EnvironmentLabControls({
             min="0"
             max="2.8"
             step="0.01"
-            value={preset.saturationPulse.maximumSaturation}
+            value={scenePreset.behavior.saturationPulse.maximumSaturation}
             onChange={(event) =>
               handleRangeChange(event, (value) =>
                 updateSaturationPulse("maximumSaturation", value),
               )
             }
           />
-          <strong>{preset.saturationPulse.maximumSaturation.toFixed(2)}</strong>
-        </label>
-      </details>
-
-      <details className="environment-lab__group">
-        <summary>Twinkle Hotspots</summary>
-
-        <label className="environment-lab__toggle">
-          <span>Twinkles enabled</span>
-          <input
-            type="checkbox"
-            checked={preset.twinkles.enabled}
-            onChange={(event) => updateTwinkles("enabled", event.target.checked)}
-          />
-        </label>
-
-        <label className="environment-lab__toggle">
-          <span>Placement mode enabled</span>
-          <input
-            type="checkbox"
-            checked={twinklePlacementModeEnabled}
-            onChange={(event) => onTwinklePlacementModeChange(event.target.checked)}
-          />
+          <strong>{scenePreset.behavior.saturationPulse.maximumSaturation.toFixed(2)}</strong>
         </label>
 
         <label className="environment-lab__field">
-          <span>Default color</span>
+          <span>Saturation pulse cycle (seconds)</span>
           <input
-            type="color"
-            value={preset.twinkles.defaultColor}
-            onChange={(event) => updateTwinkles("defaultColor", event.target.value)}
+            type="range"
+            min="0.2"
+            max="60"
+            step="0.1"
+            value={scenePreset.behavior.saturationPulse.cycleSeconds}
+            onChange={(event) =>
+              handleRangeChange(event, (value) => updateSaturationPulse("cycleSeconds", value))
+            }
           />
+          <strong>{scenePreset.behavior.saturationPulse.cycleSeconds.toFixed(1)}s</strong>
         </label>
 
-        <div className="environment-lab__button-row">
-          <button type="button" onClick={onClearHotspots}>
-            Clear all hotspots
-          </button>
-          <button type="button" onClick={onRandomizeHotspotPhases}>
-            Randomize hotspot phases
-          </button>
-        </div>
+        <label className="environment-lab__field">
+          <span>Phase offset</span>
+          <input
+            type="range"
+            min={(-Math.PI * 2).toFixed(2)}
+            max={(Math.PI * 2).toFixed(2)}
+            step="0.01"
+            value={scenePreset.behavior.saturationPulse.phaseOffset}
+            onChange={(event) =>
+              handleRangeChange(event, (value) => updateSaturationPulse("phaseOffset", value))
+            }
+          />
+          <strong>{scenePreset.behavior.saturationPulse.phaseOffset.toFixed(2)} rad</strong>
+        </label>
 
-        <p className="environment-lab__diagnostic">
-          hotspot count: {preset.twinkles.hotspots.length}
-        </p>
+        <label className="environment-lab__toggle">
+          <span>Sync to Depth Breathing</span>
+          <input
+            type="checkbox"
+            checked={scenePreset.behavior.saturationPulse.syncToDepthBreathing}
+            onChange={(event) =>
+              updateSaturationPulse("syncToDepthBreathing", event.target.checked)
+            }
+          />
+        </label>
       </details>
 
       <details className="environment-lab__group">
@@ -536,8 +530,23 @@ function EnvironmentLabControls({
           <span>Enabled</span>
           <input
             type="checkbox"
-            checked={preset.surfaceGlows.enabled}
-            onChange={(event) => updateSurfaceGlows("enabled", event.target.checked)}
+            checked={scenePreset.surfaceGlows.enabled}
+            onChange={(event) => {
+              onScenePresetChange({
+                ...scenePreset,
+                behavior: {
+                  depth: { ...scenePreset.behavior.depth },
+                  color: { ...scenePreset.behavior.color },
+                  saturationPulse: { ...scenePreset.behavior.saturationPulse },
+                },
+                surfaceGlows: {
+                  ...scenePreset.surfaceGlows,
+                  enabled: event.target.checked,
+                  defaults: { ...scenePreset.surfaceGlows.defaults },
+                  hotspots: scenePreset.surfaceGlows.hotspots.map((hotspot) => ({ ...hotspot })),
+                },
+              });
+            }}
           />
         </label>
 
@@ -552,8 +561,14 @@ function EnvironmentLabControls({
         </label>
 
         <p className="environment-lab__diagnostic">
-          Surface hotspots: {preset.surfaceGlows.hotspots.length} / {MAX_SURFACE_GLOW_HOTSPOTS}
+          Surface hotspots: {scenePreset.surfaceGlows.hotspots.length} / {MAX_SURFACE_GLOW_HOTSPOTS}
         </p>
+
+        {latestHotspot && (
+          <p className="environment-lab__diagnostic">
+            Latest hotspot UV: {latestHotspot.u.toFixed(4)}, {latestHotspot.v.toFixed(4)}
+          </p>
+        )}
 
         {surfaceGlowCapacityReached && (
           <p className="environment-lab__motion-note">
@@ -562,11 +577,11 @@ function EnvironmentLabControls({
         )}
 
         <label className="environment-lab__field">
-          <span>Color</span>
+          <span>Default color</span>
           <input
             type="color"
-            value={preset.surfaceGlows.defaultColor}
-            onChange={(event) => updateSurfaceGlows("defaultColor", event.target.value)}
+            value={scenePreset.surfaceGlows.defaults.color}
+            onChange={(event) => updateSurfaceGlowDefaults("color", event.target.value)}
           />
         </label>
 
@@ -577,12 +592,12 @@ function EnvironmentLabControls({
             min="0.002"
             max="0.09"
             step="0.001"
-            value={preset.surfaceGlows.defaultRadius}
+            value={scenePreset.surfaceGlows.defaults.radius}
             onChange={(event) =>
-              handleRangeChange(event, (value) => updateSurfaceGlows("defaultRadius", value))
+              handleRangeChange(event, (value) => updateSurfaceGlowDefaults("radius", value))
             }
           />
-          <strong>{preset.surfaceGlows.defaultRadius.toFixed(3)}</strong>
+          <strong>{scenePreset.surfaceGlows.defaults.radius.toFixed(3)}</strong>
         </label>
 
         <label className="environment-lab__field">
@@ -592,12 +607,12 @@ function EnvironmentLabControls({
             min="0.05"
             max="0.98"
             step="0.01"
-            value={preset.surfaceGlows.defaultSoftness}
+            value={scenePreset.surfaceGlows.defaults.softness}
             onChange={(event) =>
-              handleRangeChange(event, (value) => updateSurfaceGlows("defaultSoftness", value))
+              handleRangeChange(event, (value) => updateSurfaceGlowDefaults("softness", value))
             }
           />
-          <strong>{preset.surfaceGlows.defaultSoftness.toFixed(2)}</strong>
+          <strong>{scenePreset.surfaceGlows.defaults.softness.toFixed(2)}</strong>
         </label>
 
         <label className="environment-lab__field">
@@ -607,29 +622,29 @@ function EnvironmentLabControls({
             min="0"
             max="4"
             step="0.01"
-            value={preset.surfaceGlows.defaultIntensity}
+            value={scenePreset.surfaceGlows.defaults.intensity}
             onChange={(event) =>
-              handleRangeChange(event, (value) => updateSurfaceGlows("defaultIntensity", value))
+              handleRangeChange(event, (value) => updateSurfaceGlowDefaults("intensity", value))
             }
           />
-          <strong>{preset.surfaceGlows.defaultIntensity.toFixed(2)}</strong>
+          <strong>{scenePreset.surfaceGlows.defaults.intensity.toFixed(2)}</strong>
         </label>
 
         <label className="environment-lab__toggle">
           <span>Pulse enabled</span>
           <input
             type="checkbox"
-            checked={preset.surfaceGlows.defaultPulseEnabled}
-            onChange={(event) => updateSurfaceGlows("defaultPulseEnabled", event.target.checked)}
+            checked={scenePreset.surfaceGlows.defaults.pulseEnabled}
+            onChange={(event) => updateSurfaceGlowDefaults("pulseEnabled", event.target.checked)}
           />
         </label>
 
         <label className="environment-lab__field">
           <span>Pulse mode</span>
           <select
-            value={preset.surfaceGlows.defaultPulseMode}
+            value={scenePreset.surfaceGlows.defaults.pulseMode}
             onChange={(event) =>
-              updateSurfaceGlows("defaultPulseMode", event.target.value as SurfaceGlowPulseMode)
+              updateSurfaceGlowDefaults("pulseMode", event.target.value as SurfaceGlowPulseMode)
             }
           >
             <option value="brightness">Brightness</option>
@@ -637,7 +652,7 @@ function EnvironmentLabControls({
             <option value="brightness-bloom">Brightness + Bloom</option>
             <option value="soft-blink">Soft Blink</option>
           </select>
-          <strong>{pulseModeLabel(preset.surfaceGlows.defaultPulseMode)}</strong>
+          <strong>{pulseModeLabel(scenePreset.surfaceGlows.defaults.pulseMode)}</strong>
         </label>
 
         <label className="environment-lab__field">
@@ -647,12 +662,12 @@ function EnvironmentLabControls({
             min="0"
             max="2"
             step="0.01"
-            value={preset.surfaceGlows.defaultPulseAmount}
+            value={scenePreset.surfaceGlows.defaults.pulseAmount}
             onChange={(event) =>
-              handleRangeChange(event, (value) => updateSurfaceGlows("defaultPulseAmount", value))
+              handleRangeChange(event, (value) => updateSurfaceGlowDefaults("pulseAmount", value))
             }
           />
-          <strong>{preset.surfaceGlows.defaultPulseAmount.toFixed(2)}</strong>
+          <strong>{scenePreset.surfaceGlows.defaults.pulseAmount.toFixed(2)}</strong>
         </label>
 
         <label className="environment-lab__field">
@@ -662,14 +677,14 @@ function EnvironmentLabControls({
             min="0"
             max="2"
             step="0.01"
-            value={preset.surfaceGlows.defaultMinimumIntensityMultiplier}
+            value={scenePreset.surfaceGlows.defaults.minimumIntensityMultiplier}
             onChange={(event) =>
               handleRangeChange(event, (value) =>
-                updateSurfaceGlows("defaultMinimumIntensityMultiplier", value),
+                updateSurfaceGlowDefaults("minimumIntensityMultiplier", value),
               )
             }
           />
-          <strong>{preset.surfaceGlows.defaultMinimumIntensityMultiplier.toFixed(2)}</strong>
+          <strong>{scenePreset.surfaceGlows.defaults.minimumIntensityMultiplier.toFixed(2)}</strong>
         </label>
 
         <label className="environment-lab__field">
@@ -679,14 +694,14 @@ function EnvironmentLabControls({
             min="0.1"
             max="3.5"
             step="0.01"
-            value={preset.surfaceGlows.defaultMaximumIntensityMultiplier}
+            value={scenePreset.surfaceGlows.defaults.maximumIntensityMultiplier}
             onChange={(event) =>
               handleRangeChange(event, (value) =>
-                updateSurfaceGlows("defaultMaximumIntensityMultiplier", value),
+                updateSurfaceGlowDefaults("maximumIntensityMultiplier", value),
               )
             }
           />
-          <strong>{preset.surfaceGlows.defaultMaximumIntensityMultiplier.toFixed(2)}</strong>
+          <strong>{scenePreset.surfaceGlows.defaults.maximumIntensityMultiplier.toFixed(2)}</strong>
         </label>
 
         <label className="environment-lab__field">
@@ -696,14 +711,14 @@ function EnvironmentLabControls({
             min="1"
             max="2.5"
             step="0.01"
-            value={preset.surfaceGlows.defaultRadiusExpansionMultiplier}
+            value={scenePreset.surfaceGlows.defaults.radiusExpansionMultiplier}
             onChange={(event) =>
               handleRangeChange(event, (value) =>
-                updateSurfaceGlows("defaultRadiusExpansionMultiplier", value),
+                updateSurfaceGlowDefaults("radiusExpansionMultiplier", value),
               )
             }
           />
-          <strong>{preset.surfaceGlows.defaultRadiusExpansionMultiplier.toFixed(2)}</strong>
+          <strong>{scenePreset.surfaceGlows.defaults.radiusExpansionMultiplier.toFixed(2)}</strong>
         </label>
 
         <label className="environment-lab__field">
@@ -713,23 +728,23 @@ function EnvironmentLabControls({
             min="0.2"
             max="20"
             step="0.1"
-            value={preset.surfaceGlows.defaultPulseCycleSeconds}
+            value={scenePreset.surfaceGlows.defaults.pulseCycleSeconds}
             onChange={(event) =>
               handleRangeChange(event, (value) =>
-                updateSurfaceGlows("defaultPulseCycleSeconds", value),
+                updateSurfaceGlowDefaults("pulseCycleSeconds", value),
               )
             }
           />
-          <strong>{preset.surfaceGlows.defaultPulseCycleSeconds.toFixed(1)}s</strong>
+          <strong>{scenePreset.surfaceGlows.defaults.pulseCycleSeconds.toFixed(1)}s</strong>
         </label>
 
         <label className="environment-lab__toggle">
           <span>Hotspot Hue Drift enabled</span>
           <input
             type="checkbox"
-            checked={preset.surfaceGlows.defaultHueDriftEnabled}
+            checked={scenePreset.surfaceGlows.defaults.hueDriftEnabled}
             onChange={(event) =>
-              updateSurfaceGlows("defaultHueDriftEnabled", event.target.checked)
+              updateSurfaceGlowDefaults("hueDriftEnabled", event.target.checked)
             }
           />
         </label>
@@ -741,14 +756,14 @@ function EnvironmentLabControls({
             min="0"
             max="180"
             step="0.5"
-            value={preset.surfaceGlows.defaultHueDriftRangeDegrees}
+            value={scenePreset.surfaceGlows.defaults.hueDriftRangeDegrees}
             onChange={(event) =>
               handleRangeChange(event, (value) =>
-                updateSurfaceGlows("defaultHueDriftRangeDegrees", value),
+                updateSurfaceGlowDefaults("hueDriftRangeDegrees", value),
               )
             }
           />
-          <strong>{preset.surfaceGlows.defaultHueDriftRangeDegrees.toFixed(1)}deg</strong>
+          <strong>{scenePreset.surfaceGlows.defaults.hueDriftRangeDegrees.toFixed(1)}deg</strong>
         </label>
 
         <label className="environment-lab__field">
@@ -758,14 +773,14 @@ function EnvironmentLabControls({
             min="0.5"
             max="120"
             step="0.1"
-            value={preset.surfaceGlows.defaultHueDriftCycleSeconds}
+            value={scenePreset.surfaceGlows.defaults.hueDriftCycleSeconds}
             onChange={(event) =>
               handleRangeChange(event, (value) =>
-                updateSurfaceGlows("defaultHueDriftCycleSeconds", value),
+                updateSurfaceGlowDefaults("hueDriftCycleSeconds", value),
               )
             }
           />
-          <strong>{preset.surfaceGlows.defaultHueDriftCycleSeconds.toFixed(1)}s</strong>
+          <strong>{scenePreset.surfaceGlows.defaults.hueDriftCycleSeconds.toFixed(1)}s</strong>
         </label>
 
         <div className="environment-lab__button-row">
@@ -792,176 +807,78 @@ function EnvironmentLabControls({
       </details>
 
       <details className="environment-lab__group">
-        <summary>Atmosphere</summary>
-
-        <label className="environment-lab__toggle">
-          <span>Particles enabled</span>
-          <input
-            type="checkbox"
-            checked={preset.particles.enabled}
-            onChange={(event) => updateParticles("enabled", event.target.checked)}
-          />
-        </label>
-
-        <label className="environment-lab__field">
-          <span>Particle count</span>
-          <input
-            type="range"
-            min="0"
-            max="240"
-            step="1"
-            value={preset.particles.count}
-            onChange={(event) =>
-              handleRangeChange(event, (value) => updateParticles("count", Math.round(value)))
-            }
-          />
-          <strong>{preset.particles.count}</strong>
-        </label>
-
-        <label className="environment-lab__toggle">
-          <span>Haze enabled</span>
-          <input
-            type="checkbox"
-            checked={preset.haze.enabled}
-            onChange={(event) => updateHaze("enabled", event.target.checked)}
-          />
-        </label>
-
-        <label className="environment-lab__field">
-          <span>Haze opacity</span>
-          <input
-            type="range"
-            min="0"
-            max="0.4"
-            step="0.005"
-            value={preset.haze.opacity}
-            onChange={(event) =>
-              handleRangeChange(event, (value) => updateHaze("opacity", value))
-            }
-          />
-          <strong>{preset.haze.opacity.toFixed(3)}</strong>
-        </label>
-
-        <label className="environment-lab__field">
-          <span>Haze Softness / Blur</span>
-          <input
-            type="range"
-            min="0"
-            max="120"
-            step="1"
-            value={preset.haze.blurPixels}
-            onChange={(event) =>
-              handleRangeChange(event, (value) => updateHaze("blurPixels", value))
-            }
-          />
-          <strong>{preset.haze.blurPixels.toFixed(0)}px</strong>
-        </label>
+        <summary>Behavior Presets</summary>
 
         <p className="environment-lab__hint">
-          Blur changes the softness of the haze gradients; it does not increase haze opacity.
+          Behavior presets affect global depth, motion, and color only. Behavior presets do not alter scene-specific Surface Glow locations.
         </p>
 
-        <label className="environment-lab__field">
-          <span>Drift Cycle (seconds)</span>
-          <input
-            type="range"
-            min="2"
-            max="120"
-            step="0.1"
-            value={preset.haze.driftCycleSeconds}
-            onChange={(event) =>
-              handleRangeChange(event, (value) => updateHaze("driftCycleSeconds", value))
-            }
-          />
-          <strong>{preset.haze.driftCycleSeconds.toFixed(1)}s</strong>
-        </label>
+        <div className="environment-lab__button-row">
+          {behaviorPresets.map((preset) => (
+            <button
+              key={preset.id}
+              type="button"
+              onClick={() => onLoadBehaviorPreset(preset.id)}
+              aria-pressed={selectedBehaviorPresetId === preset.id}
+            >
+              {preset.name}
+            </button>
+          ))}
+        </div>
 
-        <label className="environment-lab__field">
-          <span>Drift Distance</span>
-          <input
-            type="range"
-            min="0"
-            max="120"
-            step="1"
-            value={preset.haze.driftDistance}
-            onChange={(event) =>
-              handleRangeChange(event, (value) => updateHaze("driftDistance", value))
-            }
-          />
-          <strong>{preset.haze.driftDistance.toFixed(0)}px</strong>
-        </label>
-
-        <label className="environment-lab__field">
-          <span>Horizontal drift bias</span>
-          <input
-            type="range"
-            min="-1"
-            max="1"
-            step="0.01"
-            value={preset.haze.driftBiasX}
-            onChange={(event) =>
-              handleRangeChange(event, (value) => updateHaze("driftBiasX", value))
-            }
-          />
-          <strong>{preset.haze.driftBiasX.toFixed(2)}</strong>
-        </label>
-
-        <label className="environment-lab__field">
-          <span>Vertical drift bias</span>
-          <input
-            type="range"
-            min="-1"
-            max="1"
-            step="0.01"
-            value={preset.haze.driftBiasY}
-            onChange={(event) =>
-              handleRangeChange(event, (value) => updateHaze("driftBiasY", value))
-            }
-          />
-          <strong>{preset.haze.driftBiasY.toFixed(2)}</strong>
-        </label>
-
-        <label className="environment-lab__toggle">
-          <span>4x Motion Preview</span>
-          <input
-            type="checkbox"
-            checked={hazeMotionPreview4xEnabled}
-            onChange={(event) => onHazeMotionPreview4xChange(event.target.checked)}
-          />
-        </label>
-
-        <p className="environment-lab__diagnostic">
-          Haze animation status: {diagnostics.hazeAnimationStatus}
-        </p>
-        <p className="environment-lab__diagnostic">
-          Current haze offset: {diagnostics.hazeOffsetX.toFixed(2)}px, {diagnostics.hazeOffsetY.toFixed(2)}px
-        </p>
+        <p className="environment-lab__diagnostic">Active behavior: {activeBehaviorPreset.name}</p>
+        {activeBehaviorPreset.description && (
+          <p className="environment-lab__hint">{activeBehaviorPreset.description}</p>
+        )}
       </details>
 
       <details className="environment-lab__group">
-        <summary>Preset &amp; Diagnostics</summary>
+        <summary>Full Scene Preset &amp; Diagnostics</summary>
+
+        <p className="environment-lab__hint">
+          Full scene preset includes asset, global behavior, and Surface Glow positions/settings.
+        </p>
+
+        <label className="environment-lab__field">
+          <span>Built-in full scene</span>
+          <select
+            value={selectedScenePresetId}
+            onChange={(event) => onLoadScenePreset(event.target.value)}
+          >
+            <option value="neutral-baseline">Neutral Baseline</option>
+            <option value="uv-jungle-showcase">UV Jungle Showcase</option>
+          </select>
+        </label>
 
         <div className="environment-lab__button-row">
-          <button type="button" onClick={onResetPreset}>
-            Reset to Neutral Baseline
+          <button type="button" onClick={() => onLoadScenePreset("neutral-baseline")}>
+            Load Neutral Baseline
           </button>
-          <button type="button" onClick={onCopyPresetJson}>
-            Copy preset JSON
+          <button type="button" onClick={() => onLoadScenePreset("uv-jungle-showcase")}>
+            Load UV Jungle Showcase
+          </button>
+          <button type="button" onClick={onResetScene}>
+            Reset Full Scene
+          </button>
+        </div>
+
+        <div className="environment-lab__button-row">
+          <button type="button" onClick={onCopySceneJson}>
+            Copy Full Scene JSON
+          </button>
+          <button type="button" onClick={onApplyImportedScene}>
+            Apply Imported Scene
           </button>
         </div>
 
         <label className="environment-lab__field">
-          <span>Import preset JSON</span>
+          <span>Import Full Scene JSON</span>
           <textarea
             rows={7}
             value={importText}
             onChange={(event) => onImportTextChange(event.target.value)}
           />
         </label>
-
-        <button type="button" onClick={onApplyImportedPreset}>
-          Apply imported preset
-        </button>
 
         <p
           className={`environment-lab__feedback environment-lab__feedback--${feedbackTone}`}
@@ -972,14 +889,15 @@ function EnvironmentLabControls({
 
         <ul className="environment-lab__stats" aria-label="Laboratory diagnostics">
           <li>Approx FPS: {diagnostics.fps.toFixed(1)}</li>
-          <li>Active twinkle count: {diagnostics.twinkleCount}</li>
           <li>Surface hotspot count: {diagnostics.surfaceGlowCount}</li>
-          <li>Active particle count: {diagnostics.particleCount}</li>
           <li>Current hue offset: {diagnostics.hueOffsetDegrees.toFixed(2)}deg</li>
           <li>Current saturation: {diagnostics.currentSaturation.toFixed(2)}</li>
           <li>Default glow intensity: {diagnostics.surfaceGlowDefaultIntensity.toFixed(2)}</li>
           <li>Shader hotspot capacity: {diagnostics.shaderSurfaceGlowCapacity}</li>
           <li>Automatic motion active: {diagnostics.automaticMotionActive ? "yes" : "no"}</li>
+          <li>
+            Most recent hotspot UV: {diagnostics.mostRecentSurfaceGlowU?.toFixed(4) ?? "-"}, {diagnostics.mostRecentSurfaceGlowV?.toFixed(4) ?? "-"}
+          </li>
           <li>
             Color asset: {diagnostics.assetDiagnostics.colorWidth}x{diagnostics.assetDiagnostics.colorHeight}
           </li>
@@ -1001,12 +919,10 @@ function EnvironmentLabControls({
           {import.meta.env.DEV && (
             <>
               <li>
-                Pick canvas XY: {diagnostics.surfaceGlowPickCanvasX?.toFixed(3) ?? "-"},{" "}
-                {diagnostics.surfaceGlowPickCanvasY?.toFixed(3) ?? "-"}
+                Pick canvas XY: {diagnostics.surfaceGlowPickCanvasX?.toFixed(3) ?? "-"}, {diagnostics.surfaceGlowPickCanvasY?.toFixed(3) ?? "-"}
               </li>
               <li>
-                Pick decoded UV: {diagnostics.surfaceGlowPickU?.toFixed(3) ?? "-"},{" "}
-                {diagnostics.surfaceGlowPickV?.toFixed(3) ?? "-"}
+                Pick decoded UV: {diagnostics.surfaceGlowPickU?.toFixed(3) ?? "-"}, {diagnostics.surfaceGlowPickV?.toFixed(3) ?? "-"}
               </li>
               <li>
                 Pick found plane: {diagnostics.surfaceGlowPickFoundPlane ? "yes" : "no"}
