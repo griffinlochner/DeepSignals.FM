@@ -1,12 +1,23 @@
-import type { EnvironmentPreset } from "./types";
+import type { ImageEnvironmentAsset, ImageEnvironmentPreset } from "./types";
 
-export const UV_JUNGLE_LAB_PRESET: EnvironmentPreset = {
-  id: "uv-jungle-lab-default",
-  name: "UV Jungle Laboratory",
-  assets: {
+export const UV_JUNGLE_ASSET_ID = "uv-jungle";
+
+export const IMAGE_ENVIRONMENT_ASSETS: ImageEnvironmentAsset[] = [
+  {
+    id: UV_JUNGLE_ASSET_ID,
+    name: "UV Jungle",
     colorImageUrl: "/experiments/depth-lab/jungle-color.png",
     depthMapUrl: "/experiments/depth-lab/jungle-depth.png",
+    metadata: {
+      description: "Experimental UV-reactive jungle artwork and aligned depth map.",
+    },
   },
+];
+
+export const UV_JUNGLE_SHOWCASE_PRESET: ImageEnvironmentPreset = {
+  id: "uv-jungle-showcase",
+  name: "UV Jungle Showcase",
+  assetId: UV_JUNGLE_ASSET_ID,
   depth: {
     motionIntensity: 0.35,
     depthStrength: 0.45,
@@ -75,12 +86,19 @@ export const UV_JUNGLE_LAB_PRESET: EnvironmentPreset = {
     enabled: true,
     hotspots: [],
     defaultColor: "#8fffe2",
-    defaultRadius: 0.012,
+    defaultRadius: 0.01,
     defaultSoftness: 0.65,
-    defaultIntensity: 1.2,
+    defaultIntensity: 1.05,
     defaultPulseEnabled: true,
-    defaultPulseAmount: 0.55,
+    defaultPulseMode: "brightness-bloom",
+    defaultPulseAmount: 0.6,
+    defaultMinimumIntensityMultiplier: 0.7,
+    defaultMaximumIntensityMultiplier: 1.35,
+    defaultRadiusExpansionMultiplier: 1.18,
     defaultPulseCycleSeconds: 3.5,
+    defaultHueDriftEnabled: true,
+    defaultHueDriftRangeDegrees: 14,
+    defaultHueDriftCycleSeconds: 20,
   },
   particles: {
     enabled: true,
@@ -96,15 +114,62 @@ export const UV_JUNGLE_LAB_PRESET: EnvironmentPreset = {
     opacity: 0.1,
     blurPixels: 28,
     driftCycleSeconds: 60,
+    driftDistance: 24,
+    driftBiasX: 1,
+    driftBiasY: 0.65,
     primaryColor: "#52f4d1",
     secondaryColor: "#7a54ff",
   },
 };
 
-export function cloneEnvironmentPreset(preset: EnvironmentPreset): EnvironmentPreset {
+export const NEUTRAL_BASELINE_PRESET: ImageEnvironmentPreset = {
+  ...UV_JUNGLE_SHOWCASE_PRESET,
+  id: "neutral-baseline",
+  name: "Neutral Baseline",
+  depth: {
+    ...UV_JUNGLE_SHOWCASE_PRESET.depth,
+    pointerParallaxEnabled: false,
+    ambientMotionEnabled: false,
+  },
+  color: {
+    ...UV_JUNGLE_SHOWCASE_PRESET.color,
+    driftEnabled: false,
+    glowPulseEnabled: false,
+  },
+  saturationPulse: {
+    ...UV_JUNGLE_SHOWCASE_PRESET.saturationPulse,
+    enabled: false,
+  },
+  twinkles: {
+    ...UV_JUNGLE_SHOWCASE_PRESET.twinkles,
+    enabled: false,
+  },
+  surfaceGlows: {
+    ...UV_JUNGLE_SHOWCASE_PRESET.surfaceGlows,
+    enabled: false,
+  },
+  particles: {
+    ...UV_JUNGLE_SHOWCASE_PRESET.particles,
+    enabled: false,
+  },
+  haze: {
+    ...UV_JUNGLE_SHOWCASE_PRESET.haze,
+    enabled: false,
+  },
+};
+
+export const IMAGE_ENVIRONMENT_PRESETS: ImageEnvironmentPreset[] = [
+  NEUTRAL_BASELINE_PRESET,
+  UV_JUNGLE_SHOWCASE_PRESET,
+];
+
+export function getImageEnvironmentAssetById(assetId: string) {
+  return IMAGE_ENVIRONMENT_ASSETS.find((asset) => asset.id === assetId) ?? null;
+}
+
+export function cloneEnvironmentPreset(preset: ImageEnvironmentPreset): ImageEnvironmentPreset {
   return {
     ...preset,
-    assets: { ...preset.assets },
     depth: { ...preset.depth },
     color: { ...preset.color },
     saturationPulse: { ...preset.saturationPulse },

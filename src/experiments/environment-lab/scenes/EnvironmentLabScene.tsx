@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
+import { MAX_SURFACE_GLOW_HOTSPOTS } from "../constants";
 import { stepUvJunglePlaybackVisualMix } from "../../../themes/uv-reactive-jungle/uvReactivePlaybackVisuals";
 import type {
   EnvironmentDiagnostics,
   EnvironmentLabSceneProps,
-  EnvironmentPreset,
+  ImageEnvironmentPreset,
   SurfaceGlowHotspot,
   TwinkleHotspot,
 } from "../types";
@@ -15,8 +16,18 @@ const PLAYING_DRIFT_AMOUNT = 0.6;
 const PLAYING_DRIFT_SPEED = 0.58;
 const POINTER_IDLE_TIMEOUT_SECONDS = 1.25;
 const STOPPED_POINTER_PARALLAX_MULTIPLIER = 0.12;
-const SURFACE_GLOW_CAPACITY = 32;
 const SURFACE_PICK_TARGET_MIN_SIZE = 2;
+
+const EMPTY_ASSET_DIAGNOSTICS = {
+  colorWidth: 0,
+  colorHeight: 0,
+  depthWidth: 0,
+  depthHeight: 0,
+  colorAspectRatio: 0,
+  depthAspectRatio: 0,
+  dimensionsMatch: false,
+  aspectMatch: false,
+};
 
 type TwinkleRuntime = {
   sprite: THREE.Sprite;
@@ -37,6 +48,7 @@ type SceneCallbacks = {
   onRemoveNearestTwinkleHotspot?: EnvironmentLabSceneProps["onRemoveNearestTwinkleHotspot"];
   onCreateSurfaceGlowHotspot?: EnvironmentLabSceneProps["onCreateSurfaceGlowHotspot"];
   onRemoveNearestSurfaceGlowHotspot?: EnvironmentLabSceneProps["onRemoveNearestSurfaceGlowHotspot"];
+  onSurfaceGlowCapacityReached?: EnvironmentLabSceneProps["onSurfaceGlowCapacityReached"];
 };
 
 type SurfaceGlowUniformState = {
@@ -44,14 +56,24 @@ type SurfaceGlowUniformState = {
   uSurfaceGlowCount: { value: number };
   uSurfaceGlowGlobalDim: { value: number };
   uSurfaceGlowTime: { value: number };
+  uSurfaceGlowAspectScale: { value: THREE.Vector2 };
+  uSurfaceGlowUvOffset: { value: THREE.Vector2 };
+  uSurfaceGlowUvScale: { value: THREE.Vector2 };
   uSurfaceGlowUVs: { value: THREE.Vector2[] };
   uSurfaceGlowColors: { value: THREE.Vector3[] };
   uSurfaceGlowRadii: { value: number[] };
   uSurfaceGlowSoftness: { value: number[] };
   uSurfaceGlowIntensity: { value: number[] };
   uSurfaceGlowPulseEnabled: { value: number[] };
+  uSurfaceGlowPulseMode: { value: number[] };
   uSurfaceGlowPulseAmount: { value: number[] };
+  uSurfaceGlowPulseMinIntensity: { value: number[] };
+  uSurfaceGlowPulseMaxIntensity: { value: number[] };
+  uSurfaceGlowPulseRadiusExpansion: { value: number[] };
   uSurfaceGlowPulseCycles: { value: number[] };
+  uSurfaceGlowHueDriftEnabled: { value: number[] };
+  uSurfaceGlowHueDriftRange: { value: number[] };
+  uSurfaceGlowHueDriftCycles: { value: number[] };
   uSurfaceGlowPhases: { value: number[] };
 };
 
@@ -71,19 +93,47 @@ function createSurfaceGlowUniformState(): SurfaceGlowUniformState {
     uSurfaceGlowCount: { value: 0 },
     uSurfaceGlowGlobalDim: { value: 1 },
     uSurfaceGlowTime: { value: 0 },
+    uSurfaceGlowAspectScale: { value: new THREE.Vector2(1, 1) },
+    uSurfaceGlowUvOffset: { value: new THREE.Vector2(0, 0) },
+    uSurfaceGlowUvScale: { value: new THREE.Vector2(1, 1) },
     uSurfaceGlowUVs: {
-      value: Array.from({ length: SURFACE_GLOW_CAPACITY }, () => new THREE.Vector2(0, 0)),
+      value: Array.from({ length: MAX_SURFACE_GLOW_HOTSPOTS }, () => new THREE.Vector2(0, 0)),
     },
     uSurfaceGlowColors: {
-      value: Array.from({ length: SURFACE_GLOW_CAPACITY }, () => new THREE.Vector3(0, 0, 0)),
+      value: Array.from({ length: MAX_SURFACE_GLOW_HOTSPOTS }, () => new THREE.Vector3(0, 0, 0)),
     },
-    uSurfaceGlowRadii: { value: Array.from({ length: SURFACE_GLOW_CAPACITY }, () => 0) },
-    uSurfaceGlowSoftness: { value: Array.from({ length: SURFACE_GLOW_CAPACITY }, () => 0.65) },
-    uSurfaceGlowIntensity: { value: Array.from({ length: SURFACE_GLOW_CAPACITY }, () => 0) },
-    uSurfaceGlowPulseEnabled: { value: Array.from({ length: SURFACE_GLOW_CAPACITY }, () => 0) },
-    uSurfaceGlowPulseAmount: { value: Array.from({ length: SURFACE_GLOW_CAPACITY }, () => 0) },
-    uSurfaceGlowPulseCycles: { value: Array.from({ length: SURFACE_GLOW_CAPACITY }, () => 3.5) },
-    uSurfaceGlowPhases: { value: Array.from({ length: SURFACE_GLOW_CAPACITY }, () => 0) },
+    uSurfaceGlowRadii: { value: Array.from({ length: MAX_SURFACE_GLOW_HOTSPOTS }, () => 0) },
+    uSurfaceGlowSoftness: {
+      value: Array.from({ length: MAX_SURFACE_GLOW_HOTSPOTS }, () => 0.65),
+    },
+    uSurfaceGlowIntensity: { value: Array.from({ length: MAX_SURFACE_GLOW_HOTSPOTS }, () => 0) },
+    uSurfaceGlowPulseEnabled: {
+      value: Array.from({ length: MAX_SURFACE_GLOW_HOTSPOTS }, () => 0),
+    },
+    uSurfaceGlowPulseMode: { value: Array.from({ length: MAX_SURFACE_GLOW_HOTSPOTS }, () => 0) },
+    uSurfaceGlowPulseAmount: { value: Array.from({ length: MAX_SURFACE_GLOW_HOTSPOTS }, () => 0) },
+    uSurfaceGlowPulseMinIntensity: {
+      value: Array.from({ length: MAX_SURFACE_GLOW_HOTSPOTS }, () => 1),
+    },
+    uSurfaceGlowPulseMaxIntensity: {
+      value: Array.from({ length: MAX_SURFACE_GLOW_HOTSPOTS }, () => 1),
+    },
+    uSurfaceGlowPulseRadiusExpansion: {
+      value: Array.from({ length: MAX_SURFACE_GLOW_HOTSPOTS }, () => 1),
+    },
+    uSurfaceGlowPulseCycles: {
+      value: Array.from({ length: MAX_SURFACE_GLOW_HOTSPOTS }, () => 3.5),
+    },
+    uSurfaceGlowHueDriftEnabled: {
+      value: Array.from({ length: MAX_SURFACE_GLOW_HOTSPOTS }, () => 0),
+    },
+    uSurfaceGlowHueDriftRange: {
+      value: Array.from({ length: MAX_SURFACE_GLOW_HOTSPOTS }, () => 0),
+    },
+    uSurfaceGlowHueDriftCycles: {
+      value: Array.from({ length: MAX_SURFACE_GLOW_HOTSPOTS }, () => 20),
+    },
+    uSurfaceGlowPhases: { value: Array.from({ length: MAX_SURFACE_GLOW_HOTSPOTS }, () => 0) },
   };
 }
 
@@ -164,19 +214,69 @@ function surfaceGlowSignature(hotspots: SurfaceGlowHotspot[]) {
         hotspot.softness.toFixed(4),
         hotspot.intensity.toFixed(4),
         hotspot.pulseEnabled ? 1 : 0,
+        hotspot.pulseMode,
         hotspot.pulseAmount.toFixed(4),
+        hotspot.minimumIntensityMultiplier.toFixed(4),
+        hotspot.maximumIntensityMultiplier.toFixed(4),
+        hotspot.radiusExpansionMultiplier.toFixed(4),
         hotspot.pulseCycleSeconds.toFixed(4),
+        hotspot.hueDriftEnabled ? 1 : 0,
+        hotspot.hueDriftRangeDegrees.toFixed(4),
+        hotspot.hueDriftCycleSeconds.toFixed(4),
         hotspot.phase.toFixed(4),
       ].join("|");
     })
     .join(";");
 }
 
+function getPulseModeIndex(hotspot: SurfaceGlowHotspot): number {
+  if (hotspot.pulseMode === "brightness") {
+    return 0;
+  }
+
+  if (hotspot.pulseMode === "bloom") {
+    return 1;
+  }
+
+  if (hotspot.pulseMode === "brightness-bloom") {
+    return 2;
+  }
+
+  return 3;
+}
+
+function describeAnimationStatus(params: {
+  enabled: boolean;
+  isPlaying: boolean;
+  ambientMotionEnabled: boolean;
+  reducedMotionActive: boolean;
+}) {
+  if (!params.enabled) {
+    return "Disabled";
+  }
+
+  if (params.reducedMotionActive) {
+    return "Paused because reduced motion is enabled";
+  }
+
+  if (!params.isPlaying) {
+    return "Paused because Stopped";
+  }
+
+  if (!params.ambientMotionEnabled) {
+    return "Paused because Ambient Motion is off";
+  }
+
+  return "Active";
+}
+
 function EnvironmentLabScene({
   playbackState,
   twinklePlacementModeEnabled,
   surfaceGlowPlacementModeEnabled,
+  hazeMotionPreview4xEnabled,
   preset,
+  asset,
   reducedMotionActive,
   onLoadingStateChange,
   onDiagnosticsChange,
@@ -184,17 +284,21 @@ function EnvironmentLabScene({
   onRemoveNearestTwinkleHotspot,
   onCreateSurfaceGlowHotspot,
   onRemoveNearestSurfaceGlowHotspot,
+  onSurfaceGlowCapacityReached,
 }: EnvironmentLabSceneProps) {
   const mountRef = useRef<HTMLDivElement | null>(null);
   const hazeRef = useRef<HTMLDivElement | null>(null);
   const clickMarkerRef = useRef<HTMLDivElement | null>(null);
   const uvMarkerRef = useRef<HTMLDivElement | null>(null);
+  const placementFlashRef = useRef<HTMLDivElement | null>(null);
   const configRef = useRef({
     playbackState,
     twinklePlacementModeEnabled,
     surfaceGlowPlacementModeEnabled,
+    hazeMotionPreview4xEnabled,
     reducedMotionActive,
     preset,
+    asset,
   });
   const callbackRef = useRef<SceneCallbacks>({
     onLoadingStateChange,
@@ -203,15 +307,16 @@ function EnvironmentLabScene({
     onRemoveNearestTwinkleHotspot,
     onCreateSurfaceGlowHotspot,
     onRemoveNearestSurfaceGlowHotspot,
+    onSurfaceGlowCapacityReached,
   });
 
   const placementNote = useMemo(() => {
     if (surfaceGlowPlacementModeEnabled && twinklePlacementModeEnabled) {
-      return "Surface Glow and Twinkle placement enabled: click to place Surface Glow, Shift/Alt-click removes nearest Surface Glow.";
+      return `Surface Glow and Twinkle placement enabled: click to place Surface Glow, Shift/Alt-click removes nearest Surface Glow. Capacity ${MAX_SURFACE_GLOW_HOTSPOTS}.`;
     }
 
     if (surfaceGlowPlacementModeEnabled) {
-      return "Surface Glow placement enabled: click to add glow, Shift/Alt-click removes nearest glow.";
+      return `Surface Glow placement enabled: click to add glow, Shift/Alt-click removes nearest glow. Capacity ${MAX_SURFACE_GLOW_HOTSPOTS}.`;
     }
 
     if (twinklePlacementModeEnabled) {
@@ -226,15 +331,19 @@ function EnvironmentLabScene({
       playbackState,
       twinklePlacementModeEnabled,
       surfaceGlowPlacementModeEnabled,
+      hazeMotionPreview4xEnabled,
       reducedMotionActive,
       preset,
+      asset,
     };
   }, [
     playbackState,
     twinklePlacementModeEnabled,
     surfaceGlowPlacementModeEnabled,
+    hazeMotionPreview4xEnabled,
     reducedMotionActive,
     preset,
+    asset,
   ]);
 
   useEffect(() => {
@@ -245,6 +354,7 @@ function EnvironmentLabScene({
       onRemoveNearestTwinkleHotspot,
       onCreateSurfaceGlowHotspot,
       onRemoveNearestSurfaceGlowHotspot,
+      onSurfaceGlowCapacityReached,
     };
   }, [
     onLoadingStateChange,
@@ -253,6 +363,7 @@ function EnvironmentLabScene({
     onRemoveNearestTwinkleHotspot,
     onCreateSurfaceGlowHotspot,
     onRemoveNearestSurfaceGlowHotspot,
+    onSurfaceGlowCapacityReached,
   ]);
 
   useEffect(() => {
@@ -344,14 +455,28 @@ function EnvironmentLabScene({
       shader.uniforms.uSurfaceGlowCount = surfaceGlowUniforms.uSurfaceGlowCount;
       shader.uniforms.uSurfaceGlowGlobalDim = surfaceGlowUniforms.uSurfaceGlowGlobalDim;
       shader.uniforms.uSurfaceGlowTime = surfaceGlowUniforms.uSurfaceGlowTime;
+      shader.uniforms.uSurfaceGlowAspectScale = surfaceGlowUniforms.uSurfaceGlowAspectScale;
+      shader.uniforms.uSurfaceGlowUvOffset = surfaceGlowUniforms.uSurfaceGlowUvOffset;
+      shader.uniforms.uSurfaceGlowUvScale = surfaceGlowUniforms.uSurfaceGlowUvScale;
       shader.uniforms.uSurfaceGlowUVs = surfaceGlowUniforms.uSurfaceGlowUVs;
       shader.uniforms.uSurfaceGlowColors = surfaceGlowUniforms.uSurfaceGlowColors;
       shader.uniforms.uSurfaceGlowRadii = surfaceGlowUniforms.uSurfaceGlowRadii;
       shader.uniforms.uSurfaceGlowSoftness = surfaceGlowUniforms.uSurfaceGlowSoftness;
       shader.uniforms.uSurfaceGlowIntensity = surfaceGlowUniforms.uSurfaceGlowIntensity;
       shader.uniforms.uSurfaceGlowPulseEnabled = surfaceGlowUniforms.uSurfaceGlowPulseEnabled;
+      shader.uniforms.uSurfaceGlowPulseMode = surfaceGlowUniforms.uSurfaceGlowPulseMode;
       shader.uniforms.uSurfaceGlowPulseAmount = surfaceGlowUniforms.uSurfaceGlowPulseAmount;
+      shader.uniforms.uSurfaceGlowPulseMinIntensity =
+        surfaceGlowUniforms.uSurfaceGlowPulseMinIntensity;
+      shader.uniforms.uSurfaceGlowPulseMaxIntensity =
+        surfaceGlowUniforms.uSurfaceGlowPulseMaxIntensity;
+      shader.uniforms.uSurfaceGlowPulseRadiusExpansion =
+        surfaceGlowUniforms.uSurfaceGlowPulseRadiusExpansion;
       shader.uniforms.uSurfaceGlowPulseCycles = surfaceGlowUniforms.uSurfaceGlowPulseCycles;
+      shader.uniforms.uSurfaceGlowHueDriftEnabled =
+        surfaceGlowUniforms.uSurfaceGlowHueDriftEnabled;
+      shader.uniforms.uSurfaceGlowHueDriftRange = surfaceGlowUniforms.uSurfaceGlowHueDriftRange;
+      shader.uniforms.uSurfaceGlowHueDriftCycles = surfaceGlowUniforms.uSurfaceGlowHueDriftCycles;
       shader.uniforms.uSurfaceGlowPhases = surfaceGlowUniforms.uSurfaceGlowPhases;
 
       shader.vertexShader = shader.vertexShader.replace(
@@ -372,44 +497,112 @@ uniform float uSurfaceGlowEnabled;
 uniform int uSurfaceGlowCount;
 uniform float uSurfaceGlowGlobalDim;
 uniform float uSurfaceGlowTime;
-uniform vec2 uSurfaceGlowUVs[${SURFACE_GLOW_CAPACITY}];
-uniform vec3 uSurfaceGlowColors[${SURFACE_GLOW_CAPACITY}];
-uniform float uSurfaceGlowRadii[${SURFACE_GLOW_CAPACITY}];
-uniform float uSurfaceGlowSoftness[${SURFACE_GLOW_CAPACITY}];
-uniform float uSurfaceGlowIntensity[${SURFACE_GLOW_CAPACITY}];
-uniform float uSurfaceGlowPulseEnabled[${SURFACE_GLOW_CAPACITY}];
-uniform float uSurfaceGlowPulseAmount[${SURFACE_GLOW_CAPACITY}];
-uniform float uSurfaceGlowPulseCycles[${SURFACE_GLOW_CAPACITY}];
-uniform float uSurfaceGlowPhases[${SURFACE_GLOW_CAPACITY}];`,
+uniform vec2 uSurfaceGlowAspectScale;
+uniform vec2 uSurfaceGlowUvOffset;
+uniform vec2 uSurfaceGlowUvScale;
+uniform vec2 uSurfaceGlowUVs[${MAX_SURFACE_GLOW_HOTSPOTS}];
+uniform vec3 uSurfaceGlowColors[${MAX_SURFACE_GLOW_HOTSPOTS}];
+uniform float uSurfaceGlowRadii[${MAX_SURFACE_GLOW_HOTSPOTS}];
+uniform float uSurfaceGlowSoftness[${MAX_SURFACE_GLOW_HOTSPOTS}];
+uniform float uSurfaceGlowIntensity[${MAX_SURFACE_GLOW_HOTSPOTS}];
+uniform float uSurfaceGlowPulseEnabled[${MAX_SURFACE_GLOW_HOTSPOTS}];
+uniform float uSurfaceGlowPulseMode[${MAX_SURFACE_GLOW_HOTSPOTS}];
+uniform float uSurfaceGlowPulseAmount[${MAX_SURFACE_GLOW_HOTSPOTS}];
+uniform float uSurfaceGlowPulseMinIntensity[${MAX_SURFACE_GLOW_HOTSPOTS}];
+uniform float uSurfaceGlowPulseMaxIntensity[${MAX_SURFACE_GLOW_HOTSPOTS}];
+uniform float uSurfaceGlowPulseRadiusExpansion[${MAX_SURFACE_GLOW_HOTSPOTS}];
+uniform float uSurfaceGlowPulseCycles[${MAX_SURFACE_GLOW_HOTSPOTS}];
+uniform float uSurfaceGlowHueDriftEnabled[${MAX_SURFACE_GLOW_HOTSPOTS}];
+uniform float uSurfaceGlowHueDriftRange[${MAX_SURFACE_GLOW_HOTSPOTS}];
+uniform float uSurfaceGlowHueDriftCycles[${MAX_SURFACE_GLOW_HOTSPOTS}];
+uniform float uSurfaceGlowPhases[${MAX_SURFACE_GLOW_HOTSPOTS}];
+
+vec2 applySurfaceUvTransform(vec2 uv) {
+  return uv * uSurfaceGlowUvScale + uSurfaceGlowUvOffset;
+}
+
+vec3 rgb2hsv(vec3 c) {
+  vec4 K = vec4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);
+  vec4 p = mix(vec4(c.bg, K.wz), vec4(c.gb, K.xy), step(c.b, c.g));
+  vec4 q = mix(vec4(p.xyw, c.r), vec4(c.r, p.yzx), step(p.x, c.r));
+  float d = q.x - min(q.w, q.y);
+  float e = 1.0e-10;
+  return vec3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x);
+}
+
+vec3 hsv2rgb(vec3 c) {
+  vec3 p = abs(fract(c.xxx + vec3(0.0, 2.0 / 3.0, 1.0 / 3.0)) * 6.0 - 3.0);
+  return c.z * mix(vec3(1.0), clamp(p - 1.0, 0.0, 1.0), c.y);
+}`,
       );
 
       shader.fragmentShader = shader.fragmentShader.replace(
         "#include <map_fragment>",
         `#include <map_fragment>
 if (uSurfaceGlowEnabled > 0.5) {
+  vec2 uvTransformed = applySurfaceUvTransform(vSurfaceUv);
   vec3 surfaceGlowAccum = vec3(0.0);
-  for (int i = 0; i < ${SURFACE_GLOW_CAPACITY}; i++) {
+
+  for (int i = 0; i < ${MAX_SURFACE_GLOW_HOTSPOTS}; i++) {
     if (i >= uSurfaceGlowCount) {
       break;
     }
 
-    float radius = max(uSurfaceGlowRadii[i], 0.0001);
-    float softness = clamp(uSurfaceGlowSoftness[i], 0.05, 0.98);
-    float inner = radius * (1.0 - softness);
-    float distToGlow = distance(vSurfaceUv, uSurfaceGlowUVs[i]);
-    float radialFalloff = 1.0 - smoothstep(inner, radius, distToGlow);
-
-    float pulseIntensity = 1.0;
+    float pulseWave = 0.5;
     if (uSurfaceGlowPulseEnabled[i] > 0.5) {
       float cycle = max(uSurfaceGlowPulseCycles[i], 0.2);
-      float wave = sin((uSurfaceGlowTime / cycle) * 6.28318530718 + uSurfaceGlowPhases[i] * 6.28318530718);
-      pulseIntensity = 1.0 + (wave * 0.5 + 0.5) * uSurfaceGlowPulseAmount[i];
+      float phase = (uSurfaceGlowTime / cycle) * 6.28318530718 + uSurfaceGlowPhases[i] * 6.28318530718;
+      pulseWave = sin(phase) * 0.5 + 0.5;
     }
 
-    surfaceGlowAccum += uSurfaceGlowColors[i] * radialFalloff * uSurfaceGlowIntensity[i] * pulseIntensity;
+    float pulseShape = smoothstep(0.08, 0.92, pulseWave);
+    float softBlinkShape = smoothstep(0.2, 0.95, pulseWave);
+
+    float brightnessMix = pulseShape;
+    float bloomMix = pulseShape;
+    float mode = uSurfaceGlowPulseMode[i];
+
+    if (mode < 0.5) {
+      bloomMix = 0.5;
+    } else if (mode < 1.5) {
+      brightnessMix = 0.55;
+    } else if (mode > 2.5) {
+      brightnessMix = softBlinkShape;
+      bloomMix = softBlinkShape;
+    }
+
+    float minIntensity = uSurfaceGlowPulseMinIntensity[i];
+    float maxIntensity = max(minIntensity, uSurfaceGlowPulseMaxIntensity[i]);
+    float intensityMultiplier = mix(minIntensity, maxIntensity, brightnessMix);
+
+    float expansion = 1.0 + (max(uSurfaceGlowPulseRadiusExpansion[i], 1.0) - 1.0) * bloomMix;
+
+    float baseRadius = max(uSurfaceGlowRadii[i], 0.0001);
+    float animatedRadius = baseRadius * mix(1.0, expansion, uSurfaceGlowPulseAmount[i]);
+    float softness = clamp(uSurfaceGlowSoftness[i], 0.05, 0.98);
+    float inner = animatedRadius * (1.0 - softness);
+
+    vec2 hotspotUv = applySurfaceUvTransform(uSurfaceGlowUVs[i]);
+    vec2 delta = (uvTransformed - hotspotUv) * uSurfaceGlowAspectScale;
+    float distToGlow = length(delta);
+    float radialFalloff = 1.0 - smoothstep(inner, animatedRadius, distToGlow);
+
+    vec3 glowColor = uSurfaceGlowColors[i];
+    if (uSurfaceGlowHueDriftEnabled[i] > 0.5) {
+      float hueCycle = max(uSurfaceGlowHueDriftCycles[i], 0.4);
+      float hueWave = sin((uSurfaceGlowTime / hueCycle) * 6.28318530718 + uSurfaceGlowPhases[i] * 6.28318530718);
+      float hueOffset = (hueWave * uSurfaceGlowHueDriftRange[i]) / 360.0;
+      vec3 hsv = rgb2hsv(glowColor);
+      hsv.x = fract(hsv.x + hueOffset);
+      glowColor = hsv2rgb(hsv);
+    }
+
+    surfaceGlowAccum += glowColor * radialFalloff * uSurfaceGlowIntensity[i] * intensityMultiplier;
   }
 
-  diffuseColor.rgb += surfaceGlowAccum * uSurfaceGlowGlobalDim;
+  // Soft compression avoids clipped flat color at high intensities while preserving pulse contrast.
+  vec3 compressed = surfaceGlowAccum / (vec3(1.0) + surfaceGlowAccum);
+  diffuseColor.rgb += compressed * uSurfaceGlowGlobalDim;
 }`,
       );
     };
@@ -473,6 +666,20 @@ void main() {
       marker.style.left = `${x.toFixed(2)}px`;
       marker.style.top = `${y.toFixed(2)}px`;
       marker.style.opacity = "1";
+    };
+
+    const flashPlacementMarker = (x: number, y: number) => {
+      const marker = placementFlashRef.current;
+      if (!marker) {
+        return;
+      }
+
+      marker.style.left = `${x.toFixed(2)}px`;
+      marker.style.top = `${y.toFixed(2)}px`;
+      marker.classList.remove("environment-lab__placement-flash--active");
+      window.requestAnimationFrame(() => {
+        marker.classList.add("environment-lab__placement-flash--active");
+      });
     };
 
     const updatePlacementDebugDiagnostics = (
@@ -552,12 +759,7 @@ void main() {
       const normalizedX = (event.clientX - rect.left) / rect.width;
       const normalizedY = (event.clientY - rect.top) / rect.height;
 
-      if (
-        normalizedX < 0 ||
-        normalizedX > 1 ||
-        normalizedY < 0 ||
-        normalizedY > 1
-      ) {
+      if (normalizedX < 0 || normalizedX > 1 || normalizedY < 0 || normalizedY > 1) {
         updatePlacementDebugDiagnostics(diagnostics, {
           normalizedX,
           normalizedY,
@@ -622,11 +824,7 @@ void main() {
         });
 
         if (import.meta.env.DEV) {
-          setMarkerPosition(
-            clickMarkerRef.current,
-            normalizedX * rect.width,
-            normalizedY * rect.height,
-          );
+          setMarkerPosition(clickMarkerRef.current, normalizedX * rect.width, normalizedY * rect.height);
           if (uvMarkerRef.current) {
             uvMarkerRef.current.style.opacity = "0";
           }
@@ -646,14 +844,11 @@ void main() {
         foundPlane: true,
       });
 
-      if (import.meta.env.DEV) {
-        setMarkerPosition(
-          clickMarkerRef.current,
-          normalizedX * rect.width,
-          normalizedY * rect.height,
-        );
+      flashPlacementMarker(normalizedX * rect.width, normalizedY * rect.height);
 
-        // Show the resolved placement marker on the currently visible displaced mesh.
+      if (import.meta.env.DEV) {
+        setMarkerPosition(clickMarkerRef.current, normalizedX * rect.width, normalizedY * rect.height);
+
         raycaster.setFromCamera(ndcPointer, camera);
         const debugHit = raycaster.intersectObject(plane, false)[0];
 
@@ -663,11 +858,7 @@ void main() {
           const markerY = ((1 - projected.y) / 2) * rect.height;
           setMarkerPosition(uvMarkerRef.current, markerX, markerY);
         } else {
-          setMarkerPosition(
-            uvMarkerRef.current,
-            normalizedX * rect.width,
-            normalizedY * rect.height,
-          );
+          setMarkerPosition(uvMarkerRef.current, normalizedX * rect.width, normalizedY * rect.height);
         }
       }
 
@@ -728,6 +919,12 @@ void main() {
       planeScale.set(viewWidth * 1.18, viewHeight * 1.28);
       plane.scale.set(planeScale.x, planeScale.y, 1);
       glowPlane.scale.set(planeScale.x * 1.14, planeScale.y * 1.08, 1);
+
+      const shortAxis = Math.max(0.0001, Math.min(planeScale.x, planeScale.y));
+      surfaceGlowUniforms.uSurfaceGlowAspectScale.value.set(
+        planeScale.x / shortAxis,
+        planeScale.y / shortAxis,
+      );
     };
 
     const toPlanePosition = (u: number, v: number) => {
@@ -736,11 +933,20 @@ void main() {
       return new THREE.Vector3(x, y, 0);
     };
 
-    const syncSurfaceGlowUniforms = (activePreset: EnvironmentPreset) => {
-      const activeHotspots = activePreset.surfaceGlows.hotspots.slice(0, SURFACE_GLOW_CAPACITY);
+    const syncSurfaceGlowUniforms = (activePreset: ImageEnvironmentPreset) => {
+      const activeHotspots = activePreset.surfaceGlows.hotspots.slice(0, MAX_SURFACE_GLOW_HOTSPOTS);
       surfaceGlowUniforms.uSurfaceGlowCount.value = activeHotspots.length;
 
-      for (let index = 0; index < SURFACE_GLOW_CAPACITY; index += 1) {
+      const map = planeMaterial.map;
+      if (map) {
+        surfaceGlowUniforms.uSurfaceGlowUvOffset.value.set(map.offset.x, map.offset.y);
+        surfaceGlowUniforms.uSurfaceGlowUvScale.value.set(map.repeat.x, map.repeat.y);
+      } else {
+        surfaceGlowUniforms.uSurfaceGlowUvOffset.value.set(0, 0);
+        surfaceGlowUniforms.uSurfaceGlowUvScale.value.set(1, 1);
+      }
+
+      for (let index = 0; index < MAX_SURFACE_GLOW_HOTSPOTS; index += 1) {
         const hotspot = activeHotspots[index];
 
         if (hotspot) {
@@ -751,8 +957,18 @@ void main() {
           surfaceGlowUniforms.uSurfaceGlowSoftness.value[index] = hotspot.softness;
           surfaceGlowUniforms.uSurfaceGlowIntensity.value[index] = hotspot.intensity;
           surfaceGlowUniforms.uSurfaceGlowPulseEnabled.value[index] = hotspot.pulseEnabled ? 1 : 0;
+          surfaceGlowUniforms.uSurfaceGlowPulseMode.value[index] = getPulseModeIndex(hotspot);
           surfaceGlowUniforms.uSurfaceGlowPulseAmount.value[index] = hotspot.pulseAmount;
+          surfaceGlowUniforms.uSurfaceGlowPulseMinIntensity.value[index] =
+            hotspot.minimumIntensityMultiplier;
+          surfaceGlowUniforms.uSurfaceGlowPulseMaxIntensity.value[index] =
+            hotspot.maximumIntensityMultiplier;
+          surfaceGlowUniforms.uSurfaceGlowPulseRadiusExpansion.value[index] =
+            hotspot.radiusExpansionMultiplier;
           surfaceGlowUniforms.uSurfaceGlowPulseCycles.value[index] = hotspot.pulseCycleSeconds;
+          surfaceGlowUniforms.uSurfaceGlowHueDriftEnabled.value[index] = hotspot.hueDriftEnabled ? 1 : 0;
+          surfaceGlowUniforms.uSurfaceGlowHueDriftRange.value[index] = hotspot.hueDriftRangeDegrees;
+          surfaceGlowUniforms.uSurfaceGlowHueDriftCycles.value[index] = hotspot.hueDriftCycleSeconds;
           surfaceGlowUniforms.uSurfaceGlowPhases.value[index] = hotspot.phase;
         } else {
           surfaceGlowUniforms.uSurfaceGlowUVs.value[index].set(0, 0);
@@ -761,8 +977,15 @@ void main() {
           surfaceGlowUniforms.uSurfaceGlowSoftness.value[index] = 0.65;
           surfaceGlowUniforms.uSurfaceGlowIntensity.value[index] = 0;
           surfaceGlowUniforms.uSurfaceGlowPulseEnabled.value[index] = 0;
+          surfaceGlowUniforms.uSurfaceGlowPulseMode.value[index] = 0;
           surfaceGlowUniforms.uSurfaceGlowPulseAmount.value[index] = 0;
+          surfaceGlowUniforms.uSurfaceGlowPulseMinIntensity.value[index] = 1;
+          surfaceGlowUniforms.uSurfaceGlowPulseMaxIntensity.value[index] = 1;
+          surfaceGlowUniforms.uSurfaceGlowPulseRadiusExpansion.value[index] = 1;
           surfaceGlowUniforms.uSurfaceGlowPulseCycles.value[index] = 3.5;
+          surfaceGlowUniforms.uSurfaceGlowHueDriftEnabled.value[index] = 0;
+          surfaceGlowUniforms.uSurfaceGlowHueDriftRange.value[index] = 0;
+          surfaceGlowUniforms.uSurfaceGlowHueDriftCycles.value[index] = 20;
           surfaceGlowUniforms.uSurfaceGlowPhases.value[index] = 0;
         }
       }
@@ -788,7 +1011,7 @@ void main() {
       twinkleRuntimes.length = 0;
     };
 
-    const rebuildTwinkles = (activePreset: EnvironmentPreset) => {
+    const rebuildTwinkles = (activePreset: ImageEnvironmentPreset) => {
       clearTwinkles();
 
       activePreset.twinkles.hotspots.forEach((hotspot) => {
@@ -826,7 +1049,7 @@ void main() {
       particlesRuntime = null;
     };
 
-    const rebuildParticles = (activePreset: EnvironmentPreset) => {
+    const rebuildParticles = (activePreset: ImageEnvironmentPreset) => {
       clearParticles();
 
       if (activePreset.particles.count <= 0) {
@@ -921,18 +1144,16 @@ void main() {
         }
 
         if (event.shiftKey || event.altKey) {
-          callbackRef.current.onRemoveNearestSurfaceGlowHotspot?.(
-            pickedSurfaceUv.u,
-            pickedSurfaceUv.v,
-          );
+          callbackRef.current.onRemoveNearestSurfaceGlowHotspot?.(pickedSurfaceUv.u, pickedSurfaceUv.v);
           return;
         }
 
-        callbackRef.current.onCreateSurfaceGlowHotspot?.(
-          pickedSurfaceUv.u,
-          pickedSurfaceUv.v,
-          Math.random(),
-        );
+        if (currentConfig.preset.surfaceGlows.hotspots.length >= MAX_SURFACE_GLOW_HOTSPOTS) {
+          callbackRef.current.onSurfaceGlowCapacityReached?.();
+          return;
+        }
+
+        callbackRef.current.onCreateSurfaceGlowHotspot?.(pickedSurfaceUv.u, pickedSurfaceUv.v, Math.random());
         return;
       }
 
@@ -981,9 +1202,40 @@ void main() {
     fitPlane();
 
     const currentPresetAtMount = configRef.current.preset;
+    const initialAsset = configRef.current.asset;
+
+    let colorDimensions = { width: 0, height: 0 };
+    let depthDimensions = { width: 0, height: 0 };
+
+    const updateAssetDiagnostics = () => {
+      const colorAspect = colorDimensions.height > 0 ? colorDimensions.width / colorDimensions.height : 0;
+      const depthAspect = depthDimensions.height > 0 ? depthDimensions.width / depthDimensions.height : 0;
+      const dimensionsMatch =
+        colorDimensions.width > 0 &&
+        colorDimensions.height > 0 &&
+        depthDimensions.width > 0 &&
+        depthDimensions.height > 0 &&
+        colorDimensions.width === depthDimensions.width &&
+        colorDimensions.height === depthDimensions.height;
+      const aspectMatch =
+        colorAspect > 0 && depthAspect > 0
+          ? Math.abs(colorAspect - depthAspect) < 0.005
+          : false;
+
+      diagnostics.assetDiagnostics = {
+        colorWidth: colorDimensions.width,
+        colorHeight: colorDimensions.height,
+        depthWidth: depthDimensions.width,
+        depthHeight: depthDimensions.height,
+        colorAspectRatio: colorAspect,
+        depthAspectRatio: depthAspect,
+        dimensionsMatch,
+        aspectMatch,
+      };
+    };
 
     textureLoader.load(
-      currentPresetAtMount.assets.colorImageUrl,
+      initialAsset.colorImageUrl,
       (texture) => {
         if (disposed) {
           texture.dispose();
@@ -996,13 +1248,20 @@ void main() {
         texture.magFilter = THREE.LinearFilter;
         planeMaterial.map = texture;
         planeMaterial.needsUpdate = true;
+
+        const image = texture.image as { width?: number; height?: number };
+        colorDimensions = {
+          width: Number(image.width ?? 0),
+          height: Number(image.height ?? 0),
+        };
+        updateAssetDiagnostics();
       },
       undefined,
       () => callbackRef.current.onLoadingStateChange?.("error"),
     );
 
     textureLoader.load(
-      currentPresetAtMount.assets.depthMapUrl,
+      initialAsset.depthMapUrl,
       (texture) => {
         if (disposed) {
           texture.dispose();
@@ -1023,6 +1282,13 @@ void main() {
         ) {
           depthSampler = createDepthSampler(image);
         }
+
+        const depthImage = texture.image as { width?: number; height?: number };
+        depthDimensions = {
+          width: Number(depthImage.width ?? 0),
+          height: Number(depthImage.height ?? 0),
+        };
+        updateAssetDiagnostics();
 
         rebuildTwinkles(configRef.current.preset);
         lastTwinkleSignature = hotspotSignature(configRef.current.preset.twinkles.hotspots);
@@ -1047,10 +1313,16 @@ void main() {
       particleCount: currentPresetAtMount.particles.count,
       hueOffsetDegrees: 0,
       currentSaturation: currentPresetAtMount.color.saturation,
-      shaderSurfaceGlowCapacity: SURFACE_GLOW_CAPACITY,
+      shaderSurfaceGlowCapacity: MAX_SURFACE_GLOW_HOTSPOTS,
       surfaceGlowDefaultIntensity: currentPresetAtMount.surfaceGlows.defaultIntensity,
       surfaceGlowAnimationActive: false,
       automaticMotionActive: false,
+      surfaceGlowAnimationStatus: "Disabled",
+      surfaceGlowPulseFactor: 1,
+      hazeAnimationStatus: "Disabled",
+      hazeOffsetX: 0,
+      hazeOffsetY: 0,
+      assetDiagnostics: EMPTY_ASSET_DIAGNOSTICS,
     };
 
     const animate = (now: number) => {
@@ -1155,13 +1427,19 @@ void main() {
         twinklePhase += deltaSeconds * activePreset.twinkles.pulseSpeed * Math.PI * 2;
       }
 
+      const hazeAnimationSpeed = current.hazeMotionPreview4xEnabled ? 4 : 1;
       if (automaticMotionActive && activePreset.haze.enabled) {
         hazePhase +=
-          (deltaSeconds / Math.max(activePreset.haze.driftCycleSeconds, 1)) * Math.PI * 2;
+          (deltaSeconds / Math.max(activePreset.haze.driftCycleSeconds, 2)) *
+          Math.PI *
+          2 *
+          hazeAnimationSpeed;
       }
 
-      if (automaticMotionActive && activePreset.surfaceGlows.enabled) {
-        surfaceGlowPulseTimeSeconds += deltaSeconds;
+      if (activePreset.surfaceGlows.enabled && !current.reducedMotionActive) {
+        if (automaticMotionActive) {
+          surfaceGlowPulseTimeSeconds += deltaSeconds;
+        }
       }
 
       if (activePreset.saturationPulse.enabled && automaticMotionActive) {
@@ -1207,7 +1485,7 @@ void main() {
       });
 
       surfaceGlowUniforms.uSurfaceGlowEnabled.value = activePreset.surfaceGlows.enabled ? 1 : 0;
-      surfaceGlowUniforms.uSurfaceGlowGlobalDim.value = isPlaying ? 1 : 0.22;
+      surfaceGlowUniforms.uSurfaceGlowGlobalDim.value = isPlaying ? 1 : 0.3;
       surfaceGlowUniforms.uSurfaceGlowTime.value = surfaceGlowPulseTimeSeconds;
 
       planeMaterial.displacementScale =
@@ -1298,8 +1576,13 @@ void main() {
       const hazeOpacity = activePreset.haze.enabled
         ? activePreset.haze.opacity * (isPlaying ? 1 : 0.62)
         : 0;
-      const hazeOffsetX = Math.sin(hazePhase) * 14;
-      const hazeOffsetY = Math.cos(hazePhase * 0.72) * 11;
+      const hazeDistance = activePreset.haze.driftDistance;
+      const biasX = activePreset.haze.driftBiasX;
+      const biasY = activePreset.haze.driftBiasY;
+      const baseX = Math.sin(hazePhase) * hazeDistance;
+      const baseY = Math.cos(hazePhase * 0.72) * hazeDistance;
+      const hazeOffsetX = baseX * (0.25 + Math.abs(biasX)) * Math.sign(biasX || 1);
+      const hazeOffsetY = baseY * (0.25 + Math.abs(biasY)) * Math.sign(biasY || 1);
 
       hazeElement.style.opacity = `${hazeOpacity.toFixed(3)}`;
       hazeElement.style.filter = `blur(${activePreset.haze.blurPixels.toFixed(1)}px)`;
@@ -1327,11 +1610,46 @@ void main() {
         diagnostics.particleCount = activePreset.particles.count;
         diagnostics.hueOffsetDegrees = currentHueOffset;
         diagnostics.currentSaturation = currentSaturation;
-        diagnostics.shaderSurfaceGlowCapacity = SURFACE_GLOW_CAPACITY;
+        diagnostics.shaderSurfaceGlowCapacity = MAX_SURFACE_GLOW_HOTSPOTS;
         diagnostics.surfaceGlowDefaultIntensity = activePreset.surfaceGlows.defaultIntensity;
         diagnostics.surfaceGlowAnimationActive =
           automaticMotionActive && activePreset.surfaceGlows.enabled;
         diagnostics.automaticMotionActive = automaticMotionActive;
+        diagnostics.surfaceGlowAnimationStatus = describeAnimationStatus({
+          enabled: activePreset.surfaceGlows.enabled,
+          isPlaying,
+          ambientMotionEnabled: activePreset.depth.ambientMotionEnabled,
+          reducedMotionActive: current.reducedMotionActive,
+        });
+        diagnostics.hazeAnimationStatus = describeAnimationStatus({
+          enabled: activePreset.haze.enabled,
+          isPlaying,
+          ambientMotionEnabled: activePreset.depth.ambientMotionEnabled,
+          reducedMotionActive: current.reducedMotionActive,
+        });
+        diagnostics.hazeOffsetX = hazeOffsetX;
+        diagnostics.hazeOffsetY = hazeOffsetY;
+
+        const firstGlow = activePreset.surfaceGlows.hotspots[0];
+        if (!firstGlow || !firstGlow.pulseEnabled) {
+          diagnostics.surfaceGlowPulseFactor = 1;
+        } else {
+          const cycle = Math.max(firstGlow.pulseCycleSeconds, 0.2);
+          const wave =
+            Math.sin(
+              (surfaceGlowPulseTimeSeconds / cycle) * Math.PI * 2 +
+                firstGlow.phase * Math.PI * 2,
+            ) *
+              0.5 +
+            0.5;
+          const pulseShape = THREE.MathUtils.smoothstep(wave, 0.08, 0.92);
+          diagnostics.surfaceGlowPulseFactor = THREE.MathUtils.lerp(
+            firstGlow.minimumIntensityMultiplier,
+            firstGlow.maximumIntensityMultiplier,
+            pulseShape,
+          );
+        }
+
         callbackRef.current.onDiagnosticsChange?.({ ...diagnostics });
       }
     };
@@ -1369,12 +1687,13 @@ void main() {
         mount.removeChild(renderer.domElement);
       }
     };
-  }, []);
+  }, [asset.id]);
 
   return (
     <>
       <div ref={mountRef} className="environment-lab__scene-root" />
       <div ref={hazeRef} className="environment-lab__haze" aria-hidden="true" />
+      <div ref={placementFlashRef} className="environment-lab__placement-flash" aria-hidden="true" />
       {import.meta.env.DEV && (
         <>
           <div ref={clickMarkerRef} className="environment-lab__debug-marker" aria-hidden="true" />

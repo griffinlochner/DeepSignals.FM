@@ -1,15 +1,34 @@
 import { useEffect, useMemo, useState } from "react";
+import { MAX_SURFACE_GLOW_HOTSPOTS } from "./constants";
 import EnvironmentLabShell from "./EnvironmentLabShell";
-import { cloneEnvironmentPreset, UV_JUNGLE_LAB_PRESET } from "./presets";
+import {
+  cloneEnvironmentPreset,
+  getImageEnvironmentAssetById,
+  IMAGE_ENVIRONMENT_PRESETS,
+  NEUTRAL_BASELINE_PRESET,
+  UV_JUNGLE_SHOWCASE_PRESET,
+} from "./presets";
 import type {
   EnvironmentDiagnostics,
   EnvironmentLoadingState,
-  EnvironmentPlaybackState,
-  EnvironmentPreset,
+  EnvironmentLabSessionState,
+  ImageEnvironmentAsset,
+  ImageEnvironmentPreset,
   SurfaceGlowHotspot,
   TwinkleHotspot,
 } from "./types";
 import { parseEnvironmentPresetJson } from "./validation";
+
+const EMPTY_ASSET_DIAGNOSTICS = {
+  colorWidth: 0,
+  colorHeight: 0,
+  depthWidth: 0,
+  depthHeight: 0,
+  colorAspectRatio: 0,
+  depthAspectRatio: 0,
+  dimensionsMatch: false,
+  aspectMatch: false,
+};
 
 const INITIAL_DIAGNOSTICS: EnvironmentDiagnostics = {
   fps: 0,
@@ -19,10 +38,16 @@ const INITIAL_DIAGNOSTICS: EnvironmentDiagnostics = {
   particleCount: 0,
   hueOffsetDegrees: 0,
   currentSaturation: 1,
-  shaderSurfaceGlowCapacity: 0,
+  shaderSurfaceGlowCapacity: MAX_SURFACE_GLOW_HOTSPOTS,
   surfaceGlowDefaultIntensity: 0,
   surfaceGlowAnimationActive: false,
   automaticMotionActive: false,
+  surfaceGlowAnimationStatus: "Disabled",
+  surfaceGlowPulseFactor: 1,
+  hazeAnimationStatus: "Disabled",
+  hazeOffsetX: 0,
+  hazeOffsetY: 0,
+  assetDiagnostics: EMPTY_ASSET_DIAGNOSTICS,
   surfaceGlowPickCanvasX: -1,
   surfaceGlowPickCanvasY: -1,
   surfaceGlowPickU: -1,
@@ -56,14 +81,17 @@ function removeNearestHotspot<T extends { u: number; v: number }>(
 }
 
 function EnvironmentLabPage() {
-  const [playbackState, setPlaybackState] =
-    useState<EnvironmentPlaybackState>("stopped");
-  const [preset, setPreset] = useState<EnvironmentPreset>(() =>
-    cloneEnvironmentPreset(UV_JUNGLE_LAB_PRESET),
+  const [session, setSession] = useState<EnvironmentLabSessionState>({
+    playbackState: "stopped",
+    twinklePlacementModeEnabled: false,
+    surfaceGlowPlacementModeEnabled: false,
+    hazeMotionPreview4xEnabled: false,
+  });
+  const [preset, setPreset] = useState<ImageEnvironmentPreset>(() =>
+    cloneEnvironmentPreset(NEUTRAL_BASELINE_PRESET),
   );
-  const [twinklePlacementModeEnabled, setTwinklePlacementModeEnabled] = useState(false);
-  const [surfaceGlowPlacementModeEnabled, setSurfaceGlowPlacementModeEnabled] =
-    useState(false);
+  const [selectedBuiltinPresetId, setSelectedBuiltinPresetId] =
+    useState<string>(NEUTRAL_BASELINE_PRESET.id);
   const [loadingState, setLoadingState] =
     useState<EnvironmentLoadingState>("loading");
   const [reducedMotionActive, setReducedMotionActive] = useState(false);
@@ -76,6 +104,11 @@ function EnvironmentLabPage() {
   );
   const [feedbackTone, setFeedbackTone] = useState<"idle" | "success" | "error">(
     "idle",
+  );
+
+  const selectedAsset = useMemo<ImageEnvironmentAsset | null>(
+    () => getImageEnvironmentAssetById(preset.assetId),
+    [preset.assetId],
   );
 
   useEffect(() => {
@@ -93,7 +126,7 @@ function EnvironmentLabPage() {
   }, []);
 
   const status = useMemo(() => {
-    const playbackLabel = playbackState === "playing" ? "Playing" : "Stopped";
+    const playbackLabel = session.playbackState === "playing" ? "Playing" : "Stopped";
     const loadingLabel =
       loadingState === "loading"
         ? "loading"
@@ -102,7 +135,7 @@ function EnvironmentLabPage() {
           : "asset error";
 
     return `Environment Lab · ${playbackLabel} · ${loadingLabel}`;
-  }, [loadingState, playbackState]);
+  }, [loadingState, session.playbackState]);
 
   const setFeedback = (
     message: string,
@@ -110,6 +143,25 @@ function EnvironmentLabPage() {
   ) => {
     setFeedbackTone(tone);
     setFeedbackMessage(message);
+  };
+
+  const loadBuiltinPreset = (presetId: string) => {
+    const found = IMAGE_ENVIRONMENT_PRESETS.find((entry) => entry.id === presetId);
+    if (!found) {
+      setFeedback(`Unknown built-in preset: ${presetId}`, "error");
+      return;
+    }
+
+    setPreset(cloneEnvironmentPreset(found));
+    setSelectedBuiltinPresetId(found.id);
+    setSession((current) => ({
+      ...current,
+      playbackState: found.id === NEUTRAL_BASELINE_PRESET.id ? "stopped" : current.playbackState,
+      twinklePlacementModeEnabled: false,
+      surfaceGlowPlacementModeEnabled: false,
+      hazeMotionPreview4xEnabled: false,
+    }));
+    setFeedback(`Loaded built-in preset: ${found.name}`, "success");
   };
 
   const handleCopyPresetJson = async () => {
@@ -136,25 +188,56 @@ function EnvironmentLabPage() {
     }
 
     setPreset(parsed.preset);
+    setSession((current) => ({
+      ...current,
+      twinklePlacementModeEnabled: false,
+      surfaceGlowPlacementModeEnabled: false,
+      hazeMotionPreview4xEnabled: false,
+    }));
+    setSelectedBuiltinPresetId(parsed.preset.id);
     setFeedback(`Imported preset: ${parsed.preset.name}`, "success");
   };
 
+  const atSurfaceGlowCapacity =
+    preset.surfaceGlows.hotspots.length >= MAX_SURFACE_GLOW_HOTSPOTS;
+
   return (
     <EnvironmentLabShell
-      playbackState={playbackState}
-      twinklePlacementModeEnabled={twinklePlacementModeEnabled}
-      surfaceGlowPlacementModeEnabled={surfaceGlowPlacementModeEnabled}
+      playbackState={session.playbackState}
+      twinklePlacementModeEnabled={session.twinklePlacementModeEnabled}
+      surfaceGlowPlacementModeEnabled={session.surfaceGlowPlacementModeEnabled}
+      hazeMotionPreview4xEnabled={session.hazeMotionPreview4xEnabled}
+      surfaceGlowCapacityReached={atSurfaceGlowCapacity}
       preset={preset}
+      selectedBuiltinPresetId={selectedBuiltinPresetId}
       reducedMotionActive={reducedMotionActive}
       status={status}
       diagnostics={diagnostics}
       importText={importText}
       feedbackMessage={feedbackMessage}
       feedbackTone={feedbackTone}
-      onPlaybackStateChange={setPlaybackState}
-      onTwinklePlacementModeChange={setTwinklePlacementModeEnabled}
-      onSurfaceGlowPlacementModeChange={setSurfaceGlowPlacementModeEnabled}
+      onPlaybackStateChange={(value) =>
+        setSession((current) => ({ ...current, playbackState: value }))
+      }
+      onTwinklePlacementModeChange={(enabled) =>
+        setSession((current) => ({ ...current, twinklePlacementModeEnabled: enabled }))
+      }
+      onSurfaceGlowPlacementModeChange={(enabled) => {
+        if (enabled && atSurfaceGlowCapacity) {
+          setFeedback(
+            `Maximum of ${MAX_SURFACE_GLOW_HOTSPOTS} Surface Glow Hotspots reached.`,
+            "error",
+          );
+          return;
+        }
+
+        setSession((current) => ({ ...current, surfaceGlowPlacementModeEnabled: enabled }));
+      }}
+      onHazeMotionPreview4xChange={(enabled) =>
+        setSession((current) => ({ ...current, hazeMotionPreview4xEnabled: enabled }))
+      }
       onPresetChange={setPreset}
+      onLoadBuiltinPreset={loadBuiltinPreset}
       onCreateTwinkleHotspot={(u, v, phase) => {
         setPreset((current) => {
           const nextHotspot: TwinkleHotspot = {
@@ -183,7 +266,14 @@ function EnvironmentLabPage() {
         }));
       }}
       onCreateSurfaceGlowHotspot={(u, v, phase) => {
+        let blocked = false;
+
         setPreset((current) => {
+          if (current.surfaceGlows.hotspots.length >= MAX_SURFACE_GLOW_HOTSPOTS) {
+            blocked = true;
+            return current;
+          }
+
           const nextHotspot: SurfaceGlowHotspot = {
             id: `surface-${Date.now().toString(36)}-${Math.floor(Math.random() * 1000)}`,
             u,
@@ -193,8 +283,18 @@ function EnvironmentLabPage() {
             softness: current.surfaceGlows.defaultSoftness,
             intensity: current.surfaceGlows.defaultIntensity,
             pulseEnabled: current.surfaceGlows.defaultPulseEnabled,
+            pulseMode: current.surfaceGlows.defaultPulseMode,
             pulseAmount: current.surfaceGlows.defaultPulseAmount,
+            minimumIntensityMultiplier:
+              current.surfaceGlows.defaultMinimumIntensityMultiplier,
+            maximumIntensityMultiplier:
+              current.surfaceGlows.defaultMaximumIntensityMultiplier,
+            radiusExpansionMultiplier:
+              current.surfaceGlows.defaultRadiusExpansionMultiplier,
             pulseCycleSeconds: current.surfaceGlows.defaultPulseCycleSeconds,
+            hueDriftEnabled: current.surfaceGlows.defaultHueDriftEnabled,
+            hueDriftRangeDegrees: current.surfaceGlows.defaultHueDriftRangeDegrees,
+            hueDriftCycleSeconds: current.surfaceGlows.defaultHueDriftCycleSeconds,
             phase,
           };
 
@@ -206,7 +306,20 @@ function EnvironmentLabPage() {
             },
           };
         });
+
+        if (blocked) {
+          setFeedback(
+            `Maximum of ${MAX_SURFACE_GLOW_HOTSPOTS} Surface Glow Hotspots reached.`,
+            "error",
+          );
+        }
       }}
+      onSurfaceGlowCapacityReached={() =>
+        setFeedback(
+          `Maximum of ${MAX_SURFACE_GLOW_HOTSPOTS} Surface Glow Hotspots reached.`,
+          "error",
+        )
+      }
       onRemoveNearestSurfaceGlowHotspot={(u, v) => {
         setPreset((current) => ({
           ...current,
@@ -262,17 +375,50 @@ function EnvironmentLabPage() {
         }));
         setFeedback("Randomized surface glow phases.", "success");
       }}
+      onApplySurfaceGlowDefaultsToAll={() => {
+        setPreset((current) => ({
+          ...current,
+          surfaceGlows: {
+            ...current.surfaceGlows,
+            hotspots: current.surfaceGlows.hotspots.map((hotspot) => ({
+              ...hotspot,
+              pulseEnabled: current.surfaceGlows.defaultPulseEnabled,
+              pulseMode: current.surfaceGlows.defaultPulseMode,
+              pulseAmount: current.surfaceGlows.defaultPulseAmount,
+              minimumIntensityMultiplier:
+                current.surfaceGlows.defaultMinimumIntensityMultiplier,
+              maximumIntensityMultiplier:
+                current.surfaceGlows.defaultMaximumIntensityMultiplier,
+              radiusExpansionMultiplier:
+                current.surfaceGlows.defaultRadiusExpansionMultiplier,
+              pulseCycleSeconds: current.surfaceGlows.defaultPulseCycleSeconds,
+              hueDriftEnabled: current.surfaceGlows.defaultHueDriftEnabled,
+              hueDriftRangeDegrees: current.surfaceGlows.defaultHueDriftRangeDegrees,
+              hueDriftCycleSeconds: current.surfaceGlows.defaultHueDriftCycleSeconds,
+            })),
+          },
+        }));
+        setFeedback("Applied current Surface Glow animation settings to all hotspots.", "success");
+      }}
       onResetPreset={() => {
-        setPreset(cloneEnvironmentPreset(UV_JUNGLE_LAB_PRESET));
-        setTwinklePlacementModeEnabled(false);
-        setSurfaceGlowPlacementModeEnabled(false);
-        setFeedback("Reset to UV Jungle laboratory defaults.", "success");
+        setPreset(cloneEnvironmentPreset(NEUTRAL_BASELINE_PRESET));
+        setSelectedBuiltinPresetId(NEUTRAL_BASELINE_PRESET.id);
+        setSession((current) => ({
+          ...current,
+          playbackState: "stopped",
+          twinklePlacementModeEnabled: false,
+          surfaceGlowPlacementModeEnabled: false,
+          hazeMotionPreview4xEnabled: false,
+        }));
+        setFeedback("Reset to Neutral Baseline.", "success");
       }}
       onCopyPresetJson={handleCopyPresetJson}
       onImportTextChange={setImportText}
       onApplyImportedPreset={handleApplyImportedPreset}
       onDiagnosticsChange={setDiagnostics}
       onLoadingStateChange={setLoadingState}
+      sceneAsset={selectedAsset}
+      fallbackAsset={getImageEnvironmentAssetById(UV_JUNGLE_SHOWCASE_PRESET.assetId)}
     />
   );
 }
