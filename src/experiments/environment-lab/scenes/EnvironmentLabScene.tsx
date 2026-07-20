@@ -16,6 +16,7 @@ const PLAYING_DRIFT_SPEED = 0.58;
 const POINTER_IDLE_TIMEOUT_SECONDS = 1.25;
 const STOPPED_POINTER_PARALLAX_MULTIPLIER = 0.12;
 const SURFACE_GLOW_CAPACITY = 32;
+const SURFACE_PICK_TARGET_MIN_SIZE = 2;
 
 type TwinkleRuntime = {
   sprite: THREE.Sprite;
@@ -186,6 +187,8 @@ function EnvironmentLabScene({
 }: EnvironmentLabSceneProps) {
   const mountRef = useRef<HTMLDivElement | null>(null);
   const hazeRef = useRef<HTMLDivElement | null>(null);
+  const clickMarkerRef = useRef<HTMLDivElement | null>(null);
+  const uvMarkerRef = useRef<HTMLDivElement | null>(null);
   const configRef = useRef({
     playbackState,
     twinklePlacementModeEnabled,
@@ -291,6 +294,8 @@ function EnvironmentLabScene({
     let currentHueOffset = 0;
     let currentGlowOffset = 0;
     let currentSaturation = configRef.current.preset.color.saturation;
+    let currentEffectiveDepth = 0;
+    let currentDisplacementScale = 0;
 
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x08110d);
@@ -413,6 +418,264 @@ if (uSurfaceGlowEnabled > 0.5) {
     const plane = new THREE.Mesh(planeGeometry, planeMaterial);
     plane.position.z = -0.15;
     planeGroup.add(plane);
+
+    const pickingScene = new THREE.Scene();
+    const pickingMaterial = new THREE.ShaderMaterial({
+      uniforms: {
+        uDisplacementMap: { value: null as THREE.Texture | null },
+        uDisplacementScale: { value: 0 },
+      },
+      vertexShader: `
+varying vec2 vPickUv;
+uniform sampler2D uDisplacementMap;
+uniform float uDisplacementScale;
+
+void main() {
+  vPickUv = uv;
+  vec3 transformed = position;
+  float sampledDepth = texture2D(uDisplacementMap, uv).x;
+  transformed += normalize(normal) * ((sampledDepth - 0.5) * uDisplacementScale);
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(transformed, 1.0);
+}
+`,
+      fragmentShader: `
+varying vec2 vPickUv;
+
+void main() {
+  gl_FragColor = vec4(vPickUv, 0.0, 1.0);
+}
+`,
+      depthWrite: true,
+      depthTest: true,
+      transparent: false,
+    });
+    const pickingPlane = new THREE.Mesh(planeGeometry, pickingMaterial);
+    pickingPlane.matrixAutoUpdate = false;
+    pickingScene.add(pickingPlane);
+
+    let pickRenderTarget: THREE.WebGLRenderTarget | null = null;
+    const pickPixel = new Uint8Array(4);
+
+    const hidePlacementMarkers = () => {
+      if (clickMarkerRef.current) {
+        clickMarkerRef.current.style.opacity = "0";
+      }
+      if (uvMarkerRef.current) {
+        uvMarkerRef.current.style.opacity = "0";
+      }
+    };
+
+    const setMarkerPosition = (marker: HTMLDivElement | null, x: number, y: number) => {
+      if (!marker) {
+        return;
+      }
+
+      marker.style.left = `${x.toFixed(2)}px`;
+      marker.style.top = `${y.toFixed(2)}px`;
+      marker.style.opacity = "1";
+    };
+
+    const updatePlacementDebugDiagnostics = (
+      diagnostics: EnvironmentDiagnostics,
+      details: {
+        normalizedX: number;
+        normalizedY: number;
+        decodedU: number;
+        decodedV: number;
+        foundPlane: boolean;
+      },
+    ) => {
+      if (!import.meta.env.DEV) {
+        return;
+      }
+
+      diagnostics.surfaceGlowPickCanvasX = details.normalizedX;
+      diagnostics.surfaceGlowPickCanvasY = details.normalizedY;
+      diagnostics.surfaceGlowPickU = details.decodedU;
+      diagnostics.surfaceGlowPickV = details.decodedV;
+      diagnostics.surfaceGlowPickFoundPlane = details.foundPlane;
+      diagnostics.surfaceGlowPickEffectiveDepth = currentEffectiveDepth;
+      callbackRef.current.onDiagnosticsChange?.({ ...diagnostics });
+    };
+
+    const ensurePickRenderTarget = () => {
+      const drawingBufferSize = new THREE.Vector2();
+      renderer.getDrawingBufferSize(drawingBufferSize);
+
+      const width = Math.max(SURFACE_PICK_TARGET_MIN_SIZE, Math.floor(drawingBufferSize.x));
+      const height = Math.max(SURFACE_PICK_TARGET_MIN_SIZE, Math.floor(drawingBufferSize.y));
+
+      if (!pickRenderTarget || pickRenderTarget.width !== width || pickRenderTarget.height !== height) {
+        pickRenderTarget?.dispose();
+        pickRenderTarget = new THREE.WebGLRenderTarget(width, height, {
+          depthBuffer: true,
+          stencilBuffer: false,
+          minFilter: THREE.NearestFilter,
+          magFilter: THREE.NearestFilter,
+          generateMipmaps: false,
+          format: THREE.RGBAFormat,
+          type: THREE.UnsignedByteType,
+        });
+      }
+
+      return pickRenderTarget;
+    };
+
+    const tryPickSurfaceUv = (event: PointerEvent, diagnostics: EnvironmentDiagnostics) => {
+      if (!depthTexture) {
+        updatePlacementDebugDiagnostics(diagnostics, {
+          normalizedX: -1,
+          normalizedY: -1,
+          decodedU: -1,
+          decodedV: -1,
+          foundPlane: false,
+        });
+        hidePlacementMarkers();
+        return null;
+      }
+
+      const canvas = renderer.domElement;
+      const rect = canvas.getBoundingClientRect();
+
+      if (rect.width <= 0 || rect.height <= 0) {
+        updatePlacementDebugDiagnostics(diagnostics, {
+          normalizedX: -1,
+          normalizedY: -1,
+          decodedU: -1,
+          decodedV: -1,
+          foundPlane: false,
+        });
+        hidePlacementMarkers();
+        return null;
+      }
+
+      const normalizedX = (event.clientX - rect.left) / rect.width;
+      const normalizedY = (event.clientY - rect.top) / rect.height;
+
+      if (
+        normalizedX < 0 ||
+        normalizedX > 1 ||
+        normalizedY < 0 ||
+        normalizedY > 1
+      ) {
+        updatePlacementDebugDiagnostics(diagnostics, {
+          normalizedX,
+          normalizedY,
+          decodedU: -1,
+          decodedV: -1,
+          foundPlane: false,
+        });
+        hidePlacementMarkers();
+        return null;
+      }
+
+      const ndcX = normalizedX * 2 - 1;
+      const ndcY = -(normalizedY * 2 - 1);
+      ndcPointer.set(ndcX, ndcY);
+
+      const target = ensurePickRenderTarget();
+      const width = target.width;
+      const height = target.height;
+      const pixelX = Math.max(0, Math.min(width - 1, Math.floor(normalizedX * width)));
+      const pixelY = Math.max(0, Math.min(height - 1, Math.floor((1 - normalizedY) * height)));
+
+      scene.updateMatrixWorld(true);
+      camera.updateMatrixWorld(true);
+
+      pickingPlane.matrix.copy(plane.matrixWorld);
+      pickingMaterial.uniforms.uDisplacementMap.value = depthTexture;
+      pickingMaterial.uniforms.uDisplacementScale.value = currentDisplacementScale;
+
+      const previousRenderTarget = renderer.getRenderTarget();
+      const previousToneMapping = renderer.toneMapping;
+      const previousOutputColorSpace = renderer.outputColorSpace;
+      const previousClearColor = renderer.getClearColor(new THREE.Color());
+      const previousClearAlpha = renderer.getClearAlpha();
+      const previousAutoClear = renderer.autoClear;
+      const previousXrState = renderer.xr.enabled;
+
+      renderer.xr.enabled = false;
+      renderer.toneMapping = THREE.NoToneMapping;
+      renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
+      renderer.autoClear = true;
+      renderer.setRenderTarget(target);
+      renderer.setClearColor(new THREE.Color(0x000000), 0);
+      renderer.clear(true, true, true);
+      renderer.render(pickingScene, camera);
+      renderer.readRenderTargetPixels(target, pixelX, pixelY, 1, 1, pickPixel);
+      renderer.setRenderTarget(previousRenderTarget);
+      renderer.setClearColor(previousClearColor, previousClearAlpha);
+      renderer.autoClear = previousAutoClear;
+      renderer.outputColorSpace = previousOutputColorSpace;
+      renderer.toneMapping = previousToneMapping;
+      renderer.xr.enabled = previousXrState;
+
+      const foundPlane = pickPixel[3] > 0;
+
+      if (!foundPlane) {
+        updatePlacementDebugDiagnostics(diagnostics, {
+          normalizedX,
+          normalizedY,
+          decodedU: -1,
+          decodedV: -1,
+          foundPlane: false,
+        });
+
+        if (import.meta.env.DEV) {
+          setMarkerPosition(
+            clickMarkerRef.current,
+            normalizedX * rect.width,
+            normalizedY * rect.height,
+          );
+          if (uvMarkerRef.current) {
+            uvMarkerRef.current.style.opacity = "0";
+          }
+        }
+
+        return null;
+      }
+
+      const decodedU = THREE.MathUtils.clamp(pickPixel[0] / 255, 0, 1);
+      const decodedV = THREE.MathUtils.clamp(pickPixel[1] / 255, 0, 1);
+
+      updatePlacementDebugDiagnostics(diagnostics, {
+        normalizedX,
+        normalizedY,
+        decodedU,
+        decodedV,
+        foundPlane: true,
+      });
+
+      if (import.meta.env.DEV) {
+        setMarkerPosition(
+          clickMarkerRef.current,
+          normalizedX * rect.width,
+          normalizedY * rect.height,
+        );
+
+        // Show the resolved placement marker on the currently visible displaced mesh.
+        raycaster.setFromCamera(ndcPointer, camera);
+        const debugHit = raycaster.intersectObject(plane, false)[0];
+
+        if (debugHit?.point) {
+          const projected = debugHit.point.clone().project(camera);
+          const markerX = ((projected.x + 1) / 2) * rect.width;
+          const markerY = ((1 - projected.y) / 2) * rect.height;
+          setMarkerPosition(uvMarkerRef.current, markerX, markerY);
+        } else {
+          setMarkerPosition(
+            uvMarkerRef.current,
+            normalizedX * rect.width,
+            normalizedY * rect.height,
+          );
+        }
+      }
+
+      return {
+        u: decodedU,
+        v: decodedV,
+      };
+    };
 
     const glowGeometry = new THREE.PlaneGeometry(1, 1, 1, 1);
     const glowMaterial = new THREE.MeshBasicMaterial({
@@ -617,7 +880,7 @@ if (uSurfaceGlowEnabled > 0.5) {
     };
 
     const handlePointerMove = (event: PointerEvent) => {
-      const rect = mount.getBoundingClientRect();
+      const rect = renderer.domElement.getBoundingClientRect();
       pointerTarget.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
       pointerTarget.y = ((event.clientY - rect.top) / rect.height) * 2 - 1;
       lastPointerInputAt = elapsedSeconds;
@@ -650,7 +913,30 @@ if (uSurfaceGlowEnabled > 0.5) {
         return;
       }
 
-      const rect = mount.getBoundingClientRect();
+      if (currentConfig.surfaceGlowPlacementModeEnabled) {
+        const pickedSurfaceUv = tryPickSurfaceUv(event, diagnostics);
+
+        if (!pickedSurfaceUv) {
+          return;
+        }
+
+        if (event.shiftKey || event.altKey) {
+          callbackRef.current.onRemoveNearestSurfaceGlowHotspot?.(
+            pickedSurfaceUv.u,
+            pickedSurfaceUv.v,
+          );
+          return;
+        }
+
+        callbackRef.current.onCreateSurfaceGlowHotspot?.(
+          pickedSurfaceUv.u,
+          pickedSurfaceUv.v,
+          Math.random(),
+        );
+        return;
+      }
+
+      const rect = renderer.domElement.getBoundingClientRect();
       ndcPointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
       ndcPointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
 
@@ -668,16 +954,6 @@ if (uSurfaceGlowEnabled > 0.5) {
       }
 
       const normalizedV = 1 - hitUv.y;
-
-      if (currentConfig.surfaceGlowPlacementModeEnabled) {
-        if (event.shiftKey || event.altKey) {
-          callbackRef.current.onRemoveNearestSurfaceGlowHotspot?.(hitUv.x, normalizedV);
-          return;
-        }
-
-        callbackRef.current.onCreateSurfaceGlowHotspot?.(hitUv.x, normalizedV, Math.random());
-        return;
-      }
 
       if (currentConfig.twinklePlacementModeEnabled) {
         if (event.shiftKey || event.altKey) {
@@ -936,6 +1212,8 @@ if (uSurfaceGlowEnabled > 0.5) {
 
       planeMaterial.displacementScale =
         effectiveDepth * activePreset.depth.depthStrength * DISPLACEMENT_SCALE_MULTIPLIER;
+      currentEffectiveDepth = effectiveDepth;
+      currentDisplacementScale = planeMaterial.displacementScale;
       planeMaterial.bumpScale = effectiveDepth * 0.04;
 
       planeGroup.position.x =
@@ -1078,6 +1356,8 @@ if (uSurfaceGlowEnabled > 0.5) {
 
       planeGeometry.dispose();
       planeMaterial.dispose();
+      pickingMaterial.dispose();
+      pickRenderTarget?.dispose();
       glowGeometry.dispose();
       glowMaterial.dispose();
 
@@ -1095,6 +1375,16 @@ if (uSurfaceGlowEnabled > 0.5) {
     <>
       <div ref={mountRef} className="environment-lab__scene-root" />
       <div ref={hazeRef} className="environment-lab__haze" aria-hidden="true" />
+      {import.meta.env.DEV && (
+        <>
+          <div ref={clickMarkerRef} className="environment-lab__debug-marker" aria-hidden="true" />
+          <div
+            ref={uvMarkerRef}
+            className="environment-lab__debug-marker environment-lab__debug-marker--uv"
+            aria-hidden="true"
+          />
+        </>
+      )}
       {placementNote && (
         <p className="environment-lab__placement-note" aria-live="polite">
           {placementNote}

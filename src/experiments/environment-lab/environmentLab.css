@@ -61,6 +61,48 @@
   pointer-events: none;
 }
 
+.environment-lab__debug-marker {
+  position: absolute;
+  z-index: 2;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 128, 80, 0.95);
+  border-radius: 999px;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 120ms linear;
+}
+
+.environment-lab__debug-marker::before,
+.environment-lab__debug-marker::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  background: rgba(255, 128, 80, 0.95);
+  transform: translate(-50%, -50%);
+}
+
+.environment-lab__debug-marker::before {
+  width: 2px;
+  height: 20px;
+}
+
+.environment-lab__debug-marker::after {
+  width: 20px;
+  height: 2px;
+}
+
+.environment-lab__debug-marker--uv {
+  border-color: rgba(96, 255, 200, 0.95);
+}
+
+.environment-lab__debug-marker--uv::before,
+.environment-lab__debug-marker--uv::after {
+  background: rgba(96, 255, 200, 0.95);
+}
+
 .environment-lab__overlay {
   position: absolute;
   top: clamp(12px, 2.4vw, 24px);

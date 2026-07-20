@@ -23,6 +23,12 @@ const INITIAL_DIAGNOSTICS: EnvironmentDiagnostics = {
   surfaceGlowDefaultIntensity: 0,
   surfaceGlowAnimationActive: false,
   automaticMotionActive: false,
+  surfaceGlowPickCanvasX: -1,
+  surfaceGlowPickCanvasY: -1,
+  surfaceGlowPickU: -1,
+  surfaceGlowPickV: -1,
+  surfaceGlowPickFoundPlane: false,
+  surfaceGlowPickEffectiveDepth: 0,
 };
 
 function removeNearestHotspot<T extends { u: number; v: number }>(

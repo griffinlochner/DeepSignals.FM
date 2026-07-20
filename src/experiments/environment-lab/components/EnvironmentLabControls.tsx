@@ -932,6 +932,24 @@ function EnvironmentLabControls({
             Surface glow animation active: {diagnostics.surfaceGlowAnimationActive ? "yes" : "no"}
           </li>
           <li>Automatic motion active: {diagnostics.automaticMotionActive ? "yes" : "no"}</li>
+          {import.meta.env.DEV && (
+            <>
+              <li>
+                Pick canvas XY: {diagnostics.surfaceGlowPickCanvasX?.toFixed(3) ?? "-"},{" "}
+                {diagnostics.surfaceGlowPickCanvasY?.toFixed(3) ?? "-"}
+              </li>
+              <li>
+                Pick decoded UV: {diagnostics.surfaceGlowPickU?.toFixed(3) ?? "-"},{" "}
+                {diagnostics.surfaceGlowPickV?.toFixed(3) ?? "-"}
+              </li>
+              <li>
+                Pick found plane: {diagnostics.surfaceGlowPickFoundPlane ? "yes" : "no"}
+              </li>
+              <li>
+                Pick effective depth: {diagnostics.surfaceGlowPickEffectiveDepth?.toFixed(3) ?? "-"}
+              </li>
+            </>
+          )}
         </ul>
 
         {reducedMotionActive && (

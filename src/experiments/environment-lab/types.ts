@@ -110,6 +110,12 @@ export type EnvironmentDiagnostics = {
   surfaceGlowDefaultIntensity: number;
   surfaceGlowAnimationActive: boolean;
   automaticMotionActive: boolean;
+  surfaceGlowPickCanvasX?: number;
+  surfaceGlowPickCanvasY?: number;
+  surfaceGlowPickU?: number;
+  surfaceGlowPickV?: number;
+  surfaceGlowPickFoundPlane?: boolean;
+  surfaceGlowPickEffectiveDepth?: number;
 };
 
 export type EnvironmentLabSceneProps = {
