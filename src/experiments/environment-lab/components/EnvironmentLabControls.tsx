@@ -18,6 +18,7 @@ type EnvironmentLabControlsProps = {
   activeBehaviorPresetId: string | null;
   activeBehaviorStatusLabel: string;
   selectedScenePresetId: string;
+  selectedScenePresetImported: boolean;
   baselineSceneName: string;
   baselineSceneId: string;
   sceneModified: boolean;
@@ -77,6 +78,7 @@ function EnvironmentLabControls({
   activeBehaviorPresetId,
   activeBehaviorStatusLabel,
   selectedScenePresetId,
+  selectedScenePresetImported,
   baselineSceneName,
   baselineSceneId,
   sceneModified,
@@ -215,7 +217,7 @@ function EnvironmentLabControls({
       : null) ?? ENVIRONMENT_BEHAVIOR_PRESETS[0];
   const activeAsset = assets.find((asset) => asset.id === scenePreset.assetId) ?? assets[0];
   const existingSceneOptions =
-    scenePresets.some((preset) => preset.id === selectedScenePresetId)
+    !selectedScenePresetImported || scenePresets.some((preset) => preset.id === selectedScenePresetId)
       ? scenePresets
       : [
           ...scenePresets,

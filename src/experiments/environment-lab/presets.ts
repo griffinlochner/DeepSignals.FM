@@ -9,6 +9,7 @@ import type {
 export const UV_JUNGLE_ASSET_ID = "uv-jungle";
 export const ANALOG_SIGNAL_LABORATORY_ASSET_ID = "analog-signal-laboratory";
 export const BIOLUMINESCENT_PSY_FOREST_ASSET_ID = "bioluminescent-psy-forest";
+export const BIOLUMINESCENT_PSY_REEF_ASSET_ID = "bioluminescent-psy-reef";
 
 export const IMAGE_ENVIRONMENT_ASSETS: ImageEnvironmentAsset[] = [
   {
@@ -39,6 +40,17 @@ export const IMAGE_ENVIRONMENT_ASSETS: ImageEnvironmentAsset[] = [
       "/environments/bioluminescent-psy-forest/bioluminescent-psy-forest-depth.png",
     metadata: {
       description: "Bioluminescent forest artwork and aligned depth map for calm organic environment authoring.",
+    },
+  },
+  {
+    id: BIOLUMINESCENT_PSY_REEF_ASSET_ID,
+    name: "Bioluminescent Psy Reef",
+    colorImageUrl:
+      "/environments/bioluminescent-psy-reef/bioluminescent-psy-reef-color.webp",
+    depthMapUrl:
+      "/environments/bioluminescent-psy-reef/bioluminescent-psy-reef-depth.png",
+    metadata: {
+      description: "Bioluminescent reef artwork and aligned depth map for laboratory scene authoring.",
     },
   },
 ];

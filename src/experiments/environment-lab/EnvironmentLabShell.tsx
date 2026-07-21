@@ -20,6 +20,7 @@ type EnvironmentLabShellProps = {
   activeBehaviorPresetId: string | null;
   activeBehaviorStatusLabel: string;
   selectedScenePresetId: string;
+  selectedScenePresetImported: boolean;
   baselineSceneName: string;
   baselineSceneId: string;
   sceneModified: boolean;
@@ -66,6 +67,7 @@ function EnvironmentLabShell({
   activeBehaviorPresetId,
   activeBehaviorStatusLabel,
   selectedScenePresetId,
+  selectedScenePresetImported,
   baselineSceneName,
   baselineSceneId,
   sceneModified,
@@ -135,6 +137,7 @@ function EnvironmentLabShell({
             activeBehaviorPresetId={activeBehaviorPresetId}
             activeBehaviorStatusLabel={activeBehaviorStatusLabel}
             selectedScenePresetId={selectedScenePresetId}
+            selectedScenePresetImported={selectedScenePresetImported}
             baselineSceneName={baselineSceneName}
             baselineSceneId={baselineSceneId}
             sceneModified={sceneModified}

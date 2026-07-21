@@ -198,6 +198,7 @@ function EnvironmentLabPage() {
   const [selectedScenePresetId, setSelectedScenePresetId] = useState(
     NEUTRAL_BASELINE_SCENE_PRESET.id,
   );
+  const [selectedScenePresetImported, setSelectedScenePresetImported] = useState(false);
   const [baselineScenePreset, setBaselineScenePreset] = useState<ImageEnvironmentScenePreset>(() =>
     cloneScenePreset(NEUTRAL_BASELINE_SCENE_PRESET),
   );
@@ -302,6 +303,7 @@ function EnvironmentLabPage() {
     setScenePreset(nextScenePreset);
     setBaselineScenePreset(cloneScenePreset(nextScenePreset));
     setSelectedScenePresetId(preset.id);
+    setSelectedScenePresetImported(false);
     setSession((current) => ({
       ...current,
       surfaceGlowPlacementModeEnabled: false,
@@ -321,6 +323,7 @@ function EnvironmentLabPage() {
     setScenePreset(neutralScene);
     setBaselineScenePreset(cloneScenePreset(neutralScene));
     setSelectedScenePresetId(neutralScene.id);
+    setSelectedScenePresetImported(false);
     setSession((current) => ({
       ...current,
       surfaceGlowPlacementModeEnabled: false,
@@ -389,6 +392,7 @@ function EnvironmentLabPage() {
     setScenePreset(importedScene);
     setBaselineScenePreset(cloneScenePreset(importedScene));
     setSelectedScenePresetId(importedScene.id);
+    setSelectedScenePresetImported(true);
     setSession((current) => ({
       ...current,
       surfaceGlowPlacementModeEnabled: false,
@@ -418,6 +422,7 @@ function EnvironmentLabPage() {
       activeBehaviorPresetId={activeBehaviorPresetId}
       activeBehaviorStatusLabel={activeBehaviorStatusLabel}
       selectedScenePresetId={selectedScenePresetId}
+      selectedScenePresetImported={selectedScenePresetImported}
       baselineSceneName={baselineScenePreset.name}
       baselineSceneId={baselineScenePreset.id}
       sceneModified={sceneModified}
@@ -588,6 +593,7 @@ function EnvironmentLabPage() {
         setScenePreset(neutralScene);
         setBaselineScenePreset(cloneScenePreset(neutralScene));
         setSelectedScenePresetId(neutralScene.id);
+        setSelectedScenePresetImported(false);
         setSession((current) => ({
           ...current,
           surfaceGlowPlacementModeEnabled: false,
