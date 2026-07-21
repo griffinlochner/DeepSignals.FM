@@ -3,6 +3,7 @@ import { AUDIO_SOURCES, DEMO_MODULATION_MANIPULATION_AUDIO_SOURCE } from './audi
 import type { AudioPlaybackStatus, AudioSource } from './playerTypes'
 
 type UsePersistentAudioControllerResult = {
+  audioElement: HTMLAudioElement | null
   audioSource: AudioSource
   playbackStatus: AudioPlaybackStatus
   currentTime: number
@@ -61,6 +62,7 @@ export function usePersistentAudioController(initialVolume = 0.7, selectedSource
   const volumeRef = useRef(safeInitialVolume)
   const seekableRef = useRef(DEMO_MODULATION_MANIPULATION_AUDIO_SOURCE.isSeekable)
   const [playbackStatus, setPlaybackStatus] = useState<AudioPlaybackStatus>('idle')
+  const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null)
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
   const [volume, setVolumeState] = useState(safeInitialVolume)
@@ -92,6 +94,8 @@ export function usePersistentAudioController(initialVolume = 0.7, selectedSource
     audio.volume = volumeRef.current
     audio.src = audioSource.audioUrl
     audioElementRef.current = audio
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setAudioElement(audio)
 
     const syncVolume = () => {
       setVolumeState(audio.volume)
@@ -211,6 +215,7 @@ export function usePersistentAudioController(initialVolume = 0.7, selectedSource
       audio.removeAttribute('src')
       audio.load()
       audioElementRef.current = null
+      setAudioElement(null)
       pendingPlayRequestRef.current = false
     }
   }, [audioSource.audioUrl])
@@ -297,6 +302,7 @@ export function usePersistentAudioController(initialVolume = 0.7, selectedSource
   }
 
   return {
+    audioElement,
     audioSource,
     playbackStatus,
     currentTime,

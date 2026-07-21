@@ -24,6 +24,34 @@ export type AudioSource = {
 
 export type AudioPlaybackStatus = 'idle' | 'loading' | 'playing' | 'paused' | 'error'
 
+export type AudioAnalysisStatus =
+  | 'unavailable'
+  | 'initializing'
+  | 'suspended'
+  | 'running'
+  | 'paused'
+  | 'error'
+
+export type AudioReactiveSnapshot = {
+  energy: number
+  bass: number
+  mids: number
+  highs: number
+  smoothedEnergy: number
+  transient: number
+  isActive: boolean
+}
+
+export type AudioAnalysisGraphDetails = {
+  contextState: AudioContextState | null
+  sampleRate: number | null
+  fftSize: number | null
+  frequencyBinCount: number | null
+  smoothingTimeConstant: number | null
+  minDecibels: number | null
+  maxDecibels: number | null
+}
+
 export type TrackInfo = {
   title: string
   artist: string

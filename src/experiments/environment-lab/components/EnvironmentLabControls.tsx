@@ -348,7 +348,7 @@ function EnvironmentLabControls({
         <summary>2. Starting Behavior &amp; Preview</summary>
 
         <p className="environment-lab__hint">
-          Choose a starting personality, then preview how the environment behaves.
+          Choose a starting behavior, then preview how the environment behaves.
         </p>
 
         <div className="environment-lab__button-row">

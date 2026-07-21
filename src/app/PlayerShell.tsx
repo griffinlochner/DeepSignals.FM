@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { AUDIO_SOURCES } from './audioSources'
+import AudioAnalysisDiagnostics from '../components/AudioAnalysisDiagnostics'
 import FloatingPlayerPanel from '../components/FloatingPlayerPanel'
 import StationIdentOverlay from '../components/StationIdentOverlay'
 import VisualFeedWindow from '../components/VisualFeedWindow'
@@ -13,6 +14,7 @@ import {
   BIOLUMINESCENT_PSY_REEF_PRODUCTION_ASSET,
   UV_JUNGLE_PRODUCTION_ASSET,
 } from '../themes/image-depth/productionScenePresets'
+import { useAudioAnalysis } from './useAudioAnalysis'
 import { usePersistentAudioController } from './usePersistentAudioController'
 import { defaultThemeId } from '../themes/themeRegistry'
 import '../styles/player.css'
@@ -95,7 +97,17 @@ function readStoredPlayerPreferences(): PlayerPreferencesV1 {
   }
 }
 
+function isAudioDebugEnabled() {
+  if (!import.meta.env.DEV || typeof window === 'undefined') {
+    return false
+  }
+
+  const searchParams = new URLSearchParams(window.location.search)
+  return searchParams.get('audioDebug') === '1'
+}
+
 function PlayerShell({ className }: PlayerShellProps) {
+  const [audioDebugEnabled] = useState(() => isAudioDebugEnabled())
   const [storedPreferences] = useState<PlayerPreferencesV1>(() => readStoredPlayerPreferences())
   const [selectedThemeId, setSelectedThemeId] = useState<ThemeId>(storedPreferences.selectedThemeId)
   const [selectedSignalId, setSelectedSignalId] = useState<string | null>(storedPreferences.selectedAudioSourceId)
@@ -103,6 +115,11 @@ function PlayerShell({ className }: PlayerShellProps) {
   const [panelCollapsed, setPanelCollapsed] = useState(false)
   const [visualFeedOpen, setVisualFeedOpen] = useState(storedPreferences.visualFeedOpen)
   const audioController = usePersistentAudioController(storedPreferences.volume, selectedSignalId ?? undefined)
+  const audioAnalysis = useAudioAnalysis({
+    audioElement: audioController.audioElement,
+    playbackStatus: audioController.playbackStatus,
+    publishDiagnostics: audioDebugEnabled,
+  })
 
   const imageDepthAssetsByThemeId = useMemo(
     () =>
@@ -202,6 +219,14 @@ function PlayerShell({ className }: PlayerShellProps) {
     return audioController.audioSource.displayName
   }, [audioController.audioSource])
 
+  const handleAudioTogglePlay = async () => {
+    if (audioController.playbackStatus !== 'playing') {
+      await audioAnalysis.requestInitializationFromUserGesture()
+    }
+
+    await audioController.togglePlay()
+  }
+
   if (!activeTheme) {
     return null
   }
@@ -225,6 +250,17 @@ function PlayerShell({ className }: PlayerShellProps) {
 
       <StationIdentOverlay isAudioPlaying={audioController.playbackStatus === 'playing'} />
 
+      {audioDebugEnabled ? (
+        <AudioAnalysisDiagnostics
+          status={audioAnalysis.status}
+          snapshot={audioAnalysis.snapshot}
+          graphDetails={audioAnalysis.graphDetails}
+          errorMessage={audioAnalysis.errorMessage}
+          diagnosticsPublishHz={audioAnalysis.diagnosticsPublishHz}
+          analysisCalculationMode={audioAnalysis.analysisCalculationMode}
+        />
+      ) : null}
+
       <FloatingPlayerPanel
         environmentName={activeTheme.name}
         environmentOptions={themeOptions}
@@ -237,7 +273,7 @@ function PlayerShell({ className }: PlayerShellProps) {
         audioMetadataLoaded={audioController.metadataLoaded}
         audioErrorMessage={audioController.errorMessage}
         audioIsSeeking={audioController.isSeeking}
-        onAudioTogglePlay={audioController.togglePlay}
+        onAudioTogglePlay={handleAudioTogglePlay}
         onAudioSeek={audioController.seekTo}
         signalOptions={signals}
         selectedSignalId={selectedSignalId}
