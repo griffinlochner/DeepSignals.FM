@@ -36,25 +36,54 @@ export type ImageDepthBehaviorSettings = {
   };
 };
 
+export type ImageDepthSurfaceGlowPulseMode =
+  | "brightness"
+  | "bloom"
+  | "brightness-bloom"
+  | "soft-blink";
+
+export type ImageDepthSurfaceGlowHotspot = {
+  id: string;
+  u: number;
+  v: number;
+  color: string;
+  radius: number;
+  softness: number;
+  intensity: number;
+  pulseEnabled: boolean;
+  pulseMode: ImageDepthSurfaceGlowPulseMode;
+  pulseAmount: number;
+  minimumIntensityMultiplier: number;
+  maximumIntensityMultiplier: number;
+  radiusExpansionMultiplier: number;
+  pulseCycleSeconds: number;
+  hueDriftEnabled: boolean;
+  hueDriftRangeDegrees: number;
+  hueDriftCycleSeconds: number;
+  phase: number;
+};
+
+export type ImageDepthSurfaceGlowDefaults = {
+  color: string;
+  radius: number;
+  softness: number;
+  intensity: number;
+  pulseEnabled: boolean;
+  pulseMode: ImageDepthSurfaceGlowPulseMode;
+  pulseAmount: number;
+  minimumIntensityMultiplier: number;
+  maximumIntensityMultiplier: number;
+  radiusExpansionMultiplier: number;
+  pulseCycleSeconds: number;
+  hueDriftEnabled: boolean;
+  hueDriftRangeDegrees: number;
+  hueDriftCycleSeconds: number;
+};
+
 export type ImageDepthSurfaceGlows = {
   enabled: boolean;
-  hotspots: Array<{ id: string; u: number; v: number }>;
-  defaults?: {
-    color: string;
-    radius: number;
-    softness: number;
-    intensity: number;
-    pulseEnabled: boolean;
-    pulseMode: "brightness" | "bloom" | "brightness-bloom" | "soft-blink";
-    pulseAmount: number;
-    minimumIntensityMultiplier: number;
-    maximumIntensityMultiplier: number;
-    radiusExpansionMultiplier: number;
-    pulseCycleSeconds: number;
-    hueDriftEnabled: boolean;
-    hueDriftRangeDegrees: number;
-    hueDriftCycleSeconds: number;
-  };
+  hotspots: ImageDepthSurfaceGlowHotspot[];
+  defaults?: ImageDepthSurfaceGlowDefaults;
 };
 
 export type ImageDepthScenePreset = {

@@ -7,6 +7,7 @@ import type { ThemeId, ThemeSceneProps } from '../themes/themeTypes'
 import { preloadImageDepthTextures } from '../themes/image-depth/imageDepthTextureCache'
 import {
   ANALOG_SIGNAL_LABORATORY_PRODUCTION_ASSET,
+  BIOLUMINESCENT_PSY_FOREST_PRODUCTION_ASSET,
   UV_JUNGLE_PRODUCTION_ASSET,
 } from '../themes/image-depth/productionScenePresets'
 import '../styles/player.css'
@@ -29,6 +30,7 @@ function PlayerShell({ className }: PlayerShellProps) {
       new Map<ThemeId, typeof UV_JUNGLE_PRODUCTION_ASSET>([
         ['uv-reactive-jungle', UV_JUNGLE_PRODUCTION_ASSET],
         ['analog-signal-laboratory', ANALOG_SIGNAL_LABORATORY_PRODUCTION_ASSET],
+        ['bioluminescent-psy-forest', BIOLUMINESCENT_PSY_FOREST_PRODUCTION_ASSET],
       ]),
     [],
   )
