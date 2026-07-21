@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import FloatingPlayerPanel from '../components/FloatingPlayerPanel'
 import VisualFeedWindow from '../components/VisualFeedWindow'
 import { themeRegistry } from '../themes/themeRegistry'
-import type { SignalSource, PlaybackState } from './playerTypes'
+import type { SignalSource } from './playerTypes'
 import type { ThemeId, ThemeSceneProps } from '../themes/themeTypes'
 import { preloadImageDepthTextures } from '../themes/image-depth/imageDepthTextureCache'
 import {
@@ -11,6 +11,7 @@ import {
   BIOLUMINESCENT_PSY_REEF_PRODUCTION_ASSET,
   UV_JUNGLE_PRODUCTION_ASSET,
 } from '../themes/image-depth/productionScenePresets'
+import { usePersistentAudioController } from './usePersistentAudioController'
 import '../styles/player.css'
 
 type PlayerShellProps = {
@@ -19,12 +20,11 @@ type PlayerShellProps = {
 
 function PlayerShell({ className }: PlayerShellProps) {
   const [selectedThemeId, setSelectedThemeId] = useState<ThemeId>('minimal')
-  const [selectedSignalId, setSelectedSignalId] = useState<string | null>(null)
-  const [isPlaying, setIsPlaying] = useState<PlaybackState>('stopped')
-  const [volume, setVolume] = useState(0.7)
+  const [selectedSignalId, setSelectedSignalId] = useState<string | null>('test-alpha')
   const [motionEnabled, setMotionEnabled] = useState(true)
   const [panelCollapsed, setPanelCollapsed] = useState(false)
   const [visualFeedOpen, setVisualFeedOpen] = useState(false)
+  const audioController = usePersistentAudioController()
 
   const imageDepthAssetsByThemeId = useMemo(
     () =>
@@ -87,8 +87,8 @@ function PlayerShell({ className }: PlayerShellProps) {
   }
 
   const sceneProps: ThemeSceneProps = {
-    isPlaying: isPlaying === 'playing',
-    volume,
+    isPlaying: audioController.playbackStatus === 'playing',
+    volume: audioController.volume,
     signalId: selectedSignalId,
     audioLevel: 0,
     reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches,
@@ -102,7 +102,7 @@ function PlayerShell({ className }: PlayerShellProps) {
   const SceneComponent = activeTheme.Scene
   const signalState = !selectedSignalId
     ? 'dormant'
-    : isPlaying === 'playing'
+    : audioController.playbackStatus === 'playing'
       ? 'playing'
       : 'armed'
 
@@ -121,14 +121,24 @@ function PlayerShell({ className }: PlayerShellProps) {
         environmentOptions={themeOptions}
         selectedEnvironmentId={selectedThemeId}
         onEnvironmentChange={handleThemeChange}
+        audioSource={audioController.audioSource}
+        audioPlaybackStatus={audioController.playbackStatus}
+        audioCurrentTime={audioController.currentTime}
+        audioDuration={audioController.duration}
+        audioSeekable={audioController.seekable}
+        audioErrorMessage={audioController.errorMessage}
+        audioMuted={audioController.muted}
+        audioIsSeeking={audioController.isSeeking}
+        onAudioTogglePlay={audioController.togglePlay}
+        onAudioToggleMute={audioController.toggleMute}
+        onAudioSeek={audioController.seekTo}
         signalOptions={signals}
         selectedSignalId={selectedSignalId}
         onSignalChange={handleSignalChange}
         signalLabel={selectedSignal?.label || null}
-        isPlaying={isPlaying === 'playing'}
-        onPlayToggle={(playing: boolean) => setIsPlaying(playing ? 'playing' : 'stopped')}
-        volume={volume}
-        onVolumeChange={setVolume}
+        isPlaying={audioController.playbackStatus === 'playing'}
+        volume={audioController.volume}
+        onVolumeChange={audioController.setVolume}
         motionEnabled={motionEnabled}
         supportsMotion={supportsMotion}
         onMotionToggle={setMotionEnabled}
