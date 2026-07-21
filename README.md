@@ -19,6 +19,28 @@ The current public site is a "coming soon" experience while the player is being 
 
 Built primarily as a learning project and a love letter to psychedelic trance.
 
+## Image Environment Workshop
+
+DeepSignals.FM includes an Environment Laboratory for authoring immersive image/depth environments at:
+
+`/experiments/environment-lab`
+
+Proven workflow:
+
+1. Generate or create source artwork.
+2. Upscale to the desired master resolution.
+3. Generate a matching depth map.
+4. Optimize the production color asset.
+5. Add the asset pair under `public/environments`.
+6. Register the asset in the laboratory.
+7. Tune behavior.
+8. Optionally place Surface Glow hotspots.
+9. Export production-ready scene JSON.
+10. Promote the authored scene into the production player.
+11. Validate and commit.
+
+Detailed guide: `docs/creating-image-environments.md`
+
 ## Tech Stack
 
 - TypeScript

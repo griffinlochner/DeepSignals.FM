@@ -16,8 +16,12 @@ type EnvironmentLabShellProps = {
   surfaceGlowPlacementModeEnabled: boolean;
   surfaceGlowCapacityReached: boolean;
   scenePreset: ImageEnvironmentScenePreset;
-  selectedBehaviorPresetId: string;
+  activeBehaviorPresetId: string | null;
+  activeBehaviorStatusLabel: string;
   selectedScenePresetId: string;
+  baselineSceneName: string;
+  baselineSceneId: string;
+  sceneModified: boolean;
   reducedMotionActive: boolean;
   status: string;
   diagnostics: EnvironmentDiagnostics;
@@ -39,6 +43,7 @@ type EnvironmentLabShellProps = {
   onApplySurfaceGlowDefaultsToAll: () => void;
   onResetScene: () => void;
   onCopySceneJson: () => void;
+  onCopyProductionSceneJson: () => void;
   onImportTextChange: (value: string) => void;
   onApplyImportedScene: () => void;
   onDiagnosticsChange: (diagnostics: EnvironmentDiagnostics) => void;
@@ -54,8 +59,12 @@ function EnvironmentLabShell({
   surfaceGlowPlacementModeEnabled,
   surfaceGlowCapacityReached,
   scenePreset,
-  selectedBehaviorPresetId,
+  activeBehaviorPresetId,
+  activeBehaviorStatusLabel,
   selectedScenePresetId,
+  baselineSceneName,
+  baselineSceneId,
+  sceneModified,
   reducedMotionActive,
   status,
   diagnostics,
@@ -77,6 +86,7 @@ function EnvironmentLabShell({
   onApplySurfaceGlowDefaultsToAll,
   onResetScene,
   onCopySceneJson,
+  onCopyProductionSceneJson,
   onImportTextChange,
   onApplyImportedScene,
   onDiagnosticsChange,
@@ -114,8 +124,12 @@ function EnvironmentLabShell({
           <EnvironmentLabControls
             playbackState={playbackState}
             scenePreset={scenePreset}
-            selectedBehaviorPresetId={selectedBehaviorPresetId}
+            activeBehaviorPresetId={activeBehaviorPresetId}
+            activeBehaviorStatusLabel={activeBehaviorStatusLabel}
             selectedScenePresetId={selectedScenePresetId}
+            baselineSceneName={baselineSceneName}
+            baselineSceneId={baselineSceneId}
+            sceneModified={sceneModified}
             reducedMotionActive={reducedMotionActive}
             diagnostics={diagnostics}
             surfaceGlowPlacementModeEnabled={surfaceGlowPlacementModeEnabled}
@@ -135,6 +149,7 @@ function EnvironmentLabShell({
             onApplySurfaceGlowDefaultsToAll={onApplySurfaceGlowDefaultsToAll}
             onResetScene={onResetScene}
             onCopySceneJson={onCopySceneJson}
+            onCopyProductionSceneJson={onCopyProductionSceneJson}
             onImportTextChange={onImportTextChange}
             onApplyImportedScene={onApplyImportedScene}
             assets={assets}

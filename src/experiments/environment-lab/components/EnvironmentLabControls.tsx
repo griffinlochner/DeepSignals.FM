@@ -13,8 +13,12 @@ import type {
 type EnvironmentLabControlsProps = {
   playbackState: EnvironmentPlaybackState;
   scenePreset: ImageEnvironmentScenePreset;
-  selectedBehaviorPresetId: string;
+  activeBehaviorPresetId: string | null;
+  activeBehaviorStatusLabel: string;
   selectedScenePresetId: string;
+  baselineSceneName: string;
+  baselineSceneId: string;
+  sceneModified: boolean;
   reducedMotionActive: boolean;
   diagnostics: EnvironmentDiagnostics;
   surfaceGlowPlacementModeEnabled: boolean;
@@ -36,6 +40,7 @@ type EnvironmentLabControlsProps = {
   onApplySurfaceGlowDefaultsToAll: () => void;
   onResetScene: () => void;
   onCopySceneJson: () => void;
+  onCopyProductionSceneJson: () => void;
   onImportTextChange: (value: string) => void;
   onApplyImportedScene: () => void;
 };
@@ -56,11 +61,20 @@ function pulseModeLabel(mode: SurfaceGlowPulseMode): string {
   return "Soft Blink";
 }
 
+function getFilenameFromUrl(url: string) {
+  const chunks = url.split("/");
+  return chunks[chunks.length - 1] ?? url;
+}
+
 function EnvironmentLabControls({
   playbackState,
   scenePreset,
-  selectedBehaviorPresetId,
+  activeBehaviorPresetId,
+  activeBehaviorStatusLabel,
   selectedScenePresetId,
+  baselineSceneName,
+  baselineSceneId,
+  sceneModified,
   reducedMotionActive,
   diagnostics,
   surfaceGlowPlacementModeEnabled,
@@ -82,6 +96,7 @@ function EnvironmentLabControls({
   onApplySurfaceGlowDefaultsToAll,
   onResetScene,
   onCopySceneJson,
+  onCopyProductionSceneJson,
   onImportTextChange,
   onApplyImportedScene,
 }: EnvironmentLabControlsProps) {
@@ -188,13 +203,77 @@ function EnvironmentLabControls({
   };
 
   const activeBehaviorPreset =
-    behaviorPresets.find((preset) => preset.id === selectedBehaviorPresetId) ??
-    ENVIRONMENT_BEHAVIOR_PRESETS[0];
+    (activeBehaviorPresetId
+      ? behaviorPresets.find((preset) => preset.id === activeBehaviorPresetId)
+      : null) ?? ENVIRONMENT_BEHAVIOR_PRESETS[0];
+  const activeAsset = assets.find((asset) => asset.id === scenePreset.assetId) ?? assets[0];
+  const builtInSceneOptions =
+    scenePresets.some((preset) => preset.id === selectedScenePresetId)
+      ? scenePresets
+      : [
+          ...scenePresets,
+          {
+            ...scenePreset,
+            id: selectedScenePresetId,
+            name: `${scenePreset.name} (Imported)`,
+          },
+        ];
   const latestHotspot =
     scenePreset.surfaceGlows.hotspots[scenePreset.surfaceGlows.hotspots.length - 1] ?? null;
 
   return (
     <div className="environment-lab__controls">
+      <details className="environment-lab__group" open>
+        <summary>Environment Asset &amp; Authoring State</summary>
+
+        <label className="environment-lab__field">
+          <span>Image Environment Asset</span>
+          <select
+            value={scenePreset.assetId}
+            onChange={(event) => onAssetChange(event.target.value)}
+          >
+            {assets.map((asset) => (
+              <option key={asset.id} value={asset.id}>
+                {asset.name}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <ul className="environment-lab__stats" aria-label="Active asset summary">
+          <li>Active asset: {activeAsset.name}</li>
+          <li>Asset ID: {activeAsset.id}</li>
+          <li>
+            Color asset: {getFilenameFromUrl(activeAsset.colorImageUrl)} ({activeAsset.colorImageUrl})
+          </li>
+          <li>
+            Depth asset: {getFilenameFromUrl(activeAsset.depthMapUrl)} ({activeAsset.depthMapUrl})
+          </li>
+          <li>
+            Color dimensions: {diagnostics.assetDiagnostics.colorWidth}x{diagnostics.assetDiagnostics.colorHeight}
+          </li>
+          <li>
+            Depth dimensions: {diagnostics.assetDiagnostics.depthWidth}x{diagnostics.assetDiagnostics.depthHeight}
+          </li>
+          <li>
+            Dimension match: {diagnostics.assetDiagnostics.dimensionsMatch ? "yes" : "no"}
+          </li>
+        </ul>
+
+        <p className="environment-lab__hint">
+          Scene: {scenePreset.name} ({scenePreset.id})
+        </p>
+        <p className="environment-lab__hint">
+          Baseline: {baselineSceneName} ({baselineSceneId})
+        </p>
+        <p className="environment-lab__hint">Behavior status: {activeBehaviorStatusLabel}</p>
+        {sceneModified ? (
+          <p className="environment-lab__motion-note">Modified from loaded scene</p>
+        ) : (
+          <p className="environment-lab__diagnostic">No unsaved authoring changes</p>
+        )}
+      </details>
+
       <details className="environment-lab__group" open>
         <summary>Playback &amp; Depth</summary>
 
@@ -345,6 +424,36 @@ function EnvironmentLabControls({
         <p className="environment-lab__diagnostic">
           Effective depth: {diagnostics.effectiveDepth.toFixed(3)}
         </p>
+      </details>
+
+      <details className="environment-lab__group">
+        <summary>Behavior Presets</summary>
+
+        <p className="environment-lab__hint">
+          Behavior presets affect global depth, motion, and color only. Behavior presets do not alter scene-specific Surface Glow locations.
+        </p>
+
+        <div className="environment-lab__button-row">
+          {behaviorPresets.map((preset) => (
+            <button
+              key={preset.id}
+              type="button"
+              onClick={() => onLoadBehaviorPreset(preset.id)}
+              aria-pressed={activeBehaviorPresetId === preset.id}
+            >
+              {preset.name}
+            </button>
+          ))}
+        </div>
+
+        <p className="environment-lab__diagnostic">Current behavior profile: {activeBehaviorStatusLabel}</p>
+        {activeBehaviorStatusLabel === "Custom" ? (
+          <p className="environment-lab__hint">
+            Current depth/color/saturation-pulse values do not exactly match Neutral, Chill, or Full On.
+          </p>
+        ) : (
+          <p className="environment-lab__hint">{activeBehaviorPreset.description}</p>
+        )}
       </details>
 
       <details className="environment-lab__group">
@@ -814,51 +923,11 @@ function EnvironmentLabControls({
       </details>
 
       <details className="environment-lab__group">
-        <summary>Behavior Presets</summary>
-
-        <p className="environment-lab__hint">
-          Behavior presets affect global depth, motion, and color only. Behavior presets do not alter scene-specific Surface Glow locations.
-        </p>
-
-        <div className="environment-lab__button-row">
-          {behaviorPresets.map((preset) => (
-            <button
-              key={preset.id}
-              type="button"
-              onClick={() => onLoadBehaviorPreset(preset.id)}
-              aria-pressed={selectedBehaviorPresetId === preset.id}
-            >
-              {preset.name}
-            </button>
-          ))}
-        </div>
-
-        <p className="environment-lab__diagnostic">Active behavior: {activeBehaviorPreset.name}</p>
-        {activeBehaviorPreset.description && (
-          <p className="environment-lab__hint">{activeBehaviorPreset.description}</p>
-        )}
-      </details>
-
-      <details className="environment-lab__group">
-        <summary>Full Scene Preset &amp; Diagnostics</summary>
+        <summary>Scene Import, Export &amp; Diagnostics</summary>
 
         <p className="environment-lab__hint">
           Full scene preset includes asset, global behavior, and Surface Glow positions/settings.
         </p>
-
-        <label className="environment-lab__field">
-          <span>Registered image/depth asset</span>
-          <select
-            value={scenePreset.assetId}
-            onChange={(event) => onAssetChange(event.target.value)}
-          >
-            {assets.map((asset) => (
-              <option key={asset.id} value={asset.id}>
-                {asset.name}
-              </option>
-            ))}
-          </select>
-        </label>
 
         <label className="environment-lab__field">
           <span>Built-in full scene</span>
@@ -866,7 +935,7 @@ function EnvironmentLabControls({
             value={selectedScenePresetId}
             onChange={(event) => onLoadScenePreset(event.target.value)}
           >
-            {scenePresets.map((preset) => (
+            {builtInSceneOptions.map((preset) => (
               <option key={preset.id} value={preset.id}>
                 {preset.name}
               </option>
@@ -881,13 +950,20 @@ function EnvironmentLabControls({
             </button>
           ))}
           <button type="button" onClick={onResetScene}>
-            Reset Full Scene
+            Reset Current Scene
           </button>
         </div>
+
+        <p className="environment-lab__hint">
+          Copy Full Scene JSON for laboratory round-trip import. Copy Production Scene JSON for promotion to player registries.
+        </p>
 
         <div className="environment-lab__button-row">
           <button type="button" onClick={onCopySceneJson}>
             Copy Full Scene JSON
+          </button>
+          <button type="button" onClick={onCopyProductionSceneJson}>
+            Copy Production Scene JSON
           </button>
           <button type="button" onClick={onApplyImportedScene}>
             Apply Imported Scene

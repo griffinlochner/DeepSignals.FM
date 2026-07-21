@@ -3,6 +3,7 @@ import { MAX_SURFACE_GLOW_HOTSPOTS } from "./constants";
 import EnvironmentLabShell from "./EnvironmentLabShell";
 import {
   applyBehaviorPreset,
+  cloneBehaviorSettings,
   cloneScenePreset,
   createNeutralScenePresetForAsset,
   ENVIRONMENT_BEHAVIOR_PRESETS,
@@ -15,6 +16,7 @@ import {
   UV_JUNGLE_SHOWCASE_SCENE_PRESET,
 } from "./presets";
 import type {
+  EnvironmentBehaviorSettings,
   EnvironmentDiagnostics,
   EnvironmentLabSessionState,
   EnvironmentLoadingState,
@@ -82,6 +84,108 @@ function removeNearestHotspot<T extends { u: number; v: number }>(
   return hotspots.filter((_, index) => index !== nearestIndex);
 }
 
+function normalizeNumber(value: number) {
+  return Number(value.toFixed(6));
+}
+
+function normalizeBehaviorForComparison(behavior: EnvironmentBehaviorSettings) {
+  return {
+    depth: {
+      motionIntensity: normalizeNumber(behavior.depth.motionIntensity),
+      depthStrength: normalizeNumber(behavior.depth.depthStrength),
+      staticDepth: normalizeNumber(behavior.depth.staticDepth),
+      breathingMin: normalizeNumber(behavior.depth.breathingMin),
+      breathingMax: normalizeNumber(behavior.depth.breathingMax),
+      breathingCycleSeconds: normalizeNumber(behavior.depth.breathingCycleSeconds),
+      pointerParallaxEnabled: behavior.depth.pointerParallaxEnabled,
+      pointerParallaxStrength: normalizeNumber(behavior.depth.pointerParallaxStrength),
+      ambientMotionEnabled: behavior.depth.ambientMotionEnabled,
+    },
+    color: {
+      driftEnabled: behavior.color.driftEnabled,
+      hueRangeDegrees: normalizeNumber(behavior.color.hueRangeDegrees),
+      cycleSeconds: normalizeNumber(behavior.color.cycleSeconds),
+      saturation: normalizeNumber(behavior.color.saturation),
+      glowPulseEnabled: behavior.color.glowPulseEnabled,
+      glowPulseAmount: normalizeNumber(behavior.color.glowPulseAmount),
+      glowPulseCycleSeconds: normalizeNumber(behavior.color.glowPulseCycleSeconds),
+    },
+    saturationPulse: {
+      enabled: behavior.saturationPulse.enabled,
+      minimumSaturation: normalizeNumber(behavior.saturationPulse.minimumSaturation),
+      maximumSaturation: normalizeNumber(behavior.saturationPulse.maximumSaturation),
+      cycleSeconds: normalizeNumber(behavior.saturationPulse.cycleSeconds),
+      phaseOffset: normalizeNumber(behavior.saturationPulse.phaseOffset),
+      syncToDepthBreathing: behavior.saturationPulse.syncToDepthBreathing,
+    },
+  };
+}
+
+function normalizeSceneForComparison(scene: ImageEnvironmentScenePreset) {
+  return {
+    assetId: scene.assetId,
+    behavior: normalizeBehaviorForComparison(scene.behavior),
+    surfaceGlows: {
+      enabled: scene.surfaceGlows.enabled,
+      defaults: {
+        color: scene.surfaceGlows.defaults.color,
+        radius: normalizeNumber(scene.surfaceGlows.defaults.radius),
+        softness: normalizeNumber(scene.surfaceGlows.defaults.softness),
+        intensity: normalizeNumber(scene.surfaceGlows.defaults.intensity),
+        pulseEnabled: scene.surfaceGlows.defaults.pulseEnabled,
+        pulseMode: scene.surfaceGlows.defaults.pulseMode,
+        pulseAmount: normalizeNumber(scene.surfaceGlows.defaults.pulseAmount),
+        minimumIntensityMultiplier: normalizeNumber(
+          scene.surfaceGlows.defaults.minimumIntensityMultiplier,
+        ),
+        maximumIntensityMultiplier: normalizeNumber(
+          scene.surfaceGlows.defaults.maximumIntensityMultiplier,
+        ),
+        radiusExpansionMultiplier: normalizeNumber(
+          scene.surfaceGlows.defaults.radiusExpansionMultiplier,
+        ),
+        pulseCycleSeconds: normalizeNumber(scene.surfaceGlows.defaults.pulseCycleSeconds),
+        hueDriftEnabled: scene.surfaceGlows.defaults.hueDriftEnabled,
+        hueDriftRangeDegrees: normalizeNumber(scene.surfaceGlows.defaults.hueDriftRangeDegrees),
+        hueDriftCycleSeconds: normalizeNumber(scene.surfaceGlows.defaults.hueDriftCycleSeconds),
+      },
+      hotspots: scene.surfaceGlows.hotspots.map((hotspot) => ({
+        id: hotspot.id,
+        u: normalizeNumber(hotspot.u),
+        v: normalizeNumber(hotspot.v),
+        color: hotspot.color,
+        radius: normalizeNumber(hotspot.radius),
+        softness: normalizeNumber(hotspot.softness),
+        intensity: normalizeNumber(hotspot.intensity),
+        pulseEnabled: hotspot.pulseEnabled,
+        pulseMode: hotspot.pulseMode,
+        pulseAmount: normalizeNumber(hotspot.pulseAmount),
+        minimumIntensityMultiplier: normalizeNumber(hotspot.minimumIntensityMultiplier),
+        maximumIntensityMultiplier: normalizeNumber(hotspot.maximumIntensityMultiplier),
+        radiusExpansionMultiplier: normalizeNumber(hotspot.radiusExpansionMultiplier),
+        pulseCycleSeconds: normalizeNumber(hotspot.pulseCycleSeconds),
+        hueDriftEnabled: hotspot.hueDriftEnabled,
+        hueDriftRangeDegrees: normalizeNumber(hotspot.hueDriftRangeDegrees),
+        hueDriftCycleSeconds: normalizeNumber(hotspot.hueDriftCycleSeconds),
+        phase: normalizeNumber(hotspot.phase),
+      })),
+    },
+  };
+}
+
+function behaviorSettingsMatch(a: EnvironmentBehaviorSettings, b: EnvironmentBehaviorSettings) {
+  return (
+    JSON.stringify(normalizeBehaviorForComparison(a)) ===
+    JSON.stringify(normalizeBehaviorForComparison(b))
+  );
+}
+
+function sceneAuthoringDataMatch(a: ImageEnvironmentScenePreset, b: ImageEnvironmentScenePreset) {
+  return (
+    JSON.stringify(normalizeSceneForComparison(a)) === JSON.stringify(normalizeSceneForComparison(b))
+  );
+}
+
 function EnvironmentLabPage() {
   const [session, setSession] = useState<EnvironmentLabSessionState>({
     playbackState: "stopped",
@@ -90,9 +194,11 @@ function EnvironmentLabPage() {
   const [scenePreset, setScenePreset] = useState<ImageEnvironmentScenePreset>(() =>
     cloneScenePreset(NEUTRAL_BASELINE_SCENE_PRESET),
   );
-  const [selectedBehaviorPresetId, setSelectedBehaviorPresetId] = useState("neutral");
   const [selectedScenePresetId, setSelectedScenePresetId] = useState(
     NEUTRAL_BASELINE_SCENE_PRESET.id,
+  );
+  const [baselineScenePreset, setBaselineScenePreset] = useState<ImageEnvironmentScenePreset>(() =>
+    cloneScenePreset(NEUTRAL_BASELINE_SCENE_PRESET),
   );
   const [loadingState, setLoadingState] = useState<EnvironmentLoadingState>("loading");
   const [reducedMotionActive, setReducedMotionActive] = useState(false);
@@ -104,6 +210,22 @@ function EnvironmentLabPage() {
   const selectedAsset = useMemo<ImageEnvironmentAsset | null>(
     () => getImageEnvironmentAssetById(scenePreset.assetId),
     [scenePreset.assetId],
+  );
+
+  const activeBehaviorPreset = useMemo(() => {
+    return (
+      ENVIRONMENT_BEHAVIOR_PRESETS.find((preset) =>
+        behaviorSettingsMatch(preset.settings, scenePreset.behavior),
+      ) ?? null
+    );
+  }, [scenePreset.behavior]);
+
+  const activeBehaviorStatusLabel = activeBehaviorPreset?.name ?? "Custom";
+  const activeBehaviorPresetId = activeBehaviorPreset?.id ?? null;
+
+  const sceneModified = useMemo(
+    () => !sceneAuthoringDataMatch(scenePreset, baselineScenePreset),
+    [baselineScenePreset, scenePreset],
   );
 
   useEffect(() => {
@@ -146,7 +268,6 @@ function EnvironmentLabPage() {
     }
 
     setScenePreset((current) => applyBehaviorPreset(current, behaviorPreset));
-    setSelectedBehaviorPresetId(behaviorPreset.id);
     setFeedback(`Applied behavior preset: ${behaviorPreset.name}`, "success");
   };
 
@@ -157,7 +278,9 @@ function EnvironmentLabPage() {
       return;
     }
 
-    setScenePreset(cloneScenePreset(preset));
+    const nextScenePreset = cloneScenePreset(preset);
+    setScenePreset(nextScenePreset);
+    setBaselineScenePreset(cloneScenePreset(nextScenePreset));
     setSelectedScenePresetId(preset.id);
     setSession((current) => ({
       ...current,
@@ -175,7 +298,7 @@ function EnvironmentLabPage() {
 
     const neutralScene = createNeutralScenePresetForAsset(selected.id);
     setScenePreset(neutralScene);
-    setSelectedBehaviorPresetId("neutral");
+    setBaselineScenePreset(cloneScenePreset(neutralScene));
     setSelectedScenePresetId(neutralScene.id);
     setSession((current) => ({
       ...current,
@@ -189,11 +312,44 @@ function EnvironmentLabPage() {
 
     try {
       await navigator.clipboard.writeText(serialized);
-      setFeedback("Full scene JSON copied to clipboard.", "success");
+      setFeedback("Full scene JSON copied.", "success");
     } catch {
       setImportText(serialized);
       setFeedback(
         "Clipboard access failed. Full scene JSON was placed in the import textarea instead.",
+        "error",
+      );
+    }
+  };
+
+  const handleCopyProductionSceneJson = async () => {
+    const activeAsset = getImageEnvironmentAssetById(scenePreset.assetId);
+
+    if (!activeAsset) {
+      setFeedback(`Unknown asset: ${scenePreset.assetId}`, "error");
+      return;
+    }
+
+    const productionScene: ImageEnvironmentScenePreset = {
+      id: `${activeAsset.id}-default`,
+      name: activeAsset.name,
+      assetId: activeAsset.id,
+      behavior: cloneBehaviorSettings(scenePreset.behavior),
+      surfaceGlows: {
+        enabled: scenePreset.surfaceGlows.enabled,
+        defaults: { ...scenePreset.surfaceGlows.defaults },
+        hotspots: scenePreset.surfaceGlows.hotspots.map((hotspot) => ({ ...hotspot })),
+      },
+    };
+
+    const serialized = JSON.stringify(productionScene, null, 2);
+
+    try {
+      await navigator.clipboard.writeText(serialized);
+      setFeedback("Production scene JSON copied.", "success");
+    } catch {
+      setFeedback(
+        "Clipboard access failed. Could not copy production scene JSON.",
         "error",
       );
     }
@@ -207,8 +363,10 @@ function EnvironmentLabPage() {
       return;
     }
 
-    setScenePreset(parsed.preset);
-    setSelectedScenePresetId(parsed.preset.id);
+    const importedScene = cloneScenePreset(parsed.preset);
+    setScenePreset(importedScene);
+    setBaselineScenePreset(cloneScenePreset(importedScene));
+    setSelectedScenePresetId(importedScene.id);
     setSession((current) => ({
       ...current,
       surfaceGlowPlacementModeEnabled: false,
@@ -219,7 +377,7 @@ function EnvironmentLabPage() {
       return;
     }
 
-    setFeedback(`Imported full scene: ${parsed.preset.name}`, "success");
+    setFeedback(`Imported full scene: ${importedScene.name}`, "success");
   };
 
   const atSurfaceGlowCapacity =
@@ -234,8 +392,12 @@ function EnvironmentLabPage() {
       surfaceGlowPlacementModeEnabled={session.surfaceGlowPlacementModeEnabled}
       surfaceGlowCapacityReached={atSurfaceGlowCapacity}
       scenePreset={scenePreset}
-      selectedBehaviorPresetId={selectedBehaviorPresetId}
+      activeBehaviorPresetId={activeBehaviorPresetId}
+      activeBehaviorStatusLabel={activeBehaviorStatusLabel}
       selectedScenePresetId={selectedScenePresetId}
+      baselineSceneName={baselineScenePreset.name}
+      baselineSceneId={baselineScenePreset.id}
+      sceneModified={sceneModified}
       reducedMotionActive={reducedMotionActive}
       status={status}
       diagnostics={{
@@ -380,17 +542,32 @@ function EnvironmentLabPage() {
         setFeedback("Applied current Surface Glow animation settings to all hotspots.", "success");
       }}
       onResetScene={() => {
+        const activeAsset = getImageEnvironmentAssetById(scenePreset.assetId);
+        if (!activeAsset) {
+          setFeedback(`Unknown asset: ${scenePreset.assetId}`, "error");
+          return;
+        }
+
+        const shouldReset = window.confirm(
+          `Reset current scene for ${activeAsset.name}? This will restore neutral behavior and clear Surface Glow hotspots for this asset.`,
+        );
+
+        if (!shouldReset) {
+          return;
+        }
+
         const neutralScene = createNeutralScenePresetForAsset(scenePreset.assetId);
         setScenePreset(neutralScene);
-        setSelectedBehaviorPresetId("neutral");
+        setBaselineScenePreset(cloneScenePreset(neutralScene));
         setSelectedScenePresetId(neutralScene.id);
-        setSession({
-          playbackState: "stopped",
+        setSession((current) => ({
+          ...current,
           surfaceGlowPlacementModeEnabled: false,
-        });
-        setFeedback("Reset full scene to asset neutral baseline.", "success");
+        }));
+        setFeedback(`Reset current scene for ${activeAsset.name}.`, "success");
       }}
       onCopySceneJson={handleCopySceneJson}
+      onCopyProductionSceneJson={handleCopyProductionSceneJson}
       onImportTextChange={setImportText}
       onApplyImportedScene={handleApplyImportedScene}
       onDiagnosticsChange={setDiagnostics}
