@@ -120,6 +120,7 @@ export type ImageEnvironmentScenePreset = {
 
 export type EnvironmentLabSessionState = {
   playbackState: EnvironmentPlaybackState;
+  geometryMotionPreviewEnabled: boolean;
   surfaceGlowPlacementModeEnabled: boolean;
 };
 
@@ -148,6 +149,7 @@ export type EnvironmentDiagnostics = {
 
 export type EnvironmentLabSceneProps = {
   playbackState: EnvironmentPlaybackState;
+  geometryMotionPreviewEnabled: boolean;
   surfaceGlowPlacementModeEnabled: boolean;
   preset: ImageEnvironmentScenePreset;
   asset: ImageEnvironmentAsset;

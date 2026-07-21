@@ -13,6 +13,7 @@ import "./environmentLab.css";
 
 type EnvironmentLabShellProps = {
   playbackState: EnvironmentPlaybackState;
+  geometryMotionPreviewEnabled: boolean;
   surfaceGlowPlacementModeEnabled: boolean;
   surfaceGlowCapacityReached: boolean;
   scenePreset: ImageEnvironmentScenePreset;
@@ -28,8 +29,10 @@ type EnvironmentLabShellProps = {
   importText: string;
   feedbackMessage: string;
   feedbackTone: "idle" | "success" | "error";
+  loadingState: EnvironmentLoadingState;
   behaviorPresets: EnvironmentBehaviorPreset[];
   onPlaybackStateChange: (value: EnvironmentPlaybackState) => void;
+  onGeometryMotionPreviewChange: (enabled: boolean) => void;
   onSurfaceGlowPlacementModeChange: (enabled: boolean) => void;
   onScenePresetChange: (next: ImageEnvironmentScenePreset) => void;
   onLoadBehaviorPreset: (presetId: string) => void;
@@ -56,6 +59,7 @@ type EnvironmentLabShellProps = {
 
 function EnvironmentLabShell({
   playbackState,
+  geometryMotionPreviewEnabled,
   surfaceGlowPlacementModeEnabled,
   surfaceGlowCapacityReached,
   scenePreset,
@@ -71,8 +75,10 @@ function EnvironmentLabShell({
   importText,
   feedbackMessage,
   feedbackTone,
+  loadingState,
   behaviorPresets,
   onPlaybackStateChange,
+  onGeometryMotionPreviewChange,
   onSurfaceGlowPlacementModeChange,
   onScenePresetChange,
   onLoadBehaviorPreset,
@@ -107,6 +113,7 @@ function EnvironmentLabShell({
       <div className="environment-lab__viewport" aria-hidden="true">
         <EnvironmentLabScene
           playbackState={playbackState}
+          geometryMotionPreviewEnabled={geometryMotionPreviewEnabled}
           surfaceGlowPlacementModeEnabled={surfaceGlowPlacementModeEnabled}
           preset={scenePreset}
           asset={activeAsset}
@@ -123,6 +130,7 @@ function EnvironmentLabShell({
         <div className="environment-lab__panel-scroll">
           <EnvironmentLabControls
             playbackState={playbackState}
+            geometryMotionPreviewEnabled={geometryMotionPreviewEnabled}
             scenePreset={scenePreset}
             activeBehaviorPresetId={activeBehaviorPresetId}
             activeBehaviorStatusLabel={activeBehaviorStatusLabel}
@@ -137,8 +145,10 @@ function EnvironmentLabShell({
             importText={importText}
             feedbackMessage={feedbackMessage}
             feedbackTone={feedbackTone}
+            loadingState={loadingState}
             behaviorPresets={behaviorPresets}
             onPlaybackStateChange={onPlaybackStateChange}
+            onGeometryMotionPreviewChange={onGeometryMotionPreviewChange}
             onScenePresetChange={onScenePresetChange}
             onLoadBehaviorPreset={onLoadBehaviorPreset}
             onLoadScenePreset={onLoadScenePreset}

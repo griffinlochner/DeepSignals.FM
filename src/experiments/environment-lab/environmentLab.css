@@ -204,6 +204,22 @@
   gap: 10px;
 }
 
+.environment-lab__workflow-summary {
+  border: 1px solid rgba(142, 242, 216, 0.3);
+  border-radius: 12px;
+  padding: 10px;
+  background: linear-gradient(180deg, rgba(12, 28, 33, 0.68), rgba(8, 16, 20, 0.5));
+}
+
+.environment-lab__workflow-summary-title {
+  margin: 0 0 7px;
+  color: #dcfff2;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
 .environment-lab__group {
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 12px;
@@ -222,6 +238,28 @@
 }
 
 .environment-lab__group[open] summary {
+  margin-bottom: 8px;
+}
+
+.environment-lab__subgroup {
+  margin: 8px 0;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 10px;
+  padding: 7px 8px 5px;
+  background: rgba(3, 11, 13, 0.28);
+}
+
+.environment-lab__subgroup summary {
+  cursor: pointer;
+  color: rgba(231, 255, 246, 0.94);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  margin: 0;
+  padding: 3px 0;
+}
+
+.environment-lab__subgroup[open] summary {
   margin-bottom: 8px;
 }
 
@@ -314,6 +352,12 @@
   padding: 8px 10px;
   font-size: 0.74rem;
   cursor: pointer;
+}
+
+.environment-lab__button--primary {
+  border-color: rgba(245, 223, 159, 0.7);
+  background: rgba(42, 30, 10, 0.6);
+  color: #ffe9be;
 }
 
 .environment-lab__group button:disabled {

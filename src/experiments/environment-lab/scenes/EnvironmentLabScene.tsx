@@ -187,6 +187,7 @@ function describeAnimationStatus(params: {
 
 function EnvironmentLabScene({
   playbackState,
+  geometryMotionPreviewEnabled,
   surfaceGlowPlacementModeEnabled,
   preset,
   asset,
@@ -203,6 +204,7 @@ function EnvironmentLabScene({
   const placementFlashRef = useRef<HTMLDivElement | null>(null);
   const configRef = useRef({
     playbackState,
+    geometryMotionPreviewEnabled,
     surfaceGlowPlacementModeEnabled,
     reducedMotionActive,
     preset,
@@ -227,12 +229,20 @@ function EnvironmentLabScene({
   useEffect(() => {
     configRef.current = {
       playbackState,
+      geometryMotionPreviewEnabled,
       surfaceGlowPlacementModeEnabled,
       reducedMotionActive,
       preset,
       asset,
     };
-  }, [playbackState, surfaceGlowPlacementModeEnabled, reducedMotionActive, preset, asset]);
+  }, [
+    playbackState,
+    geometryMotionPreviewEnabled,
+    surfaceGlowPlacementModeEnabled,
+    reducedMotionActive,
+    preset,
+    asset,
+  ]);
 
   useEffect(() => {
     callbackRef.current = {
@@ -1025,7 +1035,10 @@ void main() {
         const behavior = activePreset.behavior;
         const isPlaying = current.playbackState === "playing";
         const automaticMotionActive =
-          isPlaying && behavior.depth.ambientMotionEnabled && !current.reducedMotionActive;
+          isPlaying &&
+          behavior.depth.ambientMotionEnabled &&
+          current.geometryMotionPreviewEnabled &&
+          !current.reducedMotionActive;
 
       const currentSurfaceSignature = surfaceGlowSignature(activePreset.surfaceGlows.hotspots);
       if (currentSurfaceSignature !== lastSurfaceGlowSignature) {
@@ -1050,7 +1063,10 @@ void main() {
         0.82;
 
       const pointerIsActive = elapsedSeconds - lastPointerInputAt <= POINTER_IDLE_TIMEOUT_SECONDS;
-      const pointerEnabled = behavior.depth.pointerParallaxEnabled && !current.reducedMotionActive;
+      const pointerEnabled =
+        behavior.depth.pointerParallaxEnabled &&
+        current.geometryMotionPreviewEnabled &&
+        !current.reducedMotionActive;
       const pointerInfluenceTarget = pointerEnabled && pointerIsActive ? 1 : 0;
       pointerInfluence = THREE.MathUtils.lerp(pointerInfluence, pointerInfluenceTarget, 0.045);
 

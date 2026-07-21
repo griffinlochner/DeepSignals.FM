@@ -189,6 +189,7 @@ function sceneAuthoringDataMatch(a: ImageEnvironmentScenePreset, b: ImageEnviron
 function EnvironmentLabPage() {
   const [session, setSession] = useState<EnvironmentLabSessionState>({
     playbackState: "stopped",
+    geometryMotionPreviewEnabled: true,
     surfaceGlowPlacementModeEnabled: false,
   });
   const [scenePreset, setScenePreset] = useState<ImageEnvironmentScenePreset>(() =>
@@ -260,6 +261,14 @@ function EnvironmentLabPage() {
     setFeedbackMessage(message);
   };
 
+  const resetAssetDiagnosticsForReload = () => {
+    setLoadingState("loading");
+    setDiagnostics((current) => ({
+      ...current,
+      assetDiagnostics: EMPTY_ASSET_DIAGNOSTICS,
+    }));
+  };
+
   const loadBehaviorPreset = (behaviorPresetId: string) => {
     const behaviorPreset = getBehaviorPresetById(behaviorPresetId);
     if (!behaviorPreset) {
@@ -278,7 +287,18 @@ function EnvironmentLabPage() {
       return;
     }
 
+    if (sceneModified) {
+      const shouldReplace = window.confirm(
+        `Load existing complete scene "${preset.name}"? This replaces current behavior and Surface Glow authoring changes.`,
+      );
+
+      if (!shouldReplace) {
+        return;
+      }
+    }
+
     const nextScenePreset = cloneScenePreset(preset);
+  resetAssetDiagnosticsForReload();
     setScenePreset(nextScenePreset);
     setBaselineScenePreset(cloneScenePreset(nextScenePreset));
     setSelectedScenePresetId(preset.id);
@@ -297,6 +317,7 @@ function EnvironmentLabPage() {
     }
 
     const neutralScene = createNeutralScenePresetForAsset(selected.id);
+  resetAssetDiagnosticsForReload();
     setScenePreset(neutralScene);
     setBaselineScenePreset(cloneScenePreset(neutralScene));
     setSelectedScenePresetId(neutralScene.id);
@@ -364,6 +385,7 @@ function EnvironmentLabPage() {
     }
 
     const importedScene = cloneScenePreset(parsed.preset);
+  resetAssetDiagnosticsForReload();
     setScenePreset(importedScene);
     setBaselineScenePreset(cloneScenePreset(importedScene));
     setSelectedScenePresetId(importedScene.id);
@@ -389,6 +411,7 @@ function EnvironmentLabPage() {
   return (
     <EnvironmentLabShell
       playbackState={session.playbackState}
+      geometryMotionPreviewEnabled={session.geometryMotionPreviewEnabled}
       surfaceGlowPlacementModeEnabled={session.surfaceGlowPlacementModeEnabled}
       surfaceGlowCapacityReached={atSurfaceGlowCapacity}
       scenePreset={scenePreset}
@@ -408,8 +431,12 @@ function EnvironmentLabPage() {
       importText={importText}
       feedbackMessage={feedbackMessage}
       feedbackTone={feedbackTone}
+      loadingState={loadingState}
       onPlaybackStateChange={(value) =>
         setSession((current) => ({ ...current, playbackState: value }))
+      }
+      onGeometryMotionPreviewChange={(enabled) =>
+        setSession((current) => ({ ...current, geometryMotionPreviewEnabled: enabled }))
       }
       onSurfaceGlowPlacementModeChange={(enabled) => {
         if (enabled && atSurfaceGlowCapacity) {
@@ -557,6 +584,7 @@ function EnvironmentLabPage() {
         }
 
         const neutralScene = createNeutralScenePresetForAsset(scenePreset.assetId);
+  resetAssetDiagnosticsForReload();
         setScenePreset(neutralScene);
         setBaselineScenePreset(cloneScenePreset(neutralScene));
         setSelectedScenePresetId(neutralScene.id);
