@@ -8,6 +8,7 @@ import type {
 
 export const UV_JUNGLE_ASSET_ID = "uv-jungle";
 export const ANALOG_SIGNAL_LABORATORY_ASSET_ID = "analog-signal-laboratory";
+export const BIOLUMINESCENT_PSY_FOREST_ASSET_ID = "bioluminescent-psy-forest";
 
 export const IMAGE_ENVIRONMENT_ASSETS: ImageEnvironmentAsset[] = [
   {
@@ -27,6 +28,17 @@ export const IMAGE_ENVIRONMENT_ASSETS: ImageEnvironmentAsset[] = [
     depthMapUrl: "/environments/analog-signal-laboratory/analog-signal-laboratory-depth.png",
     metadata: {
       description: "Premium analog synthesis workstation artwork and aligned depth map.",
+    },
+  },
+  {
+    id: BIOLUMINESCENT_PSY_FOREST_ASSET_ID,
+    name: "Bioluminescent Psy Forest",
+    colorImageUrl:
+      "/environments/bioluminescent-psy-forest/bioluminescent-psy-forest-color.webp",
+    depthMapUrl:
+      "/environments/bioluminescent-psy-forest/bioluminescent-psy-forest-depth.png",
+    metadata: {
+      description: "Bioluminescent forest artwork and aligned depth map for calm organic environment authoring.",
     },
   },
 ];
