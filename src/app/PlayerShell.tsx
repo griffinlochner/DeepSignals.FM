@@ -4,7 +4,11 @@ import VisualFeedWindow from '../components/VisualFeedWindow'
 import { themeRegistry } from '../themes/themeRegistry'
 import type { SignalSource, PlaybackState } from './playerTypes'
 import type { ThemeId, ThemeSceneProps } from '../themes/themeTypes'
-import { preloadUvJungleTextures } from '../themes/uv-reactive-jungle/uvJungleTextureCache'
+import { preloadImageDepthTextures } from '../themes/image-depth/imageDepthTextureCache'
+import {
+  ANALOG_SIGNAL_LABORATORY_PRODUCTION_ASSET,
+  UV_JUNGLE_PRODUCTION_ASSET,
+} from '../themes/image-depth/productionScenePresets'
 import '../styles/player.css'
 
 type PlayerShellProps = {
@@ -20,9 +24,24 @@ function PlayerShell({ className }: PlayerShellProps) {
   const [panelCollapsed, setPanelCollapsed] = useState(false)
   const [visualFeedOpen, setVisualFeedOpen] = useState(false)
 
+  const imageDepthAssetsByThemeId = useMemo(
+    () =>
+      new Map<ThemeId, typeof UV_JUNGLE_PRODUCTION_ASSET>([
+        ['uv-reactive-jungle', UV_JUNGLE_PRODUCTION_ASSET],
+        ['analog-signal-laboratory', ANALOG_SIGNAL_LABORATORY_PRODUCTION_ASSET],
+      ]),
+    [],
+  )
+
   useEffect(() => {
-    void preloadUvJungleTextures()
-  }, [])
+    const selectedAsset = imageDepthAssetsByThemeId.get(selectedThemeId)
+
+    if (!selectedAsset) {
+      return
+    }
+
+    void preloadImageDepthTextures(selectedAsset)
+  }, [selectedThemeId, imageDepthAssetsByThemeId])
 
   const signals: SignalSource[] = useMemo(
     () => [

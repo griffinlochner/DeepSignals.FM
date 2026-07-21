@@ -1,0 +1,42 @@
+.analog-signal-laboratory-scene {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(circle at 12% 14%, rgba(255, 149, 96, 0.08), transparent 38%),
+    radial-gradient(circle at 78% 22%, rgba(83, 183, 255, 0.08), transparent 36%),
+    #0d0a07;
+}
+
+.analog-signal-laboratory-scene canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  opacity: 0;
+  transition: opacity 280ms ease;
+}
+
+.player-shell.theme-analog-signal-laboratory {
+  --theme-background: #0c0906;
+  --theme-panel: rgba(22, 16, 12, 0.6);
+  --theme-panel-strong: rgba(18, 12, 9, 0.88);
+  --theme-border: rgba(255, 189, 144, 0.24);
+  --theme-accent: #ffbb7c;
+  --theme-accent-secondary: #70b8ff;
+  --theme-text: #fff2e8;
+  --theme-text-secondary: rgba(255, 242, 232, 0.78);
+  --theme-muted: rgba(246, 214, 188, 0.64);
+  --theme-glow: rgba(255, 161, 98, 0.19);
+  --floating-panel-max-width: 430px;
+}
+
+.player-shell.theme-analog-signal-laboratory .player-shell__scene {
+  pointer-events: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .analog-signal-laboratory-scene canvas {
+    transition: none;
+  }
+}

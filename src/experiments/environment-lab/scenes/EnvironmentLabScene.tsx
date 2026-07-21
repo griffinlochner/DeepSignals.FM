@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { MAX_SURFACE_GLOW_HOTSPOTS } from "../constants";
 import { stepUvJunglePlaybackVisualMix } from "../../../themes/uv-reactive-jungle/uvReactivePlaybackVisuals";
+import { computeFramedPlaneScale, IMAGE_DEPTH_PARITY_FRAMING } from "../../../themes/image-depth/framing";
 import type {
   EnvironmentDiagnostics,
   EnvironmentLabSceneProps,
@@ -306,12 +307,12 @@ function EnvironmentLabScene({
     scene.fog = new THREE.FogExp2(0x08110d, 0.045);
 
     const camera = new THREE.PerspectiveCamera(
-      46,
+      IMAGE_DEPTH_PARITY_FRAMING.cameraFovDegrees,
       mount.clientWidth / Math.max(mount.clientHeight, 1),
       0.1,
       80,
     );
-    camera.position.z = 3.2;
+    camera.position.z = IMAGE_DEPTH_PARITY_FRAMING.cameraZ;
     scene.add(camera);
 
     const renderer = new THREE.WebGLRenderer({
@@ -496,7 +497,7 @@ if (uSurfaceGlowEnabled > 0.5) {
     planeMaterial.needsUpdate = true;
 
     const plane = new THREE.Mesh(planeGeometry, planeMaterial);
-    plane.position.z = -0.15;
+    plane.position.z = IMAGE_DEPTH_PARITY_FRAMING.planeZ;
     planeGroup.add(plane);
 
     const pickingScene = new THREE.Scene();
@@ -784,13 +785,15 @@ void main() {
     };
 
     const fitPlane = () => {
-      const aspect = mount.clientWidth / Math.max(mount.clientHeight, 1);
-      const viewHeight =
-        2 *
-        Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) *
-        Math.abs(camera.position.z - plane.position.z);
-      const viewWidth = viewHeight * aspect;
-      planeScale.set(viewWidth * 1.18, viewHeight * 1.28);
+      const framedScale = computeFramedPlaneScale({
+        viewportWidth: mount.clientWidth,
+        viewportHeight: mount.clientHeight,
+        cameraFovDegrees: camera.fov,
+        cameraZ: camera.position.z,
+        planeZ: plane.position.z,
+      });
+
+      planeScale.set(framedScale.width, framedScale.height);
       plane.scale.set(planeScale.x, planeScale.y, 1);
       glowPlane.scale.set(planeScale.x * 1.14, planeScale.y * 1.08, 1);
 

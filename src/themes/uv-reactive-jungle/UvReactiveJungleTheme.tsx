@@ -5,10 +5,8 @@ import {
   formatUvJunglePlaybackFilter,
   stepUvJunglePlaybackVisualMix,
 } from "./uvReactivePlaybackVisuals";
-import {
-  UV_JUNGLE_COLOR_IMAGE_URL,
-  UV_JUNGLE_DEPTH_MAP_URL,
-} from "./uvJungleTextureCache";
+import { getImageDepthTexturePair } from "../image-depth/imageDepthTextureCache";
+import { UV_JUNGLE_PRODUCTION_ASSET } from "../image-depth/productionScenePresets";
 import "./uvReactiveJungle.css";
 
 type DepthImageBreathingPreset = {
@@ -18,8 +16,6 @@ type DepthImageBreathingPreset = {
 };
 
 type DepthImageThemeProfile = {
-  colorImageUrl: string;
-  depthMapUrl: string;
   breathing: DepthImageBreathingPreset;
   staticDepth: number;
   pointerParallaxStrength: number;
@@ -27,8 +23,6 @@ type DepthImageThemeProfile = {
 };
 
 const UV_JUNGLE_PROFILE: DepthImageThemeProfile = {
-  colorImageUrl: UV_JUNGLE_COLOR_IMAGE_URL,
-  depthMapUrl: UV_JUNGLE_DEPTH_MAP_URL,
   breathing: {
     minimumDepth: 0,
     maximumDepth: 1,
@@ -65,8 +59,6 @@ function UvReactiveJungleTheme({
     let disposed = false;
     let planeSized = false;
     let readySignaled = false;
-    let loadedColorTexture: THREE.Texture | null = null;
-    let loadedDepthTexture: THREE.Texture | null = null;
 
     setSceneReady(false);
     setLoadingState("loading");
@@ -147,7 +139,6 @@ function UvReactiveJungleTheme({
     glowPlane.position.z = -0.95;
     planeGroup.add(glowPlane);
 
-    const textureLoader = new THREE.TextureLoader();
     const handleTextureError = () => {
       if (!disposed) {
         setLoadingState("error");
@@ -155,46 +146,17 @@ function UvReactiveJungleTheme({
       }
     };
 
-    textureLoader.load(
-      UV_JUNGLE_PROFILE.colorImageUrl,
-      (colorTexture) => {
+    void getImageDepthTexturePair(UV_JUNGLE_PRODUCTION_ASSET)
+      .then(({ colorTexture, depthTexture }) => {
         if (disposed) {
-          colorTexture.dispose();
           return;
         }
 
-        colorTexture.colorSpace = THREE.SRGBColorSpace;
-        colorTexture.minFilter = THREE.LinearFilter;
-        colorTexture.magFilter = THREE.LinearFilter;
-        colorTexture.generateMipmaps = false;
-
-        loadedColorTexture = colorTexture;
         planeMaterial.map = colorTexture;
-        planeMaterial.needsUpdate = true;
-      },
-      undefined,
-      handleTextureError,
-    );
-
-    textureLoader.load(
-      UV_JUNGLE_PROFILE.depthMapUrl,
-      (depthTexture) => {
-        if (disposed) {
-          depthTexture.dispose();
-          return;
-        }
-
-        depthTexture.minFilter = THREE.LinearFilter;
-        depthTexture.magFilter = THREE.LinearFilter;
-        depthTexture.generateMipmaps = false;
-
-        loadedDepthTexture = depthTexture;
         planeMaterial.displacementMap = depthTexture;
         planeMaterial.needsUpdate = true;
-      },
-      undefined,
-      handleTextureError,
-    );
+      })
+      .catch(handleTextureError);
 
     const fitPlane = () => {
       const aspect = mount.clientWidth / Math.max(mount.clientHeight, 1);
@@ -315,8 +277,6 @@ function UvReactiveJungleTheme({
       mount.removeEventListener("pointerleave", handlePointerLeave);
       window.removeEventListener("resize", handleResize);
 
-      loadedColorTexture?.dispose();
-      loadedDepthTexture?.dispose();
       planeGeometry.dispose();
       planeMaterial.dispose();
       glowGeometry.dispose();
