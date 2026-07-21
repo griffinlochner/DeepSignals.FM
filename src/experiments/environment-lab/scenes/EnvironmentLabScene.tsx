@@ -1,8 +1,12 @@
 import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { MAX_SURFACE_GLOW_HOTSPOTS } from "../constants";
-import { stepUvJunglePlaybackVisualMix } from "../../../themes/uv-reactive-jungle/uvReactivePlaybackVisuals";
+import {
+  formatImageDepthPlaybackFilter,
+  stepImageDepthPlaybackVisualMix,
+} from "../../../themes/image-depth/imageDepthPlaybackVisuals";
 import { computeFramedPlaneScale, IMAGE_DEPTH_PARITY_FRAMING } from "../../../themes/image-depth/framing";
+import { resolveImageDepthElapsedSeconds, writeImageDepthParityStats } from "../../../themes/image-depth/timing";
 import type {
   EnvironmentDiagnostics,
   EnvironmentLabSceneProps,
@@ -111,25 +115,6 @@ function createSurfaceGlowUniformState(): SurfaceGlowUniformState {
     },
     uSurfaceGlowPhases: { value: Array.from({ length: MAX_SURFACE_GLOW_HOTSPOTS }, () => 0) },
   };
-}
-
-function buildEnvironmentFilter(params: {
-  playbackMix: number;
-  hueOffsetDegrees: number;
-  currentSaturation: number;
-  glowPulseAmount: number;
-}) {
-  const grayscale = 1 - params.playbackMix;
-  const brightness = 0.85 + params.playbackMix * 0.15 + params.glowPulseAmount;
-  const saturation =
-    params.playbackMix * params.currentSaturation * (1 + params.glowPulseAmount * 0.7);
-
-  return [
-    `grayscale(${grayscale.toFixed(3)})`,
-    `hue-rotate(${params.hueOffsetDegrees.toFixed(3)}deg)`,
-    `saturate(${Math.max(saturation, 0).toFixed(3)})`,
-    `brightness(${Math.max(brightness, 0).toFixed(3)})`,
-  ].join(" ");
 }
 
 function surfaceGlowSignature(hotspots: SurfaceGlowHotspot[]) {
@@ -290,11 +275,9 @@ function EnvironmentLabScene({
     let lastPointerInputAt = -100;
     let lastDiagnosticUpdateAt = -100;
     let lastFrameAt = performance.now();
+    const animationStartedAt = performance.now();
     let elapsedSeconds = 0;
     let playbackVisualMix = 0;
-    let huePhase = 0;
-    let glowPhase = 0;
-    let saturationPulsePhase = 0;
     let surfaceGlowPulseTimeSeconds = 0;
     let currentHueOffset = 0;
     let currentGlowOffset = 0;
@@ -321,6 +304,9 @@ function EnvironmentLabScene({
       alpha: false,
     });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.NoToneMapping;
+    renderer.toneMappingExposure = 1;
     renderer.setSize(mount.clientWidth, mount.clientHeight);
     renderer.domElement.className = "environment-lab__scene";
     mount.appendChild(renderer.domElement);
@@ -926,6 +912,25 @@ void main() {
     const currentPresetAtMount = configRef.current.preset;
     const initialAsset = configRef.current.asset;
 
+    const diagnostics: EnvironmentDiagnostics = {
+      fps: 0,
+      effectiveDepth: 0,
+      surfaceGlowCount: currentPresetAtMount.surfaceGlows.hotspots.length,
+      hueOffsetDegrees: 0,
+      currentSaturation: currentPresetAtMount.behavior.color.saturation,
+      shaderSurfaceGlowCapacity: MAX_SURFACE_GLOW_HOTSPOTS,
+      surfaceGlowDefaultIntensity: currentPresetAtMount.surfaceGlows.defaults.intensity,
+      surfaceGlowAnimationActive: false,
+      automaticMotionActive: false,
+      surfaceGlowAnimationStatus: "Disabled",
+      surfaceGlowPulseFactor: 1,
+      assetDiagnostics: EMPTY_ASSET_DIAGNOSTICS,
+      mostRecentSurfaceGlowU:
+        currentPresetAtMount.surfaceGlows.hotspots[currentPresetAtMount.surfaceGlows.hotspots.length - 1]?.u,
+      mostRecentSurfaceGlowV:
+        currentPresetAtMount.surfaceGlows.hotspots[currentPresetAtMount.surfaceGlows.hotspots.length - 1]?.v,
+    };
+
     let colorDimensions = { width: 0, height: 0 };
     let depthDimensions = { width: 0, height: 0 };
 
@@ -1007,38 +1012,20 @@ void main() {
     syncSurfaceGlowUniforms(currentPresetAtMount);
     lastSurfaceGlowSignature = surfaceGlowSignature(currentPresetAtMount.surfaceGlows.hotspots);
 
-    const diagnostics: EnvironmentDiagnostics = {
-      fps: 0,
-      effectiveDepth: 0,
-      surfaceGlowCount: currentPresetAtMount.surfaceGlows.hotspots.length,
-      hueOffsetDegrees: 0,
-      currentSaturation: currentPresetAtMount.behavior.color.saturation,
-      shaderSurfaceGlowCapacity: MAX_SURFACE_GLOW_HOTSPOTS,
-      surfaceGlowDefaultIntensity: currentPresetAtMount.surfaceGlows.defaults.intensity,
-      surfaceGlowAnimationActive: false,
-      automaticMotionActive: false,
-      surfaceGlowAnimationStatus: "Disabled",
-      surfaceGlowPulseFactor: 1,
-      assetDiagnostics: EMPTY_ASSET_DIAGNOSTICS,
-      mostRecentSurfaceGlowU:
-        currentPresetAtMount.surfaceGlows.hotspots[currentPresetAtMount.surfaceGlows.hotspots.length - 1]?.u,
-      mostRecentSurfaceGlowV:
-        currentPresetAtMount.surfaceGlows.hotspots[currentPresetAtMount.surfaceGlows.hotspots.length - 1]?.v,
-    };
-
     const animate = (now: number) => {
       animationFrameId = window.requestAnimationFrame(animate);
 
-      const deltaSeconds = Math.min(0.2, Math.max(0.001, (now - lastFrameAt) / 1000));
-      elapsedSeconds = now / 1000;
-      lastFrameAt = now;
+      try {
+        const deltaSeconds = Math.min(0.2, Math.max(0.001, (now - lastFrameAt) / 1000));
+        elapsedSeconds = resolveImageDepthElapsedSeconds(now, animationStartedAt);
+        lastFrameAt = now;
 
-      const current = configRef.current;
-      const activePreset = current.preset;
-      const behavior = activePreset.behavior;
-      const isPlaying = current.playbackState === "playing";
-      const automaticMotionActive =
-        isPlaying && behavior.depth.ambientMotionEnabled && !current.reducedMotionActive;
+        const current = configRef.current;
+        const activePreset = current.preset;
+        const behavior = activePreset.behavior;
+        const isPlaying = current.playbackState === "playing";
+        const automaticMotionActive =
+          isPlaying && behavior.depth.ambientMotionEnabled && !current.reducedMotionActive;
 
       const currentSurfaceSignature = surfaceGlowSignature(activePreset.surfaceGlows.hotspots);
       if (currentSurfaceSignature !== lastSurfaceGlowSignature) {
@@ -1088,19 +1075,11 @@ void main() {
 
       const effectiveDepth = isPlaying ? breathingDepth : behavior.depth.staticDepth;
 
-      playbackVisualMix = stepUvJunglePlaybackVisualMix(
+      playbackVisualMix = stepImageDepthPlaybackVisualMix(
         playbackVisualMix,
         isPlaying,
         current.reducedMotionActive,
       );
-
-      if (automaticMotionActive && behavior.color.driftEnabled) {
-        huePhase += (deltaSeconds / Math.max(behavior.color.cycleSeconds, 1)) * Math.PI * 2;
-      }
-
-      if (automaticMotionActive && behavior.color.glowPulseEnabled) {
-        glowPhase += (deltaSeconds / Math.max(behavior.color.glowPulseCycleSeconds, 1)) * Math.PI * 2;
-      }
 
       if (activePreset.surfaceGlows.enabled && !current.reducedMotionActive && automaticMotionActive) {
         surfaceGlowPulseTimeSeconds += deltaSeconds;
@@ -1116,8 +1095,10 @@ void main() {
             pulseProgress,
           );
         } else {
-          saturationPulsePhase += (deltaSeconds / Math.max(behavior.saturationPulse.cycleSeconds, 0.2)) * Math.PI * 2;
-          const pulseProgress = (Math.sin(saturationPulsePhase + behavior.saturationPulse.phaseOffset) + 1) / 2;
+          const pulsePhase =
+            (elapsedSeconds / Math.max(behavior.saturationPulse.cycleSeconds, 0.2)) * Math.PI * 2 +
+            behavior.saturationPulse.phaseOffset;
+          const pulseProgress = (Math.sin(pulsePhase) + 1) / 2;
           currentSaturation = THREE.MathUtils.lerp(
             behavior.saturationPulse.minimumSaturation,
             behavior.saturationPulse.maximumSaturation,
@@ -1128,16 +1109,35 @@ void main() {
         currentSaturation = behavior.color.saturation;
       }
 
-      currentHueOffset = behavior.color.driftEnabled ? Math.sin(huePhase) * behavior.color.hueRangeDegrees : 0;
+      currentHueOffset = behavior.color.driftEnabled
+        ? Math.sin((elapsedSeconds / Math.max(behavior.color.cycleSeconds, 1)) * Math.PI * 2) *
+          behavior.color.hueRangeDegrees
+        : 0;
       currentGlowOffset = behavior.color.glowPulseEnabled
-        ? (Math.sin(glowPhase) * 0.5 + 0.5) * behavior.color.glowPulseAmount
+        ?
+            (Math.sin((elapsedSeconds / Math.max(behavior.color.glowPulseCycleSeconds, 1)) * Math.PI * 2) *
+              0.5 +
+              0.5) *
+            behavior.color.glowPulseAmount
         : 0;
 
-      renderer.domElement.style.filter = buildEnvironmentFilter({
-        playbackMix: playbackVisualMix,
+      renderer.domElement.style.filter = formatImageDepthPlaybackFilter({
+        playbackVisualMix,
         hueOffsetDegrees: currentHueOffset,
         currentSaturation,
         glowPulseAmount: currentGlowOffset,
+      });
+
+      writeImageDepthParityStats("lab", {
+        elapsedSeconds,
+        playbackMix: playbackVisualMix,
+        grayscale: 1 - playbackVisualMix,
+        hueOffsetDegrees: currentHueOffset,
+        currentSaturation,
+        effectiveSaturation: playbackVisualMix * currentSaturation * (1 + currentGlowOffset * 0.7),
+        glowPulseAmount: currentGlowOffset,
+        brightness: 1 + currentGlowOffset,
+        filter: renderer.domElement.style.filter,
       });
 
       surfaceGlowUniforms.uSurfaceGlowEnabled.value = activePreset.surfaceGlows.enabled ? 1 : 0;
@@ -1162,41 +1162,47 @@ void main() {
 
       renderer.render(scene, camera);
 
-      if (elapsedSeconds - lastDiagnosticUpdateAt >= DIAGNOSTIC_UPDATE_INTERVAL_SECONDS) {
-        lastDiagnosticUpdateAt = elapsedSeconds;
-        diagnostics.fps = diagnostics.fps === 0 ? 1 / deltaSeconds : diagnostics.fps * 0.65 + (1 / deltaSeconds) * 0.35;
-        diagnostics.effectiveDepth = effectiveDepth;
-        diagnostics.surfaceGlowCount = activePreset.surfaceGlows.hotspots.length;
-        diagnostics.hueOffsetDegrees = currentHueOffset;
-        diagnostics.currentSaturation = currentSaturation;
-        diagnostics.shaderSurfaceGlowCapacity = MAX_SURFACE_GLOW_HOTSPOTS;
-        diagnostics.surfaceGlowDefaultIntensity = activePreset.surfaceGlows.defaults.intensity;
-        diagnostics.surfaceGlowAnimationActive = automaticMotionActive && activePreset.surfaceGlows.enabled;
-        diagnostics.automaticMotionActive = automaticMotionActive;
-        diagnostics.surfaceGlowAnimationStatus = describeAnimationStatus({
-          enabled: activePreset.surfaceGlows.enabled,
-          isPlaying,
-          ambientMotionEnabled: behavior.depth.ambientMotionEnabled,
-          reducedMotionActive: current.reducedMotionActive,
-        });
+        if (elapsedSeconds - lastDiagnosticUpdateAt >= DIAGNOSTIC_UPDATE_INTERVAL_SECONDS) {
+          lastDiagnosticUpdateAt = elapsedSeconds;
+          diagnostics.fps = diagnostics.fps === 0 ? 1 / deltaSeconds : diagnostics.fps * 0.65 + (1 / deltaSeconds) * 0.35;
+          diagnostics.effectiveDepth = effectiveDepth;
+          diagnostics.surfaceGlowCount = activePreset.surfaceGlows.hotspots.length;
+          diagnostics.hueOffsetDegrees = currentHueOffset;
+          diagnostics.currentSaturation = currentSaturation;
+          diagnostics.shaderSurfaceGlowCapacity = MAX_SURFACE_GLOW_HOTSPOTS;
+          diagnostics.surfaceGlowDefaultIntensity = activePreset.surfaceGlows.defaults.intensity;
+          diagnostics.surfaceGlowAnimationActive = automaticMotionActive && activePreset.surfaceGlows.enabled;
+          diagnostics.automaticMotionActive = automaticMotionActive;
+          diagnostics.surfaceGlowAnimationStatus = describeAnimationStatus({
+            enabled: activePreset.surfaceGlows.enabled,
+            isPlaying,
+            ambientMotionEnabled: behavior.depth.ambientMotionEnabled,
+            reducedMotionActive: current.reducedMotionActive,
+          });
 
-        const firstGlow = activePreset.surfaceGlows.hotspots[0];
-        if (!firstGlow || !firstGlow.pulseEnabled) {
-          diagnostics.surfaceGlowPulseFactor = 1;
-        } else {
-          const cycle = Math.max(firstGlow.pulseCycleSeconds, 0.2);
-          const wave = Math.sin((surfaceGlowPulseTimeSeconds / cycle) * Math.PI * 2 + firstGlow.phase * Math.PI * 2) * 0.5 + 0.5;
-          const pulseShape = THREE.MathUtils.smoothstep(wave, 0.08, 0.92);
-          diagnostics.surfaceGlowPulseFactor = THREE.MathUtils.lerp(
-            firstGlow.minimumIntensityMultiplier,
-            firstGlow.maximumIntensityMultiplier,
-            pulseShape,
-          );
+          const firstGlow = activePreset.surfaceGlows.hotspots[0];
+          if (!firstGlow || !firstGlow.pulseEnabled) {
+            diagnostics.surfaceGlowPulseFactor = 1;
+          } else {
+            const cycle = Math.max(firstGlow.pulseCycleSeconds, 0.2);
+            const wave = Math.sin((surfaceGlowPulseTimeSeconds / cycle) * Math.PI * 2 + firstGlow.phase * Math.PI * 2) * 0.5 + 0.5;
+            const pulseShape = THREE.MathUtils.smoothstep(wave, 0.08, 0.92);
+            diagnostics.surfaceGlowPulseFactor = THREE.MathUtils.lerp(
+              firstGlow.minimumIntensityMultiplier,
+              firstGlow.maximumIntensityMultiplier,
+              pulseShape,
+            );
+          }
+
+          diagnostics.mostRecentSurfaceGlowU = activePreset.surfaceGlows.hotspots[activePreset.surfaceGlows.hotspots.length - 1]?.u;
+          diagnostics.mostRecentSurfaceGlowV = activePreset.surfaceGlows.hotspots[activePreset.surfaceGlows.hotspots.length - 1]?.v;
+          callbackRef.current.onDiagnosticsChange?.({ ...diagnostics });
         }
-
-        diagnostics.mostRecentSurfaceGlowU = activePreset.surfaceGlows.hotspots[activePreset.surfaceGlows.hotspots.length - 1]?.u;
-        diagnostics.mostRecentSurfaceGlowV = activePreset.surfaceGlows.hotspots[activePreset.surfaceGlows.hotspots.length - 1]?.v;
-        callbackRef.current.onDiagnosticsChange?.({ ...diagnostics });
+      } catch (error) {
+        renderer.domElement.style.filter = "grayscale(1) hue-rotate(0deg) saturate(1) brightness(1)";
+        writeImageDepthParityStats("lab-error", {
+          message: String(error),
+        });
       }
     };
 

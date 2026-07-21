@@ -39,6 +39,22 @@ export type ImageDepthBehaviorSettings = {
 export type ImageDepthSurfaceGlows = {
   enabled: boolean;
   hotspots: Array<{ id: string; u: number; v: number }>;
+  defaults?: {
+    color: string;
+    radius: number;
+    softness: number;
+    intensity: number;
+    pulseEnabled: boolean;
+    pulseMode: "brightness" | "bloom" | "brightness-bloom" | "soft-blink";
+    pulseAmount: number;
+    minimumIntensityMultiplier: number;
+    maximumIntensityMultiplier: number;
+    radiusExpansionMultiplier: number;
+    pulseCycleSeconds: number;
+    hueDriftEnabled: boolean;
+    hueDriftRangeDegrees: number;
+    hueDriftCycleSeconds: number;
+  };
 };
 
 export type ImageDepthScenePreset = {

@@ -4,6 +4,7 @@ import type { ThemeSceneProps } from "../themeTypes";
 import { formatImageDepthPlaybackFilter, stepImageDepthPlaybackVisualMix } from "./imageDepthPlaybackVisuals";
 import { computeFramedPlaneScale, IMAGE_DEPTH_PARITY_FRAMING } from "./framing";
 import { getImageDepthTexturePair } from "./imageDepthTextureCache";
+import { resolveImageDepthElapsedSeconds, writeImageDepthParityStats } from "./timing";
 import type { ImageDepthAsset, ImageDepthScenePreset } from "./types";
 
 type ImageDepthThemeSceneProps = ThemeSceneProps & {
@@ -35,7 +36,7 @@ export function ImageDepthThemeScene({
   className,
 }: ImageDepthThemeSceneProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const sharedShaderRef = useRef<THREE.ShaderMaterial | null>(null);
+  const sharedMaterialRef = useRef<THREE.MeshStandardMaterial | null>(null);
   const playbackVisualMixRef = useRef(0);
   const visualStateRef = useRef({
     isPlaying,
@@ -114,38 +115,17 @@ export function ImageDepthThemeScene({
     const planeGroup = new THREE.Group();
     scene.add(planeGroup);
 
-    const uniforms = {
-      uColorMap: { value: null as THREE.Texture | null },
-      uDepthMap: { value: null as THREE.Texture | null },
-      uDepthScale: { value: profile.depth.staticDepth },
-    };
+    const ambientLight = new THREE.AmbientLight(0xf2ffe7, 1.85);
+    const keyLight = new THREE.DirectionalLight(0xf8f6d2, 1.3);
+    keyLight.position.set(-2, 2, 3);
+    const rimLight = new THREE.DirectionalLight(0x77ffd9, 0.6);
+    rimLight.position.set(2, -1, 2);
+    scene.add(ambientLight, keyLight, rimLight);
 
-    const material = new THREE.ShaderMaterial({
-      uniforms,
-      vertexShader: `
-        varying vec2 vUv;
-        uniform sampler2D uDepthMap;
-        uniform float uDepthScale;
-
-        void main() {
-          vUv = uv;
-          float depthValue = texture2D(uDepthMap, uv).r;
-          vec3 displaced = position;
-          displaced.z += (depthValue - 0.5) * uDepthScale;
-          gl_Position = projectionMatrix * modelViewMatrix * vec4(displaced, 1.0);
-        }
-      `,
-      fragmentShader: `
-        varying vec2 vUv;
-        uniform sampler2D uColorMap;
-
-        void main() {
-          gl_FragColor = texture2D(uColorMap, vUv);
-        }
-      `,
-      transparent: false,
-      depthTest: false,
-      depthWrite: false,
+    const material = new THREE.MeshStandardMaterial({
+      displacementScale: profile.depth.staticDepth * profile.depth.depthStrength * DISPLACEMENT_SCALE_MULTIPLIER,
+      roughness: 1,
+      metalness: 0,
       side: THREE.DoubleSide,
       toneMapped: false,
     });
@@ -166,23 +146,20 @@ export function ImageDepthThemeScene({
     glowPlane.position.z = -0.8;
     planeGroup.add(glowPlane);
 
-    sharedShaderRef.current = material;
+    sharedMaterialRef.current = material;
 
     let disposed = false;
     let frameHandle: number | null = null;
     let readyFrameHandle: number | null = null;
     let readyFallbackTimeoutHandle: number | null = null;
+    const animationStartedAt = performance.now();
     const pointerTarget = new THREE.Vector2(0, 0);
     const pointer = new THREE.Vector2(0, 0);
     const blendedPointer = new THREE.Vector2(0, 0);
     const autonomousPointer = new THREE.Vector2(0, 0);
-    let lastTimestamp = performance.now();
     let elapsedSeconds = 0;
     let pointerInfluence = 0;
     let lastPointerInputAt = -100;
-    let huePhase = 0;
-    let glowPhase = 0;
-    let saturationPulsePhase = 0;
 
     const onPointerMove = (event: PointerEvent) => {
       const rect = renderer.domElement.getBoundingClientRect();
@@ -242,8 +219,9 @@ export function ImageDepthThemeScene({
           return;
         }
 
-        uniforms.uColorMap.value = colorTexture;
-        uniforms.uDepthMap.value = depthTexture;
+        material.map = colorTexture;
+        material.displacementMap = depthTexture;
+        material.needsUpdate = true;
 
         readyFrameHandle = requestAnimationFrame(() => {
           renderer.domElement.style.opacity = "1";
@@ -260,9 +238,7 @@ export function ImageDepthThemeScene({
       }
 
       try {
-        const deltaSeconds = (timestamp - lastTimestamp) / 1000;
-        lastTimestamp = timestamp;
-        elapsedSeconds += Math.max(deltaSeconds, 0);
+        elapsedSeconds = resolveImageDepthElapsedSeconds(timestamp, animationStartedAt);
 
         const visualState = visualStateRef.current;
         const isPlayingNow = visualState.isPlaying;
@@ -295,6 +271,7 @@ export function ImageDepthThemeScene({
         blendedPointer.y = THREE.MathUtils.lerp(autonomousPointer.y, pointer.y * motionAmount, pointerInfluence);
 
         let breathingMix = 0.5;
+        let effectiveDepth = profile.depth.staticDepth;
         const minBreathingDepth = Math.min(profile.depth.breathingMin, profile.depth.breathingMax);
         const maxBreathingDepth = Math.max(profile.depth.breathingMin, profile.depth.breathingMax);
 
@@ -303,19 +280,24 @@ export function ImageDepthThemeScene({
           const safeCycleSeconds = Math.max(profile.depth.breathingCycleSeconds, SATURATION_EPSILON);
           const cycle = Math.sin((elapsedSeconds / safeCycleSeconds) * Math.PI * 2);
           breathingMix = (cycle + 1) * 0.5;
+          effectiveDepth = minBreathingDepth + breathingRange * breathingMix;
 
-          uniforms.uDepthScale.value =
+          material.displacementScale =
             profile.depth.depthStrength *
             DISPLACEMENT_SCALE_MULTIPLIER *
-            (minBreathingDepth + breathingRange * breathingMix);
+            effectiveDepth;
         } else {
-          uniforms.uDepthScale.value =
+          effectiveDepth = profile.depth.staticDepth;
+          material.displacementScale =
             profile.depth.staticDepth * profile.depth.depthStrength * DISPLACEMENT_SCALE_MULTIPLIER;
         }
 
+        material.bumpScale = effectiveDepth * 0.04;
+
         const hueOffsetDegrees =
           profile.color.driftEnabled && isPlayingNow && !reducedMotionActive
-            ? Math.sin(huePhase) * profile.color.hueRangeDegrees
+            ? Math.sin((elapsedSeconds / Math.max(profile.color.cycleSeconds, 1)) * Math.PI * 2) *
+              profile.color.hueRangeDegrees
             : 0;
 
         let currentSaturation = profile.color.saturation;
@@ -329,8 +311,10 @@ export function ImageDepthThemeScene({
               pulseProgress,
             );
           } else {
-            const pulseProgress =
-              (Math.sin(saturationPulsePhase + profile.saturationPulse.phaseOffset) + 1) * 0.5;
+            const pulsePhase =
+              (elapsedSeconds / Math.max(profile.saturationPulse.cycleSeconds, 0.2)) * Math.PI * 2 +
+              profile.saturationPulse.phaseOffset;
+            const pulseProgress = (Math.sin(pulsePhase) + 1) * 0.5;
             currentSaturation = lerp(
               profile.saturationPulse.minimumSaturation,
               profile.saturationPulse.maximumSaturation,
@@ -340,7 +324,9 @@ export function ImageDepthThemeScene({
         }
 
         const glowPulseAmount = profile.color.glowPulseEnabled && isPlayingNow && !reducedMotionActive
-          ? (Math.sin(glowPhase) * 0.5 + 0.5) * profile.color.glowPulseAmount
+          ? (Math.sin((elapsedSeconds / Math.max(profile.color.glowPulseCycleSeconds, 1)) * Math.PI * 2) * 0.5 +
+              0.5) *
+            profile.color.glowPulseAmount
           : 0;
 
         playbackVisualMixRef.current = stepImageDepthPlaybackVisualMix(
@@ -349,31 +335,13 @@ export function ImageDepthThemeScene({
           reducedMotionActive,
         );
 
-        if (profile.color.driftEnabled && isPlayingNow && !reducedMotionActive) {
-          huePhase += (deltaSeconds / Math.max(profile.color.cycleSeconds, 1)) * Math.PI * 2;
-        }
-
-        if (profile.color.glowPulseEnabled && isPlayingNow && !reducedMotionActive) {
-          glowPhase += (deltaSeconds / Math.max(profile.color.glowPulseCycleSeconds, 1)) * Math.PI * 2;
-        }
-
-        if (
-          profile.saturationPulse.enabled &&
-          isPlayingNow &&
-          !reducedMotionActive &&
-          !profile.saturationPulse.syncToDepthBreathing
-        ) {
-          saturationPulsePhase +=
-            (deltaSeconds / Math.max(profile.saturationPulse.cycleSeconds, 0.2)) * Math.PI * 2;
-        }
-
         planeGroup.position.x = Math.sin(elapsedSeconds * 0.16) * 0.06 * autoAmount + blendedPointer.x * 0.14;
         planeGroup.position.y = Math.cos(elapsedSeconds * 0.12) * 0.04 * autoAmount - blendedPointer.y * 0.11;
         planeGroup.rotation.y = Math.sin(elapsedSeconds * 0.1) * 0.022 * autoAmount + blendedPointer.x * 0.13;
         planeGroup.rotation.x = Math.cos(elapsedSeconds * 0.085) * 0.016 * autoAmount - blendedPointer.y * 0.1;
         plane.position.z =
           IMAGE_DEPTH_PARITY_FRAMING.planeZ + Math.sin(elapsedSeconds * 0.22) * 0.06 * autoAmount;
-        glowPlane.material.opacity = 0.05 + uniforms.uDepthScale.value * 0.18 + glowPulseAmount * 0.8;
+        glowPlane.material.opacity = 0.05 + material.displacementScale * 0.18 + glowPulseAmount * 0.8;
 
         camera.position.x = blendedPointer.x * 0.06;
         camera.position.y = -blendedPointer.y * 0.045;
@@ -387,12 +355,29 @@ export function ImageDepthThemeScene({
         });
 
         renderer.domElement.style.filter = filter;
+
+        writeImageDepthParityStats("production", {
+          elapsedSeconds,
+          playbackMix: playbackVisualMixRef.current,
+          grayscale: 1 - playbackVisualMixRef.current,
+          hueOffsetDegrees,
+          currentSaturation,
+          effectiveSaturation:
+            playbackVisualMixRef.current * currentSaturation * (1 + glowPulseAmount * 0.7),
+          glowPulseAmount,
+          brightness: 1 + glowPulseAmount,
+          filter,
+        });
+
         renderer.render(scene, camera);
       } catch (error) {
         const visualState = visualStateRef.current;
         renderer.domElement.style.filter = visualState.isPlaying
           ? "grayscale(0) hue-rotate(0deg) saturate(1) brightness(1)"
           : "grayscale(1) hue-rotate(0deg) saturate(0) brightness(0.85)";
+        writeImageDepthParityStats("production-error", {
+          message: String(error),
+        });
         console.warn("Image-depth render loop error", error);
       }
 
@@ -419,11 +404,12 @@ export function ImageDepthThemeScene({
       container.removeEventListener("pointermove", onPointerMove);
       container.removeEventListener("pointerleave", onPointerLeave);
       resizeObserver.disconnect();
-      sharedShaderRef.current = null;
+      sharedMaterialRef.current = null;
       material.dispose();
       geometry.dispose();
       glowGeometry.dispose();
       glowMaterial.dispose();
+      scene.clear();
       renderer.dispose();
 
       if (renderer.domElement.parentElement === container) {
@@ -433,12 +419,12 @@ export function ImageDepthThemeScene({
   }, [asset, profile]);
 
   useEffect(() => {
-    const shader = sharedShaderRef.current;
-    if (!shader) {
+    const material = sharedMaterialRef.current;
+    if (!material) {
       return;
     }
 
-    shader.uniforms.uDepthScale.value =
+    material.displacementScale =
       profile.depth.staticDepth * profile.depth.depthStrength * DISPLACEMENT_SCALE_MULTIPLIER;
   }, [profile.depth.staticDepth, profile.depth.depthStrength]);
 
