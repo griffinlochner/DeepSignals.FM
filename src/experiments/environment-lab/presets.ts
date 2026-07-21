@@ -7,6 +7,7 @@ import type {
 } from "./types";
 
 export const UV_JUNGLE_ASSET_ID = "uv-jungle";
+export const ANALOG_SIGNAL_LABORATORY_ASSET_ID = "analog-signal-laboratory";
 
 export const IMAGE_ENVIRONMENT_ASSETS: ImageEnvironmentAsset[] = [
   {
@@ -16,6 +17,16 @@ export const IMAGE_ENVIRONMENT_ASSETS: ImageEnvironmentAsset[] = [
     depthMapUrl: "/experiments/environment-lab/jungle-depth.png",
     metadata: {
       description: "Experimental UV-reactive jungle artwork and aligned depth map.",
+    },
+  },
+  {
+    id: ANALOG_SIGNAL_LABORATORY_ASSET_ID,
+    name: "Analog Signal Laboratory",
+    colorImageUrl:
+      "/environments/analog-signal-laboratory/analog-signal-laboratory-color.webp",
+    depthMapUrl: "/environments/analog-signal-laboratory/analog-signal-laboratory-depth.png",
+    metadata: {
+      description: "Premium analog synthesis workstation artwork and aligned depth map.",
     },
   },
 ];
@@ -208,7 +219,45 @@ export const UV_JUNGLE_SHOWCASE_SCENE_PRESET: ImageEnvironmentScenePreset = {
 export const IMAGE_ENVIRONMENT_SCENE_PRESETS: ImageEnvironmentScenePreset[] = [
   NEUTRAL_BASELINE_SCENE_PRESET,
   UV_JUNGLE_SHOWCASE_SCENE_PRESET,
+  {
+    id: "analog-signal-laboratory-neutral",
+    name: "Analog Signal Laboratory Neutral",
+    assetId: ANALOG_SIGNAL_LABORATORY_ASSET_ID,
+    behavior: NEUTRAL_BEHAVIOR_SETTINGS,
+    surfaceGlows: {
+      enabled: false,
+      hotspots: [],
+      defaults: DEFAULT_SURFACE_GLOW_SETTINGS,
+    },
+  },
 ];
+
+export function createNeutralScenePresetForAsset(assetId: string): ImageEnvironmentScenePreset {
+  const asset = getImageEnvironmentAssetById(assetId);
+  const safeAssetId = asset?.id ?? UV_JUNGLE_ASSET_ID;
+  const neutralId =
+    safeAssetId === UV_JUNGLE_ASSET_ID
+      ? "neutral-baseline"
+      : safeAssetId === ANALOG_SIGNAL_LABORATORY_ASSET_ID
+        ? "analog-signal-laboratory-neutral"
+        : `${safeAssetId}-neutral`;
+  const neutralName =
+    safeAssetId === UV_JUNGLE_ASSET_ID
+      ? "Neutral Baseline"
+      : `${asset?.name ?? "Image Environment"} Neutral`;
+
+  return {
+    id: neutralId,
+    name: neutralName,
+    assetId: safeAssetId,
+    behavior: cloneBehaviorSettings(NEUTRAL_BEHAVIOR_SETTINGS),
+    surfaceGlows: {
+      enabled: false,
+      hotspots: [],
+      defaults: { ...DEFAULT_SURFACE_GLOW_SETTINGS },
+    },
+  };
+}
 
 export function getImageEnvironmentAssetById(assetId: string) {
   return IMAGE_ENVIRONMENT_ASSETS.find((asset) => asset.id === assetId) ?? null;

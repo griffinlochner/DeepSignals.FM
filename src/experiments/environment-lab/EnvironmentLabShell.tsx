@@ -30,6 +30,7 @@ type EnvironmentLabShellProps = {
   onScenePresetChange: (next: ImageEnvironmentScenePreset) => void;
   onLoadBehaviorPreset: (presetId: string) => void;
   onLoadScenePreset: (presetId: string) => void;
+  onAssetChange: (assetId: string) => void;
   onCreateSurfaceGlowHotspot: (u: number, v: number, phase: number) => void;
   onSurfaceGlowCapacityReached: () => void;
   onRemoveNearestSurfaceGlowHotspot: (u: number, v: number) => void;
@@ -44,6 +45,8 @@ type EnvironmentLabShellProps = {
   onLoadingStateChange: (state: EnvironmentLoadingState) => void;
   sceneAsset: ImageEnvironmentAsset | null;
   fallbackAsset: ImageEnvironmentAsset | null;
+  assets: ImageEnvironmentAsset[];
+  scenePresets: ImageEnvironmentScenePreset[];
 };
 
 function EnvironmentLabShell({
@@ -65,6 +68,7 @@ function EnvironmentLabShell({
   onScenePresetChange,
   onLoadBehaviorPreset,
   onLoadScenePreset,
+  onAssetChange,
   onCreateSurfaceGlowHotspot,
   onSurfaceGlowCapacityReached,
   onRemoveNearestSurfaceGlowHotspot,
@@ -79,6 +83,8 @@ function EnvironmentLabShell({
   onLoadingStateChange,
   sceneAsset,
   fallbackAsset,
+  assets,
+  scenePresets,
 }: EnvironmentLabShellProps) {
   const activeAsset = sceneAsset ?? fallbackAsset;
 
@@ -122,6 +128,7 @@ function EnvironmentLabShell({
             onScenePresetChange={onScenePresetChange}
             onLoadBehaviorPreset={onLoadBehaviorPreset}
             onLoadScenePreset={onLoadScenePreset}
+            onAssetChange={onAssetChange}
             onSurfaceGlowPlacementModeChange={onSurfaceGlowPlacementModeChange}
             onClearSurfaceGlowHotspots={onClearSurfaceGlowHotspots}
             onRandomizeSurfaceGlowPhases={onRandomizeSurfaceGlowPhases}
@@ -130,6 +137,8 @@ function EnvironmentLabShell({
             onCopySceneJson={onCopySceneJson}
             onImportTextChange={onImportTextChange}
             onApplyImportedScene={onApplyImportedScene}
+            assets={assets}
+            scenePresets={scenePresets}
           />
         </div>
       </EnvironmentLabOverlay>

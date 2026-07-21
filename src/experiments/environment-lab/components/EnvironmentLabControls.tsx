@@ -5,6 +5,7 @@ import type {
   EnvironmentBehaviorPreset,
   EnvironmentDiagnostics,
   EnvironmentPlaybackState,
+  ImageEnvironmentAsset,
   ImageEnvironmentScenePreset,
   SurfaceGlowPulseMode,
 } from "../types";
@@ -22,10 +23,13 @@ type EnvironmentLabControlsProps = {
   feedbackMessage: string;
   feedbackTone: "idle" | "success" | "error";
   behaviorPresets: EnvironmentBehaviorPreset[];
+  assets: ImageEnvironmentAsset[];
+  scenePresets: ImageEnvironmentScenePreset[];
   onPlaybackStateChange: (value: EnvironmentPlaybackState) => void;
   onScenePresetChange: (next: ImageEnvironmentScenePreset) => void;
   onLoadBehaviorPreset: (presetId: string) => void;
   onLoadScenePreset: (presetId: string) => void;
+  onAssetChange: (assetId: string) => void;
   onSurfaceGlowPlacementModeChange: (enabled: boolean) => void;
   onClearSurfaceGlowHotspots: () => void;
   onRandomizeSurfaceGlowPhases: () => void;
@@ -65,10 +69,13 @@ function EnvironmentLabControls({
   feedbackMessage,
   feedbackTone,
   behaviorPresets,
+  assets,
+  scenePresets,
   onPlaybackStateChange,
   onScenePresetChange,
   onLoadBehaviorPreset,
   onLoadScenePreset,
+  onAssetChange,
   onSurfaceGlowPlacementModeChange,
   onClearSurfaceGlowHotspots,
   onRandomizeSurfaceGlowPhases,
@@ -840,23 +847,39 @@ function EnvironmentLabControls({
         </p>
 
         <label className="environment-lab__field">
+          <span>Registered image/depth asset</span>
+          <select
+            value={scenePreset.assetId}
+            onChange={(event) => onAssetChange(event.target.value)}
+          >
+            {assets.map((asset) => (
+              <option key={asset.id} value={asset.id}>
+                {asset.name}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="environment-lab__field">
           <span>Built-in full scene</span>
           <select
             value={selectedScenePresetId}
             onChange={(event) => onLoadScenePreset(event.target.value)}
           >
-            <option value="neutral-baseline">Neutral Baseline</option>
-            <option value="uv-jungle-showcase">UV Jungle Showcase</option>
+            {scenePresets.map((preset) => (
+              <option key={preset.id} value={preset.id}>
+                {preset.name}
+              </option>
+            ))}
           </select>
         </label>
 
         <div className="environment-lab__button-row">
-          <button type="button" onClick={() => onLoadScenePreset("neutral-baseline")}>
-            Load Neutral Baseline
-          </button>
-          <button type="button" onClick={() => onLoadScenePreset("uv-jungle-showcase")}>
-            Load UV Jungle Showcase
-          </button>
+          {scenePresets.map((preset) => (
+            <button key={preset.id} type="button" onClick={() => onLoadScenePreset(preset.id)}>
+              Load {preset.name}
+            </button>
+          ))}
           <button type="button" onClick={onResetScene}>
             Reset Full Scene
           </button>

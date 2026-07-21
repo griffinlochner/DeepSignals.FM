@@ -4,9 +4,12 @@ import EnvironmentLabShell from "./EnvironmentLabShell";
 import {
   applyBehaviorPreset,
   cloneScenePreset,
+  createNeutralScenePresetForAsset,
   ENVIRONMENT_BEHAVIOR_PRESETS,
   getBehaviorPresetById,
   getImageEnvironmentAssetById,
+  IMAGE_ENVIRONMENT_ASSETS,
+  IMAGE_ENVIRONMENT_SCENE_PRESETS,
   getScenePresetById,
   NEUTRAL_BASELINE_SCENE_PRESET,
   UV_JUNGLE_SHOWCASE_SCENE_PRESET,
@@ -163,6 +166,24 @@ function EnvironmentLabPage() {
     setFeedback(`Loaded full scene preset: ${preset.name}`, "success");
   };
 
+  const handleAssetChange = (assetId: string) => {
+    const selected = getImageEnvironmentAssetById(assetId);
+    if (!selected) {
+      setFeedback(`Unknown asset: ${assetId}`, "error");
+      return;
+    }
+
+    const neutralScene = createNeutralScenePresetForAsset(selected.id);
+    setScenePreset(neutralScene);
+    setSelectedBehaviorPresetId("neutral");
+    setSelectedScenePresetId(neutralScene.id);
+    setSession((current) => ({
+      ...current,
+      surfaceGlowPlacementModeEnabled: false,
+    }));
+    setFeedback(`Switched asset to ${selected.name} in neutral state.`, "success");
+  };
+
   const handleCopySceneJson = async () => {
     const serialized = JSON.stringify(scenePreset, null, 2);
 
@@ -242,6 +263,7 @@ function EnvironmentLabPage() {
       onScenePresetChange={setScenePreset}
       onLoadBehaviorPreset={loadBehaviorPreset}
       onLoadScenePreset={loadScenePreset}
+      onAssetChange={handleAssetChange}
       onCreateSurfaceGlowHotspot={(u, v, phase) => {
         let blocked = false;
 
@@ -358,14 +380,15 @@ function EnvironmentLabPage() {
         setFeedback("Applied current Surface Glow animation settings to all hotspots.", "success");
       }}
       onResetScene={() => {
-        setScenePreset(cloneScenePreset(NEUTRAL_BASELINE_SCENE_PRESET));
+        const neutralScene = createNeutralScenePresetForAsset(scenePreset.assetId);
+        setScenePreset(neutralScene);
         setSelectedBehaviorPresetId("neutral");
-        setSelectedScenePresetId(NEUTRAL_BASELINE_SCENE_PRESET.id);
+        setSelectedScenePresetId(neutralScene.id);
         setSession({
           playbackState: "stopped",
           surfaceGlowPlacementModeEnabled: false,
         });
-        setFeedback("Reset full scene to Neutral Baseline.", "success");
+        setFeedback("Reset full scene to asset neutral baseline.", "success");
       }}
       onCopySceneJson={handleCopySceneJson}
       onImportTextChange={setImportText}
@@ -375,6 +398,8 @@ function EnvironmentLabPage() {
       sceneAsset={selectedAsset}
       fallbackAsset={getImageEnvironmentAssetById(UV_JUNGLE_SHOWCASE_SCENE_PRESET.assetId)}
       behaviorPresets={ENVIRONMENT_BEHAVIOR_PRESETS}
+      assets={IMAGE_ENVIRONMENT_ASSETS}
+      scenePresets={IMAGE_ENVIRONMENT_SCENE_PRESETS}
     />
   );
 }
