@@ -1,0 +1,291 @@
+.station-ident-overlay {
+  --station-ident-cyan: #47f7ff;
+  --station-ident-violet: #8f4dff;
+  --station-ident-orange: #ff9a36;
+  --station-ident-ink: rgba(6, 11, 16, 0.62);
+  --station-ident-settled: #dffbff;
+  position: absolute;
+  top: clamp(92px, 12vh, 146px);
+  right: clamp(34px, 4.8vw, 72px);
+  z-index: 2;
+  pointer-events: none;
+  user-select: none;
+}
+
+.station-ident-overlay__word {
+  position: relative;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0;
+  padding: 4px 6px 8px;
+  border-radius: 6px;
+  font-family: 'Consolas', 'SFMono-Regular', 'Menlo', 'Monaco', 'Liberation Mono', 'Courier New', monospace;
+  font-size: clamp(1.75rem, 1.3rem + 1.1vw, 2.35rem);
+  font-weight: 700;
+  letter-spacing: 0.025em;
+  line-height: 1;
+  text-rendering: geometricPrecision;
+  color: var(--station-ident-settled);
+  text-shadow:
+    0 0 8px rgba(71, 247, 255, 0.38),
+    0 0 16px rgba(143, 77, 255, 0.22),
+    0 1px 2px var(--station-ident-ink);
+  isolation: isolate;
+}
+
+.station-ident-overlay__cell {
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: center;
+  width: 1ch;
+  min-width: 1ch;
+  max-width: 1ch;
+  transition: color 200ms ease, filter 200ms ease, transform 220ms ease;
+}
+
+.station-ident-overlay__cell--scrambling {
+  color: color-mix(in srgb, var(--station-ident-cyan) 72%, white 28%);
+  filter: blur(0.2px);
+  animation: station-ident-flicker 420ms linear infinite;
+}
+
+.station-ident-overlay__cell--scrambling:nth-child(3n) {
+  color: color-mix(in srgb, var(--station-ident-violet) 74%, white 26%);
+}
+
+.station-ident-overlay__cell--scrambling:nth-child(4n) {
+  color: color-mix(in srgb, var(--station-ident-orange) 72%, white 28%);
+}
+
+.station-ident-overlay__cell--resolved {
+  color: var(--station-ident-settled);
+  filter: blur(0);
+  animation: none;
+}
+
+.station-ident-overlay__cell--flash {
+  color: #ffffff;
+  transform: scale(1.08);
+  text-shadow:
+    0 0 7px rgba(71, 247, 255, 0.9),
+    0 0 14px rgba(143, 77, 255, 0.65),
+    0 0 20px rgba(255, 154, 54, 0.5);
+}
+
+.station-ident-overlay__scanline {
+  position: absolute;
+  inset: 2px 0 auto;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    rgba(71, 247, 255, 0) 0%,
+    rgba(71, 247, 255, 0.75) 22%,
+    rgba(143, 77, 255, 0.85) 56%,
+    rgba(255, 154, 54, 0.72) 82%,
+    rgba(255, 154, 54, 0) 100%
+  );
+  opacity: 0.34;
+  pointer-events: none;
+}
+
+.station-ident-overlay__underline {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  bottom: 2px;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    rgba(71, 247, 255, 0.1),
+    rgba(71, 247, 255, 0.68),
+    rgba(143, 77, 255, 0.7),
+    rgba(255, 154, 54, 0.64)
+  );
+  opacity: 0.76;
+  transform-origin: left center;
+}
+
+.station-ident-overlay--materializing .station-ident-overlay__word {
+  opacity: 0;
+  transform: translate3d(26px, -8px, 0);
+  filter: blur(1.6px);
+  animation: station-ident-materialize 720ms cubic-bezier(0.16, 0.9, 0.24, 1) forwards;
+}
+
+.station-ident-overlay--decoding .station-ident-overlay__word {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+  filter: blur(0);
+}
+
+.station-ident-overlay--locked .station-ident-overlay__word {
+  opacity: 1;
+}
+
+.station-ident-overlay__word--lock-on {
+  animation: station-ident-lock-on 1050ms ease-out;
+}
+
+.station-ident-overlay__word--lock-on .station-ident-overlay__scanline {
+  animation: station-ident-scan-sweep 760ms ease-out;
+}
+
+.station-ident-overlay--dematerializing .station-ident-overlay__word {
+  opacity: 1;
+  animation: station-ident-dematerialize 860ms cubic-bezier(0.34, 0.1, 0.8, 0.15) forwards;
+}
+
+.station-ident-overlay--dematerializing .station-ident-overlay__underline {
+  animation: station-ident-underline-out 780ms ease-in forwards;
+}
+
+@keyframes station-ident-materialize {
+  0% {
+    opacity: 0;
+    transform: translate3d(28px, -9px, 0);
+    filter: blur(2.2px);
+    letter-spacing: 0.17em;
+  }
+
+  55% {
+    opacity: 0.86;
+    filter: blur(0.8px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+    filter: blur(0);
+    letter-spacing: 0.025em;
+  }
+}
+
+@keyframes station-ident-dematerialize {
+  0% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+    filter: blur(0);
+    letter-spacing: 0.025em;
+  }
+
+  65% {
+    opacity: 0.42;
+    filter: blur(0.8px);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate3d(34px, -2px, 0);
+    filter: blur(2px);
+    letter-spacing: 0.19em;
+  }
+}
+
+@keyframes station-ident-lock-on {
+  0% {
+    text-shadow:
+      0 0 8px rgba(71, 247, 255, 0.4),
+      0 0 14px rgba(143, 77, 255, 0.24),
+      0 1px 2px rgba(6, 11, 16, 0.62);
+  }
+
+  38% {
+    text-shadow:
+      0 0 12px rgba(71, 247, 255, 0.9),
+      0 0 22px rgba(143, 77, 255, 0.74),
+      0 0 28px rgba(255, 154, 54, 0.66);
+  }
+
+  100% {
+    text-shadow:
+      0 0 8px rgba(71, 247, 255, 0.45),
+      0 0 14px rgba(143, 77, 255, 0.25),
+      0 1px 2px rgba(6, 11, 16, 0.62);
+  }
+}
+
+@keyframes station-ident-scan-sweep {
+  0% {
+    transform: translateX(-45%);
+    opacity: 0;
+  }
+
+  35% {
+    opacity: 0.95;
+  }
+
+  100% {
+    transform: translateX(45%);
+    opacity: 0;
+  }
+}
+
+@keyframes station-ident-flicker {
+  0%,
+  100% {
+    opacity: 0.95;
+    transform: translateY(0);
+  }
+
+  22% {
+    opacity: 0.72;
+    transform: translateY(-0.02em);
+  }
+
+  51% {
+    opacity: 0.88;
+    transform: translateY(0.02em);
+  }
+
+  74% {
+    opacity: 0.79;
+  }
+}
+
+@keyframes station-ident-underline-out {
+  0% {
+    opacity: 0.76;
+    transform: scaleX(1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scaleX(0.2);
+  }
+}
+
+@media (max-width: 1099px), (max-height: 620px) {
+  .station-ident-overlay {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .station-ident-overlay__cell--scrambling,
+  .station-ident-overlay__cell--flash,
+  .station-ident-overlay__word--lock-on .station-ident-overlay__scanline,
+  .station-ident-overlay--materializing .station-ident-overlay__word,
+  .station-ident-overlay--dematerializing .station-ident-overlay__word,
+  .station-ident-overlay--dematerializing .station-ident-overlay__underline {
+    animation: none;
+  }
+
+  .station-ident-overlay__cell {
+    transform: none;
+    filter: none;
+  }
+
+  .station-ident-overlay__word {
+    transition: opacity 320ms ease;
+  }
+
+  .station-ident-overlay--materializing .station-ident-overlay__word,
+  .station-ident-overlay--locked .station-ident-overlay__word {
+    opacity: 1;
+  }
+
+  .station-ident-overlay--dematerializing .station-ident-overlay__word {
+    opacity: 0;
+  }
+}
