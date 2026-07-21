@@ -8,6 +8,7 @@ export type AudioSourceKind = 'demo-track' | 'live-stream'
 export type AudioSource = {
   id: string
   kind: AudioSourceKind
+  displayName: string
   title: string
   artist?: string
   release?: string

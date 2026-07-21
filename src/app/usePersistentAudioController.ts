@@ -8,16 +8,23 @@ type UsePersistentAudioControllerResult = {
   currentTime: number
   duration: number
   volume: number
-  muted: boolean
   isSeeking: boolean
   seekable: boolean
+  metadataLoaded: boolean
   errorMessage: string | null
   play: () => Promise<void>
   pause: () => void
   togglePlay: () => Promise<void>
   setVolume: (value: number) => void
-  toggleMute: () => void
   seekTo: (value: number) => void
+}
+
+function clampVolume(value: number) {
+  if (!Number.isFinite(value)) {
+    return 0.7
+  }
+
+  return Math.min(1, Math.max(0, value))
 }
 
 function getPlaybackErrorMessage(audio: HTMLAudioElement) {
@@ -46,44 +53,48 @@ function getPlaybackErrorMessage(audio: HTMLAudioElement) {
   return 'Playback failed.'
 }
 
-export function usePersistentAudioController(): UsePersistentAudioControllerResult {
+export function usePersistentAudioController(initialVolume = 0.7, selectedSourceId?: string): UsePersistentAudioControllerResult {
   const audioElementRef = useRef<HTMLAudioElement | null>(null)
   const playbackStatusRef = useRef<AudioPlaybackStatus>('idle')
   const pendingPlayRequestRef = useRef(false)
-  const volumeRef = useRef(0.7)
-  const mutedRef = useRef(false)
+  const safeInitialVolume = clampVolume(initialVolume)
+  const volumeRef = useRef(safeInitialVolume)
   const seekableRef = useRef(DEMO_MODULATION_MANIPULATION_AUDIO_SOURCE.isSeekable)
   const [playbackStatus, setPlaybackStatus] = useState<AudioPlaybackStatus>('idle')
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
-  const [volume, setVolumeState] = useState(0.7)
-  const [muted, setMutedState] = useState(false)
+  const [volume, setVolumeState] = useState(safeInitialVolume)
   const [isSeeking, setIsSeeking] = useState(false)
   const [seekable, setSeekable] = useState(DEMO_MODULATION_MANIPULATION_AUDIO_SOURCE.isSeekable)
+  const [metadataLoaded, setMetadataLoaded] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
-  const audioSource = useMemo(() => AUDIO_SOURCES[0] ?? DEMO_MODULATION_MANIPULATION_AUDIO_SOURCE, [])
+  const audioSource = useMemo(() => {
+    if (!selectedSourceId) {
+      return AUDIO_SOURCES[0] ?? DEMO_MODULATION_MANIPULATION_AUDIO_SOURCE
+    }
+
+    return (
+      AUDIO_SOURCES.find((source) => source.id === selectedSourceId) ??
+      AUDIO_SOURCES[0] ??
+      DEMO_MODULATION_MANIPULATION_AUDIO_SOURCE
+    )
+  }, [selectedSourceId])
 
   useEffect(() => {
     volumeRef.current = volume
   }, [volume])
 
   useEffect(() => {
-    mutedRef.current = muted
-  }, [muted])
-
-  useEffect(() => {
     const audio = new Audio()
     audio.preload = 'metadata'
     audio.loop = false
     audio.volume = volumeRef.current
-    audio.muted = mutedRef.current
     audio.src = audioSource.audioUrl
     audioElementRef.current = audio
 
     const syncVolume = () => {
       setVolumeState(audio.volume)
-      setMutedState(audio.muted)
     }
 
     const syncTime = () => {
@@ -93,6 +104,8 @@ export function usePersistentAudioController(): UsePersistentAudioControllerResu
     }
 
     const handleLoadStart = () => {
+      setMetadataLoaded(false)
+
       if (pendingPlayRequestRef.current) {
         setPlaybackStatus('loading')
       } else if (audio.readyState > 0) {
@@ -101,6 +114,7 @@ export function usePersistentAudioController(): UsePersistentAudioControllerResu
     }
 
     const handleLoadedMetadata = () => {
+      setMetadataLoaded(true)
       syncTime()
     }
 
@@ -161,6 +175,7 @@ export function usePersistentAudioController(): UsePersistentAudioControllerResu
       pendingPlayRequestRef.current = false
       setPlaybackStatus('error')
       playbackStatusRef.current = 'error'
+      setMetadataLoaded(false)
       setErrorMessage(getPlaybackErrorMessage(audio))
     }
 
@@ -207,22 +222,12 @@ export function usePersistentAudioController(): UsePersistentAudioControllerResu
       return
     }
 
-    if (audio.volume !== volume) {
-      audio.volume = volume
+    const nextVolume = clampVolume(volume)
+
+    if (audio.volume !== nextVolume) {
+      audio.volume = nextVolume
     }
   }, [volume])
-
-  useEffect(() => {
-    const audio = audioElementRef.current
-
-    if (!audio) {
-      return
-    }
-
-    if (audio.muted !== muted) {
-      audio.muted = muted
-    }
-  }, [muted])
 
   const play = async () => {
     const audio = audioElementRef.current
@@ -268,15 +273,10 @@ export function usePersistentAudioController(): UsePersistentAudioControllerResu
     await play()
   }
 
-  const toggleMute = () => {
-    const audio = audioElementRef.current
-
-    if (!audio) {
-      return
-    }
-
-    audio.muted = !audio.muted
-    setMutedState(audio.muted)
+  const setVolume = (value: number) => {
+    const nextVolume = clampVolume(value)
+    volumeRef.current = nextVolume
+    setVolumeState(nextVolume)
   }
 
   const seekTo = (value: number) => {
@@ -302,15 +302,14 @@ export function usePersistentAudioController(): UsePersistentAudioControllerResu
     currentTime,
     duration,
     volume,
-    muted,
     isSeeking,
     seekable,
+    metadataLoaded,
     errorMessage,
     play,
     pause,
     togglePlay,
-    setVolume: setVolumeState,
-    toggleMute,
+    setVolume,
     seekTo,
   }
 }

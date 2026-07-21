@@ -1,5 +1,5 @@
 import { useId, useMemo } from 'react'
-import type { AudioPlaybackStatus, AudioSource, SignalSource } from '../app/playerTypes'
+import type { AudioPlaybackStatus, SignalSource } from '../app/playerTypes'
 import type { ThemeId } from '../themes/themeTypes'
 import PlayStopButton from './PlayStopButton'
 import SignalSourceSelector from './SignalSourceSelector'
@@ -14,16 +14,14 @@ type FloatingPlayerPanelProps = {
   environmentOptions: Array<{ id: ThemeId; name: string }>
   selectedEnvironmentId: ThemeId
   onEnvironmentChange: (id: ThemeId) => void
-  audioSource: AudioSource
   audioPlaybackStatus: AudioPlaybackStatus
   audioCurrentTime: number
   audioDuration: number
   audioSeekable: boolean
+  audioMetadataLoaded: boolean
   audioErrorMessage: string | null
-  audioMuted: boolean
   audioIsSeeking: boolean
   onAudioTogglePlay: () => Promise<void>
-  onAudioToggleMute: () => void
   onAudioSeek: (value: number) => void
   signalOptions: SignalSource[]
   selectedSignalId: string | null
@@ -69,16 +67,14 @@ function FloatingPlayerPanel({
   environmentOptions,
   selectedEnvironmentId,
   onEnvironmentChange,
-  audioSource,
   audioPlaybackStatus,
   audioCurrentTime,
   audioDuration,
   audioSeekable,
+  audioMetadataLoaded,
   audioErrorMessage,
-  audioMuted,
   audioIsSeeking,
   onAudioTogglePlay,
-  onAudioToggleMute,
   onAudioSeek,
   signalOptions,
   selectedSignalId,
@@ -169,10 +165,6 @@ function FloatingPlayerPanel({
           <div className="floating-player-panel__field">
             <p className="floating-player-panel__label">Transmission</p>
             <TrackMarquee signalLabel={signalLabel} marqueeState={marqueeState} />
-            <p className="floating-player-panel__audio-meta" aria-live="polite">
-              {audioSource.artist ? `${audioSource.artist} · ` : ''}
-              {audioSource.title}
-            </p>
             {audioErrorMessage ? (
               <p className="floating-player-panel__audio-error" role="status">
                 {audioErrorMessage}
@@ -187,16 +179,6 @@ function FloatingPlayerPanel({
               isDisabled={!selectedSignalId}
               onToggle={() => void onAudioTogglePlay()}
             />
-
-            <button
-              type="button"
-              className="floating-player-panel__mute-button"
-              onClick={onAudioToggleMute}
-              aria-pressed={audioMuted}
-              aria-label={audioMuted ? 'Unmute audio' : 'Mute audio'}
-            >
-              {audioMuted ? 'UNMUTE' : 'MUTE'}
-            </button>
 
             <label className="floating-player-panel__switch floating-player-panel__visual-switch">
               <input
@@ -233,7 +215,7 @@ function FloatingPlayerPanel({
             <VolumeControl value={volume} onChange={onVolumeChange} />
           </section>
 
-          {audioSeekable ? (
+          {audioSeekable && audioMetadataLoaded && Number.isFinite(audioDuration) && audioDuration > 0 ? (
             <section className="floating-player-panel__seek-row" aria-label="Playback progress">
               <p className="floating-player-panel__label">Progress</p>
               <input
@@ -244,7 +226,7 @@ function FloatingPlayerPanel({
                 step="0.01"
                 value={Math.min(audioCurrentTime, audioDuration || audioCurrentTime)}
                 onChange={(event) => onAudioSeek(Number(event.target.value))}
-                disabled={audioIsSeeking || audioDuration <= 0}
+                disabled={audioIsSeeking || !audioMetadataLoaded || audioDuration <= 0}
                 aria-label="Seek playback"
               />
               <p className="floating-player-panel__seek-time">

@@ -268,7 +268,6 @@
   border-radius: 2px;
   font-size: 0.82rem;
   letter-spacing: 0.05em;
-  text-transform: uppercase;
   color: var(--theme-text-secondary, rgba(216, 255, 247, 0.75));
   box-sizing: border-box;
 }

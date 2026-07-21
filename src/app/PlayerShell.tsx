@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { AUDIO_SOURCES } from './audioSources'
 import FloatingPlayerPanel from '../components/FloatingPlayerPanel'
 import VisualFeedWindow from '../components/VisualFeedWindow'
 import { themeRegistry } from '../themes/themeRegistry'
@@ -12,19 +13,95 @@ import {
   UV_JUNGLE_PRODUCTION_ASSET,
 } from '../themes/image-depth/productionScenePresets'
 import { usePersistentAudioController } from './usePersistentAudioController'
+import { defaultThemeId } from '../themes/themeRegistry'
 import '../styles/player.css'
 
 type PlayerShellProps = {
   className?: string
 }
 
+type PlayerPreferencesV1 = {
+  selectedThemeId: ThemeId
+  selectedAudioSourceId: string
+  volume: number
+  motionEnabled: boolean
+  visualFeedOpen: boolean
+}
+
+const PLAYER_PREFERENCES_STORAGE_KEY = 'deepsignals.player.preferences.v1'
+
+const availableAudioSourceIds = new Set(AUDIO_SOURCES.map((source) => source.id))
+
+function sanitizeThemeId(value: unknown): ThemeId {
+  if (typeof value !== 'string') {
+    return defaultThemeId
+  }
+
+  return themeRegistry.some((theme) => theme.id === value) ? value : defaultThemeId
+}
+
+function sanitizeAudioSourceId(value: unknown): string {
+  if (typeof value !== 'string') {
+    return AUDIO_SOURCES[0]?.id ?? ''
+  }
+
+  return availableAudioSourceIds.has(value) ? value : (AUDIO_SOURCES[0]?.id ?? '')
+}
+
+function sanitizeBoolean(value: unknown, fallback: boolean) {
+  return typeof value === 'boolean' ? value : fallback
+}
+
+function sanitizeVolume(value: unknown) {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    return 0.7
+  }
+
+  return Math.min(1, Math.max(0, value))
+}
+
+function readStoredPlayerPreferences(): PlayerPreferencesV1 {
+  const fallback: PlayerPreferencesV1 = {
+    selectedThemeId: defaultThemeId,
+    selectedAudioSourceId: AUDIO_SOURCES[0]?.id ?? '',
+    volume: 0.7,
+    motionEnabled: true,
+    visualFeedOpen: false,
+  }
+
+  if (typeof window === 'undefined') {
+    return fallback
+  }
+
+  try {
+    const raw = window.localStorage.getItem(PLAYER_PREFERENCES_STORAGE_KEY)
+
+    if (!raw) {
+      return fallback
+    }
+
+    const parsed = JSON.parse(raw) as Partial<PlayerPreferencesV1>
+
+    return {
+      selectedThemeId: sanitizeThemeId(parsed.selectedThemeId),
+      selectedAudioSourceId: sanitizeAudioSourceId(parsed.selectedAudioSourceId),
+      volume: sanitizeVolume(parsed.volume),
+      motionEnabled: sanitizeBoolean(parsed.motionEnabled, true),
+      visualFeedOpen: sanitizeBoolean(parsed.visualFeedOpen, false),
+    }
+  } catch {
+    return fallback
+  }
+}
+
 function PlayerShell({ className }: PlayerShellProps) {
-  const [selectedThemeId, setSelectedThemeId] = useState<ThemeId>('minimal')
-  const [selectedSignalId, setSelectedSignalId] = useState<string | null>('test-alpha')
-  const [motionEnabled, setMotionEnabled] = useState(true)
+  const [storedPreferences] = useState<PlayerPreferencesV1>(() => readStoredPlayerPreferences())
+  const [selectedThemeId, setSelectedThemeId] = useState<ThemeId>(storedPreferences.selectedThemeId)
+  const [selectedSignalId, setSelectedSignalId] = useState<string | null>(storedPreferences.selectedAudioSourceId)
+  const [motionEnabled, setMotionEnabled] = useState(storedPreferences.motionEnabled)
   const [panelCollapsed, setPanelCollapsed] = useState(false)
-  const [visualFeedOpen, setVisualFeedOpen] = useState(false)
-  const audioController = usePersistentAudioController()
+  const [visualFeedOpen, setVisualFeedOpen] = useState(storedPreferences.visualFeedOpen)
+  const audioController = usePersistentAudioController(storedPreferences.volume, selectedSignalId ?? undefined)
 
   const imageDepthAssetsByThemeId = useMemo(
     () =>
@@ -48,10 +125,7 @@ function PlayerShell({ className }: PlayerShellProps) {
   }, [selectedThemeId, imageDepthAssetsByThemeId])
 
   const signals: SignalSource[] = useMemo(
-    () => [
-      { id: 'test-alpha', label: 'Test Signal Alpha' },
-      { id: 'test-beta', label: 'Test Signal Beta' },
-    ],
+    () => AUDIO_SOURCES.map((source) => ({ id: source.id, label: source.displayName })),
     [],
   )
 
@@ -73,7 +147,7 @@ function PlayerShell({ className }: PlayerShellProps) {
   const supportsVisualFeed = activeTheme?.supportsVisualFeed ?? true
 
   const handleSignalChange = (id: string) => {
-    setSelectedSignalId(id || null)
+    setSelectedSignalId(sanitizeAudioSourceId(id) || null)
   }
 
   const handleThemeChange = (themeId: ThemeId) => {
@@ -94,6 +168,38 @@ function PlayerShell({ className }: PlayerShellProps) {
     reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches,
     motionEnabled,
   }
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return
+    }
+
+    try {
+      const payload: PlayerPreferencesV1 = {
+        selectedThemeId: sanitizeThemeId(selectedThemeId),
+        selectedAudioSourceId: sanitizeAudioSourceId(selectedSignalId),
+        volume: sanitizeVolume(audioController.volume),
+        motionEnabled,
+        visualFeedOpen: visualFeedOpen && supportsVisualFeed,
+      }
+
+      window.localStorage.setItem(PLAYER_PREFERENCES_STORAGE_KEY, JSON.stringify(payload))
+    } catch {
+      // Gracefully ignore localStorage write failures.
+    }
+  }, [audioController.volume, motionEnabled, selectedSignalId, selectedThemeId, supportsVisualFeed, visualFeedOpen])
+
+  const transmissionLabel = useMemo(() => {
+    if (audioController.audioSource.artist && audioController.audioSource.title) {
+      return `${audioController.audioSource.artist} — ${audioController.audioSource.title}`
+    }
+
+    if (audioController.audioSource.title) {
+      return audioController.audioSource.title
+    }
+
+    return audioController.audioSource.displayName
+  }, [audioController.audioSource])
 
   if (!activeTheme) {
     return null
@@ -121,21 +227,19 @@ function PlayerShell({ className }: PlayerShellProps) {
         environmentOptions={themeOptions}
         selectedEnvironmentId={selectedThemeId}
         onEnvironmentChange={handleThemeChange}
-        audioSource={audioController.audioSource}
         audioPlaybackStatus={audioController.playbackStatus}
         audioCurrentTime={audioController.currentTime}
         audioDuration={audioController.duration}
         audioSeekable={audioController.seekable}
+        audioMetadataLoaded={audioController.metadataLoaded}
         audioErrorMessage={audioController.errorMessage}
-        audioMuted={audioController.muted}
         audioIsSeeking={audioController.isSeeking}
         onAudioTogglePlay={audioController.togglePlay}
-        onAudioToggleMute={audioController.toggleMute}
         onAudioSeek={audioController.seekTo}
         signalOptions={signals}
         selectedSignalId={selectedSignalId}
         onSignalChange={handleSignalChange}
-        signalLabel={selectedSignal?.label || null}
+        signalLabel={selectedSignal ? transmissionLabel : null}
         isPlaying={audioController.playbackStatus === 'playing'}
         volume={audioController.volume}
         onVolumeChange={audioController.setVolume}

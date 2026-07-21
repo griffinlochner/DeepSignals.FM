@@ -20,10 +20,10 @@ function TrackMarquee({ signalLabel, marqueeState }: TrackMarqueeProps) {
     }
 
     if (marqueeState === 'playing') {
-      return `DEEPSIGNALS TEST ARRAY - ${signalLabel.toUpperCase()}`
+      return signalLabel
     }
 
-    return 'TEST SIGNAL READY'
+    return signalLabel
   }, [marqueeState, signalLabel])
 
   useEffect(() => {

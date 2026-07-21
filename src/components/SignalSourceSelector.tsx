@@ -14,8 +14,8 @@ function SignalSourceSelector({ value, signals, onChange }: SignalSourceSelector
         value={value}
         onChange={(event) => onChange(event.target.value)}
         aria-label="Signal source"
+        disabled={signals.length === 0}
       >
-        <option value="">Select signal</option>
         {signals.map((signal) => (
           <option key={signal.id} value={signal.id}>
             {signal.label}

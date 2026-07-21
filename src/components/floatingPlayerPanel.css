@@ -10,6 +10,7 @@
   --player-font-letter-spacing-label: 0.11em;
   --player-font-letter-spacing-action: 0.11em;
   --player-font-line-height: 1.2;
+  --player-progress-accent: var(--theme-accent-secondary, #80d8ff);
   position: absolute;
   top: var(--floating-panel-edge-gap);
   left: var(--floating-panel-edge-gap);
@@ -203,6 +204,40 @@
   grid-column: 2;
 }
 
+.floating-player-panel__seek-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.floating-player-panel__seek-row .floating-player-panel__label {
+  margin-bottom: 0;
+}
+
+.floating-player-panel__seek-slider {
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  cursor: pointer;
+  accent-color: var(--player-progress-accent);
+}
+
+.floating-player-panel__seek-slider:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.floating-player-panel__seek-time {
+  margin: 0;
+  font-size: var(--player-font-size-status);
+  font-weight: var(--player-font-weight-control);
+  letter-spacing: 0.05em;
+  color: var(--theme-text-secondary, rgba(233, 248, 244, 0.76));
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
 .floating-player-panel__switch {
   min-height: 42px;
   border: 1px solid rgba(165, 243, 234, 0.24);
@@ -341,6 +376,15 @@
   .floating-player-panel__volume-row {
     grid-template-columns: 1fr;
     gap: 6px;
+  }
+
+  .floating-player-panel__seek-row {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .floating-player-panel__seek-time {
+    justify-self: end;
   }
 
   .floating-player-panel__volume-row .volume-control__range {

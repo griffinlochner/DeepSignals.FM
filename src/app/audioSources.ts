@@ -4,6 +4,7 @@ import type { AudioSource } from './playerTypes'
 export const DEMO_MODULATION_MANIPULATION_AUDIO_SOURCE: AudioSource = {
   id: 'demo-modulation-manipulation',
   kind: 'demo-track',
+  displayName: 'DeepSignals Demo Signal',
   title: 'Modulation Manipulation',
   artist: 'Dohm & Schizoid Bears',
   release: 'Under The Moss Vol. 4',
