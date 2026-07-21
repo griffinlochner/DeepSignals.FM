@@ -1,0 +1,43 @@
+.bioluminescent-psy-reef-scene {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(circle at 18% 20%, rgba(0, 251, 255, 0.11), transparent 30%),
+    radial-gradient(circle at 68% 24%, rgba(166, 0, 255, 0.11), transparent 28%),
+    radial-gradient(circle at 52% 78%, rgba(30, 255, 0, 0.08), transparent 24%),
+    linear-gradient(180deg, rgba(3, 10, 18, 0.98), rgba(2, 7, 12, 1));
+}
+
+.bioluminescent-psy-reef-scene canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  opacity: 0;
+  transition: opacity 280ms ease;
+}
+
+.player-shell.theme-bioluminescent-psy-reef {
+  --theme-background: #040b13;
+  --theme-panel: rgba(8, 18, 30, 0.58);
+  --theme-panel-strong: rgba(5, 13, 22, 0.88);
+  --theme-border: rgba(96, 238, 255, 0.24);
+  --theme-accent: #00fbff;
+  --theme-accent-secondary: #a600ff;
+  --theme-text: #eefcff;
+  --theme-text-secondary: rgba(221, 246, 255, 0.8);
+  --theme-muted: rgba(176, 220, 232, 0.7);
+  --theme-glow: rgba(0, 251, 255, 0.18);
+  --floating-panel-max-width: 430px;
+}
+
+.player-shell.theme-bioluminescent-psy-reef .player-shell__scene {
+  pointer-events: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bioluminescent-psy-reef-scene canvas {
+    transition: none;
+  }
+}

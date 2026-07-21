@@ -8,6 +8,7 @@ import { preloadImageDepthTextures } from '../themes/image-depth/imageDepthTextu
 import {
   ANALOG_SIGNAL_LABORATORY_PRODUCTION_ASSET,
   BIOLUMINESCENT_PSY_FOREST_PRODUCTION_ASSET,
+  BIOLUMINESCENT_PSY_REEF_PRODUCTION_ASSET,
   UV_JUNGLE_PRODUCTION_ASSET,
 } from '../themes/image-depth/productionScenePresets'
 import '../styles/player.css'
@@ -31,6 +32,7 @@ function PlayerShell({ className }: PlayerShellProps) {
         ['uv-reactive-jungle', UV_JUNGLE_PRODUCTION_ASSET],
         ['analog-signal-laboratory', ANALOG_SIGNAL_LABORATORY_PRODUCTION_ASSET],
         ['bioluminescent-psy-forest', BIOLUMINESCENT_PSY_FOREST_PRODUCTION_ASSET],
+        ['bioluminescent-psy-reef', BIOLUMINESCENT_PSY_REEF_PRODUCTION_ASSET],
       ]),
     [],
   )
