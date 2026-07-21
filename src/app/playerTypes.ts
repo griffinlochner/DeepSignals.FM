@@ -34,10 +34,11 @@ export type AudioAnalysisStatus =
 
 export type AudioReactiveSnapshot = {
   energy: number
+  smoothedEnergy: number
   bass: number
+  bassPulse: number
   mids: number
   highs: number
-  smoothedEnergy: number
   transient: number
   isActive: boolean
 }

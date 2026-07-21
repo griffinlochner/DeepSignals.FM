@@ -5,9 +5,26 @@ import type {
 } from '../app/playerTypes'
 import './audioAnalysisDiagnostics.css'
 
+type BassPulseDebugReadout = {
+  fastBass: number
+  slowBass: number
+  bassDelta: number
+  fastEnergy: number
+  slowEnergy: number
+  energyDelta: number
+  combinedCandidate: number
+  postThresholdCandidate: number
+  threshold: number
+  warmupActive: boolean
+  warmupRemainingMs: number
+  warmupFramesRemaining: number
+  cooldownRemainingMs: number
+}
+
 type AudioAnalysisDiagnosticsProps = {
   status: AudioAnalysisStatus
   snapshot: AudioReactiveSnapshot
+  bassPulseDebug: BassPulseDebugReadout
   graphDetails: AudioAnalysisGraphDetails
   errorMessage: string | null
   diagnosticsPublishHz: number
@@ -44,6 +61,7 @@ function MeterRow({ label, value }: MeterRowProps) {
 function AudioAnalysisDiagnostics({
   status,
   snapshot,
+  bassPulseDebug,
   graphDetails,
   errorMessage,
   diagnosticsPublishHz,
@@ -79,9 +97,25 @@ function AudioAnalysisDiagnostics({
         <MeterRow label="Energy" value={snapshot.energy} />
         <MeterRow label="Smoothed" value={snapshot.smoothedEnergy} />
         <MeterRow label="Bass" value={snapshot.bass} />
+        <MeterRow label="Bass Pulse" value={snapshot.bassPulse} />
         <MeterRow label="Mids" value={snapshot.mids} />
         <MeterRow label="Highs" value={snapshot.highs} />
         <MeterRow label="Transient" value={snapshot.transient} />
+      </section>
+
+      <section className="audio-analysis-diagnostics__readout" aria-label="Low-frequency onset tuning values">
+        <p>Bass Onset</p>
+        <p>
+          fast {formatNumber(bassPulseDebug.fastBass)} | slow {formatNumber(bassPulseDebug.slowBass)} | delta{' '}
+          {formatNumber(bassPulseDebug.bassDelta)} | Efast {formatNumber(bassPulseDebug.fastEnergy)} | Eslow{' '}
+          {formatNumber(bassPulseDebug.slowEnergy)} | Edelta {formatNumber(bassPulseDebug.energyDelta)}
+        </p>
+        <p>
+          pre {formatNumber(bassPulseDebug.combinedCandidate)} | post{' '}
+          {formatNumber(bassPulseDebug.postThresholdCandidate)} | th {formatNumber(bassPulseDebug.threshold)} | warmup{' '}
+          {bassPulseDebug.warmupActive ? 'on' : 'off'} ({Math.round(bassPulseDebug.warmupRemainingMs)}ms,{' '}
+          {bassPulseDebug.warmupFramesRemaining}f) | cd {Math.round(bassPulseDebug.cooldownRemainingMs)}ms
+        </p>
       </section>
     </aside>
   )

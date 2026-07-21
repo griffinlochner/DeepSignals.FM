@@ -118,6 +118,7 @@ function PlayerShell({ className }: PlayerShellProps) {
   const audioAnalysis = useAudioAnalysis({
     audioElement: audioController.audioElement,
     playbackStatus: audioController.playbackStatus,
+    isSeeking: audioController.isSeeking,
     publishDiagnostics: audioDebugEnabled,
   })
 
@@ -254,6 +255,7 @@ function PlayerShell({ className }: PlayerShellProps) {
         <AudioAnalysisDiagnostics
           status={audioAnalysis.status}
           snapshot={audioAnalysis.snapshot}
+          bassPulseDebug={audioAnalysis.bassPulseDebug}
           graphDetails={audioAnalysis.graphDetails}
           errorMessage={audioAnalysis.errorMessage}
           diagnosticsPublishHz={audioAnalysis.diagnosticsPublishHz}
