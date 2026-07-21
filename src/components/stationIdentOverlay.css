@@ -1,9 +1,18 @@
+@font-face {
+  font-family: 'DeepSignals Ident';
+  src: url('../assets/fonts/chakra-petch/ChakraPetch-SemiBold.ttf') format('truetype');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
 .station-ident-overlay {
   --station-ident-cyan: #47f7ff;
   --station-ident-violet: #8f4dff;
   --station-ident-orange: #ff9a36;
   --station-ident-ink: rgba(6, 11, 16, 0.62);
   --station-ident-settled: #dffbff;
+  --station-ident-cell-width: 0.94em;
   position: absolute;
   top: clamp(92px, 12vh, 146px);
   right: clamp(34px, 4.8vw, 72px);
@@ -20,7 +29,7 @@
   padding: 4px 6px 8px;
   border-radius: 6px;
   font-family: 'Consolas', 'SFMono-Regular', 'Menlo', 'Monaco', 'Liberation Mono', 'Courier New', monospace;
-  font-size: clamp(1.75rem, 1.3rem + 1.1vw, 2.35rem);
+  font-size: clamp(1.98rem, 1.47rem + 1.24vw, 2.66rem);
   font-weight: 700;
   letter-spacing: 0.025em;
   line-height: 1;
@@ -31,15 +40,17 @@
     0 0 16px rgba(143, 77, 255, 0.22),
     0 1px 2px var(--station-ident-ink);
   isolation: isolate;
+  white-space: nowrap;
 }
 
 .station-ident-overlay__cell {
   display: inline-flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: center;
-  width: 1ch;
-  min-width: 1ch;
-  max-width: 1ch;
+  width: var(--station-ident-cell-width);
+  min-width: var(--station-ident-cell-width);
+  max-width: var(--station-ident-cell-width);
+  font-family: inherit;
   transition: color 200ms ease, filter 200ms ease, transform 220ms ease;
 }
 
@@ -58,6 +69,8 @@
 }
 
 .station-ident-overlay__cell--resolved {
+  font-family: 'DeepSignals Ident', 'Segoe UI', sans-serif;
+  font-weight: 600;
   color: var(--station-ident-settled);
   filter: blur(0);
   animation: none;
