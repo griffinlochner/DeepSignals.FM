@@ -5,7 +5,7 @@ import {
   formatImageDepthPlaybackFilter,
   stepImageDepthPlaybackVisualMix,
 } from "../../../themes/image-depth/imageDepthPlaybackVisuals";
-import { computeFramedPlaneScale, IMAGE_DEPTH_PARITY_FRAMING } from "../../../themes/image-depth/framing";
+import { computeImageDepthFraming, IMAGE_DEPTH_PARITY_FRAMING } from "../../../themes/image-depth/framing";
 import { resolveImageDepthElapsedSeconds, writeImageDepthParityStats } from "../../../themes/image-depth/timing";
 import type {
   EnvironmentDiagnostics,
@@ -773,6 +773,7 @@ void main() {
     const textureLoader = new THREE.TextureLoader(loadingManager);
     let activeAssetAspectRatio = 1;
     let lastFramingMode = configRef.current.framingMode;
+    let lastMotionFramingSignature = "";
 
     loadingManager.onLoad = () => {
       if (!disposed) {
@@ -790,36 +791,29 @@ void main() {
       const currentConfig = configRef.current;
       const usingFullArtworkFraming = currentConfig.framingMode === "full-artwork";
 
+      const depthBehavior = currentConfig.preset.behavior.depth;
+      const framedScale = computeImageDepthFraming({
+        viewportWidth: mount.clientWidth,
+        viewportHeight: mount.clientHeight,
+        assetAspectRatio: activeAssetAspectRatio,
+        mode: usingFullArtworkFraming ? "contain" : "cover-safe-overscan",
+        motionProfile: usingFullArtworkFraming
+          ? undefined
+          : {
+              pointerParallaxEnabled: depthBehavior.pointerParallaxEnabled,
+              motionIntensity: depthBehavior.motionIntensity,
+              pointerParallaxStrength: depthBehavior.pointerParallaxStrength,
+            },
+        cameraFovDegrees: camera.fov,
+        cameraZ: camera.position.z,
+        planeZ: plane.position.z,
+      });
+
+      planeScale.set(framedScale.width, framedScale.height);
+      plane.scale.set(planeScale.x, planeScale.y, 1);
       if (usingFullArtworkFraming) {
-        const safeWidth = Math.max(mount.clientWidth, 1);
-        const safeHeight = Math.max(mount.clientHeight, 1);
-        const viewportAspect = safeWidth / safeHeight;
-
-        const viewHeight =
-          2 *
-          Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) *
-          Math.abs(camera.position.z - plane.position.z);
-        const viewWidth = viewHeight * viewportAspect;
-
-        if (activeAssetAspectRatio >= viewportAspect) {
-          planeScale.set(viewWidth, viewWidth / activeAssetAspectRatio);
-        } else {
-          planeScale.set(viewHeight * activeAssetAspectRatio, viewHeight);
-        }
-
-        plane.scale.set(planeScale.x, planeScale.y, 1);
         glowPlane.scale.set(planeScale.x, planeScale.y, 1);
       } else {
-        const framedScale = computeFramedPlaneScale({
-          viewportWidth: mount.clientWidth,
-          viewportHeight: mount.clientHeight,
-          cameraFovDegrees: camera.fov,
-          cameraZ: camera.position.z,
-          planeZ: plane.position.z,
-        });
-
-        planeScale.set(framedScale.width, framedScale.height);
-        plane.scale.set(planeScale.x, planeScale.y, 1);
         glowPlane.scale.set(planeScale.x * 1.14, planeScale.y * 1.08, 1);
       }
 
@@ -1071,6 +1065,17 @@ void main() {
 
         if (current.framingMode !== lastFramingMode) {
           lastFramingMode = current.framingMode;
+          fitPlane();
+        }
+
+        const motionFramingSignature = [
+          behavior.depth.pointerParallaxEnabled ? "1" : "0",
+          behavior.depth.motionIntensity.toFixed(4),
+          behavior.depth.pointerParallaxStrength.toFixed(4),
+        ].join("|");
+
+        if (motionFramingSignature !== lastMotionFramingSignature) {
+          lastMotionFramingSignature = motionFramingSignature;
           fitPlane();
         }
 

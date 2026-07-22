@@ -5,7 +5,7 @@ import type { AudioReactiveSnapshot } from "../../app/playerTypes";
 import type { ThemeSceneProps } from "../themeTypes";
 import { formatImageDepthPlaybackFilter, stepImageDepthPlaybackVisualMix } from "./imageDepthPlaybackVisuals";
 import { resolveAutonomousParallaxTarget } from "./autonomousParallaxTarget";
-import { computeFramedPlaneScale, IMAGE_DEPTH_PARITY_FRAMING } from "./framing";
+import { computeImageDepthFraming, IMAGE_DEPTH_PARITY_FRAMING } from "./framing";
 import { getImageDepthTexturePair } from "./imageDepthTextureCache";
 import { REACTIVE_BEHAVIOR_PROFILES } from "./reactivePreviewProfile";
 import { resolveImageDepthElapsedSeconds, writeImageDepthParityStats } from "./timing";
@@ -578,6 +578,7 @@ if (uSurfaceGlowEnabled > 0.5) {
     const autonomousSmoothedPointer = new THREE.Vector2(0, 0);
     let lastReactiveTelemetryPublishAt = 0;
     let lastSignalId = visualStateRef.current.signalId ?? null;
+    let activeAssetAspectRatio = 1;
 
     const resize = () => {
       const width = container.clientWidth;
@@ -591,9 +592,16 @@ if (uSurfaceGlowEnabled > 0.5) {
       camera.aspect = width / height;
       camera.updateProjectionMatrix();
 
-      const framedScale = computeFramedPlaneScale({
+      const framedScale = computeImageDepthFraming({
         viewportWidth: width,
         viewportHeight: height,
+        assetAspectRatio: activeAssetAspectRatio,
+        mode: "cover-safe-overscan",
+        motionProfile: {
+          pointerParallaxEnabled: profile.depth.pointerParallaxEnabled,
+          motionIntensity: profile.depth.motionIntensity,
+          pointerParallaxStrength: profile.depth.pointerParallaxStrength,
+        },
         cameraFovDegrees: camera.fov,
         cameraZ: camera.position.z,
         planeZ: plane.position.z,
@@ -630,6 +638,15 @@ if (uSurfaceGlowEnabled > 0.5) {
         material.map = colorTexture;
         material.displacementMap = depthTexture;
         material.needsUpdate = true;
+
+        const image = colorTexture.image as { width?: number; height?: number };
+        const textureWidth = Number(image.width ?? 0);
+        const textureHeight = Number(image.height ?? 0);
+        if (textureWidth > 0 && textureHeight > 0) {
+          activeAssetAspectRatio = textureWidth / textureHeight;
+          resize();
+        }
+
         syncSurfaceGlowUniforms(surfaceGlowUniforms, scenePreset, material.map);
 
         readyFrameHandle = requestAnimationFrame(() => {
