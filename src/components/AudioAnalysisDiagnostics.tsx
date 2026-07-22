@@ -62,6 +62,71 @@ type MeterRowProps = {
   value: number
 }
 
+type ParallaxDiagnostics = {
+  source: 'image-depth-production' | 'uv-jungle-production' | 'unavailable'
+  parallaxEnabled: boolean
+  parallaxCapabilityEnabled: boolean
+  parallaxAmplitudeScale: number
+  autonomousTargetX: number
+  autonomousTargetY: number
+  autonomousSmoothedX: number
+  autonomousSmoothedY: number
+  cameraPositionX: number
+  cameraPositionY: number
+}
+
+const ZERO_PARALLAX_DIAGNOSTICS: ParallaxDiagnostics = {
+  source: 'unavailable',
+  parallaxEnabled: false,
+  parallaxCapabilityEnabled: false,
+  parallaxAmplitudeScale: 0,
+  autonomousTargetX: 0,
+  autonomousTargetY: 0,
+  autonomousSmoothedX: 0,
+  autonomousSmoothedY: 0,
+  cameraPositionX: 0,
+  cameraPositionY: 0,
+}
+
+function readParallaxDiagnostics(): ParallaxDiagnostics {
+  const stats = window.__IMAGE_DEPTH_PARITY__?.stats ?? null
+  const production = (stats?.production ?? null) as Record<string, unknown> | null
+
+  if (production) {
+    return {
+      source: 'image-depth-production',
+      parallaxEnabled: Boolean(production.parallaxEnabled),
+      parallaxCapabilityEnabled: Boolean(production.parallaxCapabilityEnabled),
+      parallaxAmplitudeScale: Number(production.parallaxAmplitudeScale ?? 0),
+      autonomousTargetX: Number(production.autonomousTargetX ?? 0),
+      autonomousTargetY: Number(production.autonomousTargetY ?? 0),
+      autonomousSmoothedX: Number(production.autonomousPointerX ?? 0),
+      autonomousSmoothedY: Number(production.autonomousPointerY ?? 0),
+      cameraPositionX: Number(production.cameraPositionX ?? 0),
+      cameraPositionY: Number(production.cameraPositionY ?? 0),
+    }
+  }
+
+  const uvJungle = (stats?.['uv-jungle-production'] ?? null) as Record<string, unknown> | null
+
+  if (uvJungle) {
+    return {
+      source: 'uv-jungle-production',
+      parallaxEnabled: Boolean(uvJungle.pointerMotionAllowed),
+      parallaxCapabilityEnabled: Boolean(uvJungle.supportsParallax),
+      parallaxAmplitudeScale: Number(uvJungle.parallaxFactor ?? 0),
+      autonomousTargetX: Number(uvJungle.pointerTargetX ?? 0),
+      autonomousTargetY: Number(uvJungle.pointerTargetY ?? 0),
+      autonomousSmoothedX: Number(uvJungle.pointerSmoothedX ?? 0),
+      autonomousSmoothedY: Number(uvJungle.pointerSmoothedY ?? 0),
+      cameraPositionX: Number(uvJungle.appliedCameraPositionX ?? 0),
+      cameraPositionY: Number(uvJungle.appliedCameraPositionY ?? 0),
+    }
+  }
+
+  return ZERO_PARALLAX_DIAGNOSTICS
+}
+
 const ZERO_REACTIVE_TELEMETRY: ReactivePreviewTelemetry = {
   selectedReactiveBehavior: 'Chill',
   reactivePreviewEnabled: false,
@@ -171,6 +236,7 @@ function AudioAnalysisDiagnostics({
 }: AudioAnalysisDiagnosticsProps) {
   const [collapsed, setCollapsed] = useState(false)
   const [reactiveTelemetry, setReactiveTelemetry] = useState<ReactivePreviewTelemetry>(ZERO_REACTIVE_TELEMETRY)
+  const [parallaxDiagnostics, setParallaxDiagnostics] = useState<ParallaxDiagnostics>(ZERO_PARALLAX_DIAGNOSTICS)
 
   useEffect(() => {
     if (!reactiveDiagnosticsEnabled || !getReactivePreviewTelemetry) {
@@ -189,6 +255,24 @@ function AudioAnalysisDiagnostics({
       window.clearInterval(intervalHandle)
     }
   }, [getReactivePreviewTelemetry, reactiveDiagnosticsEnabled])
+
+  useEffect(() => {
+    if (!reactiveDiagnosticsEnabled) {
+      return
+    }
+
+    const publish = () => {
+      setParallaxDiagnostics(readParallaxDiagnostics())
+    }
+
+    const initialPublishHandle = window.setTimeout(publish, 0)
+    const intervalHandle = window.setInterval(publish, 50)
+
+    return () => {
+      window.clearTimeout(initialPublishHandle)
+      window.clearInterval(intervalHandle)
+    }
+  }, [reactiveDiagnosticsEnabled])
 
   const displayedReactiveTelemetry = reactiveDiagnosticsEnabled ? reactiveTelemetry : ZERO_REACTIVE_TELEMETRY
   const bpmAssistanceState = effectiveReactiveBpm
@@ -386,6 +470,23 @@ function AudioAnalysisDiagnostics({
             {displayedReactiveTelemetry.authoredSaturationCycleSuppressed ? 'suppressed' : 'authored'} | glowCycle{' '}
             {displayedReactiveTelemetry.authoredGlobalGlowCycleSuppressed ? 'suppressed' : 'authored'}
           </p>
+              </section>
+            ) : null}
+
+            {reactiveDiagnosticsEnabled ? (
+              <section className="audio-analysis-diagnostics__readout" aria-label="Autonomous parallax values">
+                <p>Autonomous Parallax</p>
+                <p>
+                  src {parallaxDiagnostics.source} | enabled {parallaxDiagnostics.parallaxEnabled ? 'on' : 'off'} | capability{' '}
+                  {parallaxDiagnostics.parallaxCapabilityEnabled ? 'on' : 'off'} | amp {formatNumber(parallaxDiagnostics.parallaxAmplitudeScale)}
+                </p>
+                <p>
+                  targetX {formatNumber(parallaxDiagnostics.autonomousTargetX)} | targetY {formatNumber(parallaxDiagnostics.autonomousTargetY)} | appliedX{' '}
+                  {formatNumber(parallaxDiagnostics.autonomousSmoothedX)} | appliedY {formatNumber(parallaxDiagnostics.autonomousSmoothedY)}
+                </p>
+                <p>
+                  camX {formatNumber(parallaxDiagnostics.cameraPositionX)} | camY {formatNumber(parallaxDiagnostics.cameraPositionY)}
+                </p>
               </section>
             ) : null}
           </div>

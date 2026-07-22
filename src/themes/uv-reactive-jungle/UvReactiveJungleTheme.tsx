@@ -7,6 +7,8 @@ import {
 } from "./uvReactivePlaybackVisuals";
 import { getImageDepthTexturePair } from "../image-depth/imageDepthTextureCache";
 import { UV_JUNGLE_PRODUCTION_ASSET } from "../image-depth/productionScenePresets";
+import { resolveAutonomousParallaxTarget } from "../image-depth/autonomousParallaxTarget";
+import { writeImageDepthParityStats } from "../image-depth/timing";
 import "./uvReactiveJungle.css";
 
 type DepthImageBreathingPreset = {
@@ -37,16 +39,17 @@ function UvReactiveJungleTheme({
   isPlaying,
   reducedMotion,
   motionEnabled = true,
+  reactiveBehavior = "chill",
 }: ThemeSceneProps) {
   const mountRef = useRef<HTMLDivElement | null>(null);
-  const visualStateRef = useRef({ isPlaying, reducedMotion, motionEnabled });
+  const visualStateRef = useRef({ isPlaying, reducedMotion, motionEnabled, reactiveBehavior });
   const [sceneReady, setSceneReady] = useState(false);
   const [loadingState, setLoadingState] = useState<"loading" | "ready" | "error">("loading");
   const [showCalibratingMessage, setShowCalibratingMessage] = useState(false);
 
   useEffect(() => {
-    visualStateRef.current = { isPlaying, reducedMotion, motionEnabled };
-  }, [isPlaying, motionEnabled, reducedMotion]);
+    visualStateRef.current = { isPlaying, reducedMotion, motionEnabled, reactiveBehavior };
+  }, [isPlaying, motionEnabled, reactiveBehavior, reducedMotion]);
 
   useEffect(() => {
     const mount = mountRef.current;
@@ -171,16 +174,6 @@ function UvReactiveJungleTheme({
       planeSized = true;
     };
 
-    const handlePointerMove = (event: PointerEvent) => {
-      const rect = mount.getBoundingClientRect();
-      pointerTarget.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-      pointerTarget.y = ((event.clientY - rect.top) / rect.height) * 2 - 1;
-    };
-
-    const handlePointerLeave = () => {
-      pointerTarget.set(0, 0);
-    };
-
     const handleResize = () => {
       camera.aspect = mount.clientWidth / Math.max(mount.clientHeight, 1);
       camera.updateProjectionMatrix();
@@ -194,8 +187,6 @@ function UvReactiveJungleTheme({
 
     let playbackVisualMix = 0;
 
-    mount.addEventListener("pointermove", handlePointerMove);
-    mount.addEventListener("pointerleave", handlePointerLeave);
     window.addEventListener("resize", handleResize);
     fitPlane();
 
@@ -207,9 +198,14 @@ function UvReactiveJungleTheme({
       const state = visualStateRef.current;
 
       const playing = state.isPlaying;
-      const pointerMotionAllowed = playing && state.motionEnabled;
+      const parallaxEnabled = state.motionEnabled && !state.reducedMotion;
       const breathingAllowed =
         playing && state.motionEnabled && !state.reducedMotion;
+
+      const autonomousBehavior = state.reactiveBehavior === "fullon" ? "fullon" : "chill";
+      const autonomousTarget = resolveAutonomousParallaxTarget(elapsed, autonomousBehavior);
+      pointerTarget.x = parallaxEnabled ? autonomousTarget.targetX : 0;
+      pointerTarget.y = parallaxEnabled ? autonomousTarget.targetY : 0;
 
       const breathingFrequency =
         (Math.PI * 2) / UV_JUNGLE_PROFILE.breathing.cycleDurationSeconds;
@@ -236,8 +232,8 @@ function UvReactiveJungleTheme({
         effectiveDepth * UV_JUNGLE_PROFILE.displacementScaleMultiplier;
       planeMaterial.bumpScale = effectiveDepth * 0.04;
 
-      pointer.lerp(pointerTarget, 0.06);
-      const parallaxFactor = pointerMotionAllowed
+      pointer.lerp(pointerTarget, parallaxEnabled ? 0.05 : 0.08);
+      const parallaxFactor = parallaxEnabled
         ? UV_JUNGLE_PROFILE.pointerParallaxStrength
         : 0;
 
@@ -249,6 +245,26 @@ function UvReactiveJungleTheme({
       camera.position.x = pointer.x * parallaxFactor * 0.34;
       camera.position.y = -pointer.y * parallaxFactor * 0.24;
       camera.lookAt(0, 0, -0.42);
+
+      writeImageDepthParityStats("uv-jungle-production", {
+        supportsParallax: true,
+        pointerInputMode: "autonomous-virtual-pointer",
+        pointerMotionAllowed: parallaxEnabled,
+        autonomousBehavior,
+        autonomousCircuitSeconds: autonomousTarget.profile.circuitSeconds,
+        autonomousExcursion: autonomousTarget.profile.excursion,
+        pointerTargetX: pointerTarget.x,
+        pointerTargetY: pointerTarget.y,
+        pointerSmoothedX: pointer.x,
+        pointerSmoothedY: pointer.y,
+        parallaxFactor,
+        appliedPlanePositionX: planeGroup.position.x,
+        appliedPlanePositionY: planeGroup.position.y,
+        appliedPlaneRotationX: planeGroup.rotation.x,
+        appliedPlaneRotationY: planeGroup.rotation.y,
+        appliedCameraPositionX: camera.position.x,
+        appliedCameraPositionY: camera.position.y,
+      });
 
       glowMaterial.opacity = 0.045 + effectiveDepth * 0.06;
 
@@ -273,8 +289,6 @@ function UvReactiveJungleTheme({
       renderer.domElement.style.filter = "";
       renderer.domElement.style.opacity = "";
 
-      mount.removeEventListener("pointermove", handlePointerMove);
-      mount.removeEventListener("pointerleave", handlePointerLeave);
       window.removeEventListener("resize", handleResize);
 
       planeGeometry.dispose();

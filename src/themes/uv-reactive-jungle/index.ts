@@ -10,7 +10,7 @@ const UvReactiveJungleDefinition: ThemeDefinition = {
   Scene: UvReactiveJungleTheme,
   supportsMotion: true,
   supportsVisualFeed: true,
-  supportsAudioReactiveBehavior: false,
+  supportsAudioReactiveBehavior: true,
 }
 
 export default UvReactiveJungleDefinition

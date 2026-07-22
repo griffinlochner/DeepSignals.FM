@@ -4,6 +4,7 @@ import { MAX_SURFACE_GLOW_HOTSPOTS } from "../../experiments/environment-lab/con
 import type { AudioReactiveSnapshot } from "../../app/playerTypes";
 import type { ThemeSceneProps } from "../themeTypes";
 import { formatImageDepthPlaybackFilter, stepImageDepthPlaybackVisualMix } from "./imageDepthPlaybackVisuals";
+import { resolveAutonomousParallaxTarget } from "./autonomousParallaxTarget";
 import { computeFramedPlaneScale, IMAGE_DEPTH_PARITY_FRAMING } from "./framing";
 import { getImageDepthTexturePair } from "./imageDepthTextureCache";
 import { REACTIVE_BEHAVIOR_PROFILES } from "./reactivePreviewProfile";
@@ -20,17 +21,6 @@ const SATURATION_EPSILON = 0.0001;
 const DISPLACEMENT_SCALE_MULTIPLIER = 0.36;
 const FALLBACK_BEAT_INTERVAL_MS = 420;
 const FALLBACK_ACCEPTED_EVENT_MIN_INTERVAL_MS = 300;
-
-const AUTONOMOUS_PARALLAX_PROFILE = {
-  chill: {
-    circuitSeconds: 34,
-    excursionScale: 0.9,
-  },
-  fullon: {
-    circuitSeconds: 29,
-    excursionScale: 1,
-  },
-} as const;
 
 const REACTIVE_DEPTH_MIN = 0;
 const REACTIVE_DEPTH_MAX = 1.35;
@@ -713,9 +703,8 @@ if (uSurfaceGlowEnabled > 0.5) {
         const allowReactiveGeometry = allowReactiveLighting && geometryMotionActive;
         const reactiveTimingAuthorityActive = allowReactiveGeometry;
         const fullOnBehaviorActive = reactiveBehaviorEnabled && visualState.reactiveBehavior === 'fullon';
-        const autonomousParallaxProfile = fullOnBehaviorActive
-          ? AUTONOMOUS_PARALLAX_PROFILE.fullon
-          : AUTONOMOUS_PARALLAX_PROFILE.chill;
+        const autonomousBehavior = visualState.reactiveBehavior === 'fullon' ? 'fullon' : 'chill';
+        const autonomousParallaxProfile = resolveAutonomousParallaxTarget(elapsedSeconds, autonomousBehavior).profile;
         const fullOnAuthoringSuppressionActive = fullOnBehaviorActive && (reactiveTimingAuthorityActive || reactiveIsolationEnabled);
         const sourceBpm = Number.isFinite(visualState.sourceBpm) ? visualState.sourceBpm ?? null : null;
         const beatIntervalMs = resolveBeatIntervalMs(sourceBpm);
@@ -1014,31 +1003,23 @@ if (uSurfaceGlowEnabled > 0.5) {
         const autoAmountBase = autonomousParallaxEnabled
           ? clamp(0.18 + motionAmount * 0.32, 0.18, 0.52)
           : 0;
-        const autoAmount = autoAmountBase * autonomousParallaxProfile.excursionScale;
-        const circuitSeconds = Math.max(autonomousParallaxProfile.circuitSeconds, 12);
-        const phase = (elapsedSeconds / circuitSeconds) * Math.PI * 2;
-
-        autonomousPointer.x =
-          (Math.sin(phase) * 0.84 + Math.sin(phase * 3 + 1.18) * 0.16) *
-          autoAmount;
-        autonomousPointer.y =
-          (Math.sin(phase * 0.86 + Math.PI * 0.5) * 0.74 +
-            Math.sin(phase * 2.2 + 0.42) * 0.2) *
-          autoAmount;
+        const autonomousTarget = resolveAutonomousParallaxTarget(elapsedSeconds, autonomousBehavior);
+        autonomousPointer.x = autonomousParallaxEnabled ? autonomousTarget.targetX : 0;
+        autonomousPointer.y = autonomousParallaxEnabled ? autonomousTarget.targetY : 0;
 
         autonomousSmoothedPointer.x = stepSmoothedValue(
           autonomousSmoothedPointer.x,
           autonomousPointer.x,
           deltaSeconds,
-          1.9,
-          1.9,
+          1.35,
+          1.35,
         );
         autonomousSmoothedPointer.y = stepSmoothedValue(
           autonomousSmoothedPointer.y,
           autonomousPointer.y,
           deltaSeconds,
-          1.9,
-          1.9,
+          1.35,
+          1.35,
         );
 
         blendedPointer.x = autonomousSmoothedPointer.x;
@@ -1353,6 +1334,11 @@ if (uSurfaceGlowEnabled > 0.5) {
           configuredDepthMaximum,
           depthFinalAfterClamp,
           finalDisplacementScale,
+          parallaxEnabled: autonomousParallaxEnabled,
+          parallaxCapabilityEnabled: profile.depth.pointerParallaxEnabled,
+          parallaxAmplitudeScale: autonomousParallaxProfile.excursion,
+          autonomousTargetX: autonomousPointer.x,
+          autonomousTargetY: autonomousPointer.y,
           autonomousPointerX: autonomousSmoothedPointer.x,
           autonomousPointerY: autonomousSmoothedPointer.y,
           cameraPositionX: blendedPointer.x * 0.06,
