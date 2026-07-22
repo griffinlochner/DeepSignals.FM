@@ -80,6 +80,9 @@ const ZERO_REACTIVE_TELEMETRY: ReactivePreviewTelemetry = {
   kickPulse: 0,
   kickPulseAcceptedEvent: false,
   kickPulseAcceptedEventCount: 0,
+  kickPulseAcceptedEventSequence: 0,
+  rendererKickEventCountLastSeen: 0,
+  rendererKickEventSequenceLastSeen: 0,
   sourceBpm: null,
   beatIntervalMs: null,
   acceptedEventMinimumIntervalMs: 0,
@@ -313,6 +316,11 @@ function AudioAnalysisDiagnostics({
             event {displayedReactiveTelemetry.kickPulseAcceptedEvent ? 'on' : 'off'} | count{' '}
             {displayedReactiveTelemetry.kickPulseAcceptedEventCount} | phase {displayedReactiveTelemetry.fullOnPhase} | idle{' '}
             {Math.round(displayedReactiveTelemetry.millisecondsSinceAcceptedKickEvent)}ms
+          </p>
+          <p>
+            seq {displayedReactiveTelemetry.kickPulseAcceptedEventSequence} | lastCount{' '}
+            {displayedReactiveTelemetry.rendererKickEventCountLastSeen} | lastSeq{' '}
+            {displayedReactiveTelemetry.rendererKickEventSequenceLastSeen}
           </p>
           <p>
             breath {formatNumber(displayedReactiveTelemetry.kickBreathEnvelope)} | lowD{' '}

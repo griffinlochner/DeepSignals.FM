@@ -39,6 +39,7 @@ export type AudioReactiveSnapshot = {
   kickPulse: number
   kickPulseAcceptedEvent: boolean
   kickPulseAcceptedEventCount: number
+  kickPulseAcceptedEventSequence: number
   bassPulse: number
   mids: number
   highs: number
@@ -77,6 +78,9 @@ export type ReactivePreviewTelemetry = {
   kickPulse: number
   kickPulseAcceptedEvent: boolean
   kickPulseAcceptedEventCount: number
+  kickPulseAcceptedEventSequence: number
+  rendererKickEventCountLastSeen: number
+  rendererKickEventSequenceLastSeen: number
   sourceBpm: number | null
   beatIntervalMs: number | null
   acceptedEventMinimumIntervalMs: number

@@ -232,6 +232,7 @@ function syncSurfaceGlowUniforms(
 
 export function ImageDepthThemeScene({
   isPlaying,
+  signalId,
   reducedMotion,
   motionEnabled,
   sourceBpm,
@@ -250,6 +251,7 @@ export function ImageDepthThemeScene({
   const reactiveHueTargetDegreesRef = useRef(0);
   const visualStateRef = useRef({
     isPlaying,
+    signalId,
     reducedMotion,
     motionEnabled,
     sourceBpm,
@@ -302,6 +304,7 @@ export function ImageDepthThemeScene({
 
     visualStateRef.current = {
       isPlaying,
+      signalId,
       reducedMotion: reducedMotion || reducedMotionMatches,
       motionEnabled,
       sourceBpm,
@@ -313,6 +316,7 @@ export function ImageDepthThemeScene({
   }, [
     getLatestAudioSnapshot,
     isPlaying,
+    signalId,
     motionEnabled,
     onReactivePreviewTelemetry,
     reactivePreviewEnabled,
@@ -559,6 +563,7 @@ if (uSurfaceGlowEnabled > 0.5) {
     let fullOnHighTargetDepth = reactiveBehaviorProfile.fullOnHighDepthTarget;
     let fullOnLastAcceptedKickAtMs = 0;
     let fullOnLastSeenKickEventCount = 0;
+    let fullOnLastSeenKickEventSequence = 0;
     let fullOnPreviousAcceptedKickAtMs = 0;
     const fullOnAcceptedKickTimestampsMs: number[] = [];
     let fullOnMillisecondsSincePreviousAcceptedEvent = 0;
@@ -571,6 +576,7 @@ if (uSurfaceGlowEnabled > 0.5) {
     let fullOnKickBloomEnvelope = 0;
     let fullOnKickBloomStrength = 0;
     let lastReactiveTelemetryPublishAt = 0;
+    let lastSignalId = visualStateRef.current.signalId ?? null;
 
     const onPointerMove = (event: PointerEvent) => {
       const rect = renderer.domElement.getBoundingClientRect();
@@ -675,6 +681,31 @@ if (uSurfaceGlowEnabled > 0.5) {
           typeof visualState.getLatestAudioSnapshot === "function";
         const reactiveIsolationEnabled = reactivePreviewActive && isReactiveIsolationEnabled();
 
+        const currentSignalId = visualState.signalId ?? null;
+        if (currentSignalId !== lastSignalId) {
+          lastSignalId = currentSignalId;
+          reactiveDepthSustained = 0;
+          reactiveDepthPulse = 0;
+          reactiveSaturationBoost = 0;
+          reactiveGlobalLightBoost = 0;
+          reactiveSurfaceGlowBoost = 0;
+          reactiveTransientAccent = 0;
+          fullOnCurrentDepth = reactiveBehaviorProfile.fullOnRestDepthTarget;
+          fullOnCurrentPhase = 'low';
+          fullOnLastAcceptedKickAtMs = 0;
+          fullOnPreviousAcceptedKickAtMs = 0;
+          fullOnAcceptedKickTimestampsMs.length = 0;
+          fullOnMillisecondsSincePreviousAcceptedEvent = 0;
+          fullOnRecentAcceptedEventRate = 0;
+          fullOnKickBreathEnvelope = 0;
+          fullOnKickBreathTriggerAtMs = -Infinity;
+          fullOnHueEventStepAppliedDegrees = 0;
+          fullOnKickBloomEnvelope = 0;
+          fullOnKickBloomStrength = 0;
+          reactiveHueTargetDegreesRef.current = 0;
+          reactiveHueOffsetDegreesRef.current = 0;
+        }
+
         let latestSnapshot: AudioReactiveSnapshot | null = null;
         if (reactivePreviewActive) {
           latestSnapshot = visualState.getLatestAudioSnapshot?.() ?? null;
@@ -690,8 +721,17 @@ if (uSurfaceGlowEnabled > 0.5) {
         const acceptedEventMinimumIntervalMs = resolveAcceptedEventMinimumIntervalMs(sourceBpm);
         const currentKickPulse = latestSnapshot?.kickPulse ?? 0;
         const acceptedKickEventCount = latestSnapshot?.kickPulseAcceptedEventCount ?? 0;
+        const acceptedKickEventSequence = latestSnapshot?.kickPulseAcceptedEventSequence;
+        const hasAcceptedKickEventSequence = typeof acceptedKickEventSequence === 'number' && Number.isFinite(acceptedKickEventSequence);
         const acceptedKickEventCountDelta = Math.max(0, acceptedKickEventCount - fullOnLastSeenKickEventCount);
-        const acceptedKickEventEdge = fullOnBehaviorActive && allowReactiveLighting && acceptedKickEventCountDelta > 0;
+        const acceptedKickEventSequenceDelta = hasAcceptedKickEventSequence
+          ? Math.max(0, acceptedKickEventSequence - fullOnLastSeenKickEventSequence)
+          : 0;
+        const acceptedKickEventEdge = fullOnBehaviorActive && allowReactiveLighting && (
+          hasAcceptedKickEventSequence
+            ? acceptedKickEventSequenceDelta > 0
+            : acceptedKickEventCountDelta > 0
+        );
         const smoothedEnergyRaw = latestSnapshot?.smoothedEnergy ?? 0;
         const sectionIntensity = allowReactiveLighting
           ? smoothstep(
@@ -735,6 +775,9 @@ if (uSurfaceGlowEnabled > 0.5) {
 
         if (acceptedKickEventEdge) {
           fullOnLastSeenKickEventCount = acceptedKickEventCount;
+          if (hasAcceptedKickEventSequence) {
+            fullOnLastSeenKickEventSequence = acceptedKickEventSequence;
+          }
           fullOnPreviousAcceptedKickAtMs = fullOnLastAcceptedKickAtMs;
           fullOnLastAcceptedKickAtMs = timestamp;
           fullOnCurrentPhase = 'high';
@@ -766,11 +809,14 @@ if (uSurfaceGlowEnabled > 0.5) {
           fullOnReleaseDurationMs = clamp(beatForEnvelopeMs * 0.72, 260, 320);
 
           const hueStride = Math.max(1, reactiveBehaviorProfile.hueEventStride);
-          const shouldApplyHueStep = acceptedKickEventCount % hueStride === 0;
+          const hueStepEventOrdinal = hasAcceptedKickEventSequence
+            ? acceptedKickEventSequence
+            : acceptedKickEventCount;
+          const shouldApplyHueStep = hueStepEventOrdinal % hueStride === 0;
           if (shouldApplyHueStep) {
             const baseHueStep = reactiveBehaviorProfile.kickHueStepDegrees * (0.2 + sectionIntensity * 0.8);
             const hueVariance =
-              Math.sin(acceptedKickEventCount * 1.61803398875) *
+              Math.sin(hueStepEventOrdinal * 1.61803398875) *
               reactiveBehaviorProfile.kickHueVariationDegrees *
               sectionIntensity;
             fullOnHueEventStepAppliedDegrees = baseHueStep + hueVariance;
@@ -790,6 +836,9 @@ if (uSurfaceGlowEnabled > 0.5) {
 
         if (!fullOnBehaviorActive) {
           fullOnLastSeenKickEventCount = acceptedKickEventCount;
+          if (hasAcceptedKickEventSequence) {
+            fullOnLastSeenKickEventSequence = acceptedKickEventSequence;
+          }
         }
 
         const eventWindowMs = 8000;
@@ -1157,6 +1206,9 @@ if (uSurfaceGlowEnabled > 0.5) {
             kickPulse: currentKickPulse,
             kickPulseAcceptedEvent: acceptedKickEventEdge,
             kickPulseAcceptedEventCount: acceptedKickEventCount,
+            kickPulseAcceptedEventSequence: hasAcceptedKickEventSequence ? acceptedKickEventSequence : 0,
+            rendererKickEventCountLastSeen: fullOnLastSeenKickEventCount,
+            rendererKickEventSequenceLastSeen: fullOnLastSeenKickEventSequence,
             sourceBpm,
             beatIntervalMs,
             acceptedEventMinimumIntervalMs,

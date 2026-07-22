@@ -187,6 +187,7 @@ const ZERO_SNAPSHOT: AudioReactiveSnapshot = {
   kickPulse: 0,
   kickPulseAcceptedEvent: false,
   kickPulseAcceptedEventCount: 0,
+  kickPulseAcceptedEventSequence: 0,
   bassPulse: 0,
   mids: 0,
   highs: 0,
@@ -444,6 +445,7 @@ export function useAudioAnalysis({ audioElement, playbackStatus, isSeeking, audi
   const onsetWarmupUntilRef = useRef<number>(0)
   const onsetWarmupFrameCountRef = useRef<number>(0)
   const kickPulseEventCountRef = useRef<number>(0)
+  const kickPulseEventSequenceRef = useRef<number>(0)
   const lastAcceptedKickAtMsRef = useRef<number>(-Infinity)
 
   const shouldAnalyze =
@@ -527,6 +529,7 @@ export function useAudioAnalysis({ audioElement, playbackStatus, isSeeking, audi
     (force = false) => {
       const zero = {
         ...ZERO_SNAPSHOT,
+        kickPulseAcceptedEventSequence: kickPulseEventSequenceRef.current,
         isActive: false,
       }
 
@@ -940,8 +943,10 @@ export function useAudioAnalysis({ audioElement, playbackStatus, isSeeking, audi
         : kickPulseOutput
       const kickPulseCooldownMs = kickAcceptedEvent ? KICK_PULSE_CONFIG.cooldownMs : kickCooldownNext
       const kickPulseEventCount = kickAcceptedEvent ? kickPulseEventCountRef.current + 1 : kickPulseEventCountRef.current
+      const kickPulseEventSequence = kickAcceptedEvent ? kickPulseEventSequenceRef.current + 1 : kickPulseEventSequenceRef.current
       if (kickAcceptedEvent) {
         kickPulseEventCountRef.current = kickPulseEventCount
+        kickPulseEventSequenceRef.current = kickPulseEventSequence
         lastAcceptedKickAtMsRef.current = nowMs
       }
 
@@ -1036,6 +1041,7 @@ export function useAudioAnalysis({ audioElement, playbackStatus, isSeeking, audi
         kickPulse: clamp01(kickPulseWarmupActive ? 0 : kickPulseValue),
         kickPulseAcceptedEvent: kickAcceptedEvent,
         kickPulseAcceptedEventCount: kickPulseEventCount,
+        kickPulseAcceptedEventSequence: kickPulseEventSequence,
         bassPulse: clamp01(bassPulseWarmupActive ? 0 : bassPulseValue),
         mids: clamp01(mids),
         highs: clamp01(highs),
@@ -1132,6 +1138,7 @@ export function useAudioAnalysis({ audioElement, playbackStatus, isSeeking, audi
         kickPulse: Math.max(0, current.kickPulse * (1 - decay * 1.1)),
         kickPulseAcceptedEvent: false,
         kickPulseAcceptedEventCount: current.kickPulseAcceptedEventCount,
+        kickPulseAcceptedEventSequence: current.kickPulseAcceptedEventSequence,
         bassPulse: Math.max(0, current.bassPulse * (1 - decay * 1.3)),
         mids: Math.max(0, current.mids * (1 - decay)),
         highs: Math.max(0, current.highs * (1 - decay)),
