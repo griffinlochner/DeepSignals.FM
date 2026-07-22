@@ -20,6 +20,19 @@ type UsePersistentAudioControllerResult = {
   seekTo: (value: number) => void
 }
 
+let sharedAudioElement: HTMLAudioElement | null = null
+
+function getSharedAudioElement() {
+  if (!sharedAudioElement) {
+    const audio = new Audio()
+    audio.preload = 'metadata'
+    audio.loop = false
+    sharedAudioElement = audio
+  }
+
+  return sharedAudioElement
+}
+
 function clampVolume(value: number) {
   if (!Number.isFinite(value)) {
     return 0.7
@@ -58,6 +71,7 @@ export function usePersistentAudioController(initialVolume = 0.7, selectedSource
   const audioElementRef = useRef<HTMLAudioElement | null>(null)
   const playbackStatusRef = useRef<AudioPlaybackStatus>('idle')
   const pendingPlayRequestRef = useRef(false)
+  const sourceUrlRef = useRef<string>('')
   const safeInitialVolume = clampVolume(initialVolume)
   const volumeRef = useRef(safeInitialVolume)
   const seekableRef = useRef(DEMO_MODULATION_MANIPULATION_AUDIO_SOURCE.isSeekable)
@@ -88,11 +102,8 @@ export function usePersistentAudioController(initialVolume = 0.7, selectedSource
   }, [volume])
 
   useEffect(() => {
-    const audio = new Audio()
-    audio.preload = 'metadata'
-    audio.loop = false
+    const audio = getSharedAudioElement()
     audio.volume = volumeRef.current
-    audio.src = audioSource.audioUrl
     audioElementRef.current = audio
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setAudioElement(audio)
@@ -196,8 +207,6 @@ export function usePersistentAudioController(initialVolume = 0.7, selectedSource
     audio.addEventListener('ended', handleEnded)
     audio.addEventListener('error', handleError)
 
-    audio.load()
-
     return () => {
       audio.removeEventListener('loadstart', handleLoadStart)
       audio.removeEventListener('loadedmetadata', handleLoadedMetadata)
@@ -212,13 +221,42 @@ export function usePersistentAudioController(initialVolume = 0.7, selectedSource
       audio.removeEventListener('ended', handleEnded)
       audio.removeEventListener('error', handleError)
       audio.pause()
-      audio.removeAttribute('src')
-      audio.load()
       audioElementRef.current = null
       setAudioElement(null)
       pendingPlayRequestRef.current = false
     }
-  }, [audioSource.audioUrl])
+  }, [])
+
+  useEffect(() => {
+    const audio = audioElementRef.current
+
+    if (!audio) {
+      return
+    }
+
+    if (sourceUrlRef.current === audioSource.audioUrl) {
+      seekableRef.current = audioSource.isSeekable
+      return
+    }
+
+    pendingPlayRequestRef.current = false
+    seekableRef.current = audioSource.isSeekable
+    sourceUrlRef.current = audioSource.audioUrl
+
+    audio.pause()
+    playbackStatusRef.current = 'paused'
+    setPlaybackStatus('paused')
+    setCurrentTime(0)
+    setDuration(0)
+    setIsSeeking(false)
+    setSeekable(false)
+    setMetadataLoaded(false)
+    setErrorMessage(null)
+
+    audio.currentTime = 0
+    audio.src = audioSource.audioUrl
+    audio.load()
+  }, [audioSource.audioUrl, audioSource.isSeekable])
 
   useEffect(() => {
     const audio = audioElementRef.current

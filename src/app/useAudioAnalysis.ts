@@ -11,6 +11,7 @@ type UseAudioAnalysisArgs = {
   audioElement: HTMLAudioElement | null
   playbackStatus: AudioPlaybackStatus
   isSeeking: boolean
+  audioSourceId: string | null
   sourceBpm: number | null
   publishDiagnostics: boolean
 }
@@ -416,7 +417,7 @@ function getDocumentVisible() {
   return document.visibilityState === 'visible'
 }
 
-export function useAudioAnalysis({ audioElement, playbackStatus, isSeeking, sourceBpm, publishDiagnostics }: UseAudioAnalysisArgs): UseAudioAnalysisResult {
+export function useAudioAnalysis({ audioElement, playbackStatus, isSeeking, audioSourceId, sourceBpm, publishDiagnostics }: UseAudioAnalysisArgs): UseAudioAnalysisResult {
   const [status, setStatus] = useState<AudioAnalysisStatus>(audioElement ? 'paused' : 'unavailable')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [snapshot, setSnapshot] = useState<AudioReactiveSnapshot>(ZERO_SNAPSHOT)
@@ -1097,7 +1098,10 @@ export function useAudioAnalysis({ audioElement, playbackStatus, isSeeking, sour
         transientCooldownMs,
       }
 
-      previousFrequencyDataRef.current!.set(graph.frequencyData)
+      if (!previousFrequencyDataRef.current || previousFrequencyDataRef.current.length !== graph.frequencyData.length) {
+        previousFrequencyDataRef.current = new Float32Array(graph.frequencyData.length)
+      }
+      previousFrequencyDataRef.current.set(graph.frequencyData)
       previousKickPulseCandidateRef.current = kickCombinedCandidate
 
       publishSnapshot(nextSnapshot, nextBassPulseDebug, nextKickPulseDebug, nowMs)
@@ -1185,6 +1189,18 @@ export function useAudioAnalysis({ audioElement, playbackStatus, isSeeking, sour
     document.addEventListener('visibilitychange', handleVisibilityChange)
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
   }, [])
+
+  useEffect(() => {
+    if (!audioSourceId) {
+      return
+    }
+
+    previousFrequencyDataRef.current = null
+    previousKickPulseCandidateRef.current = 0
+    lastAudioTimeRef.current = null
+    zeroSnapshotNow(true)
+    activateOnsetWarmup()
+  }, [activateOnsetWarmup, audioSourceId, zeroSnapshotNow])
 
   useEffect(() => {
     if (!audioElement) {

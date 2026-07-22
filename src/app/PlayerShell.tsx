@@ -129,6 +129,15 @@ function readReactivePreviewConfig(): ReactivePreviewConfig {
   }
 }
 
+function isIgnoreSourceBpmEnabled() {
+  if (!import.meta.env.DEV || typeof window === 'undefined') {
+    return false
+  }
+
+  const searchParams = new URLSearchParams(window.location.search)
+  return searchParams.get('ignoreSourceBpm') === '1'
+}
+
 const ZERO_REACTIVE_PREVIEW_TELEMETRY: ReactivePreviewTelemetry = {
   selectedReactiveBehavior: 'Chill',
   reactivePreviewEnabled: false,
@@ -198,6 +207,7 @@ const ZERO_REACTIVE_PREVIEW_TELEMETRY: ReactivePreviewTelemetry = {
 function PlayerShell({ className }: PlayerShellProps) {
   const [audioDebugEnabled] = useState(() => isAudioDebugEnabled())
   const [reactivePreviewConfig] = useState(() => readReactivePreviewConfig())
+  const [ignoreSourceBpmEnabled] = useState(() => isIgnoreSourceBpmEnabled())
   const [storedPreferences] = useState<PlayerPreferencesV1>(() => readStoredPlayerPreferences())
   const [selectedThemeId, setSelectedThemeId] = useState<ThemeId>(storedPreferences.selectedThemeId)
   const [selectedSignalId, setSelectedSignalId] = useState<string | null>(storedPreferences.selectedAudioSourceId)
@@ -206,11 +216,14 @@ function PlayerShell({ className }: PlayerShellProps) {
   const [visualFeedOpen, setVisualFeedOpen] = useState(storedPreferences.visualFeedOpen)
   const reactivePreviewTelemetryRef = useRef<ReactivePreviewTelemetry>(ZERO_REACTIVE_PREVIEW_TELEMETRY)
   const audioController = usePersistentAudioController(storedPreferences.volume, selectedSignalId ?? undefined)
+  const registrySourceBpm = audioController.audioSource.bpm ?? null
+  const effectiveReactiveBpm = ignoreSourceBpmEnabled ? null : registrySourceBpm
   const audioAnalysis = useAudioAnalysis({
     audioElement: audioController.audioElement,
     playbackStatus: audioController.playbackStatus,
     isSeeking: audioController.isSeeking,
-    sourceBpm: audioController.audioSource.bpm ?? null,
+    audioSourceId: selectedSignalId,
+    sourceBpm: effectiveReactiveBpm,
     publishDiagnostics: audioDebugEnabled,
   })
 
@@ -276,7 +289,7 @@ function PlayerShell({ className }: PlayerShellProps) {
     volume: audioController.volume,
     signalId: selectedSignalId,
     audioLevel: 0,
-    sourceBpm: audioController.audioSource.bpm ?? null,
+    sourceBpm: effectiveReactiveBpm,
     reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches,
     motionEnabled,
     getLatestAudioSnapshot: audioAnalysis.getLatestSnapshot,
@@ -366,6 +379,9 @@ function PlayerShell({ className }: PlayerShellProps) {
           errorMessage={audioAnalysis.errorMessage}
           diagnosticsPublishHz={audioAnalysis.diagnosticsPublishHz}
           analysisCalculationMode={audioAnalysis.analysisCalculationMode}
+          sourceBpm={registrySourceBpm}
+          effectiveReactiveBpm={effectiveReactiveBpm}
+          ignoreSourceBpmEnabled={ignoreSourceBpmEnabled}
           reactiveDiagnosticsEnabled={reactiveDiagnosticsEnabled}
           getReactivePreviewTelemetry={getReactivePreviewTelemetry}
         />

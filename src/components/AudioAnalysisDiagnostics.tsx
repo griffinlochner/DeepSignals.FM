@@ -47,6 +47,9 @@ type AudioAnalysisDiagnosticsProps = {
   errorMessage: string | null
   diagnosticsPublishHz: number
   analysisCalculationMode: 'requestAnimationFrame'
+  sourceBpm: number | null
+  effectiveReactiveBpm: number | null
+  ignoreSourceBpmEnabled?: boolean
   reactiveDiagnosticsEnabled?: boolean
   getReactivePreviewTelemetry?: (() => ReactivePreviewTelemetry) | null
 }
@@ -153,6 +156,9 @@ function AudioAnalysisDiagnostics({
   errorMessage,
   diagnosticsPublishHz,
   analysisCalculationMode,
+  sourceBpm,
+  effectiveReactiveBpm,
+  ignoreSourceBpmEnabled = false,
   reactiveDiagnosticsEnabled = false,
   getReactivePreviewTelemetry = null,
 }: AudioAnalysisDiagnosticsProps) {
@@ -178,6 +184,12 @@ function AudioAnalysisDiagnostics({
   }, [getReactivePreviewTelemetry, reactiveDiagnosticsEnabled])
 
   const displayedReactiveTelemetry = reactiveDiagnosticsEnabled ? reactiveTelemetry : ZERO_REACTIVE_TELEMETRY
+  const bpmAssistanceState = effectiveReactiveBpm
+    ? 'Active'
+    : sourceBpm && ignoreSourceBpmEnabled
+      ? 'Ignored'
+      : 'Unavailable'
+  const fallbackTimingActive = displayedReactiveTelemetry.beatIntervalMs === null
 
   return (
     <aside className="audio-analysis-diagnostics" aria-label="Audio analysis diagnostics" data-collapsed={collapsed ? 'true' : 'false'}>
@@ -224,6 +236,13 @@ function AudioAnalysisDiagnostics({
               <p>Reactive Isolation: {displayedReactiveTelemetry.reactiveIsolationEnabled ? 'On' : 'Off'}</p>
               <p>Music Authority: {displayedReactiveTelemetry.musicAuthorityActive ? 'On' : 'Off'}</p>
               <p>Motion Gate: {displayedReactiveTelemetry.motionGateOpen ? 'Open' : 'Closed'}</p>
+              <p>
+                Source BPM: {sourceBpm ?? 'n/a'} | Reactive BPM: {effectiveReactiveBpm ?? 'n/a'} | Assist {bpmAssistanceState}
+              </p>
+              <p>
+                Beat Interval: {displayedReactiveTelemetry.beatIntervalMs ? `${Math.round(displayedReactiveTelemetry.beatIntervalMs)}ms` : 'fallback'} | Min Spacing{' '}
+                {Math.round(displayedReactiveTelemetry.acceptedEventMinimumIntervalMs)}ms | Generic Timing {fallbackTimingActive ? 'on' : 'off'}
+              </p>
             </section>
 
             <section className="audio-analysis-diagnostics__meters" aria-label="Live analysis values">
