@@ -9,13 +9,13 @@ type AutonomousParallaxProfile = {
 const AUTONOMOUS_PARALLAX_PROFILES: Record<AutonomousParallaxBehavior, AutonomousParallaxProfile> = {
   chill: {
     circuitSeconds: 40,
-    horizontalExcursion: 0.76,
-    verticalExcursion: 0.28,
+    horizontalExcursion: 0.88,
+    verticalExcursion: 0.24,
   },
   fullon: {
     circuitSeconds: 30,
-    horizontalExcursion: 0.98,
-    verticalExcursion: 0.38,
+    horizontalExcursion: 1,
+    verticalExcursion: 0.33,
   },
 };
 
@@ -30,14 +30,15 @@ export function resolveAutonomousParallaxTarget(
   const profile = AUTONOMOUS_PARALLAX_PROFILES[behavior];
   const phase = (elapsedSeconds / profile.circuitSeconds) * Math.PI * 2;
 
+  // Dominant full-range horizontal sweep with subtle odd harmonics for organic motion.
   const normalizedX =
-    Math.sin(phase) * 0.78 +
-    Math.sin(phase * 2.1 + 1.04) * 0.17 +
-    Math.cos(phase * 0.47 + 0.6) * 0.05;
+    Math.sin(phase) * 1.03 +
+    Math.sin(phase * 3 + 0.3) * 0.07 +
+    Math.sin(phase * 5 - 0.45) * 0.03;
   const normalizedY =
-    Math.sin(phase * 0.82 + Math.PI * 0.5) * 0.62 +
-    Math.sin(phase * 1.9 + 0.3) * 0.17 +
-    Math.cos(phase * 0.55 + 0.18) * 0.05;
+    Math.sin(phase * 0.84 + Math.PI * 0.52) * 0.74 +
+    Math.sin(phase * 1.86 + 0.24) * 0.16 +
+    Math.cos(phase * 0.58 + 0.2) * 0.05;
 
   const targetX = clamp(normalizedX, -1, 1) * profile.horizontalExcursion;
   const targetY = clamp(normalizedY, -1, 1) * profile.verticalExcursion;
