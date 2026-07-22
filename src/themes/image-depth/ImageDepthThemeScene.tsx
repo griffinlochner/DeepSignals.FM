@@ -1336,7 +1336,7 @@ if (uSurfaceGlowEnabled > 0.5) {
           finalDisplacementScale,
           parallaxEnabled: autonomousParallaxEnabled,
           parallaxCapabilityEnabled: profile.depth.pointerParallaxEnabled,
-          parallaxAmplitudeScale: autonomousParallaxProfile.excursion,
+          parallaxAmplitudeScale: autonomousParallaxProfile.horizontalExcursion,
           autonomousTargetX: autonomousPointer.x,
           autonomousTargetY: autonomousPointer.y,
           autonomousPointerX: autonomousSmoothedPointer.x,

@@ -252,7 +252,7 @@ function UvReactiveJungleTheme({
         pointerMotionAllowed: parallaxEnabled,
         autonomousBehavior,
         autonomousCircuitSeconds: autonomousTarget.profile.circuitSeconds,
-        autonomousExcursion: autonomousTarget.profile.excursion,
+        autonomousExcursion: autonomousTarget.profile.horizontalExcursion,
         pointerTargetX: pointerTarget.x,
         pointerTargetY: pointerTarget.y,
         pointerSmoothedX: pointer.x,
