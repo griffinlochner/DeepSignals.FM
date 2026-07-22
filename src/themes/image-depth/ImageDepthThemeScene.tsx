@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { MAX_SURFACE_GLOW_HOTSPOTS } from "../../experiments/environment-lab/constants";
+import type { AudioReactiveSnapshot } from "../../app/playerTypes";
 import type { ThemeSceneProps } from "../themeTypes";
 import { formatImageDepthPlaybackFilter, stepImageDepthPlaybackVisualMix } from "./imageDepthPlaybackVisuals";
 import { computeFramedPlaneScale, IMAGE_DEPTH_PARITY_FRAMING } from "./framing";
 import { getImageDepthTexturePair } from "./imageDepthTextureCache";
+import { REACTIVE_BEHAVIOR_PROFILES } from "./reactivePreviewProfile";
 import { resolveImageDepthElapsedSeconds, writeImageDepthParityStats } from "./timing";
 import type { ImageDepthAsset, ImageDepthScenePreset, ImageDepthSurfaceGlowHotspot } from "./types";
 
@@ -19,6 +21,22 @@ const DISPLACEMENT_SCALE_MULTIPLIER = 0.36;
 const PLAYING_DRIFT_AMOUNT = 0.6;
 const PLAYING_DRIFT_SPEED = 0.58;
 const POINTER_IDLE_TIMEOUT_SECONDS = 1.25;
+const FALLBACK_BEAT_INTERVAL_MS = 420;
+const FALLBACK_ACCEPTED_EVENT_MIN_INTERVAL_MS = 300;
+
+const REACTIVE_DEPTH_MIN = 0;
+const REACTIVE_DEPTH_MAX = 1.35;
+const AUTHORED_DEPTH_MIN = 0;
+const AUTHORED_DEPTH_MAX = 2;
+
+function isReactiveIsolationEnabled() {
+  if (!import.meta.env.DEV || typeof window === "undefined") {
+    return false;
+  }
+
+  const searchParams = new URLSearchParams(window.location.search);
+  return searchParams.get("reactiveIsolation") === "1";
+}
 
 type SurfaceGlowUniformState = {
   uSurfaceGlowEnabled: { value: number };
@@ -52,6 +70,56 @@ function clamp(value: number, min: number, max: number) {
 
 function lerp(start: number, end: number, amount: number) {
   return start + (end - start) * amount;
+}
+
+function wrapDegrees(value: number) {
+  const wrapped = value % 360;
+  return wrapped < 0 ? wrapped + 360 : wrapped;
+}
+
+function smoothstep(edge0: number, edge1: number, value: number) {
+  const x = clamp((value - edge0) / Math.max(edge1 - edge0, SATURATION_EPSILON), 0, 1);
+  return x * x * (3 - 2 * x);
+}
+
+function resolveBeatIntervalMs(sourceBpm: number | null) {
+  if (!Number.isFinite(sourceBpm) || sourceBpm === null || sourceBpm <= 0) {
+    return null;
+  }
+
+  return 60000 / sourceBpm;
+}
+
+function resolveAcceptedEventMinimumIntervalMs(sourceBpm: number | null) {
+  const beatIntervalMs = resolveBeatIntervalMs(sourceBpm);
+
+  if (!beatIntervalMs) {
+    return FALLBACK_ACCEPTED_EVENT_MIN_INTERVAL_MS;
+  }
+
+  return clamp(beatIntervalMs * 0.78, beatIntervalMs * 0.72, beatIntervalMs * 0.82);
+}
+
+function normalizeWithFloor(value: number, floor: number) {
+  const safeValue = Number.isFinite(value) ? value : 0;
+  const safeFloor = clamp(floor, 0, 0.99);
+  return clamp((safeValue - safeFloor) / Math.max(1 - safeFloor, SATURATION_EPSILON), 0, 1);
+}
+
+function shapeCurve(value: number, exponent: number) {
+  return Math.pow(clamp(value, 0, 1), Math.max(exponent, SATURATION_EPSILON));
+}
+
+function stepSmoothedValue(
+  current: number,
+  target: number,
+  deltaSeconds: number,
+  attackPerSecond: number,
+  releasePerSecond: number,
+) {
+  const rate = target > current ? attackPerSecond : releasePerSecond;
+  const blend = 1 - Math.exp(-Math.max(rate, 0) * Math.max(deltaSeconds, 0));
+  return current + (target - current) * blend;
 }
 
 function createSurfaceGlowUniformState(): SurfaceGlowUniformState {
@@ -166,6 +234,11 @@ export function ImageDepthThemeScene({
   isPlaying,
   reducedMotion,
   motionEnabled,
+  sourceBpm,
+  getLatestAudioSnapshot,
+  reactivePreviewEnabled,
+  reactiveBehavior = 'chill',
+  onReactivePreviewTelemetry,
   asset,
   scenePreset,
   className,
@@ -173,13 +246,21 @@ export function ImageDepthThemeScene({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const sharedMaterialRef = useRef<THREE.MeshStandardMaterial | null>(null);
   const playbackVisualMixRef = useRef(0);
+  const reactiveHueOffsetDegreesRef = useRef(0);
+  const reactiveHueTargetDegreesRef = useRef(0);
   const visualStateRef = useRef({
     isPlaying,
     reducedMotion,
     motionEnabled,
+    sourceBpm,
+    getLatestAudioSnapshot,
+    reactivePreviewEnabled,
+    reactiveBehavior,
+    onReactivePreviewTelemetry,
   });
 
   const behavior = scenePreset.behavior;
+  const reactiveBehaviorProfile = reactiveBehavior === 'fullon' ? REACTIVE_BEHAVIOR_PROFILES.fullon : REACTIVE_BEHAVIOR_PROFILES.chill;
 
   const profile = useMemo(
     () => ({
@@ -216,12 +297,29 @@ export function ImageDepthThemeScene({
   );
 
   useEffect(() => {
+    const reducedMotionMatches =
+      typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
     visualStateRef.current = {
       isPlaying,
-      reducedMotion,
+      reducedMotion: reducedMotion || reducedMotionMatches,
       motionEnabled,
+      sourceBpm,
+      getLatestAudioSnapshot,
+      reactivePreviewEnabled,
+      reactiveBehavior,
+      onReactivePreviewTelemetry,
     };
-  }, [isPlaying, reducedMotion, motionEnabled]);
+  }, [
+    getLatestAudioSnapshot,
+    isPlaying,
+    motionEnabled,
+    onReactivePreviewTelemetry,
+    reactivePreviewEnabled,
+    reactiveBehavior,
+    sourceBpm,
+    reducedMotion,
+  ]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -446,8 +544,33 @@ if (uSurfaceGlowEnabled > 0.5) {
     const blendedPointer = new THREE.Vector2(0, 0);
     const autonomousPointer = new THREE.Vector2(0, 0);
     let elapsedSeconds = 0;
+    let lastRenderTimestampSeconds = 0;
     let pointerInfluence = 0;
     let lastPointerInputAt = -100;
+    let reactiveDepthSustained = 0;
+    let reactiveDepthPulse = 0;
+    let reactiveSaturationBoost = 0;
+    let reactiveGlobalLightBoost = 0;
+    let reactiveSurfaceGlowBoost = 0;
+    let reactiveTransientAccent = 0;
+    let fullOnCurrentDepth = 0;
+    let fullOnCurrentPhase: 'low' | 'high' = 'low';
+    let fullOnLowTargetDepth = reactiveBehaviorProfile.fullOnLowDepthTarget;
+    let fullOnHighTargetDepth = reactiveBehaviorProfile.fullOnHighDepthTarget;
+    let fullOnLastAcceptedKickAtMs = 0;
+    let fullOnLastSeenKickEventCount = 0;
+    let fullOnPreviousAcceptedKickAtMs = 0;
+    const fullOnAcceptedKickTimestampsMs: number[] = [];
+    let fullOnMillisecondsSincePreviousAcceptedEvent = 0;
+    let fullOnRecentAcceptedEventRate = 0;
+    let fullOnKickBreathEnvelope = 0;
+    let fullOnKickBreathTriggerAtMs = -Infinity;
+    let fullOnAttackDurationMs = 34;
+    let fullOnReleaseDurationMs = 300;
+    let fullOnHueEventStepAppliedDegrees = 0;
+    let fullOnKickBloomEnvelope = 0;
+    let fullOnKickBloomStrength = 0;
+    let lastReactiveTelemetryPublishAt = 0;
 
     const onPointerMove = (event: PointerEvent) => {
       const rect = renderer.domElement.getBoundingClientRect();
@@ -536,6 +659,9 @@ if (uSurfaceGlowEnabled > 0.5) {
 
       try {
         elapsedSeconds = resolveImageDepthElapsedSeconds(timestamp, animationStartedAt);
+        const renderTimestampSeconds = timestamp / 1000;
+        const deltaSeconds = clamp(renderTimestampSeconds - lastRenderTimestampSeconds, 1 / 240, 0.2);
+        lastRenderTimestampSeconds = renderTimestampSeconds;
 
         const visualState = visualStateRef.current;
         const isPlayingNow = visualState.isPlaying;
@@ -543,13 +669,276 @@ if (uSurfaceGlowEnabled > 0.5) {
         const geometryMotionEnabled = visualState.motionEnabled !== false;
         const geometryMotionActive = isPlayingNow && !reducedMotionActive && geometryMotionEnabled;
         const automaticMotionActive = geometryMotionActive && profile.depth.ambientMotionEnabled;
+        const reactivePreviewActive =
+          import.meta.env.DEV &&
+          visualState.reactivePreviewEnabled === true &&
+          typeof visualState.getLatestAudioSnapshot === "function";
+        const reactiveIsolationEnabled = reactivePreviewActive && isReactiveIsolationEnabled();
+
+        let latestSnapshot: AudioReactiveSnapshot | null = null;
+        if (reactivePreviewActive) {
+          latestSnapshot = visualState.getLatestAudioSnapshot?.() ?? null;
+        }
+
+        const allowReactiveLighting = reactivePreviewActive && isPlayingNow;
+        const allowReactiveGeometry = allowReactiveLighting && geometryMotionActive;
+        const reactiveTimingAuthorityActive = allowReactiveGeometry;
+        const fullOnBehaviorActive = reactivePreviewActive && visualState.reactiveBehavior === 'fullon';
+        const fullOnAuthoringSuppressionActive = fullOnBehaviorActive && (reactiveTimingAuthorityActive || reactiveIsolationEnabled);
+        const sourceBpm = Number.isFinite(visualState.sourceBpm) ? visualState.sourceBpm ?? null : null;
+        const beatIntervalMs = resolveBeatIntervalMs(sourceBpm);
+        const acceptedEventMinimumIntervalMs = resolveAcceptedEventMinimumIntervalMs(sourceBpm);
+        const currentKickPulse = latestSnapshot?.kickPulse ?? 0;
+        const acceptedKickEventCount = latestSnapshot?.kickPulseAcceptedEventCount ?? 0;
+        const acceptedKickEventCountDelta = Math.max(0, acceptedKickEventCount - fullOnLastSeenKickEventCount);
+        const acceptedKickEventEdge = fullOnBehaviorActive && allowReactiveLighting && acceptedKickEventCountDelta > 0;
+        const smoothedEnergyRaw = latestSnapshot?.smoothedEnergy ?? 0;
+        const sectionIntensity = allowReactiveLighting
+          ? smoothstep(
+              reactiveBehaviorProfile.sectionIntensityQuietFloor,
+              reactiveBehaviorProfile.sectionIntensityFullLevel,
+              smoothedEnergyRaw,
+            )
+          : 0;
+
+        const bassNormalized = allowReactiveGeometry
+          ? shapeCurve(
+              normalizeWithFloor(latestSnapshot?.bass ?? 0, reactiveBehaviorProfile.bassFloor),
+              reactiveBehaviorProfile.bassCurve,
+            )
+          : 0;
+        const kickPulseNormalized = allowReactiveLighting
+          ? shapeCurve(
+              normalizeWithFloor(currentKickPulse, reactiveBehaviorProfile.kickPulseFloor),
+              reactiveBehaviorProfile.kickPulseCurve,
+            )
+          : 0;
+        const smoothedEnergyNormalized = allowReactiveLighting
+          ? normalizeWithFloor(latestSnapshot?.smoothedEnergy ?? 0, 0.06)
+          : 0;
+        const highsNormalized = allowReactiveLighting
+          ? normalizeWithFloor(latestSnapshot?.highs ?? 0, 0.04)
+          : 0;
+        const transientNormalized = allowReactiveLighting
+          ? normalizeWithFloor(latestSnapshot?.transient ?? 0, 0.03)
+          : 0;
+
+        const depthSustainedTarget =
+          bassNormalized * reactiveBehaviorProfile.sustainedDepthMaxContribution;
+        const depthPulseTarget =
+          kickPulseNormalized * reactiveBehaviorProfile.kickDepthMaxContribution;
+        const saturationBoostTarget = smoothedEnergyNormalized * reactiveBehaviorProfile.saturationMaxBoost;
+        const surfaceGlowBoostTarget = highsNormalized * reactiveBehaviorProfile.surfaceGlowMaxBoost;
+        const transientAccentTarget = transientNormalized * reactiveBehaviorProfile.transientGlowMaxBoost;
+        const globalLightBoostTarget =
+          Math.max(smoothedEnergyNormalized, kickPulseNormalized) * reactiveBehaviorProfile.globalLightMaxBoost;
+
+        if (acceptedKickEventEdge) {
+          fullOnLastSeenKickEventCount = acceptedKickEventCount;
+          fullOnPreviousAcceptedKickAtMs = fullOnLastAcceptedKickAtMs;
+          fullOnLastAcceptedKickAtMs = timestamp;
+          fullOnCurrentPhase = 'high';
+          fullOnKickBreathTriggerAtMs = timestamp;
+          fullOnHueEventStepAppliedDegrees = 0;
+
+          const eventWindowMs = 8000;
+          fullOnAcceptedKickTimestampsMs.push(timestamp);
+          while (
+            fullOnAcceptedKickTimestampsMs.length > 0 &&
+            timestamp - (fullOnAcceptedKickTimestampsMs[0] ?? timestamp) > eventWindowMs
+          ) {
+            fullOnAcceptedKickTimestampsMs.shift();
+          }
+          fullOnRecentAcceptedEventRate =
+            fullOnAcceptedKickTimestampsMs.length > 1
+              ? fullOnAcceptedKickTimestampsMs.length / (eventWindowMs / 1000)
+              : 0;
+
+          if (fullOnPreviousAcceptedKickAtMs > 0) {
+            fullOnMillisecondsSincePreviousAcceptedEvent = Math.max(
+              0,
+              fullOnLastAcceptedKickAtMs - fullOnPreviousAcceptedKickAtMs,
+            );
+          }
+
+          const beatForEnvelopeMs = beatIntervalMs ?? FALLBACK_BEAT_INTERVAL_MS;
+          fullOnAttackDurationMs = clamp(beatForEnvelopeMs * 0.08, 20, 50);
+          fullOnReleaseDurationMs = clamp(beatForEnvelopeMs * 0.72, 260, 320);
+
+          const hueStride = Math.max(1, reactiveBehaviorProfile.hueEventStride);
+          const shouldApplyHueStep = acceptedKickEventCount % hueStride === 0;
+          if (shouldApplyHueStep) {
+            const baseHueStep = reactiveBehaviorProfile.kickHueStepDegrees * (0.2 + sectionIntensity * 0.8);
+            const hueVariance =
+              Math.sin(acceptedKickEventCount * 1.61803398875) *
+              reactiveBehaviorProfile.kickHueVariationDegrees *
+              sectionIntensity;
+            fullOnHueEventStepAppliedDegrees = baseHueStep + hueVariance;
+            reactiveHueTargetDegreesRef.current = wrapDegrees(
+              reactiveHueTargetDegreesRef.current + fullOnHueEventStepAppliedDegrees,
+            );
+          }
+
+          fullOnKickBloomStrength = clamp(
+            (0.2 + sectionIntensity * 0.8) *
+              (1 - reactiveBehaviorProfile.fullOnKickAmplitudeDepthInfluence +
+                reactiveBehaviorProfile.fullOnKickAmplitudeDepthInfluence * kickPulseNormalized),
+            0,
+            1,
+          );
+        }
+
+        if (!fullOnBehaviorActive) {
+          fullOnLastSeenKickEventCount = acceptedKickEventCount;
+        }
+
+        const eventWindowMs = 8000;
+        while (
+          fullOnAcceptedKickTimestampsMs.length > 0 &&
+          timestamp - (fullOnAcceptedKickTimestampsMs[0] ?? timestamp) > eventWindowMs
+        ) {
+          fullOnAcceptedKickTimestampsMs.shift();
+        }
+        fullOnRecentAcceptedEventRate =
+          fullOnAcceptedKickTimestampsMs.length > 0
+            ? fullOnAcceptedKickTimestampsMs.length / (eventWindowMs / 1000)
+            : 0;
+
+        const millisecondsSinceKickBreathTrigger = Math.max(0, timestamp - fullOnKickBreathTriggerAtMs);
+        const kickBreathAttackActive = millisecondsSinceKickBreathTrigger <= fullOnAttackDurationMs;
+        const kickBreathTarget = fullOnBehaviorActive && allowReactiveLighting && kickBreathAttackActive ? 1 : 0;
+        const fullOnKickBreathAttackRate = 3 / Math.max(fullOnAttackDurationMs / 1000, 0.001);
+        const fullOnKickBreathReleaseRate = 3 / Math.max(fullOnReleaseDurationMs / 1000, 0.001);
+        fullOnKickBreathEnvelope = stepSmoothedValue(
+          fullOnKickBreathEnvelope,
+          kickBreathTarget,
+          deltaSeconds,
+          fullOnKickBreathAttackRate,
+          fullOnKickBreathReleaseRate,
+        );
+
+        const kickBloomTarget =
+          fullOnBehaviorActive && allowReactiveLighting
+            ? fullOnKickBreathEnvelope * fullOnKickBloomStrength
+            : 0;
+        fullOnKickBloomEnvelope = stepSmoothedValue(
+          fullOnKickBloomEnvelope,
+          kickBloomTarget,
+          deltaSeconds,
+          reactiveBehaviorProfile.kickBloomAttackPerSecond,
+          reactiveBehaviorProfile.kickBloomReleasePerSecond,
+        );
+
+        const millisecondsSinceAcceptedKickEvent =
+          fullOnLastAcceptedKickAtMs > 0 ? Math.max(0, timestamp - fullOnLastAcceptedKickAtMs) : Number.POSITIVE_INFINITY;
+        const inactivityReturnActive =
+          fullOnBehaviorActive && millisecondsSinceAcceptedKickEvent > reactiveBehaviorProfile.fullOnInactivityTimeoutMs;
+
+        if (fullOnBehaviorActive && (inactivityReturnActive || !allowReactiveGeometry)) {
+          fullOnCurrentPhase = 'low';
+        }
+
+        const fullOnDepthTravelReleasePerSecond = inactivityReturnActive
+          ? reactiveBehaviorProfile.fullOnInactivityReturnPerSecond
+          : reactiveBehaviorProfile.fullOnDepthTravelReleasePerSecond;
+
+        const fullOnDynamicRangeScale = clamp(0.15 + sectionIntensity * 0.85, 0.1, 1);
+        const fullOnKickAmplitudeScale = clamp(
+          1 - reactiveBehaviorProfile.fullOnKickAmplitudeDepthInfluence +
+            reactiveBehaviorProfile.fullOnKickAmplitudeDepthInfluence * kickPulseNormalized,
+          0.68,
+          1,
+        );
+        const fullOnBreathScale = fullOnDynamicRangeScale * fullOnKickAmplitudeScale;
+        fullOnLowTargetDepth = reactiveBehaviorProfile.fullOnLowDepthTarget;
+        fullOnHighTargetDepth = reactiveBehaviorProfile.fullOnHighDepthTarget;
+        const fullOnBreathTargetDepth =
+          fullOnLowTargetDepth +
+          (fullOnHighTargetDepth - fullOnLowTargetDepth) * fullOnKickBreathEnvelope * fullOnBreathScale;
+        const fullOnAppliedTargetDepth =
+          fullOnBehaviorActive && allowReactiveGeometry
+            ? fullOnBreathTargetDepth
+            : reactiveBehaviorProfile.fullOnRestDepthTarget;
+        fullOnCurrentPhase = fullOnKickBreathEnvelope >= 0.45 ? 'high' : 'low';
+
+        fullOnCurrentDepth = stepSmoothedValue(
+          fullOnCurrentDepth,
+          fullOnAppliedTargetDepth,
+          deltaSeconds,
+          reactiveBehaviorProfile.fullOnDepthTravelAttackPerSecond,
+          fullOnDepthTravelReleasePerSecond,
+        );
+
+        reactiveHueOffsetDegreesRef.current = stepSmoothedValue(
+          reactiveHueOffsetDegreesRef.current,
+          reactiveHueTargetDegreesRef.current,
+          deltaSeconds,
+          reactiveBehaviorProfile.hueEasingAttackPerSecond,
+          reactiveBehaviorProfile.hueEasingReleasePerSecond,
+        );
+
+        reactiveDepthSustained = stepSmoothedValue(
+          reactiveDepthSustained,
+          depthSustainedTarget,
+          deltaSeconds,
+          reactiveBehaviorProfile.sustainedAttackPerSecond,
+          reactiveBehaviorProfile.sustainedReleasePerSecond,
+        );
+        reactiveDepthPulse = stepSmoothedValue(
+          reactiveDepthPulse,
+          depthPulseTarget,
+          deltaSeconds,
+          reactiveBehaviorProfile.kickAttackPerSecond,
+          reactiveBehaviorProfile.kickReleasePerSecond,
+        );
+        reactiveSaturationBoost = stepSmoothedValue(
+          reactiveSaturationBoost,
+          saturationBoostTarget,
+          deltaSeconds,
+          reactiveBehaviorProfile.lightingAttackPerSecond,
+          reactiveBehaviorProfile.lightingReleasePerSecond,
+        );
+        reactiveSurfaceGlowBoost = stepSmoothedValue(
+          reactiveSurfaceGlowBoost,
+          surfaceGlowBoostTarget,
+          deltaSeconds,
+          reactiveBehaviorProfile.glowAttackPerSecond,
+          reactiveBehaviorProfile.glowReleasePerSecond,
+        );
+        reactiveTransientAccent = stepSmoothedValue(
+          reactiveTransientAccent,
+          transientAccentTarget,
+          deltaSeconds,
+          reactiveBehaviorProfile.transientAttackPerSecond,
+          reactiveBehaviorProfile.transientReleasePerSecond,
+        );
+        reactiveGlobalLightBoost = stepSmoothedValue(
+          reactiveGlobalLightBoost,
+          globalLightBoostTarget,
+          deltaSeconds,
+          reactiveBehaviorProfile.lightingAttackPerSecond,
+          reactiveBehaviorProfile.lightingReleasePerSecond,
+        );
+
+        const depthReactiveContribution = allowReactiveGeometry
+          ? fullOnBehaviorActive
+            ? clamp(fullOnCurrentDepth, 0, reactiveBehaviorProfile.finalDepthCapContribution)
+            : clamp(
+                reactiveDepthSustained + reactiveDepthPulse,
+                0,
+                reactiveBehaviorProfile.finalDepthCapContribution,
+              )
+          : 0;
 
         pointer.lerp(pointerTarget, 0.05);
 
         const motionAmount = geometryMotionActive
           ? profile.depth.motionIntensity * profile.depth.pointerParallaxStrength
           : 0;
-        const autoAmount = automaticMotionActive ? motionAmount : 0;
+        const autoAmountBase = automaticMotionActive ? motionAmount : 0;
+        const autoAmount = reactiveTimingAuthorityActive
+          ? autoAmountBase * reactiveBehaviorProfile.ambientDriftScaleWhenReactive
+          : autoAmountBase;
 
         autonomousPointer.x = Math.sin(elapsedSeconds * PLAYING_DRIFT_SPEED) * PLAYING_DRIFT_AMOUNT * autoAmount;
         autonomousPointer.y =
@@ -560,7 +949,10 @@ if (uSurfaceGlowEnabled > 0.5) {
           0.82;
 
         const pointerIsActive = elapsedSeconds - lastPointerInputAt <= POINTER_IDLE_TIMEOUT_SECONDS;
-        const pointerEnabled = geometryMotionActive && profile.depth.pointerParallaxEnabled;
+        const pointerEnabled =
+          geometryMotionActive &&
+          profile.depth.pointerParallaxEnabled &&
+          !(reactiveIsolationEnabled && reactiveTimingAuthorityActive);
         const pointerInfluenceTarget = pointerEnabled && pointerIsActive ? 1 : 0;
         pointerInfluence = THREE.MathUtils.lerp(pointerInfluence, pointerInfluenceTarget, 0.045);
 
@@ -568,63 +960,107 @@ if (uSurfaceGlowEnabled > 0.5) {
         blendedPointer.y = THREE.MathUtils.lerp(autonomousPointer.y, pointer.y * motionAmount, pointerInfluence);
 
         let breathingMix = 0.5;
-        let effectiveDepth = profile.depth.staticDepth;
+        let authoredDepthContribution = profile.depth.staticDepth;
         const minBreathingDepth = Math.min(profile.depth.breathingMin, profile.depth.breathingMax);
         const maxBreathingDepth = Math.max(profile.depth.breathingMin, profile.depth.breathingMax);
+        const authoredCyclicBreathingEnabled = automaticMotionActive && !reactiveTimingAuthorityActive;
 
-        if (automaticMotionActive) {
+        if (authoredCyclicBreathingEnabled) {
           const breathingRange = maxBreathingDepth - minBreathingDepth;
           const safeCycleSeconds = Math.max(profile.depth.breathingCycleSeconds, SATURATION_EPSILON);
           const cycle = Math.sin((elapsedSeconds / safeCycleSeconds) * Math.PI * 2);
           breathingMix = (cycle + 1) * 0.5;
-          effectiveDepth = minBreathingDepth + breathingRange * breathingMix;
-
-          material.displacementScale =
-            profile.depth.depthStrength *
-            DISPLACEMENT_SCALE_MULTIPLIER *
-            effectiveDepth;
+          authoredDepthContribution = minBreathingDepth + breathingRange * breathingMix;
         } else {
-          effectiveDepth = profile.depth.staticDepth;
-          material.displacementScale =
-            profile.depth.staticDepth * profile.depth.depthStrength * DISPLACEMENT_SCALE_MULTIPLIER;
+          authoredDepthContribution = profile.depth.staticDepth;
         }
 
-        material.bumpScale = effectiveDepth * 0.04;
+        const combinedDepthBeforeClamp = reactiveTimingAuthorityActive
+          ? fullOnBehaviorActive
+            ? depthReactiveContribution
+            : profile.depth.staticDepth + depthReactiveContribution
+          : authoredDepthContribution + depthReactiveContribution;
+        const configuredDepthMinimum = reactiveTimingAuthorityActive ? REACTIVE_DEPTH_MIN : AUTHORED_DEPTH_MIN;
+        const configuredDepthMaximum = reactiveTimingAuthorityActive ? REACTIVE_DEPTH_MAX : AUTHORED_DEPTH_MAX;
+        const depthFinalAfterClamp = clamp(
+          combinedDepthBeforeClamp,
+          configuredDepthMinimum,
+          configuredDepthMaximum,
+        );
+
+        const finalDisplacementScale =
+          profile.depth.depthStrength *
+          DISPLACEMENT_SCALE_MULTIPLIER *
+          depthFinalAfterClamp;
+        material.displacementScale = finalDisplacementScale;
+        material.bumpScale = depthFinalAfterClamp * 0.04;
 
         const hueOffsetDegrees =
-          profile.color.driftEnabled && isPlayingNow && !reducedMotionActive
-            ? Math.sin((elapsedSeconds / Math.max(profile.color.cycleSeconds, 1)) * Math.PI * 2) *
-              profile.color.hueRangeDegrees
-            : 0;
+          fullOnAuthoringSuppressionActive && allowReactiveLighting
+            ? reactiveHueOffsetDegreesRef.current
+            : profile.color.driftEnabled && isPlayingNow && !reducedMotionActive
+              ? Math.sin((elapsedSeconds / Math.max(profile.color.cycleSeconds, 1)) * Math.PI * 2) *
+                profile.color.hueRangeDegrees
+              : 0;
 
-        let currentSaturation = profile.color.saturation;
+        const authoredBaseSaturation = profile.saturationPulse.enabled
+          ? Math.max(profile.color.saturation, (profile.saturationPulse.minimumSaturation + profile.saturationPulse.maximumSaturation) * 0.5)
+          : Math.max(profile.color.saturation, 1);
+        let authoredPeriodicSaturationContribution = 0;
+        let currentSaturation = authoredBaseSaturation;
         if (profile.saturationPulse.enabled && isPlayingNow && !reducedMotionActive) {
+          const saturationCycleScale = fullOnAuthoringSuppressionActive
+            ? reactiveBehaviorProfile.authoredSaturationCycleScale
+            : 1;
+
           if (profile.saturationPulse.syncToDepthBreathing) {
             const syncAngle = breathingMix * Math.PI * 2 + profile.saturationPulse.phaseOffset;
             const pulseProgress = (Math.sin(syncAngle) + 1) * 0.5;
-            currentSaturation = lerp(
+            const authoredPulseSaturation = lerp(
               profile.saturationPulse.minimumSaturation,
               profile.saturationPulse.maximumSaturation,
               pulseProgress,
             );
+            authoredPeriodicSaturationContribution = (authoredPulseSaturation - authoredBaseSaturation) * saturationCycleScale;
           } else {
             const pulsePhase =
               (elapsedSeconds / Math.max(profile.saturationPulse.cycleSeconds, 0.2)) * Math.PI * 2 +
               profile.saturationPulse.phaseOffset;
             const pulseProgress = (Math.sin(pulsePhase) + 1) * 0.5;
-            currentSaturation = lerp(
+            const authoredPulseSaturation = lerp(
               profile.saturationPulse.minimumSaturation,
               profile.saturationPulse.maximumSaturation,
               pulseProgress,
             );
+            authoredPeriodicSaturationContribution = (authoredPulseSaturation - authoredBaseSaturation) * saturationCycleScale;
           }
         }
 
-        const glowPulseAmount = profile.color.glowPulseEnabled && isPlayingNow && !reducedMotionActive
-          ? (Math.sin((elapsedSeconds / Math.max(profile.color.glowPulseCycleSeconds, 1)) * Math.PI * 2) * 0.5 +
-              0.5) *
-            profile.color.glowPulseAmount
+        currentSaturation = authoredBaseSaturation + authoredPeriodicSaturationContribution;
+
+        const reactiveSaturationMultiplier = 1 + reactiveSaturationBoost;
+        const saturationBloomMultiplier =
+          1 + (fullOnBehaviorActive ? fullOnKickBloomEnvelope * reactiveBehaviorProfile.kickSaturationBloomMaxBoost : 0);
+        const rawFinalSaturation = currentSaturation * reactiveSaturationMultiplier * saturationBloomMultiplier;
+        const finalSaturation = clamp(rawFinalSaturation, 0, reactiveBehaviorProfile.saturationCap);
+        currentSaturation = finalSaturation;
+
+        const authoredGlowPulseAmountBase =
+          profile.color.glowPulseEnabled && isPlayingNow && !reducedMotionActive
+            ? (Math.sin((elapsedSeconds / Math.max(profile.color.glowPulseCycleSeconds, 1)) * Math.PI * 2) *
+                0.5 +
+                0.5) *
+              profile.color.glowPulseAmount
+            : 0;
+        const authoredGlowPulseAmount = Math.max(
+          profile.color.glowPulseAmount * (fullOnAuthoringSuppressionActive ? 0.36 : 0.22),
+          authoredGlowPulseAmountBase *
+            (fullOnAuthoringSuppressionActive ? reactiveBehaviorProfile.authoredGlobalGlowCycleScale : 1),
+        );
+        const reactiveGlowPulseAmount = allowReactiveLighting
+          ? clamp(reactiveSurfaceGlowBoost + reactiveTransientAccent, 0, 1)
           : 0;
+        const glowPulseAmount = clamp(authoredGlowPulseAmount + reactiveGlowPulseAmount, 0, 1.2);
 
         playbackVisualMixRef.current = stepImageDepthPlaybackVisualMix(
           playbackVisualMixRef.current,
@@ -632,12 +1068,28 @@ if (uSurfaceGlowEnabled > 0.5) {
           reducedMotionActive,
         );
 
-        planeGroup.position.x = Math.sin(elapsedSeconds * 0.16) * 0.06 * autoAmount + blendedPointer.x * 0.14;
-        planeGroup.position.y = Math.cos(elapsedSeconds * 0.12) * 0.04 * autoAmount - blendedPointer.y * 0.11;
-        planeGroup.rotation.y = Math.sin(elapsedSeconds * 0.1) * 0.022 * autoAmount + blendedPointer.x * 0.13;
-        planeGroup.rotation.x = Math.cos(elapsedSeconds * 0.085) * 0.016 * autoAmount - blendedPointer.y * 0.1;
+        const authoredAmbientGeometryContribution =
+          reactiveTimingAuthorityActive && reactiveIsolationEnabled
+            ? 0
+            : reactiveTimingAuthorityActive
+              ? autoAmountBase * reactiveBehaviorProfile.ambientSwayScaleWhenReactive
+              : autoAmountBase;
+
+        planeGroup.position.x =
+          Math.sin(elapsedSeconds * 0.16) * 0.06 * authoredAmbientGeometryContribution +
+          blendedPointer.x * 0.14;
+        planeGroup.position.y =
+          Math.cos(elapsedSeconds * 0.12) * 0.04 * authoredAmbientGeometryContribution -
+          blendedPointer.y * 0.11;
+        planeGroup.rotation.y =
+          Math.sin(elapsedSeconds * 0.1) * 0.022 * authoredAmbientGeometryContribution +
+          blendedPointer.x * 0.13;
+        planeGroup.rotation.x =
+          Math.cos(elapsedSeconds * 0.085) * 0.016 * authoredAmbientGeometryContribution -
+          blendedPointer.y * 0.1;
         plane.position.z =
-          IMAGE_DEPTH_PARITY_FRAMING.planeZ + Math.sin(elapsedSeconds * 0.22) * 0.06 * autoAmount;
+          IMAGE_DEPTH_PARITY_FRAMING.planeZ +
+          Math.sin(elapsedSeconds * 0.22) * 0.06 * authoredAmbientGeometryContribution;
         glowPlane.material.opacity = 0.05 + material.displacementScale * 0.18 + glowPulseAmount * 0.8;
 
         camera.position.x = blendedPointer.x * 0.06;
@@ -650,12 +1102,109 @@ if (uSurfaceGlowEnabled > 0.5) {
           currentSaturation,
           glowPulseAmount,
         });
+        const grayscaleFilterActive = playbackVisualMixRef.current < 0.995;
 
         surfaceGlowUniforms.uSurfaceGlowEnabled.value =
           scenePreset.surfaceGlows.enabled && scenePreset.surfaceGlows.hotspots.length > 0 ? 1 : 0;
-        surfaceGlowUniforms.uSurfaceGlowGlobalDim.value = playbackVisualMixRef.current;
+        const reactiveKickBloom =
+          fullOnBehaviorActive ? fullOnKickBloomEnvelope * reactiveBehaviorProfile.kickGlobalGlowBloomMaxBoost : 0;
+        const globalGlowMultiplier = 1 + reactiveGlobalLightBoost + reactiveKickBloom;
+        const reactiveKickSurfaceGlowBloom =
+          fullOnBehaviorActive ? fullOnKickBloomEnvelope * reactiveBehaviorProfile.kickSurfaceGlowBloomMaxBoost : 0;
+        const surfaceGlowMultiplier =
+          1 +
+          reactiveSurfaceGlowBoost +
+          reactiveTransientAccent * 0.65 +
+          reactiveGlobalLightBoost * 0.35 +
+          reactiveKickSurfaceGlowBloom;
+        ambientLight.intensity = 1.85 * globalGlowMultiplier;
+        keyLight.intensity = 1.3 * (globalGlowMultiplier + reactiveTransientAccent * 0.1);
+        rimLight.intensity = 0.6 * (globalGlowMultiplier + reactiveTransientAccent * 0.22);
+        const surfaceGlowPeriodicScale = fullOnBehaviorActive
+          ? reactiveBehaviorProfile.authoredSurfaceGlowPeriodicScale
+          : 1;
+        surfaceGlowUniforms.uSurfaceGlowGlobalDim.value =
+          playbackVisualMixRef.current * surfaceGlowPeriodicScale * surfaceGlowMultiplier;
         surfaceGlowUniforms.uSurfaceGlowTime.value =
           isPlayingNow && !reducedMotionActive ? elapsedSeconds : 0;
+
+        if (
+          visualState.onReactivePreviewTelemetry &&
+          (elapsedSeconds - lastReactiveTelemetryPublishAt >= 0.05 || lastReactiveTelemetryPublishAt === 0)
+        ) {
+          const fullOnPhase: 'low' | 'high' | 'n/a' = fullOnBehaviorActive
+            ? fullOnCurrentPhase
+            : 'n/a';
+
+          visualState.onReactivePreviewTelemetry({
+            selectedReactiveBehavior: reactiveBehaviorProfile.label,
+            reactivePreviewEnabled: reactivePreviewActive,
+            reactiveIsolationEnabled,
+            reactiveTimingAuthorityActive,
+            musicAuthorityActive: reactiveTimingAuthorityActive,
+            motionGateOpen: geometryMotionActive,
+            authoredCyclicBreathingEnabled,
+            authoredDepthContribution,
+            authoredAmbientGeometryContribution,
+            depthSustainedContribution: reactiveDepthSustained,
+            kickDrivenDepthContribution: fullOnBehaviorActive ? fullOnCurrentDepth : reactiveDepthPulse,
+            depthPulseContribution: reactiveDepthPulse,
+            depthCombinedBeforeClamp: combinedDepthBeforeClamp,
+            configuredDepthMinimum,
+            configuredDepthMaximum,
+            depthFinalAfterClamp,
+            finalDisplacementScale,
+            kickPulse: currentKickPulse,
+            kickPulseAcceptedEvent: acceptedKickEventEdge,
+            kickPulseAcceptedEventCount: acceptedKickEventCount,
+            sourceBpm,
+            beatIntervalMs,
+            acceptedEventMinimumIntervalMs,
+            millisecondsSincePreviousAcceptedEvent: fullOnMillisecondsSincePreviousAcceptedEvent,
+            acceptedEventRatePerSecondRecent: fullOnRecentAcceptedEventRate,
+            smoothedEnergy: smoothedEnergyRaw,
+            sectionIntensity,
+            fullOnPhase,
+            fullOnTargetDepth: fullOnBehaviorActive ? fullOnAppliedTargetDepth : 0,
+            fullOnCurrentDepth,
+            millisecondsSinceAcceptedKickEvent: Number.isFinite(millisecondsSinceAcceptedKickEvent)
+              ? millisecondsSinceAcceptedKickEvent
+              : 0,
+            inactivityReturnActive,
+            kickBreathEnvelope: fullOnKickBreathEnvelope,
+            fullOnLowTargetDepth: fullOnLowTargetDepth,
+            fullOnHighTargetDepth: fullOnHighTargetDepth,
+            fullOnAttackDurationMs,
+            fullOnReleaseDurationMs,
+            kickBloomEnvelope: fullOnKickBloomEnvelope,
+            hueEventStride: reactiveBehaviorProfile.hueEventStride,
+            hueEventStepAppliedDegrees: fullOnHueEventStepAppliedDegrees,
+            reactiveHueTargetDegrees: reactiveHueTargetDegreesRef.current,
+            reactiveHueOffsetDegrees: reactiveHueOffsetDegreesRef.current,
+            authoredBaseSaturation,
+            authoredPeriodicSaturationContribution,
+            reactiveSaturationMultiplier,
+            finalSaturation,
+            grayscaleFilterActive,
+            saturationBloomMultiplier,
+            saturationCap: reactiveBehaviorProfile.saturationCap,
+            authoredBaseGlow: authoredGlowPulseAmount,
+            reactiveKickBloom,
+            reactiveKickSurfaceGlowBloom,
+            globalGlowMultiplier,
+            saturationMultiplier: reactiveSaturationMultiplier,
+            globalLightMultiplier: globalGlowMultiplier,
+            finalGlobalGlowMultiplier: globalGlowMultiplier,
+            finalSurfaceGlowMultiplier: surfaceGlowMultiplier,
+            surfaceGlowMultiplier,
+            authoredHueCycleSuppressed: fullOnAuthoringSuppressionActive,
+            authoredSaturationCycleSuppressed: fullOnAuthoringSuppressionActive,
+            authoredGlobalGlowCycleSuppressed: fullOnAuthoringSuppressionActive,
+            transientAccent: reactiveTransientAccent,
+            geometryMotionActive,
+          });
+          lastReactiveTelemetryPublishAt = elapsedSeconds;
+        }
 
         renderer.domElement.style.filter = filter;
 
@@ -668,6 +1217,55 @@ if (uSurfaceGlowEnabled > 0.5) {
           effectiveSaturation:
             playbackVisualMixRef.current * currentSaturation * (1 + glowPulseAmount * 0.7),
           glowPulseAmount,
+          reactivePreviewEnabled: reactivePreviewActive,
+          reactiveIsolationEnabled,
+          reactiveTimingAuthorityActive,
+          musicAuthorityActive: reactiveTimingAuthorityActive,
+          fullOnBehaviorActive,
+          fullOnCurrentPhase,
+          fullOnLowTargetDepth,
+          fullOnHighTargetDepth,
+          fullOnCurrentDepth,
+          fullOnKickBreathEnvelope,
+          fullOnAttackDurationMs,
+          fullOnReleaseDurationMs,
+          sourceBpm,
+          beatIntervalMs,
+          acceptedEventMinimumIntervalMs,
+          fullOnMillisecondsSincePreviousAcceptedEvent,
+          fullOnRecentAcceptedEventRate,
+          sectionIntensity,
+          acceptedKickEventCount,
+          acceptedKickEventEdge,
+          millisecondsSinceAcceptedKickEvent,
+          inactivityReturnActive,
+          grayscaleFilterActive,
+          finalSaturation,
+          reactiveSaturationMultiplier,
+          saturationBloomMultiplier,
+          authoredBaseSaturation,
+          authoredPeriodicSaturationContribution,
+          kickBloomEnvelope: fullOnKickBloomEnvelope,
+          hueEventStride: reactiveBehaviorProfile.hueEventStride,
+          hueEventStepAppliedDegrees: fullOnHueEventStepAppliedDegrees,
+          authoredBaseGlow: authoredGlowPulseAmount,
+          reactiveKickBloom,
+          reactiveKickSurfaceGlowBloom,
+          authoredCyclicBreathingEnabled,
+          authoredDepthContribution,
+          authoredAmbientGeometryContribution,
+          depthReactiveContribution,
+          depthSustainedContribution: reactiveDepthSustained,
+          depthPulseContribution: reactiveDepthPulse,
+          combinedDepthBeforeClamp,
+          configuredDepthMinimum,
+          configuredDepthMaximum,
+          depthFinalAfterClamp,
+          finalDisplacementScale,
+          saturationReactiveBoost: reactiveSaturationBoost,
+          globalLightReactiveBoost: reactiveGlobalLightBoost,
+          surfaceGlowReactiveBoost: reactiveSurfaceGlowBoost,
+          transientReactiveAccent: reactiveTransientAccent,
           brightness: 1 + glowPulseAmount,
           filter,
         });
@@ -719,7 +1317,7 @@ if (uSurfaceGlowEnabled > 0.5) {
         container.removeChild(renderer.domElement);
       }
     };
-  }, [asset, profile, scenePreset]);
+  }, [asset, profile, reactiveBehaviorProfile, scenePreset]);
 
   useEffect(() => {
     const material = sharedMaterialRef.current;

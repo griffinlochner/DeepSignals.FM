@@ -11,6 +11,7 @@ type UseAudioAnalysisArgs = {
   audioElement: HTMLAudioElement | null
   playbackStatus: AudioPlaybackStatus
   isSeeking: boolean
+  sourceBpm: number | null
   publishDiagnostics: boolean
 }
 
@@ -30,10 +31,26 @@ type BassPulseDebugReadout = {
   cooldownRemainingMs: number
 }
 
+type KickPulseDebugReadout = {
+  lowBandSpectralFlux: number
+  positiveEnergyRise: number
+  combinedCandidate: number
+  adaptiveBaseline: number
+  adaptiveThreshold: number
+  postThresholdCandidate: number
+  acceptedKickEvent: boolean
+  acceptedKickEventCount: number
+  warmupActive: boolean
+  warmupRemainingMs: number
+  warmupFramesRemaining: number
+  cooldownRemainingMs: number
+}
+
 type UseAudioAnalysisResult = {
   status: AudioAnalysisStatus
   snapshot: AudioReactiveSnapshot
   bassPulseDebug: BassPulseDebugReadout
+  kickPulseDebug: KickPulseDebugReadout
   graphDetails: AudioAnalysisGraphDetails
   errorMessage: string | null
   requestInitializationFromUserGesture: () => Promise<void>
@@ -44,6 +61,7 @@ type UseAudioAnalysisResult = {
 
 type FrequencyBandRanges = {
   bass: { start: number; end: number }
+  kick: { start: number; end: number }
   mids: { start: number; end: number }
   highs: { start: number; end: number }
 }
@@ -60,12 +78,17 @@ type EnvelopeState = {
   bassPulseSlowEnergy: number
   bassPulse: number
   bassPulseCooldownMs: number
+  kickPulseFastCandidate: number
+  kickPulseSlowCandidate: number
+  kickPulseFastEnergy: number
+  kickPulseSlowEnergy: number
+  kickPulse: number
+  kickPulseCooldownMs: number
   transientFast: number
   transientSlow: number
   transient: number
   transientCooldownMs: number
 }
-
 type AnalysisGraph = {
   context: AudioContext
   source: MediaElementAudioSourceNode
@@ -89,6 +112,8 @@ const ANALYSER_CONFIG = {
 const BAND_LIMITS_HZ = {
   bassLow: 20,
   bassHigh: 180,
+  kickLow: 30,
+  kickHigh: 220,
   midsLow: 180,
   midsHigh: 2000,
   highsLow: 2000,
@@ -132,6 +157,25 @@ const BASS_PULSE_CONFIG = {
   decay: 0.18,
 } as const
 
+const KICK_PULSE_CONFIG = {
+  fluxWeight: 0.82,
+  energyWeight: 0.18,
+  fluxGain: 9.5,
+  energyRiseGain: 6.5,
+  candidateFloor: 0.018,
+  adaptiveBaselineAttack: 0.14,
+  adaptiveBaselineRelease: 0.032,
+  adaptiveThresholdOffset: 0.045,
+  adaptiveThresholdGain: 1.02,
+  attack: 0.78,
+  release: 0.16,
+  cooldownMs: 205,
+  fallbackMinimumAcceptedIntervalMs: 300,
+  bpmMinimumIntervalRatio: 0.78,
+  quietEnergyLevelFloor: 0.22,
+  quietEnergyThresholdBoostMax: 0.045,
+} as const
+
 const ONSET_WARMUP_DURATION_MS = 480
 const ONSET_WARMUP_MIN_FRAMES = 8
 
@@ -139,6 +183,9 @@ const ZERO_SNAPSHOT: AudioReactiveSnapshot = {
   energy: 0,
   smoothedEnergy: 0,
   bass: 0,
+  kickPulse: 0,
+  kickPulseAcceptedEvent: false,
+  kickPulseAcceptedEventCount: 0,
   bassPulse: 0,
   mids: 0,
   highs: 0,
@@ -156,6 +203,21 @@ const ZERO_BASS_PULSE_DEBUG: BassPulseDebugReadout = {
   combinedCandidate: 0,
   postThresholdCandidate: 0,
   threshold: BASS_PULSE_CONFIG.threshold,
+  warmupActive: false,
+  warmupRemainingMs: 0,
+  warmupFramesRemaining: 0,
+  cooldownRemainingMs: 0,
+}
+
+const ZERO_KICK_PULSE_DEBUG: KickPulseDebugReadout = {
+  lowBandSpectralFlux: 0,
+  positiveEnergyRise: 0,
+  combinedCandidate: 0,
+  adaptiveBaseline: 0,
+  adaptiveThreshold: 0,
+  postThresholdCandidate: 0,
+  acceptedKickEvent: false,
+  acceptedKickEventCount: 0,
   warmupActive: false,
   warmupRemainingMs: 0,
   warmupFramesRemaining: 0,
@@ -184,6 +246,12 @@ const EMPTY_ENVELOPES: EnvelopeState = {
   bassPulseSlowEnergy: 0,
   bassPulse: 0,
   bassPulseCooldownMs: 0,
+  kickPulseFastCandidate: 0,
+  kickPulseSlowCandidate: 0,
+  kickPulseFastEnergy: 0,
+  kickPulseSlowEnergy: 0,
+  kickPulse: 0,
+  kickPulseCooldownMs: 0,
   transientFast: 0,
   transientSlow: 0,
   transient: 0,
@@ -196,6 +264,33 @@ function clamp01(value: number) {
   }
 
   return Math.min(1, Math.max(0, value))
+}
+
+function clamp(value: number, min: number, max: number) {
+  if (!Number.isFinite(value)) {
+    return min
+  }
+
+  return Math.min(max, Math.max(min, value))
+}
+
+function resolveBeatIntervalMs(sourceBpm: number | null) {
+  if (!Number.isFinite(sourceBpm) || sourceBpm === null || sourceBpm <= 0) {
+    return null
+  }
+
+  return 60000 / sourceBpm
+}
+
+function resolveKickMinimumAcceptedIntervalMs(sourceBpm: number | null) {
+  const beatIntervalMs = resolveBeatIntervalMs(sourceBpm)
+
+  if (!beatIntervalMs) {
+    return KICK_PULSE_CONFIG.fallbackMinimumAcceptedIntervalMs
+  }
+
+  const scaled = beatIntervalMs * KICK_PULSE_CONFIG.bpmMinimumIntervalRatio
+  return clamp(scaled, beatIntervalMs * 0.72, beatIntervalMs * 0.82)
 }
 
 function normalizeDb(value: number, minDecibels: number, maxDecibels: number) {
@@ -268,6 +363,30 @@ function calculateRms(timeData: Float32Array) {
   return clamp01((rms - 0.01) / 0.35)
 }
 
+function calculatePositiveSpectralFlux(
+  currentFrequencyData: Float32Array,
+  previousFrequencyData: Float32Array,
+  range: { start: number; end: number },
+  minDecibels: number,
+  maxDecibels: number,
+) {
+  let sum = 0
+  let count = 0
+
+  for (let index = range.start; index <= range.end; index += 1) {
+    const current = normalizeDb(currentFrequencyData[index] ?? minDecibels, minDecibels, maxDecibels)
+    const previous = normalizeDb(previousFrequencyData[index] ?? minDecibels, minDecibels, maxDecibels)
+    sum += Math.max(0, current - previous)
+    count += 1
+  }
+
+  if (count <= 0) {
+    return 0
+  }
+
+  return clamp01((sum / count) * 10)
+}
+
 function applyEnvelope(current: number, target: number, attack: number, release: number, frameScale: number) {
   const isRising = target > current
   const base = isRising ? attack : release
@@ -281,6 +400,7 @@ function snapshotNearZero(snapshot: AudioReactiveSnapshot) {
     snapshot.energy < 0.002 &&
     snapshot.smoothedEnergy < 0.002 &&
     snapshot.bass < 0.002 &&
+    snapshot.kickPulse < 0.002 &&
     snapshot.bassPulse < 0.002 &&
     snapshot.mids < 0.002 &&
     snapshot.highs < 0.002 &&
@@ -296,11 +416,12 @@ function getDocumentVisible() {
   return document.visibilityState === 'visible'
 }
 
-export function useAudioAnalysis({ audioElement, playbackStatus, isSeeking, publishDiagnostics }: UseAudioAnalysisArgs): UseAudioAnalysisResult {
+export function useAudioAnalysis({ audioElement, playbackStatus, isSeeking, sourceBpm, publishDiagnostics }: UseAudioAnalysisArgs): UseAudioAnalysisResult {
   const [status, setStatus] = useState<AudioAnalysisStatus>(audioElement ? 'paused' : 'unavailable')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [snapshot, setSnapshot] = useState<AudioReactiveSnapshot>(ZERO_SNAPSHOT)
   const [bassPulseDebug, setBassPulseDebug] = useState<BassPulseDebugReadout>(ZERO_BASS_PULSE_DEBUG)
+  const [kickPulseDebug, setKickPulseDebug] = useState<KickPulseDebugReadout>(ZERO_KICK_PULSE_DEBUG)
   const [graphDetails, setGraphDetails] = useState<AudioAnalysisGraphDetails>(EMPTY_GRAPH_DETAILS)
   const [documentVisible, setDocumentVisible] = useState(() => getDocumentVisible())
 
@@ -308,16 +429,21 @@ export function useAudioAnalysis({ audioElement, playbackStatus, isSeeking, publ
   const connectedElementRef = useRef<HTMLAudioElement | null>(null)
   const snapshotRef = useRef<AudioReactiveSnapshot>(ZERO_SNAPSHOT)
   const envelopesRef = useRef<EnvelopeState>(EMPTY_ENVELOPES)
+  const previousFrequencyDataRef = useRef<Float32Array | null>(null)
+  const previousKickPulseCandidateRef = useRef<number>(0)
   const analysisRafRef = useRef<number | null>(null)
   const decayRafRef = useRef<number | null>(null)
   const lastFrameTimeRef = useRef<number | null>(null)
   const lastPublishTimeRef = useRef<number>(0)
   const lastAudioTimeRef = useRef<number | null>(null)
   const bassPulseDebugRef = useRef<BassPulseDebugReadout>(ZERO_BASS_PULSE_DEBUG)
+  const kickPulseDebugRef = useRef<KickPulseDebugReadout>(ZERO_KICK_PULSE_DEBUG)
   const previousPlaybackStatusRef = useRef<AudioPlaybackStatus>(playbackStatus)
   const previousIsSeekingRef = useRef<boolean>(isSeeking)
   const onsetWarmupUntilRef = useRef<number>(0)
   const onsetWarmupFrameCountRef = useRef<number>(0)
+  const kickPulseEventCountRef = useRef<number>(0)
+  const lastAcceptedKickAtMsRef = useRef<number>(-Infinity)
 
   const shouldAnalyze =
     playbackStatus === 'playing' &&
@@ -348,11 +474,13 @@ export function useAudioAnalysis({ audioElement, playbackStatus, isSeeking, publ
     (
       nextSnapshot: AudioReactiveSnapshot,
       nextBassPulseDebug: BassPulseDebugReadout,
+      nextKickPulseDebug: KickPulseDebugReadout,
       nowMs: number,
       force = false,
     ) => {
       snapshotRef.current = nextSnapshot
       bassPulseDebugRef.current = nextBassPulseDebug
+      kickPulseDebugRef.current = nextKickPulseDebug
 
       if (!publishDiagnostics) {
         return
@@ -365,6 +493,7 @@ export function useAudioAnalysis({ audioElement, playbackStatus, isSeeking, publ
       lastPublishTimeRef.current = nowMs
       setSnapshot(nextSnapshot)
       setBassPulseDebug(nextBassPulseDebug)
+      setKickPulseDebug(nextKickPulseDebug)
     },
     [publishDiagnostics],
   )
@@ -380,6 +509,12 @@ export function useAudioAnalysis({ audioElement, playbackStatus, isSeeking, publ
       bassPulseSlowEnergy: 0,
       bassPulse: 0,
       bassPulseCooldownMs: 0,
+      kickPulseFastCandidate: 0,
+      kickPulseSlowCandidate: 0,
+      kickPulseFastEnergy: 0,
+      kickPulseSlowEnergy: 0,
+      kickPulse: 0,
+      kickPulseCooldownMs: 0,
       transientFast: 0,
       transientSlow: 0,
       transient: 0,
@@ -395,14 +530,20 @@ export function useAudioAnalysis({ audioElement, playbackStatus, isSeeking, publ
       }
 
       envelopesRef.current = EMPTY_ENVELOPES
+      previousFrequencyDataRef.current = null
+      previousKickPulseCandidateRef.current = 0
+      kickPulseEventCountRef.current = 0
+      lastAcceptedKickAtMsRef.current = -Infinity
       onsetWarmupUntilRef.current = 0
       onsetWarmupFrameCountRef.current = 0
       lastAudioTimeRef.current = null
       bassPulseDebugRef.current = ZERO_BASS_PULSE_DEBUG
+      kickPulseDebugRef.current = ZERO_KICK_PULSE_DEBUG
       if (publishDiagnostics) {
         setBassPulseDebug(ZERO_BASS_PULSE_DEBUG)
+        setKickPulseDebug(ZERO_KICK_PULSE_DEBUG)
       }
-      publishSnapshot(zero, ZERO_BASS_PULSE_DEBUG, performance.now(), force)
+      publishSnapshot(zero, ZERO_BASS_PULSE_DEBUG, ZERO_KICK_PULSE_DEBUG, performance.now(), force)
     },
     [publishDiagnostics, publishSnapshot],
   )
@@ -414,6 +555,10 @@ export function useAudioAnalysis({ audioElement, playbackStatus, isSeeking, publ
 
       const graph = graphRef.current
       graphRef.current = null
+      previousFrequencyDataRef.current = null
+      previousKickPulseCandidateRef.current = 0
+      kickPulseEventCountRef.current = 0
+      lastAcceptedKickAtMsRef.current = -Infinity
 
       if (graph) {
         graph.context.removeEventListener('statechange', graph.onContextStateChange)
@@ -489,6 +634,13 @@ export function useAudioAnalysis({ audioElement, playbackStatus, isSeeking, publ
             analyser.fftSize,
             frequencyBinCount,
           ),
+          kick: computeBandRange(
+            BAND_LIMITS_HZ.kickLow,
+            BAND_LIMITS_HZ.kickHigh,
+            context.sampleRate,
+            analyser.fftSize,
+            frequencyBinCount,
+          ),
           mids: computeBandRange(
             BAND_LIMITS_HZ.midsLow,
             BAND_LIMITS_HZ.midsHigh,
@@ -539,6 +691,7 @@ export function useAudioAnalysis({ audioElement, playbackStatus, isSeeking, publ
         }
 
         graphRef.current = graph
+        previousFrequencyDataRef.current = new Float32Array(frequencyBinCount)
         connectedElementRef.current = audioElement
         activateOnsetWarmup()
 
@@ -628,6 +781,7 @@ export function useAudioAnalysis({ audioElement, playbackStatus, isSeeking, publ
 
       graph.analyser.getFloatFrequencyData(graph.frequencyData as Float32Array<ArrayBuffer>)
       graph.analyser.getFloatTimeDomainData(graph.timeDomainData as Float32Array<ArrayBuffer>)
+      const previousFrequencyData = previousFrequencyDataRef.current
 
       const bassRaw = averageNormalizedBand(
         graph.frequencyData,
@@ -635,6 +789,15 @@ export function useAudioAnalysis({ audioElement, playbackStatus, isSeeking, publ
         graph.analyser.minDecibels,
         graph.analyser.maxDecibels,
       )
+      const kickLowBandFlux = previousFrequencyData
+        ? calculatePositiveSpectralFlux(
+            graph.frequencyData,
+            previousFrequencyData,
+            graph.bandRanges.kick,
+            graph.analyser.minDecibels,
+            graph.analyser.maxDecibels,
+          )
+        : 0
       const midsRaw = averageNormalizedBand(
         graph.frequencyData,
         graph.bandRanges.mids,
@@ -709,6 +872,76 @@ export function useAudioAnalysis({ audioElement, playbackStatus, isSeeking, publ
       const bassPulseWarmupActive = warmupTimeRemainingMs > 0 || warmupFramesRemaining > 0
       if (bassPulseWarmupActive) {
         onsetWarmupFrameCountRef.current += 1
+      }
+      
+      const kickFastEnergy = applyEnvelope(
+        envelopes.kickPulseFastEnergy,
+        combinedEnergy,
+        0.52,
+        0.16,
+        frameScale,
+      )
+      const kickSlowEnergy = applyEnvelope(
+        envelopes.kickPulseSlowEnergy,
+        combinedEnergy,
+        0.08,
+        0.028,
+        frameScale,
+      )
+      const positiveEnergyRise = Math.max(0, kickFastEnergy - kickSlowEnergy)
+      const lowBandFluxScaled = clamp01(kickLowBandFlux * KICK_PULSE_CONFIG.fluxGain)
+      const kickCombinedCandidate = clamp01(
+        lowBandFluxScaled * KICK_PULSE_CONFIG.fluxWeight + positiveEnergyRise * KICK_PULSE_CONFIG.energyWeight,
+      )
+      const kickAdaptiveBaseline = applyEnvelope(
+        envelopes.kickPulseSlowCandidate,
+        kickCombinedCandidate,
+        KICK_PULSE_CONFIG.adaptiveBaselineAttack,
+        KICK_PULSE_CONFIG.adaptiveBaselineRelease,
+        frameScale,
+      )
+      const kickAdaptiveThreshold = clamp01(
+        kickAdaptiveBaseline * KICK_PULSE_CONFIG.adaptiveThresholdGain + KICK_PULSE_CONFIG.adaptiveThresholdOffset,
+      )
+      const quietEnergySuppression = clamp01(
+        (KICK_PULSE_CONFIG.quietEnergyLevelFloor - smoothedEnergy) / KICK_PULSE_CONFIG.quietEnergyLevelFloor,
+      )
+      const quietThresholdBoost = quietEnergySuppression * KICK_PULSE_CONFIG.quietEnergyThresholdBoostMax
+      const kickFinalThreshold = clamp01(kickAdaptiveThreshold + quietThresholdBoost)
+      const kickPostThresholdCandidate = clamp01(
+        (kickCombinedCandidate - kickFinalThreshold) * KICK_PULSE_CONFIG.energyRiseGain,
+      )
+      const kickPulseWarmupActive = bassPulseWarmupActive
+      const kickCooldownNext = Math.max(0, envelopes.kickPulseCooldownMs - deltaMs)
+      const kickMinimumAcceptedIntervalMs = resolveKickMinimumAcceptedIntervalMs(sourceBpm)
+      const millisecondsSinceLastAcceptedKick = nowMs - lastAcceptedKickAtMsRef.current
+      const kickMinimumIntervalSatisfied = millisecondsSinceLastAcceptedKick >= kickMinimumAcceptedIntervalMs
+      const crossedThresholdEdge =
+        kickCombinedCandidate > kickFinalThreshold &&
+        previousKickPulseCandidateRef.current <= kickFinalThreshold
+      const kickAcceptedEvent =
+        !kickPulseWarmupActive &&
+        crossedThresholdEdge &&
+        kickCombinedCandidate > previousKickPulseCandidateRef.current &&
+        kickCooldownNext <= 0 &&
+        kickMinimumIntervalSatisfied
+      const kickPulseOutput = kickPulseWarmupActive
+        ? 0
+        : applyEnvelope(
+            envelopes.kickPulse,
+            kickPostThresholdCandidate,
+            KICK_PULSE_CONFIG.attack,
+            KICK_PULSE_CONFIG.release,
+            frameScale,
+          )
+      const kickPulseValue = kickAcceptedEvent
+        ? Math.max(kickPulseOutput, kickPostThresholdCandidate)
+        : kickPulseOutput
+      const kickPulseCooldownMs = kickAcceptedEvent ? KICK_PULSE_CONFIG.cooldownMs : kickCooldownNext
+      const kickPulseEventCount = kickAcceptedEvent ? kickPulseEventCountRef.current + 1 : kickPulseEventCountRef.current
+      if (kickAcceptedEvent) {
+        kickPulseEventCountRef.current = kickPulseEventCount
+        lastAcceptedKickAtMsRef.current = nowMs
       }
 
       const transientFastTarget = 0.68 * bass + 0.32 * energy
@@ -790,11 +1023,18 @@ export function useAudioAnalysis({ audioElement, playbackStatus, isSeeking, publ
         : clamp01((seededCombinedCandidate - BASS_PULSE_CONFIG.threshold) * BASS_PULSE_CONFIG.gain)
       const seededTransientFast = bassPulseWarmupActive ? transientSlowTarget : transientFast
       const seededTransientSlow = bassPulseWarmupActive ? transientSlowTarget : transientSlow
+      const seededKickPulseFastCandidate = kickPulseWarmupActive ? kickCombinedCandidate : kickCombinedCandidate
+      const seededKickPulseSlowCandidate = kickPulseWarmupActive ? kickCombinedCandidate : kickCombinedCandidate
+      const seededKickPulseFastEnergy = kickPulseWarmupActive ? combinedEnergy : kickFastEnergy
+      const seededKickPulseSlowEnergy = kickPulseWarmupActive ? combinedEnergy : kickSlowEnergy
 
       const nextSnapshot: AudioReactiveSnapshot = {
         energy: clamp01(energy),
         smoothedEnergy: clamp01(smoothedEnergy),
         bass: clamp01(bass),
+        kickPulse: clamp01(kickPulseWarmupActive ? 0 : kickPulseValue),
+        kickPulseAcceptedEvent: kickAcceptedEvent,
+        kickPulseAcceptedEventCount: kickPulseEventCount,
         bassPulse: clamp01(bassPulseWarmupActive ? 0 : bassPulseValue),
         mids: clamp01(mids),
         highs: clamp01(highs),
@@ -818,6 +1058,21 @@ export function useAudioAnalysis({ audioElement, playbackStatus, isSeeking, publ
         cooldownRemainingMs: bassPulseWarmupActive ? 0 : bassPulseCooldownMs,
       }
 
+      const nextKickPulseDebug: KickPulseDebugReadout = {
+        lowBandSpectralFlux: kickPulseWarmupActive ? 0 : clamp01(kickLowBandFlux),
+        positiveEnergyRise: kickPulseWarmupActive ? 0 : clamp01(positiveEnergyRise),
+        combinedCandidate: kickPulseWarmupActive ? 0 : clamp01(kickCombinedCandidate),
+        adaptiveBaseline: kickPulseWarmupActive ? 0 : clamp01(kickAdaptiveBaseline),
+        adaptiveThreshold: kickPulseWarmupActive ? 0 : clamp01(kickAdaptiveThreshold),
+        postThresholdCandidate: kickPulseWarmupActive ? 0 : clamp01(kickPostThresholdCandidate),
+        acceptedKickEvent: kickAcceptedEvent,
+        acceptedKickEventCount: kickPulseEventCount,
+        warmupActive: kickPulseWarmupActive,
+        warmupRemainingMs: kickPulseWarmupActive ? warmupTimeRemainingMs : 0,
+        warmupFramesRemaining: kickPulseWarmupActive ? Math.max(0, ONSET_WARMUP_MIN_FRAMES - onsetWarmupFrameCountRef.current) : 0,
+        cooldownRemainingMs: kickPulseWarmupActive ? 0 : kickPulseCooldownMs,
+      }
+
       envelopesRef.current = {
         bass: nextSnapshot.bass,
         mids: nextSnapshot.mids,
@@ -830,16 +1085,25 @@ export function useAudioAnalysis({ audioElement, playbackStatus, isSeeking, publ
         bassPulseSlowEnergy: seededBassPulseSlowEnergy,
         bassPulse: nextSnapshot.bassPulse,
         bassPulseCooldownMs: bassPulseWarmupActive ? 0 : bassPulseCooldownMs,
+        kickPulseFastCandidate: seededKickPulseFastCandidate,
+        kickPulseSlowCandidate: seededKickPulseSlowCandidate,
+        kickPulseFastEnergy: seededKickPulseFastEnergy,
+        kickPulseSlowEnergy: seededKickPulseSlowEnergy,
+        kickPulse: nextSnapshot.kickPulse,
+        kickPulseCooldownMs: kickPulseWarmupActive ? 0 : kickPulseCooldownMs,
         transientFast: seededTransientFast,
         transientSlow: seededTransientSlow,
         transient: nextSnapshot.transient,
         transientCooldownMs,
       }
 
-      publishSnapshot(nextSnapshot, nextBassPulseDebug, nowMs)
+      previousFrequencyDataRef.current!.set(graph.frequencyData)
+      previousKickPulseCandidateRef.current = kickCombinedCandidate
+
+      publishSnapshot(nextSnapshot, nextBassPulseDebug, nextKickPulseDebug, nowMs)
       analysisRafRef.current = window.requestAnimationFrame(runAnalysisFrame)
     },
-    [activateOnsetWarmup, documentVisible, playbackStatus, publishSnapshot],
+    [activateOnsetWarmup, documentVisible, playbackStatus, publishSnapshot, sourceBpm],
   )
 
   const runDecayFrame = useCallback(
@@ -861,6 +1125,9 @@ export function useAudioAnalysis({ audioElement, playbackStatus, isSeeking, publ
         energy: Math.max(0, current.energy * (1 - decay)),
         smoothedEnergy: Math.max(0, current.smoothedEnergy * (1 - decay * 0.75)),
         bass: Math.max(0, current.bass * (1 - decay)),
+        kickPulse: Math.max(0, current.kickPulse * (1 - decay * 1.1)),
+        kickPulseAcceptedEvent: false,
+        kickPulseAcceptedEventCount: current.kickPulseAcceptedEventCount,
         bassPulse: Math.max(0, current.bassPulse * (1 - decay * 1.3)),
         mids: Math.max(0, current.mids * (1 - decay)),
         highs: Math.max(0, current.highs * (1 - decay)),
@@ -886,13 +1153,19 @@ export function useAudioAnalysis({ audioElement, playbackStatus, isSeeking, publ
         bassPulseSlowEnergy: nextSnapshot.smoothedEnergy,
         bassPulse: nextSnapshot.bassPulse,
         bassPulseCooldownMs: Math.max(0, envelopesRef.current.bassPulseCooldownMs - deltaMs),
+        kickPulseFastCandidate: nextSnapshot.kickPulse,
+        kickPulseSlowCandidate: nextSnapshot.kickPulse,
+        kickPulseFastEnergy: nextSnapshot.energy,
+        kickPulseSlowEnergy: nextSnapshot.smoothedEnergy,
+        kickPulse: nextSnapshot.kickPulse,
+        kickPulseCooldownMs: Math.max(0, envelopesRef.current.kickPulseCooldownMs - deltaMs),
         transient: nextSnapshot.transient,
         transientFast: nextSnapshot.energy,
         transientSlow: nextSnapshot.smoothedEnergy,
         transientCooldownMs: Math.max(0, envelopesRef.current.transientCooldownMs - deltaMs),
       }
 
-      publishSnapshot(nextSnapshot, nextBassPulseDebug, nowMs)
+      publishSnapshot(nextSnapshot, nextBassPulseDebug, kickPulseDebugRef.current, nowMs)
 
       if (snapshotNearZero(nextSnapshot)) {
         decayRafRef.current = null
@@ -1016,6 +1289,7 @@ export function useAudioAnalysis({ audioElement, playbackStatus, isSeeking, publ
     status,
     snapshot,
     bassPulseDebug,
+    kickPulseDebug,
     graphDetails,
     errorMessage,
     requestInitializationFromUserGesture,

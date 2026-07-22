@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AUDIO_SOURCES } from './audioSources'
 import AudioAnalysisDiagnostics from '../components/AudioAnalysisDiagnostics'
 import FloatingPlayerPanel from '../components/FloatingPlayerPanel'
 import StationIdentOverlay from '../components/StationIdentOverlay'
 import VisualFeedWindow from '../components/VisualFeedWindow'
 import { themeRegistry } from '../themes/themeRegistry'
-import type { SignalSource } from './playerTypes'
+import type { ReactivePreviewTelemetry, SignalSource } from './playerTypes'
 import type { ThemeId, ThemeSceneProps } from '../themes/themeTypes'
 import { preloadImageDepthTextures } from '../themes/image-depth/imageDepthTextureCache'
 import {
@@ -29,6 +29,11 @@ type PlayerPreferencesV1 = {
   volume: number
   motionEnabled: boolean
   visualFeedOpen: boolean
+}
+
+type ReactivePreviewConfig = {
+  enabled: boolean
+  behavior: 'chill' | 'fullon'
 }
 
 const PLAYER_PREFERENCES_STORAGE_KEY = 'deepsignals.player.preferences.v1'
@@ -106,19 +111,106 @@ function isAudioDebugEnabled() {
   return searchParams.get('audioDebug') === '1'
 }
 
+function readReactivePreviewConfig(): ReactivePreviewConfig {
+  if (!import.meta.env.DEV || typeof window === 'undefined') {
+    return {
+      enabled: false,
+      behavior: 'chill',
+    }
+  }
+
+  const searchParams = new URLSearchParams(window.location.search)
+  const enabled = searchParams.get('reactiveDebug') === '1'
+  const requestedBehavior = searchParams.get('reactiveBehavior')?.toLowerCase()
+
+  return {
+    enabled,
+    behavior: requestedBehavior === 'fullon' ? 'fullon' : 'chill',
+  }
+}
+
+const ZERO_REACTIVE_PREVIEW_TELEMETRY: ReactivePreviewTelemetry = {
+  selectedReactiveBehavior: 'Chill',
+  reactivePreviewEnabled: false,
+  reactiveIsolationEnabled: false,
+  reactiveTimingAuthorityActive: false,
+  musicAuthorityActive: false,
+  motionGateOpen: false,
+  authoredCyclicBreathingEnabled: false,
+  authoredDepthContribution: 0,
+  authoredAmbientGeometryContribution: 0,
+  depthSustainedContribution: 0,
+  kickDrivenDepthContribution: 0,
+  depthPulseContribution: 0,
+  depthCombinedBeforeClamp: 0,
+  configuredDepthMinimum: 0,
+  configuredDepthMaximum: 0,
+  depthFinalAfterClamp: 0,
+  finalDisplacementScale: 0,
+  kickPulse: 0,
+  kickPulseAcceptedEvent: false,
+  kickPulseAcceptedEventCount: 0,
+  sourceBpm: null,
+  beatIntervalMs: null,
+  acceptedEventMinimumIntervalMs: 0,
+  millisecondsSincePreviousAcceptedEvent: 0,
+  acceptedEventRatePerSecondRecent: 0,
+  smoothedEnergy: 0,
+  sectionIntensity: 0,
+  fullOnPhase: 'n/a',
+  fullOnTargetDepth: 0,
+  fullOnCurrentDepth: 0,
+  millisecondsSinceAcceptedKickEvent: 0,
+  inactivityReturnActive: false,
+  kickBreathEnvelope: 0,
+  fullOnLowTargetDepth: 0,
+  fullOnHighTargetDepth: 0,
+  fullOnAttackDurationMs: 0,
+  fullOnReleaseDurationMs: 0,
+  kickBloomEnvelope: 0,
+  hueEventStride: 1,
+  hueEventStepAppliedDegrees: 0,
+  reactiveHueTargetDegrees: 0,
+  reactiveHueOffsetDegrees: 0,
+  authoredBaseSaturation: 1,
+  authoredPeriodicSaturationContribution: 0,
+  reactiveSaturationMultiplier: 1,
+  finalSaturation: 1,
+  grayscaleFilterActive: false,
+  saturationBloomMultiplier: 1,
+  saturationCap: 2,
+  authoredBaseGlow: 1,
+  reactiveKickBloom: 0,
+  reactiveKickSurfaceGlowBloom: 0,
+  globalGlowMultiplier: 1,
+  saturationMultiplier: 1,
+  globalLightMultiplier: 1,
+  finalGlobalGlowMultiplier: 1,
+  finalSurfaceGlowMultiplier: 1,
+  surfaceGlowMultiplier: 1,
+  authoredHueCycleSuppressed: false,
+  authoredSaturationCycleSuppressed: false,
+  authoredGlobalGlowCycleSuppressed: false,
+  transientAccent: 0,
+  geometryMotionActive: false,
+}
+
 function PlayerShell({ className }: PlayerShellProps) {
   const [audioDebugEnabled] = useState(() => isAudioDebugEnabled())
+  const [reactivePreviewConfig] = useState(() => readReactivePreviewConfig())
   const [storedPreferences] = useState<PlayerPreferencesV1>(() => readStoredPlayerPreferences())
   const [selectedThemeId, setSelectedThemeId] = useState<ThemeId>(storedPreferences.selectedThemeId)
   const [selectedSignalId, setSelectedSignalId] = useState<string | null>(storedPreferences.selectedAudioSourceId)
   const [motionEnabled, setMotionEnabled] = useState(storedPreferences.motionEnabled)
   const [panelCollapsed, setPanelCollapsed] = useState(false)
   const [visualFeedOpen, setVisualFeedOpen] = useState(storedPreferences.visualFeedOpen)
+  const reactivePreviewTelemetryRef = useRef<ReactivePreviewTelemetry>(ZERO_REACTIVE_PREVIEW_TELEMETRY)
   const audioController = usePersistentAudioController(storedPreferences.volume, selectedSignalId ?? undefined)
   const audioAnalysis = useAudioAnalysis({
     audioElement: audioController.audioElement,
     playbackStatus: audioController.playbackStatus,
     isSeeking: audioController.isSeeking,
+    sourceBpm: audioController.audioSource.bpm ?? null,
     publishDiagnostics: audioDebugEnabled,
   })
 
@@ -184,9 +276,22 @@ function PlayerShell({ className }: PlayerShellProps) {
     volume: audioController.volume,
     signalId: selectedSignalId,
     audioLevel: 0,
+    sourceBpm: audioController.audioSource.bpm ?? null,
     reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches,
     motionEnabled,
+    getLatestAudioSnapshot: audioAnalysis.getLatestSnapshot,
+    reactivePreviewEnabled: reactivePreviewConfig.enabled,
+    reactiveBehavior: reactivePreviewConfig.behavior,
+    onReactivePreviewTelemetry: (telemetry) => {
+      reactivePreviewTelemetryRef.current = telemetry
+    },
   }
+
+  const reactiveDiagnosticsEnabled = audioDebugEnabled && reactivePreviewConfig.enabled
+
+  const getReactivePreviewTelemetry = useCallback(() => {
+    return reactivePreviewTelemetryRef.current
+  }, [])
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -256,10 +361,13 @@ function PlayerShell({ className }: PlayerShellProps) {
           status={audioAnalysis.status}
           snapshot={audioAnalysis.snapshot}
           bassPulseDebug={audioAnalysis.bassPulseDebug}
+          kickPulseDebug={audioAnalysis.kickPulseDebug}
           graphDetails={audioAnalysis.graphDetails}
           errorMessage={audioAnalysis.errorMessage}
           diagnosticsPublishHz={audioAnalysis.diagnosticsPublishHz}
           analysisCalculationMode={audioAnalysis.analysisCalculationMode}
+          reactiveDiagnosticsEnabled={reactiveDiagnosticsEnabled}
+          getReactivePreviewTelemetry={getReactivePreviewTelemetry}
         />
       ) : null}
 

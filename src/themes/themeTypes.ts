@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import type { AudioReactiveSnapshot, ReactiveBehaviorId, ReactivePreviewTelemetry } from '../app/playerTypes'
 
 export type ThemeId = string
 
@@ -10,7 +11,12 @@ export type ThemeSceneProps = {
   signalId: string | null
   audioLevel: number
   reducedMotion: boolean
+  sourceBpm?: number | null
   motionEnabled?: boolean
+  getLatestAudioSnapshot?: (() => AudioReactiveSnapshot) | null
+  reactivePreviewEnabled?: boolean
+  reactiveBehavior?: ReactiveBehaviorId
+  onReactivePreviewTelemetry?: (telemetry: ReactivePreviewTelemetry) => void
 }
 
 export type ThemeVisualFeedFrameProps = {

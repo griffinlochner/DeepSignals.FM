@@ -1,27 +1,70 @@
 .audio-analysis-diagnostics {
   position: absolute;
   left: clamp(12px, 2vw, 22px);
-  bottom: clamp(12px, 2.5vh, 20px);
-  z-index: 5;
-  width: min(360px, calc(100vw - 24px));
+  bottom: clamp(12px, 2vh, 18px);
+  z-index: 1;
+  width: min(420px, calc(100vw - 24px));
+  max-width: calc(100vw - 24px);
+  pointer-events: none;
+  box-sizing: border-box;
+}
+
+.audio-analysis-diagnostics__surface {
+  width: 100%;
   border: 1px solid rgba(149, 221, 214, 0.36);
   border-radius: 10px;
   background: rgba(4, 10, 14, 0.8);
   box-shadow: 0 12px 26px rgba(0, 0, 0, 0.32);
   backdrop-filter: blur(8px);
-  pointer-events: none;
+  pointer-events: auto;
   color: #dffbf8;
   font-family: 'Consolas', 'SFMono-Regular', 'Menlo', 'Monaco', 'Liberation Mono', 'Courier New', monospace;
-  padding: 10px;
+  display: flex;
+  flex-direction: column;
   box-sizing: border-box;
+  overflow: hidden;
+}
+
+.audio-analysis-diagnostics__body {
+  max-height: min(39vh, 460px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0 10px 10px;
+  min-height: 0;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(123, 242, 217, 0.38) transparent;
+}
+
+.audio-analysis-diagnostics__body::-webkit-scrollbar {
+  width: 10px;
+}
+
+.audio-analysis-diagnostics__body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.audio-analysis-diagnostics__body::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background-clip: content-box;
+  background-color: rgba(123, 242, 217, 0.34);
 }
 
 .audio-analysis-diagnostics__header {
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
+  align-items: center;
   gap: 8px;
-  margin-bottom: 8px;
+  padding: 10px;
+  border-bottom: 1px solid rgba(138, 206, 198, 0.2);
+}
+
+.audio-analysis-diagnostics__header-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  min-width: 0;
 }
 
 .audio-analysis-diagnostics__title,
@@ -44,6 +87,29 @@
   letter-spacing: 0.08em;
 }
 
+.audio-analysis-diagnostics__toggle {
+  border: 1px solid rgba(165, 243, 234, 0.28);
+  border-radius: 7px;
+  background: rgba(8, 21, 26, 0.72);
+  color: rgba(221, 251, 248, 0.92);
+  font: inherit;
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  padding: 6px 8px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.audio-analysis-diagnostics__toggle:hover {
+  border-color: rgba(123, 242, 217, 0.54);
+}
+
+.audio-analysis-diagnostics__toggle:focus-visible {
+  outline: 2px solid rgba(123, 242, 217, 0.82);
+  outline-offset: 2px;
+}
+
 .audio-analysis-diagnostics__status[data-status='running'] {
   color: #7bf6b8;
 }
@@ -60,7 +126,7 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 3px 8px;
-  margin-bottom: 8px;
+  margin: 0 0 8px;
   font-size: 0.62rem;
   color: rgba(209, 245, 240, 0.84);
 }
@@ -126,14 +192,38 @@
   letter-spacing: 0.03em;
   color: rgba(199, 237, 232, 0.82);
   line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 1200px) {
+  .audio-analysis-diagnostics {
+    width: calc(100vw - 18px);
+    max-width: none;
+    left: 9px;
+    right: 9px;
+    bottom: 9px;
+  }
+
+  .audio-analysis-diagnostics__body {
+    max-height: min(36vh, 320px);
+  }
 }
 
 @media (max-width: 820px) {
   .audio-analysis-diagnostics {
-    width: min(340px, calc(100vw - 18px));
+    width: calc(100vw - 18px);
     left: 9px;
+    right: 9px;
     bottom: 9px;
+  }
+
+  .audio-analysis-diagnostics__header {
     padding: 8px;
+  }
+
+  .audio-analysis-diagnostics__body {
+    max-height: min(34vh, 280px);
+    padding: 0 8px 8px;
   }
 
   .audio-analysis-diagnostics__meta-grid {
@@ -143,5 +233,27 @@
   .audio-analysis-diagnostics__meter-row {
     grid-template-columns: 64px minmax(0, 1fr) 44px;
     gap: 6px;
+  }
+}
+
+@media (max-width: 560px) {
+  .audio-analysis-diagnostics {
+    width: calc(100vw - 16px);
+    left: 8px;
+    right: 8px;
+    bottom: 8px;
+  }
+
+  .audio-analysis-diagnostics__header {
+    align-items: flex-start;
+  }
+
+  .audio-analysis-diagnostics__header-actions {
+    flex-direction: column;
+    align-items: flex-end;
+  }
+
+  .audio-analysis-diagnostics__body {
+    max-height: min(32vh, 240px);
   }
 }
