@@ -1061,10 +1061,21 @@ if (uSurfaceGlowEnabled > 0.5) {
         material.displacementScale = finalDisplacementScale;
         material.bumpScale = depthFinalAfterClamp * 0.04;
 
+        const sharedChillHueOffsetDegrees =
+          reactiveBehaviorEnabled && !fullOnBehaviorActive && isPlayingNow && !reducedMotionActive
+            ? Math.sin(
+                (elapsedSeconds / Math.max(reactiveBehaviorProfile.chillHueDriftCycleSeconds, 1)) *
+                  Math.PI * 2,
+              ) *
+              reactiveBehaviorProfile.chillHueDriftRangeDegrees
+            : 0;
+        const authoredSaturationCycleSuppressed = allowReactiveLighting;
         const hueOffsetDegrees =
           fullOnAuthoringSuppressionActive && allowReactiveLighting
             ? reactiveHueOffsetDegreesRef.current
-            : profile.color.driftEnabled && isPlayingNow && !reducedMotionActive
+            : reactiveBehaviorEnabled && !fullOnBehaviorActive
+              ? sharedChillHueOffsetDegrees
+              : profile.color.driftEnabled && isPlayingNow && !reducedMotionActive
               ? Math.sin((elapsedSeconds / Math.max(profile.color.cycleSeconds, 1)) * Math.PI * 2) *
                 profile.color.hueRangeDegrees
               : 0;
@@ -1075,8 +1086,8 @@ if (uSurfaceGlowEnabled > 0.5) {
         let authoredPeriodicSaturationContribution = 0;
         let currentSaturation = authoredBaseSaturation;
         if (profile.saturationPulse.enabled && isPlayingNow && !reducedMotionActive) {
-          const saturationCycleScale = fullOnAuthoringSuppressionActive
-            ? reactiveBehaviorProfile.authoredSaturationCycleScale
+          const saturationCycleScale = authoredSaturationCycleSuppressed
+            ? 0
             : 1;
 
           if (profile.saturationPulse.syncToDepthBreathing) {

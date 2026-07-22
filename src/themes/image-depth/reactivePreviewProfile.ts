@@ -43,6 +43,8 @@ export type ReactiveBehaviorProfile = {
   kickSaturationBloomMaxBoost: number
   kickGlobalGlowBloomMaxBoost: number
   kickSurfaceGlowBloomMaxBoost: number
+  chillHueDriftRangeDegrees: number
+  chillHueDriftCycleSeconds: number
   authoredHueCycleScale: number
   authoredSaturationCycleScale: number
   authoredGlobalGlowCycleScale: number
@@ -101,6 +103,8 @@ export const REACTIVE_BEHAVIOR_PROFILES: Record<ReactiveBehaviorId, ReactiveBeha
     kickSaturationBloomMaxBoost: 0.12,
     kickGlobalGlowBloomMaxBoost: 0.12,
     kickSurfaceGlowBloomMaxBoost: 0.12,
+    chillHueDriftRangeDegrees: 60,
+    chillHueDriftCycleSeconds: 56,
     authoredHueCycleScale: 1,
     authoredSaturationCycleScale: 1,
     authoredGlobalGlowCycleScale: 1,
@@ -155,6 +159,8 @@ export const REACTIVE_BEHAVIOR_PROFILES: Record<ReactiveBehaviorId, ReactiveBeha
     kickSaturationBloomMaxBoost: 0.7,
     kickGlobalGlowBloomMaxBoost: 0.68,
     kickSurfaceGlowBloomMaxBoost: 1.35,
+    chillHueDriftRangeDegrees: 0,
+    chillHueDriftCycleSeconds: 1,
     authoredHueCycleScale: 0,
     authoredSaturationCycleScale: 0.2,
     authoredGlobalGlowCycleScale: 0.16,
@@ -162,7 +168,7 @@ export const REACTIVE_BEHAVIOR_PROFILES: Record<ReactiveBehaviorId, ReactiveBeha
     sectionIntensityQuietFloor: 0.2,
     sectionIntensityFullLevel: 0.58,
     hueEventStride: 2,
-    saturationCap: 2.65,
+    saturationCap: 2.38,
   },
 }
 
