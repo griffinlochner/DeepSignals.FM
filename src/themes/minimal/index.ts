@@ -10,6 +10,7 @@ const MinimalDefinition: ThemeDefinition = {
   Scene: MinimalTheme,
   supportsMotion: false,
   supportsVisualFeed: true,
+  supportsAudioReactiveBehavior: false,
 }
 
 export default MinimalDefinition

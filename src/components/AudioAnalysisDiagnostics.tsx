@@ -3,8 +3,10 @@ import type {
   AudioAnalysisGraphDetails,
   AudioAnalysisStatus,
   AudioReactiveSnapshot,
+  ReactiveBehaviorId,
   ReactivePreviewTelemetry,
 } from '../app/playerTypes'
+import PanelChevronIcon from './PanelChevronIcon'
 import './audioAnalysisDiagnostics.css'
 
 type BassPulseDebugReadout = {
@@ -50,6 +52,7 @@ type AudioAnalysisDiagnosticsProps = {
   sourceBpm: number | null
   effectiveReactiveBpm: number | null
   ignoreSourceBpmEnabled?: boolean
+  reactiveBehaviorOverride?: ReactiveBehaviorId | null
   reactiveDiagnosticsEnabled?: boolean
   getReactivePreviewTelemetry?: (() => ReactivePreviewTelemetry) | null
 }
@@ -162,6 +165,7 @@ function AudioAnalysisDiagnostics({
   sourceBpm,
   effectiveReactiveBpm,
   ignoreSourceBpmEnabled = false,
+  reactiveBehaviorOverride = null,
   reactiveDiagnosticsEnabled = false,
   getReactivePreviewTelemetry = null,
 }: AudioAnalysisDiagnosticsProps) {
@@ -210,7 +214,7 @@ function AudioAnalysisDiagnostics({
               aria-expanded={!collapsed}
               onClick={() => setCollapsed((current) => !current)}
             >
-              {collapsed ? 'EXPAND' : 'COLLAPSE'}
+              <PanelChevronIcon collapsed={collapsed} expandDirection="up" />
             </button>
           </div>
         </header>
@@ -239,6 +243,7 @@ function AudioAnalysisDiagnostics({
               <p>Reactive Isolation: {displayedReactiveTelemetry.reactiveIsolationEnabled ? 'On' : 'Off'}</p>
               <p>Music Authority: {displayedReactiveTelemetry.musicAuthorityActive ? 'On' : 'Off'}</p>
               <p>Motion Gate: {displayedReactiveTelemetry.motionGateOpen ? 'Open' : 'Closed'}</p>
+              {reactiveBehaviorOverride ? <p>Behavior Override: {reactiveBehaviorOverride} (DEV query)</p> : null}
               <p>
                 Source BPM: {sourceBpm ?? 'n/a'} | Reactive BPM: {effectiveReactiveBpm ?? 'n/a'} | Assist {bpmAssistanceState}
               </p>

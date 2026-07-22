@@ -12,6 +12,7 @@ const CosmicNexusDefinition: ThemeDefinition = {
   VisualFeedFrame: CosmicNexusVisualFeedFrame,
   supportsMotion: true,
   supportsVisualFeed: true,
+  supportsAudioReactiveBehavior: false,
 }
 
 export default CosmicNexusDefinition

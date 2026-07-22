@@ -1,6 +1,7 @@
 import { useId, useMemo } from 'react'
-import type { AudioPlaybackStatus, SignalSource } from '../app/playerTypes'
+import type { AudioPlaybackStatus, ReactiveBehaviorId, SignalSource } from '../app/playerTypes'
 import type { ThemeId } from '../themes/themeTypes'
+import PanelChevronIcon from './PanelChevronIcon'
 import PlayStopButton from './PlayStopButton'
 import SignalSourceSelector from './SignalSourceSelector'
 import ThemeSelector from './ThemeSelector'
@@ -33,32 +34,15 @@ type FloatingPlayerPanelProps = {
   motionEnabled: boolean
   supportsMotion: boolean
   onMotionToggle: (enabled: boolean) => void
+  showBehaviorControl: boolean
+  selectedBehavior: ReactiveBehaviorId
+  onBehaviorChange: (value: ReactiveBehaviorId) => void
+  signalTelemetryVisible: boolean
+  onSignalTelemetryChange: (enabled: boolean) => void
   visualFeedOpen: boolean
   onVisualFeedChange: (enabled: boolean) => void
   collapsed: boolean
   onCollapsedChange: (collapsed: boolean) => void
-}
-
-type PanelChevronIconProps = {
-  collapsed: boolean
-}
-
-function PanelChevronIcon({ collapsed }: PanelChevronIconProps) {
-  return (
-    <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
-      {collapsed ? (
-        <>
-          <path d="M4 6.25L8 10.25L12 6.25" />
-          <path d="M4 3.75L8 7.75L12 3.75" />
-        </>
-      ) : (
-        <>
-          <path d="M4 12.25L8 8.25L12 12.25" />
-          <path d="M4 9.75L8 5.75L12 9.75" />
-        </>
-      )}
-    </svg>
-  )
 }
 
 function FloatingPlayerPanel({
@@ -86,6 +70,11 @@ function FloatingPlayerPanel({
   motionEnabled,
   supportsMotion,
   onMotionToggle,
+  showBehaviorControl,
+  selectedBehavior,
+  onBehaviorChange,
+  signalTelemetryVisible,
+  onSignalTelemetryChange,
   visualFeedOpen,
   onVisualFeedChange,
   collapsed,
@@ -126,7 +115,7 @@ function FloatingPlayerPanel({
           aria-label={toggleLabel}
           title={toggleLabel}
         >
-          <PanelChevronIcon collapsed={collapsed} />
+          <PanelChevronIcon collapsed={collapsed} expandDirection="down" />
         </button>
       </header>
 
@@ -204,6 +193,50 @@ function FloatingPlayerPanel({
                 aria-label="Motion"
               />
               <span className="floating-player-panel__switch-label">Motion</span>
+              <span className="floating-player-panel__switch-track" aria-hidden="true">
+                <span className="floating-player-panel__switch-thumb" />
+              </span>
+            </label>
+          </section>
+
+          {showBehaviorControl ? (
+            <section className="floating-player-panel__field" aria-label="Behavior">
+              <p className="floating-player-panel__label">Behavior</p>
+              <div className="floating-player-panel__behavior-segmented" role="radiogroup" aria-label="Behavior">
+                <button
+                  type="button"
+                  className="floating-player-panel__behavior-option"
+                  role="radio"
+                  aria-checked={selectedBehavior === 'chill'}
+                  data-selected={selectedBehavior === 'chill' ? 'true' : 'false'}
+                  onClick={() => onBehaviorChange('chill')}
+                >
+                  Chill
+                </button>
+                <button
+                  type="button"
+                  className="floating-player-panel__behavior-option"
+                  role="radio"
+                  aria-checked={selectedBehavior === 'fullon'}
+                  data-selected={selectedBehavior === 'fullon' ? 'true' : 'false'}
+                  onClick={() => onBehaviorChange('fullon')}
+                >
+                  Full On
+                </button>
+              </div>
+            </section>
+          ) : null}
+
+          <section className="floating-player-panel__field" aria-label="Signal Telemetry">
+            <label className="floating-player-panel__switch">
+              <input
+                className="floating-player-panel__switch-checkbox"
+                type="checkbox"
+                checked={signalTelemetryVisible}
+                onChange={(event) => onSignalTelemetryChange(event.target.checked)}
+                aria-label="Signal Telemetry"
+              />
+              <span className="floating-player-panel__switch-label">Signal Telemetry</span>
               <span className="floating-player-panel__switch-track" aria-hidden="true">
                 <span className="floating-player-panel__switch-thumb" />
               </span>

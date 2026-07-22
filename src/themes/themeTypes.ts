@@ -33,4 +33,5 @@ export type ThemeDefinition = {
   VisualFeedFrame?: React.ComponentType<ThemeVisualFeedFrameProps>
   supportsMotion: boolean
   supportsVisualFeed: boolean
+  supportsAudioReactiveBehavior: boolean
 }

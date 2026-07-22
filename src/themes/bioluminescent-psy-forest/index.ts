@@ -10,6 +10,7 @@ const BioluminescentPsyForestDefinition: ThemeDefinition = {
   Scene: BioluminescentPsyForestTheme,
   supportsMotion: true,
   supportsVisualFeed: true,
+  supportsAudioReactiveBehavior: true,
 };
 
 export default BioluminescentPsyForestDefinition;

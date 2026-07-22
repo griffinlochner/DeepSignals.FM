@@ -2,10 +2,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AUDIO_SOURCES } from './audioSources'
 import AudioAnalysisDiagnostics from '../components/AudioAnalysisDiagnostics'
 import FloatingPlayerPanel from '../components/FloatingPlayerPanel'
+import SignalTelemetryPanel from '../components/SignalTelemetryPanel'
 import StationIdentOverlay from '../components/StationIdentOverlay'
 import VisualFeedWindow from '../components/VisualFeedWindow'
 import { themeRegistry } from '../themes/themeRegistry'
-import type { ReactivePreviewTelemetry, SignalSource } from './playerTypes'
+import type { ReactiveBehaviorId, ReactivePreviewTelemetry, SignalSource } from './playerTypes'
 import type { ThemeId, ThemeSceneProps } from '../themes/themeTypes'
 import { preloadImageDepthTextures } from '../themes/image-depth/imageDepthTextureCache'
 import {
@@ -31,12 +32,13 @@ type PlayerPreferencesV1 = {
   visualFeedOpen: boolean
 }
 
-type ReactivePreviewConfig = {
-  enabled: boolean
-  behavior: 'chill' | 'fullon'
+type PlayerPreferencesV2 = PlayerPreferencesV1 & {
+  selectedBehavior: ReactiveBehaviorId
+  signalTelemetryVisible: boolean
 }
 
-const PLAYER_PREFERENCES_STORAGE_KEY = 'deepsignals.player.preferences.v1'
+const PLAYER_PREFERENCES_STORAGE_KEY_V1 = 'deepsignals.player.preferences.v1'
+const PLAYER_PREFERENCES_STORAGE_KEY_V2 = 'deepsignals.player.preferences.v2'
 
 const availableAudioSourceIds = new Set(AUDIO_SOURCES.map((source) => source.id))
 
@@ -60,6 +62,10 @@ function sanitizeBoolean(value: unknown, fallback: boolean) {
   return typeof value === 'boolean' ? value : fallback
 }
 
+function sanitizeReactiveBehaviorId(value: unknown): ReactiveBehaviorId {
+  return value === 'fullon' ? 'fullon' : 'chill'
+}
+
 function sanitizeVolume(value: unknown) {
   if (typeof value !== 'number' || !Number.isFinite(value)) {
     return 0.7
@@ -68,13 +74,15 @@ function sanitizeVolume(value: unknown) {
   return Math.min(1, Math.max(0, value))
 }
 
-function readStoredPlayerPreferences(): PlayerPreferencesV1 {
-  const fallback: PlayerPreferencesV1 = {
+function readStoredPlayerPreferences(): PlayerPreferencesV2 {
+  const fallback: PlayerPreferencesV2 = {
     selectedThemeId: defaultThemeId,
     selectedAudioSourceId: AUDIO_SOURCES[0]?.id ?? '',
     volume: 0.7,
     motionEnabled: true,
     visualFeedOpen: false,
+    selectedBehavior: 'chill',
+    signalTelemetryVisible: false,
   }
 
   if (typeof window === 'undefined') {
@@ -82,13 +90,29 @@ function readStoredPlayerPreferences(): PlayerPreferencesV1 {
   }
 
   try {
-    const raw = window.localStorage.getItem(PLAYER_PREFERENCES_STORAGE_KEY)
+    const rawV2 = window.localStorage.getItem(PLAYER_PREFERENCES_STORAGE_KEY_V2)
 
-    if (!raw) {
+    if (rawV2) {
+      const parsed = JSON.parse(rawV2) as Partial<PlayerPreferencesV2>
+
+      return {
+        selectedThemeId: sanitizeThemeId(parsed.selectedThemeId),
+        selectedAudioSourceId: sanitizeAudioSourceId(parsed.selectedAudioSourceId),
+        volume: sanitizeVolume(parsed.volume),
+        motionEnabled: sanitizeBoolean(parsed.motionEnabled, true),
+        visualFeedOpen: sanitizeBoolean(parsed.visualFeedOpen, false),
+        selectedBehavior: sanitizeReactiveBehaviorId(parsed.selectedBehavior),
+        signalTelemetryVisible: sanitizeBoolean(parsed.signalTelemetryVisible, false),
+      }
+    }
+
+    const rawV1 = window.localStorage.getItem(PLAYER_PREFERENCES_STORAGE_KEY_V1)
+
+    if (!rawV1) {
       return fallback
     }
 
-    const parsed = JSON.parse(raw) as Partial<PlayerPreferencesV1>
+    const parsed = JSON.parse(rawV1) as Partial<PlayerPreferencesV1>
 
     return {
       selectedThemeId: sanitizeThemeId(parsed.selectedThemeId),
@@ -96,6 +120,8 @@ function readStoredPlayerPreferences(): PlayerPreferencesV1 {
       volume: sanitizeVolume(parsed.volume),
       motionEnabled: sanitizeBoolean(parsed.motionEnabled, true),
       visualFeedOpen: sanitizeBoolean(parsed.visualFeedOpen, false),
+      selectedBehavior: 'chill',
+      signalTelemetryVisible: false,
     }
   } catch {
     return fallback
@@ -111,22 +137,19 @@ function isAudioDebugEnabled() {
   return searchParams.get('audioDebug') === '1'
 }
 
-function readReactivePreviewConfig(): ReactivePreviewConfig {
+function readReactiveBehaviorOverrideFromQuery(): ReactiveBehaviorId | null {
   if (!import.meta.env.DEV || typeof window === 'undefined') {
-    return {
-      enabled: false,
-      behavior: 'chill',
-    }
+    return null
   }
 
   const searchParams = new URLSearchParams(window.location.search)
-  const enabled = searchParams.get('reactiveDebug') === '1'
   const requestedBehavior = searchParams.get('reactiveBehavior')?.toLowerCase()
 
-  return {
-    enabled,
-    behavior: requestedBehavior === 'fullon' ? 'fullon' : 'chill',
+  if (requestedBehavior === 'fullon' || requestedBehavior === 'chill') {
+    return requestedBehavior
   }
+
+  return null
 }
 
 function isIgnoreSourceBpmEnabled() {
@@ -209,12 +232,14 @@ const ZERO_REACTIVE_PREVIEW_TELEMETRY: ReactivePreviewTelemetry = {
 
 function PlayerShell({ className }: PlayerShellProps) {
   const [audioDebugEnabled] = useState(() => isAudioDebugEnabled())
-  const [reactivePreviewConfig] = useState(() => readReactivePreviewConfig())
+  const [reactiveBehaviorOverride] = useState(() => readReactiveBehaviorOverrideFromQuery())
   const [ignoreSourceBpmEnabled] = useState(() => isIgnoreSourceBpmEnabled())
-  const [storedPreferences] = useState<PlayerPreferencesV1>(() => readStoredPlayerPreferences())
+  const [storedPreferences] = useState<PlayerPreferencesV2>(() => readStoredPlayerPreferences())
   const [selectedThemeId, setSelectedThemeId] = useState<ThemeId>(storedPreferences.selectedThemeId)
   const [selectedSignalId, setSelectedSignalId] = useState<string | null>(storedPreferences.selectedAudioSourceId)
+  const [selectedBehavior, setSelectedBehavior] = useState<ReactiveBehaviorId>(storedPreferences.selectedBehavior)
   const [motionEnabled, setMotionEnabled] = useState(storedPreferences.motionEnabled)
+  const [signalTelemetryVisible, setSignalTelemetryVisible] = useState(storedPreferences.signalTelemetryVisible)
   const [panelCollapsed, setPanelCollapsed] = useState(false)
   const [visualFeedOpen, setVisualFeedOpen] = useState(storedPreferences.visualFeedOpen)
   const reactivePreviewTelemetryRef = useRef<ReactivePreviewTelemetry>(ZERO_REACTIVE_PREVIEW_TELEMETRY)
@@ -272,6 +297,8 @@ function PlayerShell({ className }: PlayerShellProps) {
 
   const supportsMotion = activeTheme?.supportsMotion ?? true
   const supportsVisualFeed = activeTheme?.supportsVisualFeed ?? true
+  const supportsAudioReactiveBehavior = activeTheme?.supportsAudioReactiveBehavior ?? false
+  const effectiveReactiveBehavior = reactiveBehaviorOverride ?? selectedBehavior
 
   const handleSignalChange = (id: string) => {
     setSelectedSignalId(sanitizeAudioSourceId(id) || null)
@@ -296,14 +323,14 @@ function PlayerShell({ className }: PlayerShellProps) {
     reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches,
     motionEnabled,
     getLatestAudioSnapshot: audioAnalysis.getLatestSnapshot,
-    reactivePreviewEnabled: reactivePreviewConfig.enabled,
-    reactiveBehavior: reactivePreviewConfig.behavior,
+    reactivePreviewEnabled: supportsAudioReactiveBehavior,
+    reactiveBehavior: effectiveReactiveBehavior,
     onReactivePreviewTelemetry: (telemetry) => {
       reactivePreviewTelemetryRef.current = telemetry
     },
   }
 
-  const reactiveDiagnosticsEnabled = audioDebugEnabled && reactivePreviewConfig.enabled
+  const reactiveDiagnosticsEnabled = audioDebugEnabled
 
   const getReactivePreviewTelemetry = useCallback(() => {
     return reactivePreviewTelemetryRef.current
@@ -315,19 +342,21 @@ function PlayerShell({ className }: PlayerShellProps) {
     }
 
     try {
-      const payload: PlayerPreferencesV1 = {
+      const payload: PlayerPreferencesV2 = {
         selectedThemeId: sanitizeThemeId(selectedThemeId),
         selectedAudioSourceId: sanitizeAudioSourceId(selectedSignalId),
         volume: sanitizeVolume(audioController.volume),
         motionEnabled,
         visualFeedOpen: visualFeedOpen && supportsVisualFeed,
+        selectedBehavior: sanitizeReactiveBehaviorId(selectedBehavior),
+        signalTelemetryVisible,
       }
 
-      window.localStorage.setItem(PLAYER_PREFERENCES_STORAGE_KEY, JSON.stringify(payload))
+      window.localStorage.setItem(PLAYER_PREFERENCES_STORAGE_KEY_V2, JSON.stringify(payload))
     } catch {
       // Gracefully ignore localStorage write failures.
     }
-  }, [audioController.volume, motionEnabled, selectedSignalId, selectedThemeId, supportsVisualFeed, visualFeedOpen])
+  }, [audioController.volume, motionEnabled, selectedBehavior, selectedSignalId, selectedThemeId, signalTelemetryVisible, supportsVisualFeed, visualFeedOpen])
 
   const transmissionLabel = useMemo(() => {
     if (audioController.audioSource.artist && audioController.audioSource.title) {
@@ -385,8 +414,18 @@ function PlayerShell({ className }: PlayerShellProps) {
           sourceBpm={registrySourceBpm}
           effectiveReactiveBpm={effectiveReactiveBpm}
           ignoreSourceBpmEnabled={ignoreSourceBpmEnabled}
+          reactiveBehaviorOverride={reactiveBehaviorOverride}
           reactiveDiagnosticsEnabled={reactiveDiagnosticsEnabled}
           getReactivePreviewTelemetry={getReactivePreviewTelemetry}
+        />
+      ) : null}
+
+      {!audioDebugEnabled && signalTelemetryVisible ? (
+        <SignalTelemetryPanel
+          analysisStatus={audioAnalysis.status}
+          playbackStatus={audioController.playbackStatus}
+          getLatestSnapshot={audioAnalysis.getLatestSnapshot}
+          getLatestReactiveTelemetry={getReactivePreviewTelemetry}
         />
       ) : null}
 
@@ -414,6 +453,11 @@ function PlayerShell({ className }: PlayerShellProps) {
         motionEnabled={motionEnabled}
         supportsMotion={supportsMotion}
         onMotionToggle={setMotionEnabled}
+        showBehaviorControl={supportsAudioReactiveBehavior}
+        selectedBehavior={selectedBehavior}
+        onBehaviorChange={setSelectedBehavior}
+        signalTelemetryVisible={signalTelemetryVisible}
+        onSignalTelemetryChange={setSignalTelemetryVisible}
         visualFeedOpen={visualFeedOpen && supportsVisualFeed}
         onVisualFeedChange={(enabled) => setVisualFeedOpen(enabled)}
         collapsed={panelCollapsed}

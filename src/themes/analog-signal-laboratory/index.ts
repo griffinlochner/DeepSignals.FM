@@ -10,6 +10,7 @@ const AnalogSignalLaboratoryDefinition: ThemeDefinition = {
   Scene: AnalogSignalLaboratoryTheme,
   supportsMotion: true,
   supportsVisualFeed: true,
+  supportsAudioReactiveBehavior: true,
 };
 
 export default AnalogSignalLaboratoryDefinition;

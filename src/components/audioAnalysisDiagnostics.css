@@ -88,17 +88,27 @@
 }
 
 .audio-analysis-diagnostics__toggle {
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border: 1px solid rgba(165, 243, 234, 0.28);
-  border-radius: 7px;
+  border-radius: 8px;
   background: rgba(8, 21, 26, 0.72);
   color: rgba(221, 251, 248, 0.92);
-  font: inherit;
-  font-size: 0.6rem;
-  letter-spacing: 0.08em;
-  line-height: 1;
-  padding: 6px 8px;
   cursor: pointer;
   flex-shrink: 0;
+}
+
+.audio-analysis-diagnostics__toggle svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .audio-analysis-diagnostics__toggle:hover {

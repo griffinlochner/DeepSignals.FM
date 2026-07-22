@@ -11,6 +11,7 @@ const BioluminescentPsyReefDefinition: ThemeDefinition = {
   Scene: BioluminescentPsyReefTheme,
   supportsMotion: true,
   supportsVisualFeed: true,
+  supportsAudioReactiveBehavior: true,
 };
 
 export default BioluminescentPsyReefDefinition;
