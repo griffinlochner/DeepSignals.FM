@@ -4,6 +4,7 @@ import { ENVIRONMENT_BEHAVIOR_PRESETS } from "../presets";
 import type {
   EnvironmentBehaviorPreset,
   EnvironmentDiagnostics,
+  EnvironmentFramingMode,
   EnvironmentLoadingState,
   EnvironmentPlaybackState,
   ImageEnvironmentAsset,
@@ -27,6 +28,7 @@ type EnvironmentLabControlsProps = {
   loadingState: EnvironmentLoadingState;
   surfaceGlowPlacementModeEnabled: boolean;
   surfaceGlowCapacityReached: boolean;
+  framingMode: EnvironmentFramingMode;
   importText: string;
   feedbackMessage: string;
   feedbackTone: "idle" | "success" | "error";
@@ -40,6 +42,7 @@ type EnvironmentLabControlsProps = {
   onLoadScenePreset: (presetId: string) => void;
   onAssetChange: (assetId: string) => void;
   onSurfaceGlowPlacementModeChange: (enabled: boolean) => void;
+  onFramingModeChange: (mode: EnvironmentFramingMode) => void;
   onClearSurfaceGlowHotspots: () => void;
   onRandomizeSurfaceGlowPhases: () => void;
   onApplySurfaceGlowDefaultsToAll: () => void;
@@ -87,6 +90,7 @@ function EnvironmentLabControls({
   loadingState,
   surfaceGlowPlacementModeEnabled,
   surfaceGlowCapacityReached,
+  framingMode,
   importText,
   feedbackMessage,
   feedbackTone,
@@ -100,6 +104,7 @@ function EnvironmentLabControls({
   onLoadScenePreset,
   onAssetChange,
   onSurfaceGlowPlacementModeChange,
+  onFramingModeChange,
   onClearSurfaceGlowHotspots,
   onRandomizeSurfaceGlowPhases,
   onApplySurfaceGlowDefaultsToAll,
@@ -317,6 +322,17 @@ function EnvironmentLabControls({
                 {asset.name}
               </option>
             ))}
+          </select>
+        </label>
+
+        <label className="environment-lab__field">
+          <span>Framing</span>
+          <select
+            value={framingMode}
+            onChange={(event) => onFramingModeChange(event.target.value as EnvironmentFramingMode)}
+          >
+            <option value="full-artwork">Full Artwork</option>
+            <option value="player-preview">Player Preview</option>
           </select>
         </label>
 

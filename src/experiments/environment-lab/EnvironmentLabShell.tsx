@@ -4,6 +4,7 @@ import EnvironmentLabScene from "./scenes/EnvironmentLabScene";
 import type {
   EnvironmentBehaviorPreset,
   EnvironmentDiagnostics,
+  EnvironmentFramingMode,
   EnvironmentLoadingState,
   EnvironmentPlaybackState,
   ImageEnvironmentAsset,
@@ -15,6 +16,7 @@ type EnvironmentLabShellProps = {
   playbackState: EnvironmentPlaybackState;
   geometryMotionPreviewEnabled: boolean;
   surfaceGlowPlacementModeEnabled: boolean;
+  framingMode: EnvironmentFramingMode;
   surfaceGlowCapacityReached: boolean;
   scenePreset: ImageEnvironmentScenePreset;
   activeBehaviorPresetId: string | null;
@@ -35,6 +37,7 @@ type EnvironmentLabShellProps = {
   onPlaybackStateChange: (value: EnvironmentPlaybackState) => void;
   onGeometryMotionPreviewChange: (enabled: boolean) => void;
   onSurfaceGlowPlacementModeChange: (enabled: boolean) => void;
+  onFramingModeChange: (mode: EnvironmentFramingMode) => void;
   onScenePresetChange: (next: ImageEnvironmentScenePreset) => void;
   onLoadBehaviorPreset: (presetId: string) => void;
   onLoadScenePreset: (presetId: string) => void;
@@ -62,6 +65,7 @@ function EnvironmentLabShell({
   playbackState,
   geometryMotionPreviewEnabled,
   surfaceGlowPlacementModeEnabled,
+  framingMode,
   surfaceGlowCapacityReached,
   scenePreset,
   activeBehaviorPresetId,
@@ -82,6 +86,7 @@ function EnvironmentLabShell({
   onPlaybackStateChange,
   onGeometryMotionPreviewChange,
   onSurfaceGlowPlacementModeChange,
+  onFramingModeChange,
   onScenePresetChange,
   onLoadBehaviorPreset,
   onLoadScenePreset,
@@ -117,6 +122,7 @@ function EnvironmentLabShell({
           playbackState={playbackState}
           geometryMotionPreviewEnabled={geometryMotionPreviewEnabled}
           surfaceGlowPlacementModeEnabled={surfaceGlowPlacementModeEnabled}
+          framingMode={framingMode}
           preset={scenePreset}
           asset={activeAsset}
           reducedMotionActive={reducedMotionActive}
@@ -145,6 +151,7 @@ function EnvironmentLabShell({
             diagnostics={diagnostics}
             surfaceGlowPlacementModeEnabled={surfaceGlowPlacementModeEnabled}
             surfaceGlowCapacityReached={surfaceGlowCapacityReached}
+            framingMode={framingMode}
             importText={importText}
             feedbackMessage={feedbackMessage}
             feedbackTone={feedbackTone}
@@ -157,6 +164,7 @@ function EnvironmentLabShell({
             onLoadScenePreset={onLoadScenePreset}
             onAssetChange={onAssetChange}
             onSurfaceGlowPlacementModeChange={onSurfaceGlowPlacementModeChange}
+            onFramingModeChange={onFramingModeChange}
             onClearSurfaceGlowHotspots={onClearSurfaceGlowHotspots}
             onRandomizeSurfaceGlowPhases={onRandomizeSurfaceGlowPhases}
             onApplySurfaceGlowDefaultsToAll={onApplySurfaceGlowDefaultsToAll}

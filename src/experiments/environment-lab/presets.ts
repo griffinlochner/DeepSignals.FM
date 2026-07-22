@@ -6,7 +6,7 @@ import type {
   SurfaceGlowDefaultSettings,
 } from "./types";
 
-export const UV_JUNGLE_ASSET_ID = "uv-jungle";
+export const UV_JUNGLE_ASSET_ID = "uv-reactive-jungle";
 export const ANALOG_SIGNAL_LABORATORY_ASSET_ID = "analog-signal-laboratory";
 export const BIOLUMINESCENT_PSY_FOREST_ASSET_ID = "bioluminescent-psy-forest";
 export const BIOLUMINESCENT_PSY_REEF_ASSET_ID = "bioluminescent-psy-reef";
@@ -14,11 +14,11 @@ export const BIOLUMINESCENT_PSY_REEF_ASSET_ID = "bioluminescent-psy-reef";
 export const IMAGE_ENVIRONMENT_ASSETS: ImageEnvironmentAsset[] = [
   {
     id: UV_JUNGLE_ASSET_ID,
-    name: "UV Jungle",
-    colorImageUrl: "/experiments/environment-lab/jungle-color.png",
-    depthMapUrl: "/experiments/environment-lab/jungle-depth.png",
+    name: "UV Reactive Jungle",
+    colorImageUrl: "/environments/uv-reactive-jungle/uv-reactive-jungle-color.webp",
+    depthMapUrl: "/environments/uv-reactive-jungle/uv-reactive-jungle-depth.png",
     metadata: {
-      description: "Experimental UV-reactive jungle artwork and aligned depth map.",
+      description: "Premium UV Reactive Jungle artwork and aligned depth map for laboratory scene authoring.",
     },
   },
   {

@@ -191,6 +191,7 @@ function EnvironmentLabPage() {
     playbackState: "stopped",
     geometryMotionPreviewEnabled: true,
     surfaceGlowPlacementModeEnabled: false,
+    framingMode: "player-preview",
   });
   const [scenePreset, setScenePreset] = useState<ImageEnvironmentScenePreset>(() =>
     cloneScenePreset(NEUTRAL_BASELINE_SCENE_PRESET),
@@ -417,6 +418,7 @@ function EnvironmentLabPage() {
       playbackState={session.playbackState}
       geometryMotionPreviewEnabled={session.geometryMotionPreviewEnabled}
       surfaceGlowPlacementModeEnabled={session.surfaceGlowPlacementModeEnabled}
+      framingMode={session.framingMode}
       surfaceGlowCapacityReached={atSurfaceGlowCapacity}
       scenePreset={scenePreset}
       activeBehaviorPresetId={activeBehaviorPresetId}
@@ -452,8 +454,18 @@ function EnvironmentLabPage() {
           return;
         }
 
-        setSession((current) => ({ ...current, surfaceGlowPlacementModeEnabled: enabled }));
+        setSession((current) => ({
+          ...current,
+          surfaceGlowPlacementModeEnabled: enabled,
+          framingMode: enabled ? "full-artwork" : current.framingMode,
+        }));
       }}
+      onFramingModeChange={(mode) =>
+        setSession((current) => ({
+          ...current,
+          framingMode: mode,
+        }))
+      }
       onScenePresetChange={setScenePreset}
       onLoadBehaviorPreset={loadBehaviorPreset}
       onLoadScenePreset={loadScenePreset}

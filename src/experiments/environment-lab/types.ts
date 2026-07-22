@@ -1,5 +1,6 @@
 export type EnvironmentPlaybackState = "stopped" | "playing";
 export type EnvironmentLoadingState = "loading" | "ready" | "error";
+export type EnvironmentFramingMode = "full-artwork" | "player-preview";
 
 export type SurfaceGlowPulseMode =
   | "brightness"
@@ -122,6 +123,7 @@ export type EnvironmentLabSessionState = {
   playbackState: EnvironmentPlaybackState;
   geometryMotionPreviewEnabled: boolean;
   surfaceGlowPlacementModeEnabled: boolean;
+  framingMode: EnvironmentFramingMode;
 };
 
 export type EnvironmentDiagnostics = {
@@ -151,6 +153,7 @@ export type EnvironmentLabSceneProps = {
   playbackState: EnvironmentPlaybackState;
   geometryMotionPreviewEnabled: boolean;
   surfaceGlowPlacementModeEnabled: boolean;
+  framingMode: EnvironmentFramingMode;
   preset: ImageEnvironmentScenePreset;
   asset: ImageEnvironmentAsset;
   reducedMotionActive: boolean;

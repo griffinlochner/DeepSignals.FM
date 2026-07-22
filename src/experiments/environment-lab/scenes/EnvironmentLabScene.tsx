@@ -189,6 +189,7 @@ function EnvironmentLabScene({
   playbackState,
   geometryMotionPreviewEnabled,
   surfaceGlowPlacementModeEnabled,
+  framingMode,
   preset,
   asset,
   reducedMotionActive,
@@ -206,6 +207,7 @@ function EnvironmentLabScene({
     playbackState,
     geometryMotionPreviewEnabled,
     surfaceGlowPlacementModeEnabled,
+    framingMode,
     reducedMotionActive,
     preset,
     asset,
@@ -231,6 +233,7 @@ function EnvironmentLabScene({
       playbackState,
       geometryMotionPreviewEnabled,
       surfaceGlowPlacementModeEnabled,
+      framingMode,
       reducedMotionActive,
       preset,
       asset,
@@ -239,6 +242,7 @@ function EnvironmentLabScene({
     playbackState,
     geometryMotionPreviewEnabled,
     surfaceGlowPlacementModeEnabled,
+    framingMode,
     reducedMotionActive,
     preset,
     asset,
@@ -767,6 +771,8 @@ void main() {
 
     const loadingManager = new THREE.LoadingManager();
     const textureLoader = new THREE.TextureLoader(loadingManager);
+    let activeAssetAspectRatio = 1;
+    let lastFramingMode = configRef.current.framingMode;
 
     loadingManager.onLoad = () => {
       if (!disposed) {
@@ -781,17 +787,41 @@ void main() {
     };
 
     const fitPlane = () => {
-      const framedScale = computeFramedPlaneScale({
-        viewportWidth: mount.clientWidth,
-        viewportHeight: mount.clientHeight,
-        cameraFovDegrees: camera.fov,
-        cameraZ: camera.position.z,
-        planeZ: plane.position.z,
-      });
+      const currentConfig = configRef.current;
+      const usingFullArtworkFraming = currentConfig.framingMode === "full-artwork";
 
-      planeScale.set(framedScale.width, framedScale.height);
-      plane.scale.set(planeScale.x, planeScale.y, 1);
-      glowPlane.scale.set(planeScale.x * 1.14, planeScale.y * 1.08, 1);
+      if (usingFullArtworkFraming) {
+        const safeWidth = Math.max(mount.clientWidth, 1);
+        const safeHeight = Math.max(mount.clientHeight, 1);
+        const viewportAspect = safeWidth / safeHeight;
+
+        const viewHeight =
+          2 *
+          Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) *
+          Math.abs(camera.position.z - plane.position.z);
+        const viewWidth = viewHeight * viewportAspect;
+
+        if (activeAssetAspectRatio >= viewportAspect) {
+          planeScale.set(viewWidth, viewWidth / activeAssetAspectRatio);
+        } else {
+          planeScale.set(viewHeight * activeAssetAspectRatio, viewHeight);
+        }
+
+        plane.scale.set(planeScale.x, planeScale.y, 1);
+        glowPlane.scale.set(planeScale.x, planeScale.y, 1);
+      } else {
+        const framedScale = computeFramedPlaneScale({
+          viewportWidth: mount.clientWidth,
+          viewportHeight: mount.clientHeight,
+          cameraFovDegrees: camera.fov,
+          cameraZ: camera.position.z,
+          planeZ: plane.position.z,
+        });
+
+        planeScale.set(framedScale.width, framedScale.height);
+        plane.scale.set(planeScale.x, planeScale.y, 1);
+        glowPlane.scale.set(planeScale.x * 1.14, planeScale.y * 1.08, 1);
+      }
 
       const shortAxis = Math.max(0.0001, Math.min(planeScale.x, planeScale.y));
       surfaceGlowUniforms.uSurfaceGlowAspectScale.value.set(
@@ -988,6 +1018,10 @@ void main() {
           width: Number(image.width ?? 0),
           height: Number(image.height ?? 0),
         };
+        if (colorDimensions.width > 0 && colorDimensions.height > 0) {
+          activeAssetAspectRatio = colorDimensions.width / colorDimensions.height;
+          fitPlane();
+        }
         updateAssetDiagnostics();
       },
       undefined,
@@ -1034,10 +1068,19 @@ void main() {
         const activePreset = current.preset;
         const behavior = activePreset.behavior;
         const isPlaying = current.playbackState === "playing";
+
+        if (current.framingMode !== lastFramingMode) {
+          lastFramingMode = current.framingMode;
+          fitPlane();
+        }
+
+        const precisionPlacementMode =
+          current.surfaceGlowPlacementModeEnabled && current.framingMode === "full-artwork";
         const automaticMotionActive =
           isPlaying &&
           behavior.depth.ambientMotionEnabled &&
           current.geometryMotionPreviewEnabled &&
+          !precisionPlacementMode &&
           !current.reducedMotionActive;
 
       const currentSurfaceSignature = surfaceGlowSignature(activePreset.surfaceGlows.hotspots);
@@ -1066,6 +1109,7 @@ void main() {
       const pointerEnabled =
         behavior.depth.pointerParallaxEnabled &&
         current.geometryMotionPreviewEnabled &&
+        !precisionPlacementMode &&
         !current.reducedMotionActive;
       const pointerInfluenceTarget = pointerEnabled && pointerIsActive ? 1 : 0;
       pointerInfluence = THREE.MathUtils.lerp(pointerInfluence, pointerInfluenceTarget, 0.045);
