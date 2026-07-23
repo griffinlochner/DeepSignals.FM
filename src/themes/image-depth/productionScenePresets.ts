@@ -47,6 +47,20 @@ export const SLIME_CAVERN_PRODUCTION_ASSET: ImageDepthAsset = {
   depthMapUrl: "/environments/slime-cavern/slime-cavern-depth.png",
 };
 
+export const FEMALE_DJ_1_PRODUCTION_ASSET: ImageDepthAsset = {
+  id: "female-dj-1",
+  name: "Female DJ 1",
+  colorImageUrl: "/environments/female-dj-1/female-dj-1-color.webp",
+  depthMapUrl: "/environments/female-dj-1/female-dj-1-depth.png",
+};
+
+export const FEMALE_DJ_2_PRODUCTION_ASSET: ImageDepthAsset = {
+  id: "female-dj-2",
+  name: "Female DJ 2",
+  colorImageUrl: "/environments/female-dj-2/female-dj-2-color.webp",
+  depthMapUrl: "/environments/female-dj-2/female-dj-2-depth.png",
+};
+
 const SHARED_IMAGE_DEPTH_CHILL_BEHAVIOR: ImageDepthScenePreset["behavior"] = {
   depth: {
     motionIntensity: 0.52,
@@ -2310,5 +2324,17 @@ export const SLIME_CAVERN_PRODUCTION_SCENE_PRESET = createZeroGlowProductionScen
   "slime-cavern-default",
 );
 
+export const FEMALE_DJ_1_PRODUCTION_SCENE_PRESET = createZeroGlowProductionScenePreset(
+  FEMALE_DJ_1_PRODUCTION_ASSET,
+  "female-dj-1-default",
+);
+
+export const FEMALE_DJ_2_PRODUCTION_SCENE_PRESET = createZeroGlowProductionScenePreset(
+  FEMALE_DJ_2_PRODUCTION_ASSET,
+  "female-dj-2-default",
+);
+
 assertExpectedHotspotCount(CRYSTAL_CAVERN_PRODUCTION_SCENE_PRESET, 0);
 assertExpectedHotspotCount(SLIME_CAVERN_PRODUCTION_SCENE_PRESET, 0);
+assertExpectedHotspotCount(FEMALE_DJ_1_PRODUCTION_SCENE_PRESET, 0);
+assertExpectedHotspotCount(FEMALE_DJ_2_PRODUCTION_SCENE_PRESET, 0);

@@ -12,6 +12,8 @@ export const BIOLUMINESCENT_PSY_FOREST_ASSET_ID = "bioluminescent-psy-forest";
 export const BIOLUMINESCENT_PSY_REEF_ASSET_ID = "bioluminescent-psy-reef";
 export const CRYSTAL_CAVERN_ASSET_ID = "crystal-cavern";
 export const SLIME_CAVERN_ASSET_ID = "slime-cavern";
+export const FEMALE_DJ_1_ASSET_ID = "female-dj-1";
+export const FEMALE_DJ_2_ASSET_ID = "female-dj-2";
 
 export const IMAGE_ENVIRONMENT_ASSETS: ImageEnvironmentAsset[] = [
   {
@@ -71,6 +73,24 @@ export const IMAGE_ENVIRONMENT_ASSETS: ImageEnvironmentAsset[] = [
     depthMapUrl: "/environments/slime-cavern/slime-cavern-depth.png",
     metadata: {
       description: "Slime cavern artwork and aligned depth map for laboratory scene authoring.",
+    },
+  },
+  {
+    id: FEMALE_DJ_1_ASSET_ID,
+    name: "Female DJ 1",
+    colorImageUrl: "/environments/female-dj-1/female-dj-1-color.webp",
+    depthMapUrl: "/environments/female-dj-1/female-dj-1-depth.png",
+    metadata: {
+      description: "Female DJ 1 artwork and aligned depth map for laboratory scene authoring.",
+    },
+  },
+  {
+    id: FEMALE_DJ_2_ASSET_ID,
+    name: "Female DJ 2",
+    colorImageUrl: "/environments/female-dj-2/female-dj-2-color.webp",
+    depthMapUrl: "/environments/female-dj-2/female-dj-2-depth.png",
+    metadata: {
+      description: "Female DJ 2 artwork and aligned depth map for laboratory scene authoring.",
     },
   },
 ];

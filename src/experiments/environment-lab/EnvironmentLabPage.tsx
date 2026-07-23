@@ -6,6 +6,8 @@ import {
   BIOLUMINESCENT_PSY_FOREST_PRODUCTION_SCENE_PRESET,
   BIOLUMINESCENT_PSY_REEF_PRODUCTION_SCENE_PRESET,
   CRYSTAL_CAVERN_PRODUCTION_SCENE_PRESET,
+  FEMALE_DJ_1_PRODUCTION_SCENE_PRESET,
+  FEMALE_DJ_2_PRODUCTION_SCENE_PRESET,
   SLIME_CAVERN_PRODUCTION_SCENE_PRESET,
   UV_JUNGLE_PRODUCTION_SCENE_PRESET,
 } from "../../themes/image-depth/productionScenePresets";
@@ -244,6 +246,14 @@ function EnvironmentLabPage() {
       [
         SLIME_CAVERN_PRODUCTION_SCENE_PRESET.assetId,
         cloneBehaviorSettings(SLIME_CAVERN_PRODUCTION_SCENE_PRESET.behavior),
+      ],
+      [
+        FEMALE_DJ_1_PRODUCTION_SCENE_PRESET.assetId,
+        cloneBehaviorSettings(FEMALE_DJ_1_PRODUCTION_SCENE_PRESET.behavior),
+      ],
+      [
+        FEMALE_DJ_2_PRODUCTION_SCENE_PRESET.assetId,
+        cloneBehaviorSettings(FEMALE_DJ_2_PRODUCTION_SCENE_PRESET.behavior),
       ],
     ]);
   }, []);

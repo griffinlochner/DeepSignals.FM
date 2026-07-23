@@ -14,6 +14,8 @@ import {
   BIOLUMINESCENT_PSY_FOREST_PRODUCTION_ASSET,
   BIOLUMINESCENT_PSY_REEF_PRODUCTION_ASSET,
   CRYSTAL_CAVERN_PRODUCTION_ASSET,
+  FEMALE_DJ_1_PRODUCTION_ASSET,
+  FEMALE_DJ_2_PRODUCTION_ASSET,
   SLIME_CAVERN_PRODUCTION_ASSET,
   UV_JUNGLE_PRODUCTION_ASSET,
 } from '../themes/image-depth/productionScenePresets'
@@ -266,6 +268,8 @@ function PlayerShell({ className }: PlayerShellProps) {
         ['bioluminescent-psy-reef', BIOLUMINESCENT_PSY_REEF_PRODUCTION_ASSET],
         ['crystal-cavern', CRYSTAL_CAVERN_PRODUCTION_ASSET],
         ['slime-cavern', SLIME_CAVERN_PRODUCTION_ASSET],
+        ['female-dj-1', FEMALE_DJ_1_PRODUCTION_ASSET],
+        ['female-dj-2', FEMALE_DJ_2_PRODUCTION_ASSET],
       ]),
     [],
   )
