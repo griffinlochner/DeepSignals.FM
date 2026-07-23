@@ -36,6 +36,31 @@ export type ImageDepthBehaviorSettings = {
   };
 };
 
+export type ImageDepthAmbientParticlePreset = {
+  count: number;
+  sizeRange: {
+    min: number;
+    max: number;
+  };
+  depthOffsetRange: {
+    min: number;
+    max: number;
+  };
+  driftSpeedRange: {
+    chill: number;
+    fullOn: number;
+  };
+  visibilityDensityScaleRange: {
+    min: number;
+    max: number;
+  };
+  brightnessBiasRange: {
+    min: number;
+    max: number;
+  };
+  colorBiasPalette: string[];
+};
+
 export type ImageDepthSurfaceGlowPulseMode =
   | "brightness"
   | "bloom"
@@ -92,4 +117,5 @@ export type ImageDepthScenePreset = {
   assetId: string;
   behavior: ImageDepthBehaviorSettings;
   surfaceGlows: ImageDepthSurfaceGlows;
+  ambientParticles?: ImageDepthAmbientParticlePreset;
 };

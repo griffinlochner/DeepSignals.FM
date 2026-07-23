@@ -736,6 +736,30 @@ export const UV_JUNGLE_PRODUCTION_SCENE_PRESET: ImageDepthScenePreset = {
       },
     ],
   },
+  ambientParticles: {
+    count: 320,
+    sizeRange: {
+      min: 1.35,
+      max: 4.35,
+    },
+    depthOffsetRange: {
+      min: 0.02,
+      max: 0.18,
+    },
+    driftSpeedRange: {
+      chill: 0.012,
+      fullOn: 0.032,
+    },
+    visibilityDensityScaleRange: {
+      min: 0.48,
+      max: 1,
+    },
+    brightnessBiasRange: {
+      min: 0.06,
+      max: 0.22,
+    },
+    colorBiasPalette: ["#7fffd4", "#4ef7a2", "#d86cff", "#a6ff6a"],
+  },
 };
 
 export const ANALOG_SIGNAL_LABORATORY_PRODUCTION_SCENE_PRESET: ImageDepthScenePreset = {

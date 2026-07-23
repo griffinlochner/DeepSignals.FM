@@ -7,6 +7,7 @@ import { formatImageDepthPlaybackFilter, stepImageDepthPlaybackVisualMix } from 
 import { resolveAutonomousParallaxTarget } from "./autonomousParallaxTarget";
 import { computeImageDepthFraming, IMAGE_DEPTH_PARITY_FRAMING } from "./framing";
 import { getImageDepthTexturePair } from "./imageDepthTextureCache";
+import { AmbientParticleField } from "./ambientParticleField";
 import { REACTIVE_BEHAVIOR_PROFILES } from "./reactivePreviewProfile";
 import { resolveImageDepthElapsedSeconds, writeImageDepthParityStats } from "./timing";
 import type { ImageDepthAsset, ImageDepthScenePreset, ImageDepthSurfaceGlowHotspot } from "./types";
@@ -34,6 +35,32 @@ function isReactiveIsolationEnabled() {
 
   const searchParams = new URLSearchParams(window.location.search);
   return searchParams.get("reactiveIsolation") === "1";
+}
+
+function isAmbientParticlesEnabled() {
+  if (!import.meta.env.DEV || typeof window === "undefined") {
+    return false;
+  }
+
+  const searchParams = new URLSearchParams(window.location.search);
+  return searchParams.get("ambientParticles") === "1";
+}
+
+function isParticleDebugEnabled() {
+  if (!import.meta.env.DEV || typeof window === "undefined") {
+    return false;
+  }
+
+  const searchParams = new URLSearchParams(window.location.search);
+  return searchParams.get("particleDebug") === "1";
+}
+function isParticlePerfEnabled() {
+  if (!import.meta.env.DEV || typeof window === "undefined") {
+    return false;
+  }
+
+  const searchParams = new URLSearchParams(window.location.search);
+  return searchParams.get("particlePerf") === "1";
 }
 
 type SurfaceGlowUniformState = {
@@ -534,6 +561,10 @@ if (uSurfaceGlowEnabled > 0.5) {
     glowPlane.position.z = -0.8;
     planeGroup.add(glowPlane);
 
+    let ambientParticleField: AmbientParticleField | null = null;
+    const ambientParticlesEnabled = isAmbientParticlesEnabled();
+    const particleDebugEnabled = isParticleDebugEnabled();
+
     sharedMaterialRef.current = material;
 
     let disposed = false;
@@ -579,10 +610,20 @@ if (uSurfaceGlowEnabled > 0.5) {
     let lastReactiveTelemetryPublishAt = 0;
     let lastSignalId = visualStateRef.current.signalId ?? null;
     let activeAssetAspectRatio = 1;
+    let lastFramedScaleWidth = 1;
+    let lastFramedScaleHeight = 1;
+    const particlePerfEnabled = isParticlePerfEnabled();
+    let particleFrameIntervalMsAverage = 0;
+    let particleRenderCpuMsAverage = 0;
+    let particleFrameCount = 0;
+    let viewportWidth = 0;
+    let viewportHeight = 0;
 
     const resize = () => {
       const width = container.clientWidth;
       const height = container.clientHeight;
+      viewportWidth = width;
+      viewportHeight = height;
 
       if (width <= 0 || height <= 0) {
         return;
@@ -609,12 +650,17 @@ if (uSurfaceGlowEnabled > 0.5) {
 
       plane.scale.set(framedScale.width, framedScale.height, 1);
       glowPlane.scale.set(framedScale.width * 1.14, framedScale.height * 1.08, 1);
+      lastFramedScaleWidth = framedScale.width;
+      lastFramedScaleHeight = framedScale.height;
 
       const shortAxis = Math.max(0.0001, Math.min(framedScale.width, framedScale.height));
       surfaceGlowUniforms.uSurfaceGlowAspectScale.value.set(
         framedScale.width / shortAxis,
         framedScale.height / shortAxis,
       );
+
+      ambientParticleField?.setPlaneScale(framedScale.width, framedScale.height);
+      ambientParticleField?.setViewport(width, height);
     };
 
     resize();
@@ -648,6 +694,23 @@ if (uSurfaceGlowEnabled > 0.5) {
         }
 
         syncSurfaceGlowUniforms(surfaceGlowUniforms, scenePreset, material.map);
+
+        if (ambientParticlesEnabled && scenePreset.ambientParticles) {
+          try {
+            ambientParticleField = new AmbientParticleField(
+              asset,
+              scenePreset.ambientParticles,
+              colorTexture,
+              depthTexture,
+            );
+            ambientParticleField.setPlaneScale(lastFramedScaleWidth, lastFramedScaleHeight);
+            ambientParticleField.setViewport(viewportWidth || container.clientWidth, viewportHeight || container.clientHeight);
+            planeGroup.add(ambientParticleField.points);
+          } catch (error) {
+            console.warn("Image-depth ambient particle initialization failed", error);
+            ambientParticleField = null;
+          }
+        }
 
         readyFrameHandle = requestAnimationFrame(() => {
           renderer.domElement.style.opacity = "1";
@@ -1012,6 +1075,21 @@ if (uSurfaceGlowEnabled > 0.5) {
                 reactiveBehaviorProfile.finalDepthCapContribution,
               )
           : 0;
+        const scenePulseDepthContributionNormalized = fullOnBehaviorActive
+          ? clamp(
+              (fullOnCurrentDepth - fullOnLowTargetDepth) /
+                Math.max(fullOnHighTargetDepth - fullOnLowTargetDepth, SATURATION_EPSILON),
+              0,
+              1,
+            )
+          : clamp(
+              reactiveDepthPulse / Math.max(reactiveBehaviorProfile.kickDepthMaxContribution, SATURATION_EPSILON),
+              0,
+              1,
+            );
+        const scenePulseEnvelope = fullOnBehaviorActive
+          ? clamp(fullOnKickBreathEnvelope, 0, 1)
+          : clamp(chillKickBreathEnvelope, 0, 1);
 
         const motionAmount = spatialMotionActive
           ? profile.depth.motionIntensity * profile.depth.pointerParallaxStrength
@@ -1222,6 +1300,55 @@ if (uSurfaceGlowEnabled > 0.5) {
         surfaceGlowUniforms.uSurfaceGlowTime.value =
           isPlayingNow && !reducedMotionActive ? elapsedSeconds : 0;
 
+        if (ambientParticleField) {
+          ambientParticleField.update({
+            elapsedSeconds,
+            audioSnapshot: latestSnapshot,
+            isPlaying: isPlayingNow,
+            motionEnabled: visualState.motionEnabled !== false,
+            reducedMotion: reducedMotionActive,
+            reactiveIsolationEnabled,
+            reactiveBehavior: visualState.reactiveBehavior,
+            scenePulseEnvelope,
+            scenePulseDepthContributionNormalized,
+          });
+
+          if (particleDebugEnabled) {
+            writeImageDepthParityStats("production-particles", ambientParticleField.getDiagnostics());
+          }
+        } else if (particleDebugEnabled) {
+          writeImageDepthParityStats("production-particles", {
+            active: false,
+            count: 0,
+            visibleCountEstimate: 0,
+            allocationCount: 0,
+            drawCallCount: 0,
+            behavior: visualState.reactiveBehavior,
+            motionEnabled: visualState.motionEnabled !== false,
+            reducedMotion: reducedMotionActive,
+            reactiveIsolationEnabled,
+            averageVisibility: 0,
+            depthSamplingActive: false,
+            colorSamplingActive: false,
+            generatedUvMinU: 0,
+            generatedUvMaxU: 0,
+            generatedUvMinV: 0,
+            generatedUvMaxV: 0,
+            generatedLocalMinX: 0,
+            generatedLocalMaxX: 0,
+            generatedLocalMinY: 0,
+            generatedLocalMaxY: 0,
+            planeWidth: 0,
+            planeHeight: 0,
+            scenePulseEnvelope: 0,
+            scenePulseDepthContributionNormalized: 0,
+            pulseParticipation: 0,
+            pulseAmplitude: 0,
+          });
+        }
+
+        const frameRenderStartedAtMs = typeof performance !== "undefined" ? performance.now() : Date.now();
+
         if (
           visualState.onReactivePreviewTelemetry &&
           (elapsedSeconds - lastReactiveTelemetryPublishAt >= 0.05 || lastReactiveTelemetryPublishAt === 0)
@@ -1304,6 +1431,61 @@ if (uSurfaceGlowEnabled > 0.5) {
         }
 
         renderer.domElement.style.filter = filter;
+
+        const frameRenderEndedAtMs = typeof performance !== "undefined" ? performance.now() : Date.now();
+        const renderCpuMs = frameRenderEndedAtMs - frameRenderStartedAtMs;
+        const frameIntervalMs = deltaSeconds * 1000;
+        particleFrameCount += 1;
+        particleFrameIntervalMsAverage =
+          particleFrameIntervalMsAverage === 0
+            ? frameIntervalMs
+            : particleFrameIntervalMsAverage * 0.88 + frameIntervalMs * 0.12;
+        particleRenderCpuMsAverage =
+          particleRenderCpuMsAverage === 0
+            ? renderCpuMs
+            : particleRenderCpuMsAverage * 0.88 + renderCpuMs * 0.12;
+
+        if (particlePerfEnabled) {
+          const particlePerfDiagnostics = ambientParticleField?.getPerfDiagnostics() ?? {
+            active: false,
+            initMs: 0,
+            updateCpuMsLast: 0,
+            updateCpuMsAverage: 0,
+            allocationCount: 0,
+            drawCallCount: 0,
+            particleCount: 0,
+            sampledArtworkCacheHit: false,
+            sampledArtworkCacheKey: "",
+            sampledColorWidth: 0,
+            sampledColorHeight: 0,
+            sampledDepthWidth: 0,
+            sampledDepthHeight: 0,
+            sampleCacheEntries: 0,
+          };
+
+          writeImageDepthParityStats("production-particle-perf", {
+            active: particlePerfDiagnostics.active,
+            ambientParticlesEnabled,
+            particleCount: particlePerfDiagnostics.particleCount,
+            allocationCount: particlePerfDiagnostics.allocationCount,
+            drawCallCount: particlePerfDiagnostics.drawCallCount,
+            initMs: particlePerfDiagnostics.initMs,
+            updateCpuMsLast: particlePerfDiagnostics.updateCpuMsLast,
+            updateCpuMsAverage: particlePerfDiagnostics.updateCpuMsAverage,
+            frameIntervalMsLast: frameIntervalMs,
+            frameIntervalMsAverage: particleFrameIntervalMsAverage,
+            renderCpuMsLast: renderCpuMs,
+            renderCpuMsAverage: particleRenderCpuMsAverage,
+            sampledArtworkCacheHit: particlePerfDiagnostics.sampledArtworkCacheHit,
+            sampledArtworkCacheKey: particlePerfDiagnostics.sampledArtworkCacheKey,
+            sampledColorWidth: particlePerfDiagnostics.sampledColorWidth,
+            sampledColorHeight: particlePerfDiagnostics.sampledColorHeight,
+            sampledDepthWidth: particlePerfDiagnostics.sampledDepthWidth,
+            sampledDepthHeight: particlePerfDiagnostics.sampledDepthHeight,
+            sampleCacheEntries: particlePerfDiagnostics.sampleCacheEntries,
+            particleFrameCount,
+          });
+        }
 
         writeImageDepthParityStats("production", {
           elapsedSeconds,
@@ -1412,6 +1594,8 @@ if (uSurfaceGlowEnabled > 0.5) {
       }
 
       resizeObserver.disconnect();
+      ambientParticleField?.points.removeFromParent();
+      ambientParticleField?.dispose();
       sharedMaterialRef.current = null;
       material.dispose();
       geometry.dispose();
