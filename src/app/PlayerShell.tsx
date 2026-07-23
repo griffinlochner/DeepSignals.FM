@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { AUDIO_SOURCES } from './audioSources'
+import { AUDIO_SOURCES, formatAudioSourceLabel } from './audioSources'
 import AudioAnalysisDiagnostics from '../components/AudioAnalysisDiagnostics'
 import FloatingPlayerPanel from '../components/FloatingPlayerPanel'
 import SignalTelemetryPanel from '../components/SignalTelemetryPanel'
@@ -277,7 +277,7 @@ function PlayerShell({ className }: PlayerShellProps) {
   }, [selectedThemeId, imageDepthAssetsByThemeId])
 
   const signals: SignalSource[] = useMemo(
-    () => AUDIO_SOURCES.map((source) => ({ id: source.id, label: source.displayName })),
+    () => AUDIO_SOURCES.map((source) => ({ id: source.id, label: formatAudioSourceLabel(source) })),
     [],
   )
 
@@ -359,15 +359,7 @@ function PlayerShell({ className }: PlayerShellProps) {
   }, [audioController.volume, motionEnabled, selectedBehavior, selectedSignalId, selectedThemeId, signalTelemetryVisible, supportsVisualFeed, visualFeedOpen])
 
   const transmissionLabel = useMemo(() => {
-    if (audioController.audioSource.artist && audioController.audioSource.title) {
-      return `${audioController.audioSource.artist} — ${audioController.audioSource.title}`
-    }
-
-    if (audioController.audioSource.title) {
-      return audioController.audioSource.title
-    }
-
-    return audioController.audioSource.displayName
+    return formatAudioSourceLabel(audioController.audioSource)
   }, [audioController.audioSource])
 
   const handleAudioTogglePlay = async () => {
