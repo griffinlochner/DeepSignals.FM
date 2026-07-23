@@ -2,10 +2,10 @@ import { MAX_SURFACE_GLOW_HOTSPOTS } from "../../experiments/environment-lab/con
 import type { ImageDepthAsset, ImageDepthScenePreset } from "./types";
 
 export const UV_JUNGLE_PRODUCTION_ASSET: ImageDepthAsset = {
-  id: "uv-jungle",
+  id: "uv-reactive-jungle",
   name: "UV Reactive Jungle",
-  colorImageUrl: "/experiments/environment-lab/jungle-color.png",
-  depthMapUrl: "/experiments/environment-lab/jungle-depth.png",
+  colorImageUrl: "/environments/uv-reactive-jungle/uv-reactive-jungle-color.webp",
+  depthMapUrl: "/environments/uv-reactive-jungle/uv-reactive-jungle-depth.png",
 };
 
 export const ANALOG_SIGNAL_LABORATORY_PRODUCTION_ASSET: ImageDepthAsset = {
@@ -44,33 +44,33 @@ function assertExpectedHotspotCount(scenePreset: ImageDepthScenePreset, expected
 export const UV_JUNGLE_PRODUCTION_SCENE_PRESET: ImageDepthScenePreset = {
   id: "uv-jungle-default",
   name: "UV Reactive Jungle",
-  assetId: "uv-jungle",
+  assetId: "uv-reactive-jungle",
   behavior: {
     depth: {
-      motionIntensity: 1,
-      depthStrength: 1,
-      staticDepth: 0.42,
-      breathingMin: 0,
+      motionIntensity: 0.52,
+      depthStrength: 0.62,
+      staticDepth: 0.6,
+      breathingMin: 0.04,
       breathingMax: 1,
-      breathingCycleSeconds: 4.9,
+      breathingCycleSeconds: 2.8,
       pointerParallaxEnabled: true,
-      pointerParallaxStrength: 0.085,
+      pointerParallaxStrength: 0.62,
       ambientMotionEnabled: true,
     },
     color: {
-      driftEnabled: false,
-      hueRangeDegrees: 0,
-      cycleSeconds: 75,
-      saturation: 1,
-      glowPulseEnabled: false,
-      glowPulseAmount: 0,
-      glowPulseCycleSeconds: 11,
+      driftEnabled: true,
+      hueRangeDegrees: 24,
+      cycleSeconds: 26,
+      saturation: 1.16,
+      glowPulseEnabled: true,
+      glowPulseAmount: 0.18,
+      glowPulseCycleSeconds: 5.2,
     },
     saturationPulse: {
-      enabled: false,
-      minimumSaturation: 1,
-      maximumSaturation: 1,
-      cycleSeconds: 8,
+      enabled: true,
+      minimumSaturation: 0.72,
+      maximumSaturation: 1.38,
+      cycleSeconds: 4.2,
       phaseOffset: 0,
       syncToDepthBreathing: false,
     },

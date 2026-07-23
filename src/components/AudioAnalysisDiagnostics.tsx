@@ -63,7 +63,7 @@ type MeterRowProps = {
 }
 
 type ParallaxDiagnostics = {
-  source: 'image-depth-production' | 'uv-jungle-production' | 'unavailable'
+  source: 'image-depth-production' | 'unavailable'
   parallaxEnabled: boolean
   parallaxCapabilityEnabled: boolean
   parallaxAmplitudeScale: number
@@ -104,23 +104,6 @@ function readParallaxDiagnostics(): ParallaxDiagnostics {
       autonomousSmoothedY: Number(production.autonomousPointerY ?? 0),
       cameraPositionX: Number(production.cameraPositionX ?? 0),
       cameraPositionY: Number(production.cameraPositionY ?? 0),
-    }
-  }
-
-  const uvJungle = (stats?.['uv-jungle-production'] ?? null) as Record<string, unknown> | null
-
-  if (uvJungle) {
-    return {
-      source: 'uv-jungle-production',
-      parallaxEnabled: Boolean(uvJungle.pointerMotionAllowed),
-      parallaxCapabilityEnabled: Boolean(uvJungle.supportsParallax),
-      parallaxAmplitudeScale: Number(uvJungle.parallaxFactor ?? 0),
-      autonomousTargetX: Number(uvJungle.pointerTargetX ?? 0),
-      autonomousTargetY: Number(uvJungle.pointerTargetY ?? 0),
-      autonomousSmoothedX: Number(uvJungle.pointerSmoothedX ?? 0),
-      autonomousSmoothedY: Number(uvJungle.pointerSmoothedY ?? 0),
-      cameraPositionX: Number(uvJungle.appliedCameraPositionX ?? 0),
-      cameraPositionY: Number(uvJungle.appliedCameraPositionY ?? 0),
     }
   }
 
