@@ -10,6 +10,8 @@ export const UV_JUNGLE_ASSET_ID = "uv-reactive-jungle";
 export const ANALOG_SIGNAL_LABORATORY_ASSET_ID = "analog-signal-laboratory";
 export const BIOLUMINESCENT_PSY_FOREST_ASSET_ID = "bioluminescent-psy-forest";
 export const BIOLUMINESCENT_PSY_REEF_ASSET_ID = "bioluminescent-psy-reef";
+export const CRYSTAL_CAVERN_ASSET_ID = "crystal-cavern";
+export const SLIME_CAVERN_ASSET_ID = "slime-cavern";
 
 export const IMAGE_ENVIRONMENT_ASSETS: ImageEnvironmentAsset[] = [
   {
@@ -51,6 +53,24 @@ export const IMAGE_ENVIRONMENT_ASSETS: ImageEnvironmentAsset[] = [
       "/environments/bioluminescent-psy-reef/bioluminescent-psy-reef-depth.png",
     metadata: {
       description: "Bioluminescent reef artwork and aligned depth map for laboratory scene authoring.",
+    },
+  },
+  {
+    id: CRYSTAL_CAVERN_ASSET_ID,
+    name: "Crystal Cavern",
+    colorImageUrl: "/environments/crystal-cavern/crystal-cavern-color.webp",
+    depthMapUrl: "/environments/crystal-cavern/crystal-cavern-depth.png",
+    metadata: {
+      description: "Crystal cavern artwork and aligned depth map for laboratory scene authoring.",
+    },
+  },
+  {
+    id: SLIME_CAVERN_ASSET_ID,
+    name: "Slime Cavern",
+    colorImageUrl: "/environments/slime-cavern/slime-cavern-color.webp",
+    depthMapUrl: "/environments/slime-cavern/slime-cavern-depth.png",
+    metadata: {
+      description: "Slime cavern artwork and aligned depth map for laboratory scene authoring.",
     },
   },
 ];

@@ -13,6 +13,8 @@ import {
   ANALOG_SIGNAL_LABORATORY_PRODUCTION_ASSET,
   BIOLUMINESCENT_PSY_FOREST_PRODUCTION_ASSET,
   BIOLUMINESCENT_PSY_REEF_PRODUCTION_ASSET,
+  CRYSTAL_CAVERN_PRODUCTION_ASSET,
+  SLIME_CAVERN_PRODUCTION_ASSET,
   UV_JUNGLE_PRODUCTION_ASSET,
 } from '../themes/image-depth/productionScenePresets'
 import { useAudioAnalysis } from './useAudioAnalysis'
@@ -262,6 +264,8 @@ function PlayerShell({ className }: PlayerShellProps) {
         ['analog-signal-laboratory', ANALOG_SIGNAL_LABORATORY_PRODUCTION_ASSET],
         ['bioluminescent-psy-forest', BIOLUMINESCENT_PSY_FOREST_PRODUCTION_ASSET],
         ['bioluminescent-psy-reef', BIOLUMINESCENT_PSY_REEF_PRODUCTION_ASSET],
+        ['crystal-cavern', CRYSTAL_CAVERN_PRODUCTION_ASSET],
+        ['slime-cavern', SLIME_CAVERN_PRODUCTION_ASSET],
       ]),
     [],
   )

@@ -33,6 +33,89 @@ export const BIOLUMINESCENT_PSY_REEF_PRODUCTION_ASSET: ImageDepthAsset = {
     "/environments/bioluminescent-psy-reef/bioluminescent-psy-reef-depth.png",
 };
 
+export const CRYSTAL_CAVERN_PRODUCTION_ASSET: ImageDepthAsset = {
+  id: "crystal-cavern",
+  name: "Crystal Cavern",
+  colorImageUrl: "/environments/crystal-cavern/crystal-cavern-color.webp",
+  depthMapUrl: "/environments/crystal-cavern/crystal-cavern-depth.png",
+};
+
+export const SLIME_CAVERN_PRODUCTION_ASSET: ImageDepthAsset = {
+  id: "slime-cavern",
+  name: "Slime Cavern",
+  colorImageUrl: "/environments/slime-cavern/slime-cavern-color.webp",
+  depthMapUrl: "/environments/slime-cavern/slime-cavern-depth.png",
+};
+
+const SHARED_IMAGE_DEPTH_CHILL_BEHAVIOR: ImageDepthScenePreset["behavior"] = {
+  depth: {
+    motionIntensity: 0.52,
+    depthStrength: 0.62,
+    staticDepth: 0.6,
+    breathingMin: 0.04,
+    breathingMax: 1,
+    breathingCycleSeconds: 2.8,
+    pointerParallaxEnabled: true,
+    pointerParallaxStrength: 0.62,
+    ambientMotionEnabled: true,
+  },
+  color: {
+    driftEnabled: true,
+    hueRangeDegrees: 24,
+    cycleSeconds: 26,
+    saturation: 1.16,
+    glowPulseEnabled: true,
+    glowPulseAmount: 0.18,
+    glowPulseCycleSeconds: 5.2,
+  },
+  saturationPulse: {
+    enabled: true,
+    minimumSaturation: 0.72,
+    maximumSaturation: 1.38,
+    cycleSeconds: 4.2,
+    phaseOffset: 0,
+    syncToDepthBreathing: false,
+  },
+};
+
+const SHARED_SURFACE_GLOW_DEFAULTS: NonNullable<ImageDepthScenePreset["surfaceGlows"]["defaults"]> = {
+  color: "#8fffe2",
+  radius: 0.01,
+  softness: 0.65,
+  intensity: 1.05,
+  pulseEnabled: true,
+  pulseMode: "brightness-bloom",
+  pulseAmount: 0.6,
+  minimumIntensityMultiplier: 0.7,
+  maximumIntensityMultiplier: 1.35,
+  radiusExpansionMultiplier: 1.18,
+  pulseCycleSeconds: 3.5,
+  hueDriftEnabled: true,
+  hueDriftRangeDegrees: 14,
+  hueDriftCycleSeconds: 20,
+};
+
+function createZeroGlowProductionScenePreset(
+  asset: ImageDepthAsset,
+  presetId: string,
+): ImageDepthScenePreset {
+  return {
+    id: presetId,
+    name: asset.name,
+    assetId: asset.id,
+    behavior: {
+      depth: { ...SHARED_IMAGE_DEPTH_CHILL_BEHAVIOR.depth },
+      color: { ...SHARED_IMAGE_DEPTH_CHILL_BEHAVIOR.color },
+      saturationPulse: { ...SHARED_IMAGE_DEPTH_CHILL_BEHAVIOR.saturationPulse },
+    },
+    surfaceGlows: {
+      enabled: true,
+      defaults: { ...SHARED_SURFACE_GLOW_DEFAULTS },
+      hotspots: [],
+    },
+  };
+}
+
 function assertExpectedHotspotCount(scenePreset: ImageDepthScenePreset, expectedCount: number) {
   if (scenePreset.surfaceGlows.hotspots.length !== expectedCount) {
     throw new Error(
@@ -2216,3 +2299,16 @@ assertExpectedHotspotCount(
   BIOLUMINESCENT_PSY_FOREST_PRODUCTION_SCENE_PRESET,
   MAX_SURFACE_GLOW_HOTSPOTS,
 );
+
+export const CRYSTAL_CAVERN_PRODUCTION_SCENE_PRESET = createZeroGlowProductionScenePreset(
+  CRYSTAL_CAVERN_PRODUCTION_ASSET,
+  "crystal-cavern-default",
+);
+
+export const SLIME_CAVERN_PRODUCTION_SCENE_PRESET = createZeroGlowProductionScenePreset(
+  SLIME_CAVERN_PRODUCTION_ASSET,
+  "slime-cavern-default",
+);
+
+assertExpectedHotspotCount(CRYSTAL_CAVERN_PRODUCTION_SCENE_PRESET, 0);
+assertExpectedHotspotCount(SLIME_CAVERN_PRODUCTION_SCENE_PRESET, 0);
