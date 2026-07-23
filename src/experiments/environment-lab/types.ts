@@ -153,6 +153,7 @@ export type EnvironmentLabSceneProps = {
   playbackState: EnvironmentPlaybackState;
   geometryMotionPreviewEnabled: boolean;
   surfaceGlowPlacementModeEnabled: boolean;
+  selectedSurfaceGlowId: string | null;
   framingMode: EnvironmentFramingMode;
   preset: ImageEnvironmentScenePreset;
   asset: ImageEnvironmentAsset;
@@ -160,6 +161,7 @@ export type EnvironmentLabSceneProps = {
   onLoadingStateChange?: (state: EnvironmentLoadingState) => void;
   onDiagnosticsChange?: (diagnostics: EnvironmentDiagnostics) => void;
   onCreateSurfaceGlowHotspot?: (u: number, v: number, phase: number) => void;
+  onSelectSurfaceGlowHotspot?: (id: string | null) => void;
   onRemoveNearestSurfaceGlowHotspot?: (u: number, v: number) => void;
   onSurfaceGlowCapacityReached?: () => void;
 };

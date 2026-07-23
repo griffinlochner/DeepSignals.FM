@@ -204,6 +204,18 @@
   gap: 10px;
 }
 
+.environment-lab__segmented {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.environment-lab__segment-label {
+  margin: 0;
+  color: rgba(237, 248, 242, 0.9);
+  font-size: 0.81rem;
+}
+
 .environment-lab__workflow-summary {
   border: 1px solid rgba(142, 242, 216, 0.3);
   border-radius: 12px;
@@ -343,6 +355,25 @@
   margin-bottom: 8px;
 }
 
+.environment-lab__button-row--segmented {
+  gap: 0;
+}
+
+.environment-lab__button-row--segmented button {
+  flex: 1 1 0;
+  border-radius: 0;
+}
+
+.environment-lab__button-row--segmented button:first-child {
+  border-top-left-radius: 10px;
+  border-bottom-left-radius: 10px;
+}
+
+.environment-lab__button-row--segmented button:last-child {
+  border-top-right-radius: 10px;
+  border-bottom-right-radius: 10px;
+}
+
 .environment-lab__button-row button,
 .environment-lab__group button {
   border: 1px solid rgba(142, 242, 216, 0.42);
@@ -352,6 +383,12 @@
   padding: 8px 10px;
   font-size: 0.74rem;
   cursor: pointer;
+}
+
+.environment-lab__group button[aria-pressed="true"] {
+  border-color: rgba(245, 223, 159, 0.85);
+  background: rgba(42, 30, 10, 0.58);
+  color: #ffe9be;
 }
 
 .environment-lab__button--primary {

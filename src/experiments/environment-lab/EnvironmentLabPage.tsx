@@ -2,6 +2,12 @@ import { useEffect, useMemo, useState } from "react";
 import { MAX_SURFACE_GLOW_HOTSPOTS } from "./constants";
 import EnvironmentLabShell from "./EnvironmentLabShell";
 import {
+  ANALOG_SIGNAL_LABORATORY_PRODUCTION_SCENE_PRESET,
+  BIOLUMINESCENT_PSY_FOREST_PRODUCTION_SCENE_PRESET,
+  BIOLUMINESCENT_PSY_REEF_PRODUCTION_SCENE_PRESET,
+  UV_JUNGLE_PRODUCTION_SCENE_PRESET,
+} from "../../themes/image-depth/productionScenePresets";
+import {
   applyBehaviorPreset,
   cloneBehaviorSettings,
   cloneScenePreset,
@@ -206,9 +212,31 @@ function EnvironmentLabPage() {
   const [loadingState, setLoadingState] = useState<EnvironmentLoadingState>("loading");
   const [reducedMotionActive, setReducedMotionActive] = useState(false);
   const [diagnostics, setDiagnostics] = useState<EnvironmentDiagnostics>(INITIAL_DIAGNOSTICS);
+  const [selectedSurfaceGlowId, setSelectedSurfaceGlowId] = useState<string | null>(null);
   const [importText, setImportText] = useState("");
   const [feedbackMessage, setFeedbackMessage] = useState("Scene authoring controls ready.");
   const [feedbackTone, setFeedbackTone] = useState<"idle" | "success" | "error">("idle");
+
+  const productionBehaviorByAssetId = useMemo(() => {
+    return new Map<string, EnvironmentBehaviorSettings>([
+      [
+        UV_JUNGLE_PRODUCTION_SCENE_PRESET.assetId,
+        cloneBehaviorSettings(UV_JUNGLE_PRODUCTION_SCENE_PRESET.behavior),
+      ],
+      [
+        ANALOG_SIGNAL_LABORATORY_PRODUCTION_SCENE_PRESET.assetId,
+        cloneBehaviorSettings(ANALOG_SIGNAL_LABORATORY_PRODUCTION_SCENE_PRESET.behavior),
+      ],
+      [
+        BIOLUMINESCENT_PSY_FOREST_PRODUCTION_SCENE_PRESET.assetId,
+        cloneBehaviorSettings(BIOLUMINESCENT_PSY_FOREST_PRODUCTION_SCENE_PRESET.behavior),
+      ],
+      [
+        BIOLUMINESCENT_PSY_REEF_PRODUCTION_SCENE_PRESET.assetId,
+        cloneBehaviorSettings(BIOLUMINESCENT_PSY_REEF_PRODUCTION_SCENE_PRESET.behavior),
+      ],
+    ]);
+  }, []);
 
   const selectedAsset = useMemo<ImageEnvironmentAsset | null>(
     () => getImageEnvironmentAssetById(scenePreset.assetId),
@@ -242,6 +270,12 @@ function EnvironmentLabPage() {
       reducedMotionQuery.removeEventListener("change", syncReducedMotion);
     };
   }, []);
+
+  const activeSelectedSurfaceGlowId =
+    selectedSurfaceGlowId &&
+    scenePreset.surfaceGlows.hotspots.some((hotspot) => hotspot.id === selectedSurfaceGlowId)
+      ? selectedSurfaceGlowId
+      : null;
 
   const status = useMemo(() => {
     const playbackLabel = session.playbackState === "playing" ? "Playing" : "Stopped";
@@ -309,6 +343,7 @@ function EnvironmentLabPage() {
       ...current,
       surfaceGlowPlacementModeEnabled: false,
     }));
+    setSelectedSurfaceGlowId(null);
     setFeedback(`Loaded full scene preset: ${preset.name}`, "success");
   };
 
@@ -329,6 +364,7 @@ function EnvironmentLabPage() {
       ...current,
       surfaceGlowPlacementModeEnabled: false,
     }));
+    setSelectedSurfaceGlowId(null);
     setFeedback(`Switched asset to ${selected.name} in neutral state.`, "success");
   };
 
@@ -355,11 +391,14 @@ function EnvironmentLabPage() {
       return;
     }
 
+    const sharedProductionBehavior =
+      productionBehaviorByAssetId.get(activeAsset.id) ?? cloneBehaviorSettings(scenePreset.behavior);
+
     const productionScene: ImageEnvironmentScenePreset = {
       id: `${activeAsset.id}-default`,
       name: activeAsset.name,
       assetId: activeAsset.id,
-      behavior: cloneBehaviorSettings(scenePreset.behavior),
+      behavior: cloneBehaviorSettings(sharedProductionBehavior),
       surfaceGlows: {
         enabled: scenePreset.surfaceGlows.enabled,
         defaults: { ...scenePreset.surfaceGlows.defaults },
@@ -398,6 +437,7 @@ function EnvironmentLabPage() {
       ...current,
       surfaceGlowPlacementModeEnabled: false,
     }));
+    setSelectedSurfaceGlowId(null);
 
     if (parsed.warnings.length > 0) {
       setFeedback(`Imported full scene with warning: ${parsed.warnings.join(" ")}`, "success");
@@ -418,6 +458,7 @@ function EnvironmentLabPage() {
       playbackState={session.playbackState}
       geometryMotionPreviewEnabled={session.geometryMotionPreviewEnabled}
       surfaceGlowPlacementModeEnabled={session.surfaceGlowPlacementModeEnabled}
+      selectedSurfaceGlowId={activeSelectedSurfaceGlowId}
       framingMode={session.framingMode}
       surfaceGlowCapacityReached={atSurfaceGlowCapacity}
       scenePreset={scenePreset}
@@ -472,6 +513,7 @@ function EnvironmentLabPage() {
       onAssetChange={handleAssetChange}
       onCreateSurfaceGlowHotspot={(u, v, phase) => {
         let blocked = false;
+        let createdHotspotId: string | null = null;
 
         setScenePreset((current) => {
           if (current.surfaceGlows.hotspots.length >= MAX_SURFACE_GLOW_HOTSPOTS) {
@@ -500,6 +542,7 @@ function EnvironmentLabPage() {
             hueDriftCycleSeconds: defaults.hueDriftCycleSeconds,
             phase,
           };
+          createdHotspotId = nextHotspot.id;
 
           return {
             ...current,
@@ -516,8 +559,12 @@ function EnvironmentLabPage() {
             `Maximum of ${MAX_SURFACE_GLOW_HOTSPOTS} Surface Glow Hotspots reached.`,
             "error",
           );
+          return;
         }
+
+        setSelectedSurfaceGlowId(createdHotspotId);
       }}
+      onSelectSurfaceGlowHotspot={setSelectedSurfaceGlowId}
       onSurfaceGlowCapacityReached={() =>
         setFeedback(
           `Maximum of ${MAX_SURFACE_GLOW_HOTSPOTS} Surface Glow Hotspots reached.`,
@@ -543,7 +590,49 @@ function EnvironmentLabPage() {
             hotspots: [],
           },
         }));
+        setSelectedSurfaceGlowId(null);
         setFeedback("Cleared all Surface Glow hotspots.", "success");
+      }}
+      onDeleteSelectedSurfaceGlowHotspot={() => {
+        if (!activeSelectedSurfaceGlowId) {
+          return;
+        }
+
+        setScenePreset((current) => ({
+          ...current,
+          surfaceGlows: {
+            ...current.surfaceGlows,
+            defaults: { ...current.surfaceGlows.defaults },
+            hotspots: current.surfaceGlows.hotspots.filter(
+              (hotspot) => hotspot.id !== activeSelectedSurfaceGlowId,
+            ),
+          },
+        }));
+        setSelectedSurfaceGlowId(null);
+        setFeedback("Deleted selected Surface Glow hotspot.", "success");
+      }}
+      onUndoLastSurfaceGlowHotspot={() => {
+        let removed = false;
+
+        setScenePreset((current) => {
+          if (current.surfaceGlows.hotspots.length === 0) {
+            return current;
+          }
+
+          removed = true;
+          return {
+            ...current,
+            surfaceGlows: {
+              ...current.surfaceGlows,
+              defaults: { ...current.surfaceGlows.defaults },
+              hotspots: current.surfaceGlows.hotspots.slice(0, -1),
+            },
+          };
+        });
+
+        if (removed) {
+          setFeedback("Removed most recent Surface Glow hotspot.", "success");
+        }
       }}
       onRandomizeSurfaceGlowPhases={() => {
         setScenePreset((current) => ({
@@ -610,6 +699,7 @@ function EnvironmentLabPage() {
           ...current,
           surfaceGlowPlacementModeEnabled: false,
         }));
+        setSelectedSurfaceGlowId(null);
         setFeedback(`Reset current scene for ${activeAsset.name}.`, "success");
       }}
       onCopySceneJson={handleCopySceneJson}

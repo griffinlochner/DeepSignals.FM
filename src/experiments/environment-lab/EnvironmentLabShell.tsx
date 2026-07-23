@@ -16,6 +16,7 @@ type EnvironmentLabShellProps = {
   playbackState: EnvironmentPlaybackState;
   geometryMotionPreviewEnabled: boolean;
   surfaceGlowPlacementModeEnabled: boolean;
+  selectedSurfaceGlowId: string | null;
   framingMode: EnvironmentFramingMode;
   surfaceGlowCapacityReached: boolean;
   scenePreset: ImageEnvironmentScenePreset;
@@ -43,8 +44,11 @@ type EnvironmentLabShellProps = {
   onLoadScenePreset: (presetId: string) => void;
   onAssetChange: (assetId: string) => void;
   onCreateSurfaceGlowHotspot: (u: number, v: number, phase: number) => void;
+  onSelectSurfaceGlowHotspot: (id: string | null) => void;
   onSurfaceGlowCapacityReached: () => void;
   onRemoveNearestSurfaceGlowHotspot: (u: number, v: number) => void;
+  onDeleteSelectedSurfaceGlowHotspot: () => void;
+  onUndoLastSurfaceGlowHotspot: () => void;
   onClearSurfaceGlowHotspots: () => void;
   onRandomizeSurfaceGlowPhases: () => void;
   onApplySurfaceGlowDefaultsToAll: () => void;
@@ -65,6 +69,7 @@ function EnvironmentLabShell({
   playbackState,
   geometryMotionPreviewEnabled,
   surfaceGlowPlacementModeEnabled,
+  selectedSurfaceGlowId,
   framingMode,
   surfaceGlowCapacityReached,
   scenePreset,
@@ -92,8 +97,11 @@ function EnvironmentLabShell({
   onLoadScenePreset,
   onAssetChange,
   onCreateSurfaceGlowHotspot,
+  onSelectSurfaceGlowHotspot,
   onSurfaceGlowCapacityReached,
   onRemoveNearestSurfaceGlowHotspot,
+  onDeleteSelectedSurfaceGlowHotspot,
+  onUndoLastSurfaceGlowHotspot,
   onClearSurfaceGlowHotspots,
   onRandomizeSurfaceGlowPhases,
   onApplySurfaceGlowDefaultsToAll,
@@ -122,11 +130,13 @@ function EnvironmentLabShell({
           playbackState={playbackState}
           geometryMotionPreviewEnabled={geometryMotionPreviewEnabled}
           surfaceGlowPlacementModeEnabled={surfaceGlowPlacementModeEnabled}
+          selectedSurfaceGlowId={selectedSurfaceGlowId}
           framingMode={framingMode}
           preset={scenePreset}
           asset={activeAsset}
           reducedMotionActive={reducedMotionActive}
           onCreateSurfaceGlowHotspot={onCreateSurfaceGlowHotspot}
+          onSelectSurfaceGlowHotspot={onSelectSurfaceGlowHotspot}
           onSurfaceGlowCapacityReached={onSurfaceGlowCapacityReached}
           onRemoveNearestSurfaceGlowHotspot={onRemoveNearestSurfaceGlowHotspot}
           onDiagnosticsChange={onDiagnosticsChange}
@@ -150,6 +160,7 @@ function EnvironmentLabShell({
             reducedMotionActive={reducedMotionActive}
             diagnostics={diagnostics}
             surfaceGlowPlacementModeEnabled={surfaceGlowPlacementModeEnabled}
+            selectedSurfaceGlowId={selectedSurfaceGlowId}
             surfaceGlowCapacityReached={surfaceGlowCapacityReached}
             framingMode={framingMode}
             importText={importText}
@@ -165,6 +176,9 @@ function EnvironmentLabShell({
             onAssetChange={onAssetChange}
             onSurfaceGlowPlacementModeChange={onSurfaceGlowPlacementModeChange}
             onFramingModeChange={onFramingModeChange}
+            onDeleteSelectedSurfaceGlowHotspot={onDeleteSelectedSurfaceGlowHotspot}
+            onUndoLastSurfaceGlowHotspot={onUndoLastSurfaceGlowHotspot}
+            onSelectSurfaceGlowHotspot={onSelectSurfaceGlowHotspot}
             onClearSurfaceGlowHotspots={onClearSurfaceGlowHotspots}
             onRandomizeSurfaceGlowPhases={onRandomizeSurfaceGlowPhases}
             onApplySurfaceGlowDefaultsToAll={onApplySurfaceGlowDefaultsToAll}

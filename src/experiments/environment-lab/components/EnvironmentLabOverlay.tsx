@@ -8,12 +8,10 @@ function EnvironmentLabOverlay({ status, children }: EnvironmentLabOverlayProps)
   return (
     <aside className="environment-lab__overlay">
       <p className="environment-lab__eyebrow">DEEPSIGNALS.FM ENVIRONMENT LABORATORY</p>
-      <h1 className="environment-lab__title">
-        Depth, motion, color, and Surface Glow environment authoring
-      </h1>
+      <h1 className="environment-lab__title">Environment artwork and Glow Dot authoring</h1>
       <p className="environment-lab__caption">
-        Tune reusable behavior presets and full image-environment scene presets while preserving
-        image-relative Surface Glow placement.
+        Build production-ready image environments with shared framing, behavior preview, and
+        image-relative Glow Dot placement.
       </p>
       {children}
       <p className="environment-lab__status">{status}</p>

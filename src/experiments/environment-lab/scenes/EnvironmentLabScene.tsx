@@ -37,6 +37,7 @@ type SceneCallbacks = {
   onLoadingStateChange?: EnvironmentLabSceneProps["onLoadingStateChange"];
   onDiagnosticsChange?: EnvironmentLabSceneProps["onDiagnosticsChange"];
   onCreateSurfaceGlowHotspot?: EnvironmentLabSceneProps["onCreateSurfaceGlowHotspot"];
+  onSelectSurfaceGlowHotspot?: EnvironmentLabSceneProps["onSelectSurfaceGlowHotspot"];
   onRemoveNearestSurfaceGlowHotspot?: EnvironmentLabSceneProps["onRemoveNearestSurfaceGlowHotspot"];
   onSurfaceGlowCapacityReached?: EnvironmentLabSceneProps["onSurfaceGlowCapacityReached"];
 };
@@ -189,6 +190,7 @@ function EnvironmentLabScene({
   playbackState,
   geometryMotionPreviewEnabled,
   surfaceGlowPlacementModeEnabled,
+  selectedSurfaceGlowId,
   framingMode,
   preset,
   asset,
@@ -196,6 +198,7 @@ function EnvironmentLabScene({
   onLoadingStateChange,
   onDiagnosticsChange,
   onCreateSurfaceGlowHotspot,
+  onSelectSurfaceGlowHotspot,
   onRemoveNearestSurfaceGlowHotspot,
   onSurfaceGlowCapacityReached,
 }: EnvironmentLabSceneProps) {
@@ -207,6 +210,7 @@ function EnvironmentLabScene({
     playbackState,
     geometryMotionPreviewEnabled,
     surfaceGlowPlacementModeEnabled,
+    selectedSurfaceGlowId,
     framingMode,
     reducedMotionActive,
     preset,
@@ -216,13 +220,14 @@ function EnvironmentLabScene({
     onLoadingStateChange,
     onDiagnosticsChange,
     onCreateSurfaceGlowHotspot,
+    onSelectSurfaceGlowHotspot,
     onRemoveNearestSurfaceGlowHotspot,
     onSurfaceGlowCapacityReached,
   });
 
   const placementNote = useMemo(() => {
     if (surfaceGlowPlacementModeEnabled) {
-      return `Surface Glow placement enabled: click to add glow, Shift/Alt-click removes nearest glow. Capacity ${MAX_SURFACE_GLOW_HOTSPOTS}.`;
+      return `Glow Dot placement enabled: click to add, Shift or Alt-click removes nearest. Capacity ${MAX_SURFACE_GLOW_HOTSPOTS}.`;
     }
 
     return "";
@@ -233,6 +238,7 @@ function EnvironmentLabScene({
       playbackState,
       geometryMotionPreviewEnabled,
       surfaceGlowPlacementModeEnabled,
+      selectedSurfaceGlowId,
       framingMode,
       reducedMotionActive,
       preset,
@@ -242,6 +248,7 @@ function EnvironmentLabScene({
     playbackState,
     geometryMotionPreviewEnabled,
     surfaceGlowPlacementModeEnabled,
+    selectedSurfaceGlowId,
     framingMode,
     reducedMotionActive,
     preset,
@@ -253,6 +260,7 @@ function EnvironmentLabScene({
       onLoadingStateChange,
       onDiagnosticsChange,
       onCreateSurfaceGlowHotspot,
+      onSelectSurfaceGlowHotspot,
       onRemoveNearestSurfaceGlowHotspot,
       onSurfaceGlowCapacityReached,
     };
@@ -260,6 +268,7 @@ function EnvironmentLabScene({
     onLoadingStateChange,
     onDiagnosticsChange,
     onCreateSurfaceGlowHotspot,
+    onSelectSurfaceGlowHotspot,
     onRemoveNearestSurfaceGlowHotspot,
     onSurfaceGlowCapacityReached,
   ]);
@@ -767,6 +776,21 @@ void main() {
     glowPlane.position.z = -0.8;
     planeGroup.add(glowPlane);
 
+    const selectedGlowRing = new THREE.Mesh(
+      new THREE.RingGeometry(0.02, 0.026, 40),
+      new THREE.MeshBasicMaterial({
+        color: 0xffffff,
+        transparent: true,
+        opacity: 0.95,
+        side: THREE.DoubleSide,
+        depthWrite: false,
+      }),
+    );
+    selectedGlowRing.visible = false;
+    selectedGlowRing.renderOrder = 50;
+    selectedGlowRing.position.z = 0.02;
+    plane.add(selectedGlowRing);
+
     let lastSurfaceGlowSignature = "";
 
     const loadingManager = new THREE.LoadingManager();
@@ -879,6 +903,25 @@ void main() {
       }
     };
 
+    const findNearestHotspot = (u: number, v: number) => {
+      const hotspots = configRef.current.preset.surfaceGlows.hotspots;
+      let nearest: SurfaceGlowHotspot | null = null;
+      let nearestDistance = Number.POSITIVE_INFINITY;
+
+      for (const hotspot of hotspots) {
+        const distance = Math.hypot(hotspot.u - u, hotspot.v - v);
+        if (distance < nearestDistance) {
+          nearest = hotspot;
+          nearestDistance = distance;
+        }
+      }
+
+      return {
+        nearest,
+        nearestDistance,
+      };
+    };
+
     const handlePointerMove = (event: PointerEvent) => {
       const rect = renderer.domElement.getBoundingClientRect();
       pointerTarget.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
@@ -905,18 +948,31 @@ void main() {
     const handlePlacementClick = (event: PointerEvent) => {
       const currentConfig = configRef.current;
 
-      if (!currentConfig.surfaceGlowPlacementModeEnabled) {
-        return;
-      }
-
       const pickedSurfaceUv = tryPickSurfaceUv(event, diagnostics);
 
       if (!pickedSurfaceUv) {
         return;
       }
 
+      const { nearest, nearestDistance } = findNearestHotspot(pickedSurfaceUv.u, pickedSurfaceUv.v);
+
+      if (nearest && nearestDistance <= 0.04) {
+        callbackRef.current.onSelectSurfaceGlowHotspot?.(nearest.id);
+      } else if (!currentConfig.surfaceGlowPlacementModeEnabled) {
+        callbackRef.current.onSelectSurfaceGlowHotspot?.(null);
+      }
+
+      if (!currentConfig.surfaceGlowPlacementModeEnabled) {
+        return;
+      }
+
       if (event.shiftKey || event.altKey) {
         callbackRef.current.onRemoveNearestSurfaceGlowHotspot?.(pickedSurfaceUv.u, pickedSurfaceUv.v);
+        return;
+      }
+
+      if (nearest && nearestDistance <= 0.04) {
+        callbackRef.current.onSelectSurfaceGlowHotspot?.(nearest.id);
         return;
       }
 
@@ -1221,9 +1277,36 @@ void main() {
       plane.position.z = -0.15 + Math.sin(elapsedSeconds * 0.22) * 0.06 * autoAmount;
       glowPlane.material.opacity = 0.05 + effectiveDepth * 0.06 + currentGlowOffset * 0.8;
 
+      const selectedHotspot = activePreset.surfaceGlows.hotspots.find(
+        (hotspot) => hotspot.id === current.selectedSurfaceGlowId,
+      );
+      if (selectedHotspot) {
+        const uvScale = surfaceGlowUniforms.uSurfaceGlowUvScale.value;
+        const uvOffset = surfaceGlowUniforms.uSurfaceGlowUvOffset.value;
+        const planeU = (selectedHotspot.u - uvOffset.x) / Math.max(uvScale.x, 1e-6);
+        const planeV = (selectedHotspot.v - uvOffset.y) / Math.max(uvScale.y, 1e-6);
+        const withinPlane = planeU >= 0 && planeU <= 1 && planeV >= 0 && planeV <= 1;
+
+        if (withinPlane) {
+          const localX = (planeU - 0.5) * planeScale.x;
+          const localY = (planeV - 0.5) * planeScale.y;
+          const ringRadius = Math.max(0.014, selectedHotspot.radius * 0.9);
+          selectedGlowRing.position.set(localX, localY, 0.02);
+          selectedGlowRing.scale.set(ringRadius, ringRadius, 1);
+          (selectedGlowRing.material as THREE.MeshBasicMaterial).color.set(selectedHotspot.color);
+          selectedGlowRing.visible = true;
+        } else {
+          selectedGlowRing.visible = false;
+        }
+      } else {
+        selectedGlowRing.visible = false;
+      }
+
       camera.position.x = blendedPointer.x * 0.06;
       camera.position.y = -blendedPointer.y * 0.045;
       camera.lookAt(0, 0, -0.4);
+
+      renderer.domElement.style.cursor = current.surfaceGlowPlacementModeEnabled ? "crosshair" : "default";
 
       renderer.render(scene, camera);
 
@@ -1285,6 +1368,7 @@ void main() {
       colorTexture?.dispose();
       depthTexture?.dispose();
       renderer.domElement.style.filter = "";
+      renderer.domElement.style.cursor = "";
 
       planeGeometry.dispose();
       planeMaterial.dispose();
@@ -1292,6 +1376,8 @@ void main() {
       pickRenderTarget?.dispose();
       glowGeometry.dispose();
       glowMaterial.dispose();
+      selectedGlowRing.geometry.dispose();
+      (selectedGlowRing.material as THREE.MeshBasicMaterial).dispose();
 
       scene.clear();
       renderer.renderLists.dispose();
