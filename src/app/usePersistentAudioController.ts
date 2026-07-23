@@ -76,7 +76,9 @@ export function usePersistentAudioController(initialVolume = 0.7, selectedSource
   const volumeRef = useRef(safeInitialVolume)
   const seekableRef = useRef(DEMO_MODULATION_MANIPULATION_AUDIO_SOURCE.isSeekable)
   const [playbackStatus, setPlaybackStatus] = useState<AudioPlaybackStatus>('idle')
-  const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null)
+  const [audioElement] = useState<HTMLAudioElement | null>(() =>
+    typeof window === 'undefined' ? null : getSharedAudioElement(),
+  )
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
   const [volume, setVolumeState] = useState(safeInitialVolume)
@@ -105,8 +107,6 @@ export function usePersistentAudioController(initialVolume = 0.7, selectedSource
     const audio = getSharedAudioElement()
     audio.volume = volumeRef.current
     audioElementRef.current = audio
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setAudioElement(audio)
 
     const syncVolume = () => {
       setVolumeState(audio.volume)
@@ -222,7 +222,6 @@ export function usePersistentAudioController(initialVolume = 0.7, selectedSource
       audio.removeEventListener('error', handleError)
       audio.pause()
       audioElementRef.current = null
-      setAudioElement(null)
       pendingPlayRequestRef.current = false
     }
   }, [])
