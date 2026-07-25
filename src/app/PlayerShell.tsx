@@ -9,16 +9,7 @@ import { themeRegistry } from '../themes/themeRegistry'
 import type { ReactiveBehaviorId, ReactivePreviewTelemetry, SignalSource } from './playerTypes'
 import type { ThemeId, ThemeSceneProps } from '../themes/themeTypes'
 import { preloadImageDepthTextures } from '../themes/image-depth/imageDepthTextureCache'
-import {
-  ANALOG_SIGNAL_LABORATORY_PRODUCTION_ASSET,
-  BIOLUMINESCENT_PSY_FOREST_PRODUCTION_ASSET,
-  BIOLUMINESCENT_PSY_REEF_PRODUCTION_ASSET,
-  CRYSTAL_CAVERN_PRODUCTION_ASSET,
-  FEMALE_DJ_1_PRODUCTION_ASSET,
-  FEMALE_DJ_2_PRODUCTION_ASSET,
-  SLIME_CAVERN_PRODUCTION_ASSET,
-  UV_JUNGLE_PRODUCTION_ASSET,
-} from '../themes/image-depth/productionScenePresets'
+import { imageDepthEnvironmentCatalog } from '../themes/image-depth/environmentCatalog'
 import { useAudioAnalysis } from './useAudioAnalysis'
 import { usePersistentAudioController } from './usePersistentAudioController'
 import { defaultThemeId } from '../themes/themeRegistry'
@@ -261,16 +252,7 @@ function PlayerShell({ className }: PlayerShellProps) {
 
   const imageDepthAssetsByThemeId = useMemo(
     () =>
-      new Map<ThemeId, typeof UV_JUNGLE_PRODUCTION_ASSET>([
-        ['uv-reactive-jungle', UV_JUNGLE_PRODUCTION_ASSET],
-        ['analog-signal-laboratory', ANALOG_SIGNAL_LABORATORY_PRODUCTION_ASSET],
-        ['bioluminescent-psy-forest', BIOLUMINESCENT_PSY_FOREST_PRODUCTION_ASSET],
-        ['bioluminescent-psy-reef', BIOLUMINESCENT_PSY_REEF_PRODUCTION_ASSET],
-        ['crystal-cavern', CRYSTAL_CAVERN_PRODUCTION_ASSET],
-        ['slime-cavern', SLIME_CAVERN_PRODUCTION_ASSET],
-        ['female-dj-1', FEMALE_DJ_1_PRODUCTION_ASSET],
-        ['female-dj-2', FEMALE_DJ_2_PRODUCTION_ASSET],
-      ]),
+      new Map(imageDepthEnvironmentCatalog.map((environment) => [environment.id as ThemeId, environment.asset])),
     [],
   )
 

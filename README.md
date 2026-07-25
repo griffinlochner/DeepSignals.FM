@@ -31,13 +31,17 @@ Proven workflow:
 2. Upscale to the desired master resolution.
 3. Generate a matching depth map.
 4. Optimize the production color asset.
-5. Add the asset pair under `public/environments`.
-6. Register the asset in the laboratory.
-7. Tune behavior.
-8. Optionally place Surface Glow hotspots.
-9. Export production-ready scene JSON.
-10. Promote the authored scene into the production player.
-11. Validate and commit.
+5. Create `public/environments/<id>/`.
+6. Add `<id>-color.webp`.
+7. Add `<id>-depth.png`.
+8. Add one entry in `src/themes/image-depth/environmentCatalog.ts`.
+9. Run `npm run validate:environments`.
+10. Visually verify in `/player` and `/experiments/environment-lab`.
+11. Tune behavior.
+12. Optionally place Surface Glow hotspots.
+13. Export production-ready scene JSON.
+14. Promote the authored scene into the production player.
+15. Validate and commit.
 
 Detailed guide: `docs/creating-image-environments.md`
 

@@ -5,6 +5,7 @@ import type {
   ImageEnvironmentScenePreset,
   SurfaceGlowDefaultSettings,
 } from "./types";
+import { imageDepthEnvironmentCatalog } from "../../themes/image-depth/environmentCatalog";
 
 export const UV_JUNGLE_ASSET_ID = "uv-reactive-jungle";
 export const ANALOG_SIGNAL_LABORATORY_ASSET_ID = "analog-signal-laboratory";
@@ -15,85 +16,17 @@ export const SLIME_CAVERN_ASSET_ID = "slime-cavern";
 export const FEMALE_DJ_1_ASSET_ID = "female-dj-1";
 export const FEMALE_DJ_2_ASSET_ID = "female-dj-2";
 
-export const IMAGE_ENVIRONMENT_ASSETS: ImageEnvironmentAsset[] = [
-  {
-    id: UV_JUNGLE_ASSET_ID,
-    name: "UV Reactive Jungle",
-    colorImageUrl: "/environments/uv-reactive-jungle/uv-reactive-jungle-color.webp",
-    depthMapUrl: "/environments/uv-reactive-jungle/uv-reactive-jungle-depth.png",
+export const IMAGE_ENVIRONMENT_ASSETS: ImageEnvironmentAsset[] = imageDepthEnvironmentCatalog.map(
+  (environment) => ({
+    id: environment.id,
+    name: environment.displayName,
+    colorImageUrl: environment.asset.colorImageUrl,
+    depthMapUrl: environment.asset.depthMapUrl,
     metadata: {
-      description: "Premium UV Reactive Jungle artwork and aligned depth map for laboratory scene authoring.",
+      description: `${environment.displayName} artwork and aligned depth map for laboratory scene authoring.`,
     },
-  },
-  {
-    id: ANALOG_SIGNAL_LABORATORY_ASSET_ID,
-    name: "Analog Signal Laboratory",
-    colorImageUrl:
-      "/environments/analog-signal-laboratory/analog-signal-laboratory-color.webp",
-    depthMapUrl: "/environments/analog-signal-laboratory/analog-signal-laboratory-depth.png",
-    metadata: {
-      description: "Premium analog synthesis workstation artwork and aligned depth map.",
-    },
-  },
-  {
-    id: BIOLUMINESCENT_PSY_FOREST_ASSET_ID,
-    name: "Bioluminescent Psy Forest",
-    colorImageUrl:
-      "/environments/bioluminescent-psy-forest/bioluminescent-psy-forest-color.webp",
-    depthMapUrl:
-      "/environments/bioluminescent-psy-forest/bioluminescent-psy-forest-depth.png",
-    metadata: {
-      description: "Bioluminescent forest artwork and aligned depth map for calm organic environment authoring.",
-    },
-  },
-  {
-    id: BIOLUMINESCENT_PSY_REEF_ASSET_ID,
-    name: "Bioluminescent Psy Reef",
-    colorImageUrl:
-      "/environments/bioluminescent-psy-reef/bioluminescent-psy-reef-color.webp",
-    depthMapUrl:
-      "/environments/bioluminescent-psy-reef/bioluminescent-psy-reef-depth.png",
-    metadata: {
-      description: "Bioluminescent reef artwork and aligned depth map for laboratory scene authoring.",
-    },
-  },
-  {
-    id: CRYSTAL_CAVERN_ASSET_ID,
-    name: "Crystal Cavern",
-    colorImageUrl: "/environments/crystal-cavern/crystal-cavern-color.webp",
-    depthMapUrl: "/environments/crystal-cavern/crystal-cavern-depth.png",
-    metadata: {
-      description: "Crystal cavern artwork and aligned depth map for laboratory scene authoring.",
-    },
-  },
-  {
-    id: SLIME_CAVERN_ASSET_ID,
-    name: "Slime Cavern",
-    colorImageUrl: "/environments/slime-cavern/slime-cavern-color.webp",
-    depthMapUrl: "/environments/slime-cavern/slime-cavern-depth.png",
-    metadata: {
-      description: "Slime cavern artwork and aligned depth map for laboratory scene authoring.",
-    },
-  },
-  {
-    id: FEMALE_DJ_1_ASSET_ID,
-    name: "Female DJ 1",
-    colorImageUrl: "/environments/female-dj-1/female-dj-1-color.webp",
-    depthMapUrl: "/environments/female-dj-1/female-dj-1-depth.png",
-    metadata: {
-      description: "Female DJ 1 artwork and aligned depth map for laboratory scene authoring.",
-    },
-  },
-  {
-    id: FEMALE_DJ_2_ASSET_ID,
-    name: "Female DJ 2",
-    colorImageUrl: "/environments/female-dj-2/female-dj-2-color.webp",
-    depthMapUrl: "/environments/female-dj-2/female-dj-2-depth.png",
-    metadata: {
-      description: "Female DJ 2 artwork and aligned depth map for laboratory scene authoring.",
-    },
-  },
-];
+  }),
+);
 
 export const NEUTRAL_BEHAVIOR_SETTINGS: EnvironmentBehaviorSettings = {
   depth: {

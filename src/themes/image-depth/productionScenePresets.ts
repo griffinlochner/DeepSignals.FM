@@ -1,67 +1,7 @@
 import { MAX_SURFACE_GLOW_HOTSPOTS } from "../../experiments/environment-lab/constants";
-import type { ImageDepthAsset, ImageDepthScenePreset } from "./types";
+import type { ImageDepthScenePreset } from "./types";
 
-export const UV_JUNGLE_PRODUCTION_ASSET: ImageDepthAsset = {
-  id: "uv-reactive-jungle",
-  name: "UV Reactive Jungle",
-  colorImageUrl: "/environments/uv-reactive-jungle/uv-reactive-jungle-color.webp",
-  depthMapUrl: "/environments/uv-reactive-jungle/uv-reactive-jungle-depth.png",
-};
-
-export const ANALOG_SIGNAL_LABORATORY_PRODUCTION_ASSET: ImageDepthAsset = {
-  id: "analog-signal-laboratory",
-  name: "Analog Signal Laboratory",
-  colorImageUrl: "/environments/analog-signal-laboratory/analog-signal-laboratory-color.webp",
-  depthMapUrl: "/environments/analog-signal-laboratory/analog-signal-laboratory-depth.png",
-};
-
-export const BIOLUMINESCENT_PSY_FOREST_PRODUCTION_ASSET: ImageDepthAsset = {
-  id: "bioluminescent-psy-forest",
-  name: "Bioluminescent Psy Forest",
-  colorImageUrl:
-    "/environments/bioluminescent-psy-forest/bioluminescent-psy-forest-color.webp",
-  depthMapUrl:
-    "/environments/bioluminescent-psy-forest/bioluminescent-psy-forest-depth.png",
-};
-
-export const BIOLUMINESCENT_PSY_REEF_PRODUCTION_ASSET: ImageDepthAsset = {
-  id: "bioluminescent-psy-reef",
-  name: "Bioluminescent Psy Reef",
-  colorImageUrl:
-    "/environments/bioluminescent-psy-reef/bioluminescent-psy-reef-color.webp",
-  depthMapUrl:
-    "/environments/bioluminescent-psy-reef/bioluminescent-psy-reef-depth.png",
-};
-
-export const CRYSTAL_CAVERN_PRODUCTION_ASSET: ImageDepthAsset = {
-  id: "crystal-cavern",
-  name: "Crystal Cavern",
-  colorImageUrl: "/environments/crystal-cavern/crystal-cavern-color.webp",
-  depthMapUrl: "/environments/crystal-cavern/crystal-cavern-depth.png",
-};
-
-export const SLIME_CAVERN_PRODUCTION_ASSET: ImageDepthAsset = {
-  id: "slime-cavern",
-  name: "Slime Cavern",
-  colorImageUrl: "/environments/slime-cavern/slime-cavern-color.webp",
-  depthMapUrl: "/environments/slime-cavern/slime-cavern-depth.png",
-};
-
-export const FEMALE_DJ_1_PRODUCTION_ASSET: ImageDepthAsset = {
-  id: "female-dj-1",
-  name: "Female DJ 1",
-  colorImageUrl: "/environments/female-dj-1/female-dj-1-color.webp",
-  depthMapUrl: "/environments/female-dj-1/female-dj-1-depth.png",
-};
-
-export const FEMALE_DJ_2_PRODUCTION_ASSET: ImageDepthAsset = {
-  id: "female-dj-2",
-  name: "Female DJ 2",
-  colorImageUrl: "/environments/female-dj-2/female-dj-2-color.webp",
-  depthMapUrl: "/environments/female-dj-2/female-dj-2-depth.png",
-};
-
-const SHARED_IMAGE_DEPTH_CHILL_BEHAVIOR: ImageDepthScenePreset["behavior"] = {
+export const DEFAULT_IMAGE_DEPTH_CHILL_BEHAVIOR: ImageDepthScenePreset["behavior"] = {
   depth: {
     motionIntensity: 0.52,
     depthStrength: 0.62,
@@ -92,7 +32,7 @@ const SHARED_IMAGE_DEPTH_CHILL_BEHAVIOR: ImageDepthScenePreset["behavior"] = {
   },
 };
 
-const SHARED_SURFACE_GLOW_DEFAULTS: NonNullable<ImageDepthScenePreset["surfaceGlows"]["defaults"]> = {
+export const DEFAULT_SURFACE_GLOW_SETTINGS: NonNullable<ImageDepthScenePreset["surfaceGlows"]["defaults"]> = {
   color: "#8fffe2",
   radius: 0.01,
   softness: 0.65,
@@ -110,21 +50,22 @@ const SHARED_SURFACE_GLOW_DEFAULTS: NonNullable<ImageDepthScenePreset["surfaceGl
 };
 
 function createZeroGlowProductionScenePreset(
-  asset: ImageDepthAsset,
+  assetId: string,
+  assetName: string,
   presetId: string,
 ): ImageDepthScenePreset {
   return {
     id: presetId,
-    name: asset.name,
-    assetId: asset.id,
+    name: assetName,
+    assetId,
     behavior: {
-      depth: { ...SHARED_IMAGE_DEPTH_CHILL_BEHAVIOR.depth },
-      color: { ...SHARED_IMAGE_DEPTH_CHILL_BEHAVIOR.color },
-      saturationPulse: { ...SHARED_IMAGE_DEPTH_CHILL_BEHAVIOR.saturationPulse },
+      depth: { ...DEFAULT_IMAGE_DEPTH_CHILL_BEHAVIOR.depth },
+      color: { ...DEFAULT_IMAGE_DEPTH_CHILL_BEHAVIOR.color },
+      saturationPulse: { ...DEFAULT_IMAGE_DEPTH_CHILL_BEHAVIOR.saturationPulse },
     },
     surfaceGlows: {
       enabled: true,
-      defaults: { ...SHARED_SURFACE_GLOW_DEFAULTS },
+      defaults: { ...DEFAULT_SURFACE_GLOW_SETTINGS },
       hotspots: [],
     },
   };
@@ -2315,22 +2256,26 @@ assertExpectedHotspotCount(
 );
 
 export const CRYSTAL_CAVERN_PRODUCTION_SCENE_PRESET = createZeroGlowProductionScenePreset(
-  CRYSTAL_CAVERN_PRODUCTION_ASSET,
+  "crystal-cavern",
+  "Crystal Cavern",
   "crystal-cavern-default",
 );
 
 export const SLIME_CAVERN_PRODUCTION_SCENE_PRESET = createZeroGlowProductionScenePreset(
-  SLIME_CAVERN_PRODUCTION_ASSET,
+  "slime-cavern",
+  "Slime Cavern",
   "slime-cavern-default",
 );
 
 export const FEMALE_DJ_1_PRODUCTION_SCENE_PRESET = createZeroGlowProductionScenePreset(
-  FEMALE_DJ_1_PRODUCTION_ASSET,
+  "female-dj-1",
+  "Female DJ 1",
   "female-dj-1-default",
 );
 
 export const FEMALE_DJ_2_PRODUCTION_SCENE_PRESET = createZeroGlowProductionScenePreset(
-  FEMALE_DJ_2_PRODUCTION_ASSET,
+  "female-dj-2",
+  "Female DJ 2",
   "female-dj-2-default",
 );
 
@@ -2338,3 +2283,14 @@ assertExpectedHotspotCount(CRYSTAL_CAVERN_PRODUCTION_SCENE_PRESET, 0);
 assertExpectedHotspotCount(SLIME_CAVERN_PRODUCTION_SCENE_PRESET, 0);
 assertExpectedHotspotCount(FEMALE_DJ_1_PRODUCTION_SCENE_PRESET, 0);
 assertExpectedHotspotCount(FEMALE_DJ_2_PRODUCTION_SCENE_PRESET, 0);
+
+export const IMAGE_DEPTH_PRODUCTION_SCENE_PRESETS: ImageDepthScenePreset[] = [
+  UV_JUNGLE_PRODUCTION_SCENE_PRESET,
+  ANALOG_SIGNAL_LABORATORY_PRODUCTION_SCENE_PRESET,
+  BIOLUMINESCENT_PSY_FOREST_PRODUCTION_SCENE_PRESET,
+  BIOLUMINESCENT_PSY_REEF_PRODUCTION_SCENE_PRESET,
+  CRYSTAL_CAVERN_PRODUCTION_SCENE_PRESET,
+  SLIME_CAVERN_PRODUCTION_SCENE_PRESET,
+  FEMALE_DJ_1_PRODUCTION_SCENE_PRESET,
+  FEMALE_DJ_2_PRODUCTION_SCENE_PRESET,
+];

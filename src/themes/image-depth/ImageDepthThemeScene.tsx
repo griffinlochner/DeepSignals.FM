@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef } from "react";
+import type { CSSProperties } from "react";
 import * as THREE from "three";
 import { MAX_SURFACE_GLOW_HOTSPOTS } from "../../experiments/environment-lab/constants";
 import type { AudioReactiveSnapshot } from "../../app/playerTypes";
@@ -13,6 +14,8 @@ import { resolveImageDepthElapsedSeconds, writeImageDepthParityStats } from "./t
 import type { ImageDepthAsset, ImageDepthScenePreset, ImageDepthSurfaceGlowHotspot } from "./types";
 
 type ImageDepthThemeSceneProps = ThemeSceneProps & {
+  sceneId: string;
+  sceneBackdrop?: string;
   asset: ImageDepthAsset;
   scenePreset: ImageDepthScenePreset;
   className?: string;
@@ -265,6 +268,8 @@ export function ImageDepthThemeScene({
   reactivePreviewEnabled,
   reactiveBehavior = 'chill',
   onReactivePreviewTelemetry,
+  sceneId,
+  sceneBackdrop,
   asset,
   scenePreset,
   className,
@@ -1620,5 +1625,21 @@ if (uSurfaceGlowEnabled > 0.5) {
       profile.depth.staticDepth * profile.depth.depthStrength * DISPLACEMENT_SCALE_MULTIPLIER;
   }, [profile.depth.staticDepth, profile.depth.depthStrength]);
 
-  return <div className={className ?? "image-depth-scene"} ref={containerRef} role="presentation" />;
+  const containerStyle = useMemo<CSSProperties | undefined>(() => {
+    if (!sceneBackdrop) {
+      return undefined;
+    }
+
+    return { background: sceneBackdrop };
+  }, [sceneBackdrop]);
+
+  return (
+    <div
+      className={className ?? "image-depth-scene"}
+      data-scene-id={sceneId}
+      style={containerStyle}
+      ref={containerRef}
+      role="presentation"
+    />
+  );
 }

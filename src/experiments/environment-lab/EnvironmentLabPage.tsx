@@ -2,16 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import { MAX_SURFACE_GLOW_HOTSPOTS } from "./constants";
 import EnvironmentLabShell from "./EnvironmentLabShell";
 import {
-  ANALOG_SIGNAL_LABORATORY_PRODUCTION_SCENE_PRESET,
-  BIOLUMINESCENT_PSY_FOREST_PRODUCTION_SCENE_PRESET,
-  BIOLUMINESCENT_PSY_REEF_PRODUCTION_SCENE_PRESET,
-  CRYSTAL_CAVERN_PRODUCTION_SCENE_PRESET,
-  FEMALE_DJ_1_PRODUCTION_SCENE_PRESET,
-  FEMALE_DJ_2_PRODUCTION_SCENE_PRESET,
-  SLIME_CAVERN_PRODUCTION_SCENE_PRESET,
-  UV_JUNGLE_PRODUCTION_SCENE_PRESET,
-} from "../../themes/image-depth/productionScenePresets";
-import {
   applyBehaviorPreset,
   cloneBehaviorSettings,
   cloneScenePreset,
@@ -25,6 +15,7 @@ import {
   NEUTRAL_BASELINE_SCENE_PRESET,
   UV_JUNGLE_SHOWCASE_SCENE_PRESET,
 } from "./presets";
+import { imageDepthEnvironmentCatalog } from "../../themes/image-depth/environmentCatalog";
 import type {
   EnvironmentBehaviorSettings,
   EnvironmentDiagnostics,
@@ -222,40 +213,12 @@ function EnvironmentLabPage() {
   const [feedbackTone, setFeedbackTone] = useState<"idle" | "success" | "error">("idle");
 
   const productionBehaviorByAssetId = useMemo(() => {
-    return new Map<string, EnvironmentBehaviorSettings>([
-      [
-        UV_JUNGLE_PRODUCTION_SCENE_PRESET.assetId,
-        cloneBehaviorSettings(UV_JUNGLE_PRODUCTION_SCENE_PRESET.behavior),
-      ],
-      [
-        ANALOG_SIGNAL_LABORATORY_PRODUCTION_SCENE_PRESET.assetId,
-        cloneBehaviorSettings(ANALOG_SIGNAL_LABORATORY_PRODUCTION_SCENE_PRESET.behavior),
-      ],
-      [
-        BIOLUMINESCENT_PSY_FOREST_PRODUCTION_SCENE_PRESET.assetId,
-        cloneBehaviorSettings(BIOLUMINESCENT_PSY_FOREST_PRODUCTION_SCENE_PRESET.behavior),
-      ],
-      [
-        BIOLUMINESCENT_PSY_REEF_PRODUCTION_SCENE_PRESET.assetId,
-        cloneBehaviorSettings(BIOLUMINESCENT_PSY_REEF_PRODUCTION_SCENE_PRESET.behavior),
-      ],
-      [
-        CRYSTAL_CAVERN_PRODUCTION_SCENE_PRESET.assetId,
-        cloneBehaviorSettings(CRYSTAL_CAVERN_PRODUCTION_SCENE_PRESET.behavior),
-      ],
-      [
-        SLIME_CAVERN_PRODUCTION_SCENE_PRESET.assetId,
-        cloneBehaviorSettings(SLIME_CAVERN_PRODUCTION_SCENE_PRESET.behavior),
-      ],
-      [
-        FEMALE_DJ_1_PRODUCTION_SCENE_PRESET.assetId,
-        cloneBehaviorSettings(FEMALE_DJ_1_PRODUCTION_SCENE_PRESET.behavior),
-      ],
-      [
-        FEMALE_DJ_2_PRODUCTION_SCENE_PRESET.assetId,
-        cloneBehaviorSettings(FEMALE_DJ_2_PRODUCTION_SCENE_PRESET.behavior),
-      ],
-    ]);
+    return new Map<string, EnvironmentBehaviorSettings>(
+      imageDepthEnvironmentCatalog.map((environment) => [
+        environment.productionScenePreset.assetId,
+        cloneBehaviorSettings(environment.productionScenePreset.behavior),
+      ]),
+    );
   }, []);
 
   const selectedAsset = useMemo<ImageEnvironmentAsset | null>(
