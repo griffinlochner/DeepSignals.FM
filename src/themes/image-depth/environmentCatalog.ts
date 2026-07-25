@@ -278,6 +278,12 @@ export const imageDepthEnvironmentRegistrationSeeds: EnvironmentCatalogSeed[] = 
       },
     ),
   },
+  {
+  id: "psychedelic-temple",
+  displayName: "Psychedelic Temple",
+  uiSkin: "violet-cyan",
+  glowDots: [],
+},
 ];
 
 export const imageDepthEnvironmentCatalog: EnvironmentCatalogEntry[] =
