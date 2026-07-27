@@ -45,6 +45,8 @@ export type AudioReactiveSnapshot = {
   highs: number
   transient: number
   isActive: boolean
+  stabilizedDepth?: number
+  stabilizedDepthQuietGateActive?: boolean
 }
 
 export type AudioAnalysisGraphDetails = {

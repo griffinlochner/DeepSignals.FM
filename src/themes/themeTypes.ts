@@ -16,6 +16,7 @@ export type ThemeSceneProps = {
   getLatestAudioSnapshot?: (() => AudioReactiveSnapshot) | null
   reactivePreviewEnabled?: boolean
   reactiveBehavior?: ReactiveBehaviorId
+  reactiveDepthMode?: 'default' | 'stabilized-depth' | 'lighting-only'
   onReactivePreviewTelemetry?: (telemetry: ReactivePreviewTelemetry) => void
 }
 

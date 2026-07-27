@@ -1,4 +1,6 @@
 import EnvironmentLabPage from "./experiments/environment-lab/EnvironmentLabPage";
+import ExternalRadioProbePage from "./experiments/external-radio-probe/ExternalRadioProbePage";
+import RadioPlayerPage from "./experiments/radio-player/RadioPlayerPage";
 import LandingPage from "./pages/LandingPage";
 import PlayerPage from "./pages/PlayerPage";
 
@@ -19,6 +21,14 @@ function App() {
 
   if (pathname === "/experiments/environment-lab") {
     return <EnvironmentLabPage />;
+  }
+
+  if (pathname === "/experiments/external-radio-probe") {
+    return import.meta.env.DEV ? <ExternalRadioProbePage /> : <LandingPage />;
+  }
+
+  if (pathname === "/experiments/radio-player") {
+    return import.meta.env.DEV ? <RadioPlayerPage /> : <LandingPage />;
   }
 
   if (pathname === "/player") {

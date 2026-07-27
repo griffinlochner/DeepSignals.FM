@@ -267,6 +267,7 @@ export function ImageDepthThemeScene({
   getLatestAudioSnapshot,
   reactivePreviewEnabled,
   reactiveBehavior = 'chill',
+  reactiveDepthMode = 'default',
   onReactivePreviewTelemetry,
   sceneId,
   sceneBackdrop,
@@ -288,6 +289,7 @@ export function ImageDepthThemeScene({
     getLatestAudioSnapshot,
     reactivePreviewEnabled,
     reactiveBehavior,
+    reactiveDepthMode,
     onReactivePreviewTelemetry,
   });
 
@@ -341,6 +343,7 @@ export function ImageDepthThemeScene({
       getLatestAudioSnapshot,
       reactivePreviewEnabled,
       reactiveBehavior,
+      reactiveDepthMode,
       onReactivePreviewTelemetry,
     };
   }, [
@@ -351,6 +354,7 @@ export function ImageDepthThemeScene({
     onReactivePreviewTelemetry,
     reactivePreviewEnabled,
     reactiveBehavior,
+    reactiveDepthMode,
     sourceBpm,
     reducedMotion,
   ]);
@@ -785,7 +789,8 @@ if (uSurfaceGlowEnabled > 0.5) {
 
         const analysisSignalAvailable = latestSnapshot?.isActive === true;
         const allowReactiveLighting = reactiveBehaviorEnabled && isPlayingNow && analysisSignalAvailable;
-        const allowReactiveGeometry = allowReactiveLighting && geometryMotionActive;
+        const depthMode = visualState.reactiveDepthMode ?? 'default';
+        const allowReactiveGeometry = allowReactiveLighting && geometryMotionActive && depthMode !== 'lighting-only';
         const reactiveTimingAuthorityActive = allowReactiveGeometry;
         const fullOnBehaviorActive = reactiveBehaviorEnabled && visualState.reactiveBehavior === 'fullon';
         const autonomousBehavior = visualState.reactiveBehavior === 'fullon' ? 'fullon' : 'chill';
@@ -816,13 +821,23 @@ if (uSurfaceGlowEnabled > 0.5) {
             )
           : 0;
 
+        const hasExternalStabilizedDepth =
+          depthMode === 'stabilized-depth' &&
+          typeof latestSnapshot?.stabilizedDepth === 'number' &&
+          Number.isFinite(latestSnapshot.stabilizedDepth);
+        const externalStabilizedDepth = hasExternalStabilizedDepth
+          ? clamp(latestSnapshot?.stabilizedDepth ?? 0, 0, 1)
+          : null;
+
         const bassNormalized = allowReactiveGeometry
-          ? shapeCurve(
-              normalizeWithFloor(latestSnapshot?.bass ?? 0, reactiveBehaviorProfile.bassFloor),
-              reactiveBehaviorProfile.bassCurve,
-            )
+          ? externalStabilizedDepth !== null
+            ? externalStabilizedDepth
+            : shapeCurve(
+                normalizeWithFloor(latestSnapshot?.bass ?? 0, reactiveBehaviorProfile.bassFloor),
+                reactiveBehaviorProfile.bassCurve,
+              )
           : 0;
-        const kickPulseNormalized = allowReactiveGeometry
+        const kickPulseNormalized = allowReactiveLighting
           ? shapeCurve(
               normalizeWithFloor(currentKickPulse, reactiveBehaviorProfile.kickPulseFloor),
               reactiveBehaviorProfile.kickPulseCurve,
@@ -841,7 +856,9 @@ if (uSurfaceGlowEnabled > 0.5) {
         const depthSustainedTarget =
           bassNormalized * reactiveBehaviorProfile.sustainedDepthMaxContribution;
         const depthPulseTarget =
-          fullOnBehaviorActive
+          externalStabilizedDepth !== null
+            ? 0
+            : fullOnBehaviorActive
             ? kickPulseNormalized * reactiveBehaviorProfile.kickDepthMaxContribution
             : chillKickTargetDepth;
         const saturationBoostTarget = smoothedEnergyNormalized * reactiveBehaviorProfile.saturationMaxBoost;
