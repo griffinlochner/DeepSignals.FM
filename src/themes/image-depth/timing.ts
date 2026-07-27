@@ -3,8 +3,27 @@ declare global {
     __IMAGE_DEPTH_PARITY__?: {
       forcedElapsedSeconds?: number;
       stats?: Record<string, unknown>;
+      counters?: {
+        rendererInstances: number;
+        sceneInstances: number;
+      };
     };
   }
+}
+
+function ensureParityCounters() {
+  if (!window.__IMAGE_DEPTH_PARITY__) {
+    window.__IMAGE_DEPTH_PARITY__ = {};
+  }
+
+  if (!window.__IMAGE_DEPTH_PARITY__.counters) {
+    window.__IMAGE_DEPTH_PARITY__.counters = {
+      rendererInstances: 0,
+      sceneInstances: 0,
+    };
+  }
+
+  return window.__IMAGE_DEPTH_PARITY__.counters;
 }
 
 export function resolveImageDepthElapsedSeconds(timestamp: number, startedAt: number) {
@@ -27,4 +46,32 @@ export function writeImageDepthParityStats(key: string, value: Record<string, un
   }
 
   window.__IMAGE_DEPTH_PARITY__.stats[key] = value;
+}
+
+export function incrementImageDepthRendererInstance() {
+  const counters = ensureParityCounters();
+  counters.rendererInstances += 1;
+}
+
+export function decrementImageDepthRendererInstance() {
+  const counters = ensureParityCounters();
+  counters.rendererInstances = Math.max(0, counters.rendererInstances - 1);
+}
+
+export function incrementImageDepthSceneInstance() {
+  const counters = ensureParityCounters();
+  counters.sceneInstances += 1;
+}
+
+export function decrementImageDepthSceneInstance() {
+  const counters = ensureParityCounters();
+  counters.sceneInstances = Math.max(0, counters.sceneInstances - 1);
+}
+
+export function readImageDepthInstanceCounters() {
+  const counters = ensureParityCounters();
+  return {
+    rendererInstances: counters.rendererInstances,
+    sceneInstances: counters.sceneInstances,
+  };
 }

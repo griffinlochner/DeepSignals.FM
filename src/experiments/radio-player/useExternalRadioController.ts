@@ -76,7 +76,14 @@ export type AnalyzerSpikeEvent = {
     | 'playback-state transition'
     | 'invalid numeric value'
     | 'large frame-time gap'
-  samples: AnalyzerMetricSample[]
+  snapshot: {
+    timeDomainRms: number
+    bassEnergy: number
+    normalizedDepth: number
+    finalSmoothedDepth: number
+    frameDeltaMs: number
+    audioCurrentTime: number
+  }
 }
 
 export type AnalyzerDiagnostics = {
@@ -85,10 +92,80 @@ export type AnalyzerDiagnostics = {
   spikes: AnalyzerSpikeEvent[]
 }
 
+type DevMemorySnapshot = {
+  supported: boolean
+  usedJsHeapSize: number
+  totalJsHeapSize: number
+  jsHeapSizeLimit: number
+  deltaSincePlaybackStart: number
+  peakUsedJsHeapSize: number
+}
+
+type DevRuntimeCounters = {
+  animationFramesProcessed: number
+  diagnosticUiPublications: number
+  rollingSampleCount: number
+  spikeEventCount: number
+  activeRafChains: number
+  activeTimers: number
+  audioElements: number
+  audioContexts: number
+  sourceNodes: number
+  analyzers: number
+  rendererInstances: number
+  sceneInstances: number
+}
+
+export type DevSignalSourceId =
+  | 'psyradio-progressive'
+  | 'psyndora-psytrance'
+  | 'psyndora-alternate'
+  | 'psystream'
+  | 'custom-dev-url'
+
+export type DevSignalSourceOption = {
+  id: DevSignalSourceId
+  label: string
+  stationName: string
+  streamUrl: string
+  stationWebsite: string
+  sourceAttribution: string
+}
+
+type DevSignalSourceConfiguration = {
+  id: DevSignalSourceId
+  stationName: string
+  streamUrl: string
+  stationWebsite: string
+  sourceAttribution: string
+}
+
+type ComparisonReadout = {
+  selectedStation: string
+  streamUrl: string
+  playbackStatus: SignalState
+  analyzerAssessment: string
+  liveRms: number
+  averageFrequencyEnergy: number
+  audioContextState: AudioContextState | 'not-created' | 'closed'
+  elapsedCurrentTime: number
+  reconnectAttempts: number
+}
+
+type AudioResourceDiagnostics = {
+  audioElementsCreated: number
+  audioContextsCreated: number
+  sourceNodesCreated: number
+  analyzersCreated: number
+  analysisLoopsStarted: number
+  isAnalysisLoopRunning: boolean
+}
+
 type UseExternalRadioControllerResult = {
   streamUrl: string
   stationName: string
   stationWebsite: string
+  stationAttribution: string
   signalState: SignalState
   isPlaying: boolean
   canStart: boolean
@@ -104,6 +181,12 @@ type UseExternalRadioControllerResult = {
   setVisualFeedOpen: (value: boolean) => void
   selectedThemeId: string
   setSelectedThemeId: (value: string) => void
+  signalSources: DevSignalSourceOption[]
+  selectedSignalSourceId: DevSignalSourceId
+  customStreamUrlInput: string
+  setCustomStreamUrlInput: (value: string) => void
+  selectSignalSource: (id: DevSignalSourceId) => Promise<void>
+  applyCustomSignalSource: () => Promise<void>
   startSignal: () => Promise<void>
   stopSignal: () => Promise<void>
   reconnectSignal: () => Promise<void>
@@ -112,19 +195,67 @@ type UseExternalRadioControllerResult = {
   metadataProbeResults: MetadataProbeResult[]
   reconnectDiagnostics: ReconnectDiagnostics
   analyzerDiagnostics: AnalyzerDiagnostics
+  comparisonReadout: ComparisonReadout
+  resourceDiagnostics: AudioResourceDiagnostics
+  memoryDiagnostics: DevMemorySnapshot
+  runtimeCounters: DevRuntimeCounters
   errorMessage: string | null
 }
 
-const STREAM_URL = 'http://65.109.32.21:8010/stream'
-const STATION_NAME = 'PsyRadio Progressive'
-const STATION_WEBSITE = 'http://psyradio.fm'
+const DEV_SIGNAL_SOURCES: DevSignalSourceOption[] = [
+  {
+    id: 'psyradio-progressive',
+    label: 'PsyRadio Progressive (External DEV Signal)',
+    stationName: 'PsyRadio Progressive',
+    streamUrl: 'http://65.109.32.21:8010/stream',
+    stationWebsite: 'http://psyradio.fm',
+    sourceAttribution: 'External development signal',
+  },
+  {
+    id: 'psyndora-psytrance',
+    label: 'Psyndora Psytrance (External DEV Signal)',
+    stationName: 'Psyndora Psytrance',
+    streamUrl: 'https://cast.magicstreams.gr:9111/stream',
+    stationWebsite: 'https://cast.magicstreams.gr',
+    sourceAttribution: 'External development signal',
+  },
+  {
+    id: 'psyndora-alternate',
+    label: 'Psyndora Alternate (External DEV Signal)',
+    stationName: 'Psyndora Alternate',
+    streamUrl: 'https://cast.magicstreams.gr/sc/psyndora/stream',
+    stationWebsite: 'https://cast.magicstreams.gr',
+    sourceAttribution: 'External development signal',
+  },
+  {
+    id: 'psystream',
+    label: 'PsyStream (External DEV Signal)',
+    stationName: 'PsyStream',
+    streamUrl: 'https://radio.psymusic.co.uk/listen/psystream/hifi.mp3',
+    stationWebsite: 'https://radio.psymusic.co.uk',
+    sourceAttribution: 'External development signal',
+  },
+  {
+    id: 'custom-dev-url',
+    label: 'Custom DEV URL',
+    stationName: 'Custom DEV Signal',
+    streamUrl: '',
+    stationWebsite: '',
+    sourceAttribution: 'External development signal',
+  },
+]
+
+const DEFAULT_SIGNAL_SOURCE_ID: DevSignalSourceId = 'psyradio-progressive'
+const DEFAULT_SIGNAL_SOURCE = DEV_SIGNAL_SOURCES.find((source) => source.id === DEFAULT_SIGNAL_SOURCE_ID) as DevSignalSourceOption
 const METADATA_POLL_MS = 15000
 const WAITING_GRACE_MS = 5000
 const STABLE_PLAYBACK_RESET_MS = 12000
 const RECONNECT_DELAYS_MS = [2000, 5000, 10000, 20000, 30000]
-const DIAGNOSTICS_BUFFER_MS = 8000
-const DIAGNOSTICS_PUBLISH_INTERVAL_MS = 120
+const DIAGNOSTICS_PUBLISH_INTERVAL_MS = 350
+const MEMORY_SAMPLE_INTERVAL_MS = 2000
 const DIAGNOSTICS_SPIKE_COOLDOWN_MS = 650
+const ROLLING_SAMPLE_CAP = 120
+const SPIKE_EVENT_CAP = 24
 const NORMALIZATION_NEAR_ZERO_RANGE = 0.01
 const LARGE_FRAME_GAP_MS = 120
 const QUIET_GATE_ENTER_RMS = 0.024
@@ -193,6 +324,30 @@ const ZERO_ANALYZER_SAMPLE: AnalyzerMetricSample = {
   audioContextState: 'not-created',
   audioCurrentTime: 0,
   reconnectAttemptCount: 0,
+}
+
+const ZERO_MEMORY_DIAGNOSTICS: DevMemorySnapshot = {
+  supported: false,
+  usedJsHeapSize: 0,
+  totalJsHeapSize: 0,
+  jsHeapSizeLimit: 0,
+  deltaSincePlaybackStart: 0,
+  peakUsedJsHeapSize: 0,
+}
+
+const ZERO_RUNTIME_COUNTERS: DevRuntimeCounters = {
+  animationFramesProcessed: 0,
+  diagnosticUiPublications: 0,
+  rollingSampleCount: 0,
+  spikeEventCount: 0,
+  activeRafChains: 0,
+  activeTimers: 0,
+  audioElements: 1,
+  audioContexts: 0,
+  sourceNodes: 0,
+  analyzers: 0,
+  rendererInstances: 0,
+  sceneInstances: 0,
 }
 
 function finiteOrZero(value: number) {
@@ -338,7 +493,69 @@ function createMediaErrorMessage(error: MediaError | null) {
   return `${byCode[error.code] ?? `UNKNOWN_${error.code}`}${error.message ? `: ${error.message}` : ''}`
 }
 
+function getPerformanceMemory() {
+  const perf = performance as Performance & {
+    memory?: {
+      usedJSHeapSize: number
+      totalJSHeapSize: number
+      jsHeapSizeLimit: number
+    }
+  }
+
+  return perf.memory ?? null
+}
+
+function readRendererCounters() {
+  const counters = (window as Window & {
+    __IMAGE_DEPTH_PARITY__?: {
+      counters?: {
+        rendererInstances?: number
+        sceneInstances?: number
+      }
+    }
+  }).__IMAGE_DEPTH_PARITY__?.counters
+
+  return {
+    rendererInstances: Number.isFinite(counters?.rendererInstances) ? counters?.rendererInstances ?? 0 : 0,
+    sceneInstances: Number.isFinite(counters?.sceneInstances) ? counters?.sceneInstances ?? 0 : 0,
+  }
+}
+
+function findSignalSourceById(id: DevSignalSourceId) {
+  return DEV_SIGNAL_SOURCES.find((source) => source.id === id) ?? DEFAULT_SIGNAL_SOURCE
+}
+
+function normalizeCustomStreamUrl(url: string) {
+  const trimmed = url.trim()
+
+  if (!trimmed) {
+    return null
+  }
+
+  try {
+    const parsed = new URL(trimmed)
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      return null
+    }
+
+    return parsed.toString()
+  } catch {
+    return null
+  }
+}
+
 export function useExternalRadioController(defaultThemeId: string): UseExternalRadioControllerResult {
+  const [selectedSignalSourceId, setSelectedSignalSourceId] = useState<DevSignalSourceId>(
+    DEFAULT_SIGNAL_SOURCE_ID,
+  )
+  const [customStreamUrlInput, setCustomStreamUrlInput] = useState('')
+  const [activeSignal, setActiveSignal] = useState<DevSignalSourceConfiguration>({
+    id: DEFAULT_SIGNAL_SOURCE.id,
+    stationName: DEFAULT_SIGNAL_SOURCE.stationName,
+    streamUrl: DEFAULT_SIGNAL_SOURCE.streamUrl,
+    stationWebsite: DEFAULT_SIGNAL_SOURCE.stationWebsite,
+    sourceAttribution: DEFAULT_SIGNAL_SOURCE.sourceAttribution,
+  })
   const [signalState, setSignalState] = useState<SignalState>('Signal Off')
   const [selectedBehavior, setSelectedBehavior] = useState<ReactiveBehaviorId>('chill')
   const [motionEnabled, setMotionEnabled] = useState(true)
@@ -368,6 +585,16 @@ export function useExternalRadioController(defaultThemeId: string): UseExternalR
     rollingSamples: [],
     spikes: [],
   })
+  const [resourceDiagnostics, setResourceDiagnostics] = useState<AudioResourceDiagnostics>({
+    audioElementsCreated: 1,
+    audioContextsCreated: 0,
+    sourceNodesCreated: 0,
+    analyzersCreated: 0,
+    analysisLoopsStarted: 0,
+    isAnalysisLoopRunning: false,
+  })
+  const [memoryDiagnostics, setMemoryDiagnostics] = useState<DevMemorySnapshot>(ZERO_MEMORY_DIAGNOSTICS)
+  const [runtimeCounters, setRuntimeCounters] = useState<DevRuntimeCounters>(ZERO_RUNTIME_COUNTERS)
 
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const contextRef = useRef<AudioContext | null>(null)
@@ -381,10 +608,17 @@ export function useExternalRadioController(defaultThemeId: string): UseExternalR
   const reconnectDelayTimerRef = useRef<number | null>(null)
   const metadataPollTimerRef = useRef<number | null>(null)
   const metadataEndpointRef = useRef<string | null>(null)
+  const metadataSessionRef = useRef(0)
   const diagnosticsPublishAtRef = useRef(0)
   const diagnosticsSamplesRef = useRef<AnalyzerMetricSample[]>([])
   const diagnosticsSpikesRef = useRef<AnalyzerSpikeEvent[]>([])
   const lastSpikeAtByReasonRef = useRef<Record<string, number>>({})
+  const latestAnalyzerSampleRef = useRef<AnalyzerMetricSample>({ ...ZERO_ANALYZER_SAMPLE })
+  const memorySampleAtRef = useRef(0)
+  const playbackHeapStartRef = useRef<number | null>(null)
+  const playbackHeapPeakRef = useRef(0)
+  const activeSignalRef = useRef<DevSignalSourceConfiguration>(activeSignal)
+  const signalSwitchInProgressRef = useRef(false)
 
   const snapshotRef = useRef<AudioReactiveSnapshot>(ZERO_SNAPSHOT)
   const smoothedEnergyRef = useRef(0)
@@ -414,16 +648,192 @@ export function useExternalRadioController(defaultThemeId: string): UseExternalR
   const reconnectInProgressRef = useRef(false)
   const audioEventCleanupRef = useRef<Array<() => void>>([])
   const reconnectAttemptCountRef = useRef(0)
+  const frameCountRef = useRef(0)
+  const selectedBehaviorRef = useRef<ReactiveBehaviorId>('chill')
+  const signalStateRef = useRef<SignalState>('Signal Off')
 
   const updateReconnectDiagnostics = useCallback((partial: Partial<ReconnectDiagnostics>) => {
     setReconnectDiagnostics((previous) => ({ ...previous, ...partial }))
   }, [])
 
   useEffect(() => {
+    selectedBehaviorRef.current = selectedBehavior
+  }, [selectedBehavior])
+
+  useEffect(() => {
+    signalStateRef.current = signalState
+  }, [signalState])
+
+  const publishRuntimeCounters = useCallback((partial: Partial<DevRuntimeCounters>) => {
+    setRuntimeCounters((previous) => ({ ...previous, ...partial }))
+  }, [])
+
+  const countActiveTimers = useCallback(() => {
+    let activeCount = 0
+
+    if (stablePlaybackTimerRef.current !== null) {
+      activeCount += 1
+    }
+
+    if (reconnectGraceTimerRef.current !== null) {
+      activeCount += 1
+    }
+
+    if (reconnectDelayTimerRef.current !== null) {
+      activeCount += 1
+    }
+
+    if (metadataPollTimerRef.current !== null) {
+      activeCount += 1
+    }
+
+    return activeCount
+  }, [])
+
+  const maybePublishMemoryDiagnostics = useCallback(
+    (timestampMs: number) => {
+      if (timestampMs - memorySampleAtRef.current < MEMORY_SAMPLE_INTERVAL_MS) {
+        return
+      }
+
+      memorySampleAtRef.current = timestampMs
+      const memory = getPerformanceMemory()
+
+      if (!memory) {
+        setMemoryDiagnostics(ZERO_MEMORY_DIAGNOSTICS)
+        return
+      }
+
+      const used = Number.isFinite(memory.usedJSHeapSize) ? memory.usedJSHeapSize : 0
+      const total = Number.isFinite(memory.totalJSHeapSize) ? memory.totalJSHeapSize : 0
+      const limit = Number.isFinite(memory.jsHeapSizeLimit) ? memory.jsHeapSizeLimit : 0
+
+      if (playbackHeapStartRef.current === null && signalStateRef.current !== 'Signal Off') {
+        playbackHeapStartRef.current = used
+      }
+
+      playbackHeapPeakRef.current = Math.max(playbackHeapPeakRef.current, used)
+      const heapStart = playbackHeapStartRef.current ?? used
+
+      setMemoryDiagnostics({
+        supported: true,
+        usedJsHeapSize: used,
+        totalJsHeapSize: total,
+        jsHeapSizeLimit: limit,
+        deltaSincePlaybackStart: used - heapStart,
+        peakUsedJsHeapSize: playbackHeapPeakRef.current,
+      })
+    },
+    [],
+  )
+
+  const updateActiveSignal = useCallback((nextSignal: DevSignalSourceConfiguration) => {
+    activeSignalRef.current = nextSignal
+    setActiveSignal(nextSignal)
+  }, [])
+
+  const resetMetadataState = useCallback(() => {
+    metadataSessionRef.current += 1
+    metadataEndpointRef.current = null
+    setMetadata({
+      status: 'idle',
+      artist: null,
+      title: null,
+      sourceEndpoint: null,
+      message: 'Track metadata unavailable',
+    })
+    setMetadataProbeResults([])
+  }, [])
+
+  const resetAnalyzerState = useCallback(() => {
+    snapshotRef.current = { ...ZERO_SNAPSHOT }
+    smoothedEnergyRef.current = 0
+    kickPulseRef.current = 0
+    bassPulseRef.current = 0
+    transientRef.current = 0
+    lastKickAtRef.current = 0
+    kickAcceptedCountRef.current = 0
+    kickSequenceRef.current = 0
+    previousBassRef.current = 0
+    previousFinalDepthRef.current = 0
+    previousFrameAtRef.current = null
+    previousQuietGateRef.current = false
+    previousReadyStateRef.current = null
+    previousNetworkStateRef.current = null
+    quietGateLatchedRef.current = false
+    stableNormalizedDepthRef.current = STABILIZED_NEUTRAL_DEPTH
+    adaptiveLowerBoundRef.current = null
+    adaptiveUpperBoundRef.current = null
+    pendingSpikeFrameCountRef.current = 0
+    transitionGuardUntilRef.current = 0
+    diagnosticsPublishAtRef.current = 0
+    diagnosticsSamplesRef.current.length = 0
+    diagnosticsSpikesRef.current.length = 0
+    lastSpikeAtByReasonRef.current = {}
+    latestAnalyzerSampleRef.current = {
+      ...ZERO_ANALYZER_SAMPLE,
+      reconnectAttemptCount: reconnectAttemptCountRef.current,
+    }
+    playbackHeapStartRef.current = null
+    playbackHeapPeakRef.current = 0
+    memorySampleAtRef.current = 0
+
+    const contextState = contextRef.current
+      ? contextRef.current.state
+      : previousContextStateRef.current === 'closed'
+        ? 'closed'
+        : 'not-created'
+
+    setAnalyzerDiagnostics({
+      latest: {
+        ...latestAnalyzerSampleRef.current,
+        audioContextState: contextState,
+      },
+      rollingSamples: [],
+      spikes: [],
+    })
+
+    publishRuntimeCounters({
+      rollingSampleCount: 0,
+      spikeEventCount: 0,
+      animationFramesProcessed: 0,
+      diagnosticUiPublications: 0,
+    })
+    setMemoryDiagnostics(ZERO_MEMORY_DIAGNOSTICS)
+  }, [publishRuntimeCounters])
+
+  const resetReconnectState = useCallback(
+    (stoppedByUser: boolean, reason: string | null) => {
+      reconnectBackoffIndexRef.current = 0
+      reconnectInProgressRef.current = false
+      reconnectAttemptCountRef.current = 0
+      setReconnectDiagnostics((previous) => ({
+        ...previous,
+        reconnectAttemptCount: 0,
+        currentRetryDelayMs: null,
+        lastReconnectReason: reason,
+        stoppedByUser,
+      }))
+    },
+    [],
+  )
+
+  const applyStreamSourceToAudio = useCallback((audio: HTMLAudioElement, streamUrl: string) => {
+    const preservedVolume = audio.volume
+
+    audio.pause()
+    audio.removeAttribute('src')
+    audio.load()
+    audio.crossOrigin = 'anonymous'
+    audio.src = streamUrl
+    audio.volume = preservedVolume
+  }, [])
+
+  useEffect(() => {
     reconnectAttemptCountRef.current = reconnectDiagnostics.reconnectAttemptCount
   }, [reconnectDiagnostics.reconnectAttemptCount])
 
-  const publishDiagnostics = useCallback((sample: AnalyzerMetricSample, spikes: AnalyzerSpikeEvent[]) => {
+  const publishDiagnostics = useCallback((sample: AnalyzerMetricSample) => {
     const now = nowMs()
 
     if (now - diagnosticsPublishAtRef.current < DIAGNOSTICS_PUBLISH_INTERVAL_MS) {
@@ -431,12 +841,32 @@ export function useExternalRadioController(defaultThemeId: string): UseExternalR
     }
 
     diagnosticsPublishAtRef.current = now
+    const rollingSnapshot = diagnosticsSamplesRef.current.slice()
+    const spikeSnapshot = diagnosticsSpikesRef.current.slice()
+    const rendererCounters = readRendererCounters()
+
     setAnalyzerDiagnostics({
-      latest: sample,
-      rollingSamples: diagnosticsSamplesRef.current,
-      spikes,
+      latest: { ...sample },
+      rollingSamples: rollingSnapshot,
+      spikes: spikeSnapshot,
     })
-  }, [])
+    maybePublishMemoryDiagnostics(now)
+    setRuntimeCounters((previous) => ({
+      ...previous,
+      animationFramesProcessed: frameCountRef.current,
+      diagnosticUiPublications: previous.diagnosticUiPublications + 1,
+      rollingSampleCount: rollingSnapshot.length,
+      spikeEventCount: spikeSnapshot.length,
+      activeRafChains: animationFrameRef.current !== null ? 1 : 0,
+      activeTimers: countActiveTimers(),
+      audioElements: 1,
+      audioContexts: resourceDiagnostics.audioContextsCreated,
+      sourceNodes: resourceDiagnostics.sourceNodesCreated,
+      analyzers: resourceDiagnostics.analyzersCreated,
+      rendererInstances: rendererCounters.rendererInstances,
+      sceneInstances: rendererCounters.sceneInstances,
+    }))
+  }, [countActiveTimers, maybePublishMemoryDiagnostics, resourceDiagnostics.analyzersCreated, resourceDiagnostics.audioContextsCreated, resourceDiagnostics.sourceNodesCreated])
 
   const createSpike = useCallback(
     (
@@ -453,20 +883,27 @@ export function useExternalRadioController(defaultThemeId: string): UseExternalR
 
       lastSpikeAtByReasonRef.current[reason] = sample.timestampMs
 
-      const samples = diagnosticsSamplesRef.current.filter(
-        (entry) => sample.timestampMs - entry.timestampMs <= DIAGNOSTICS_BUFFER_MS,
-      )
-
       const spike: AnalyzerSpikeEvent = {
         id: `${Math.round(sample.timestampMs)}-${reason}`,
         timestampMs: sample.timestampMs,
         stage,
         reason,
-        samples,
+        snapshot: {
+          timeDomainRms: sample.timeDomainRms,
+          bassEnergy: sample.bassEnergy,
+          normalizedDepth: sample.normalizedDepth,
+          finalSmoothedDepth: sample.finalSmoothedDepth,
+          frameDeltaMs: sample.frameDeltaMs,
+          audioCurrentTime: sample.audioCurrentTime,
+        },
       }
 
-      diagnosticsSpikesRef.current = [spike, ...diagnosticsSpikesRef.current].slice(0, 12)
-      publishDiagnostics(sample, diagnosticsSpikesRef.current)
+      diagnosticsSpikesRef.current.unshift(spike)
+      if (diagnosticsSpikesRef.current.length > SPIKE_EVENT_CAP) {
+        diagnosticsSpikesRef.current.length = SPIKE_EVENT_CAP
+      }
+
+      publishDiagnostics(sample)
     },
     [publishDiagnostics],
   )
@@ -495,8 +932,13 @@ export function useExternalRadioController(defaultThemeId: string): UseExternalR
     if (animationFrameRef.current !== null) {
       window.cancelAnimationFrame(animationFrameRef.current)
       animationFrameRef.current = null
+      setResourceDiagnostics((previous) => ({
+        ...previous,
+        isAnalysisLoopRunning: false,
+      }))
+      publishRuntimeCounters({ activeRafChains: 0 })
     }
-  }, [])
+  }, [publishRuntimeCounters])
 
   const getLatestAudioSnapshot = useCallback(() => {
     return snapshotRef.current
@@ -560,8 +1002,13 @@ export function useExternalRadioController(defaultThemeId: string): UseExternalR
     }
   }, [])
 
-  const discoverMetadataEndpoint = useCallback(async () => {
-    const origin = new URL(STREAM_URL).origin
+  const discoverMetadataEndpoint = useCallback(async (sessionId: number) => {
+    const origin = new URL(activeSignalRef.current.streamUrl).origin
+
+    if (sessionId !== metadataSessionRef.current) {
+      return
+    }
+
     setMetadata({
       status: 'discovering',
       artist: null,
@@ -573,8 +1020,16 @@ export function useExternalRadioController(defaultThemeId: string): UseExternalR
     const probeResults: MetadataProbeResult[] = []
 
     for (const endpoint of METADATA_ENDPOINTS) {
+      if (sessionId !== metadataSessionRef.current) {
+        return
+      }
+
       const absolute = `${origin}${endpoint}`
       const result = await runMetadataFetch(absolute)
+
+      if (sessionId !== metadataSessionRef.current) {
+        return
+      }
 
       probeResults.push({
         endpoint: absolute,
@@ -584,6 +1039,11 @@ export function useExternalRadioController(defaultThemeId: string): UseExternalR
 
       if (result.ok && result.parsed) {
         metadataEndpointRef.current = absolute
+
+        if (sessionId !== metadataSessionRef.current) {
+          return
+        }
+
         setMetadata({
           status: 'available',
           artist: result.parsed.artist,
@@ -597,6 +1057,10 @@ export function useExternalRadioController(defaultThemeId: string): UseExternalR
       }
     }
 
+    if (sessionId !== metadataSessionRef.current) {
+      return
+    }
+
     metadataEndpointRef.current = null
     setMetadata({
       status: 'unavailable',
@@ -608,7 +1072,11 @@ export function useExternalRadioController(defaultThemeId: string): UseExternalR
     setMetadataProbeResults(probeResults)
   }, [runMetadataFetch])
 
-  const pollCurrentMetadata = useCallback(async () => {
+  const pollCurrentMetadata = useCallback(async (sessionId: number) => {
+    if (sessionId !== metadataSessionRef.current) {
+      return
+    }
+
     const endpoint = metadataEndpointRef.current
 
     if (!endpoint) {
@@ -617,6 +1085,10 @@ export function useExternalRadioController(defaultThemeId: string): UseExternalR
 
     const result = await runMetadataFetch(endpoint)
     if (!result.ok || !result.parsed) {
+      return
+    }
+
+    if (sessionId !== metadataSessionRef.current) {
       return
     }
 
@@ -631,14 +1103,21 @@ export function useExternalRadioController(defaultThemeId: string): UseExternalR
 
   const ensureMetadataPolling = useCallback(async () => {
     clearMetadataPoll()
-    await discoverMetadataEndpoint()
+    metadataSessionRef.current += 1
+    const sessionId = metadataSessionRef.current
+
+    await discoverMetadataEndpoint(sessionId)
+
+    if (sessionId !== metadataSessionRef.current) {
+      return
+    }
 
     if (!metadataEndpointRef.current) {
       return
     }
 
     metadataPollTimerRef.current = window.setInterval(() => {
-      void pollCurrentMetadata()
+      void pollCurrentMetadata(sessionId)
     }, METADATA_POLL_MS)
   }, [clearMetadataPoll, discoverMetadataEndpoint, pollCurrentMetadata])
 
@@ -689,7 +1168,7 @@ export function useExternalRadioController(defaultThemeId: string): UseExternalR
   const reconnectNow = useCallback(async (reason: string) => {
     const audio = audioRef.current
 
-    if (!audio || manualStopRef.current || !userRequestedPlaybackRef.current) {
+    if (!audio || manualStopRef.current || !userRequestedPlaybackRef.current || signalSwitchInProgressRef.current) {
       return
     }
 
@@ -701,24 +1180,18 @@ export function useExternalRadioController(defaultThemeId: string): UseExternalR
     setSignalState('Reconnecting')
     updateReconnectDiagnostics({ lastReconnectReason: reason })
 
-    const preservedVolume = audio.volume
-
     try {
-      audio.pause()
-      audio.removeAttribute('src')
-      audio.load()
-      audio.src = STREAM_URL
-      audio.volume = preservedVolume
+      applyStreamSourceToAudio(audio, activeSignalRef.current.streamUrl)
       await attemptPlay(reason)
     } catch (error) {
       setErrorMessage(String(error))
       setSignalState('Stream Unavailable')
       reconnectInProgressRef.current = false
     }
-  }, [attemptPlay, updateReconnectDiagnostics])
+  }, [applyStreamSourceToAudio, attemptPlay, updateReconnectDiagnostics])
 
   const scheduleReconnect = useCallback((reason: string) => {
-    if (manualStopRef.current || !userRequestedPlaybackRef.current) {
+    if (manualStopRef.current || !userRequestedPlaybackRef.current || signalSwitchInProgressRef.current) {
       return
     }
 
@@ -758,7 +1231,19 @@ export function useExternalRadioController(defaultThemeId: string): UseExternalR
       return
     }
 
+    if (animationFrameRef.current !== null) {
+      return
+    }
+
+    setResourceDiagnostics((previous) => ({
+      ...previous,
+      analysisLoopsStarted: previous.analysisLoopsStarted + 1,
+      isAnalysisLoopRunning: true,
+    }))
+    publishRuntimeCounters({ activeRafChains: 1 })
+
     const tick = () => {
+      frameCountRef.current += 1
       const frameNow = nowMs()
       const previousFrameAt = previousFrameAtRef.current
       const frameDeltaMs = previousFrameAt === null ? 16.67 : Math.max(0, frameNow - previousFrameAt)
@@ -817,8 +1302,8 @@ export function useExternalRadioController(defaultThemeId: string): UseExternalR
       previousBassRef.current = bass
 
       const now = performance.now()
-      const minKickIntervalMs = selectedBehavior === 'fullon' ? 180 : 240
-      const kickThreshold = selectedBehavior === 'fullon' ? 0.06 : 0.075
+      const minKickIntervalMs = selectedBehaviorRef.current === 'fullon' ? 180 : 240
+      const kickThreshold = selectedBehaviorRef.current === 'fullon' ? 0.06 : 0.075
       const acceptedKick = bassRise > kickThreshold && now - lastKickAtRef.current >= minKickIntervalMs
 
       if (acceptedKick) {
@@ -904,9 +1389,9 @@ export function useExternalRadioController(defaultThemeId: string): UseExternalR
         readyStateChanged ||
         networkStateChanged ||
         contextStateChanged ||
-        signalState === 'Buffering' ||
-        signalState === 'Reconnecting' ||
-        signalState === 'Connecting' ||
+        signalStateRef.current === 'Buffering' ||
+        signalStateRef.current === 'Reconnecting' ||
+        signalStateRef.current === 'Connecting' ||
         audioReadyState < 2
       ) {
         transitionGuardUntilRef.current = Math.max(
@@ -960,10 +1445,6 @@ export function useExternalRadioController(defaultThemeId: string): UseExternalR
       finalSmoothedDepth = clampFinite01(finalSmoothedDepth)
       previousFinalDepthRef.current = finalSmoothedDepth
 
-      const rollingWindow = diagnosticsSamplesRef.current.filter(
-        (entry) => frameNow - entry.timestampMs <= DIAGNOSTICS_BUFFER_MS,
-      )
-
       const hasNanOrInfinity = ![
         rms,
         peak,
@@ -1009,7 +1490,11 @@ export function useExternalRadioController(defaultThemeId: string): UseExternalR
         reconnectAttemptCount: reconnectAttemptCountRef.current,
       }
 
-      diagnosticsSamplesRef.current = [...rollingWindow, sample]
+      latestAnalyzerSampleRef.current = sample
+      diagnosticsSamplesRef.current.push(sample)
+      if (diagnosticsSamplesRef.current.length > ROLLING_SAMPLE_CAP) {
+        diagnosticsSamplesRef.current.shift()
+      }
 
       const quietGateChanged = previousQuietGateRef.current !== quietGateActive || wasQuietGateLatched !== quietGateActive
       const depthJumped = Math.abs(finalSmoothedDepth - previousDepth) >= 0.3
@@ -1053,31 +1538,29 @@ export function useExternalRadioController(defaultThemeId: string): UseExternalR
         createSpike(sample, 'validation', 'large frame-time gap')
       }
 
-      publishDiagnostics(sample, diagnosticsSpikesRef.current)
+      publishDiagnostics(sample)
 
-      const snapshot: AudioReactiveSnapshot = {
-        energy,
-        smoothedEnergy: clamp01(smoothedEnergyRef.current),
-        bass,
-        kickPulse: clamp01(kickPulseRef.current),
-        kickPulseAcceptedEvent: acceptedKick,
-        kickPulseAcceptedEventCount: kickAcceptedCountRef.current,
-        kickPulseAcceptedEventSequence: kickSequenceRef.current,
-        bassPulse: clamp01(bassPulseRef.current),
-        mids,
-        highs,
-        transient: clamp01(transientRef.current * 3.2),
-        isActive: energy > 0.025,
-        stabilizedDepth: finalSmoothedDepth,
-        stabilizedDepthQuietGateActive: quietGateActive,
-      }
+      const snapshot = snapshotRef.current
+      snapshot.energy = energy
+      snapshot.smoothedEnergy = clamp01(smoothedEnergyRef.current)
+      snapshot.bass = bass
+      snapshot.kickPulse = clamp01(kickPulseRef.current)
+      snapshot.kickPulseAcceptedEvent = acceptedKick
+      snapshot.kickPulseAcceptedEventCount = kickAcceptedCountRef.current
+      snapshot.kickPulseAcceptedEventSequence = kickSequenceRef.current
+      snapshot.bassPulse = clamp01(bassPulseRef.current)
+      snapshot.mids = mids
+      snapshot.highs = highs
+      snapshot.transient = clamp01(transientRef.current * 3.2)
+      snapshot.isActive = energy > 0.025
+      snapshot.stabilizedDepth = finalSmoothedDepth
+      snapshot.stabilizedDepthQuietGateActive = quietGateActive
 
-      snapshotRef.current = snapshot
       animationFrameRef.current = window.requestAnimationFrame(tick)
     }
 
     animationFrameRef.current = window.requestAnimationFrame(tick)
-  }, [createSpike, publishDiagnostics, selectedBehavior, signalState])
+  }, [createSpike, publishDiagnostics, publishRuntimeCounters])
 
   const ensureAudioGraph = useCallback(async () => {
     const audio = audioRef.current
@@ -1089,23 +1572,35 @@ export function useExternalRadioController(defaultThemeId: string): UseExternalR
     if (!contextRef.current) {
       const context = new AudioContext()
       contextRef.current = context
+      setResourceDiagnostics((previous) => ({
+        ...previous,
+        audioContextsCreated: previous.audioContextsCreated + 1,
+      }))
 
       const source = context.createMediaElementSource(audio)
       sourceRef.current = source
+      setResourceDiagnostics((previous) => ({
+        ...previous,
+        sourceNodesCreated: previous.sourceNodesCreated + 1,
+      }))
 
       const analyser = context.createAnalyser()
       analyser.fftSize = 2048
       analyser.smoothingTimeConstant = 0.85
       analyserRef.current = analyser
+      setResourceDiagnostics((previous) => ({
+        ...previous,
+        analyzersCreated: previous.analyzersCreated + 1,
+      }))
 
       source.connect(analyser)
       analyser.connect(context.destination)
 
       timeDataRef.current = new Uint8Array(analyser.fftSize)
       frequencyDataRef.current = new Uint8Array(analyser.frequencyBinCount)
-
-      startAnalysisLoop()
     }
+
+    startAnalysisLoop()
 
     if (contextRef.current.state !== 'running') {
       await contextRef.current.resume()
@@ -1121,6 +1616,140 @@ export function useExternalRadioController(defaultThemeId: string): UseExternalR
     }
   }, [])
 
+  const applySignalSource = useCallback(
+    async (nextSignal: DevSignalSourceConfiguration, startPlayback: boolean) => {
+      const audio = audioRef.current
+      const shouldResumePlayback =
+        startPlayback || signalState === 'On Air' || signalState === 'Buffering' || signalState === 'Reconnecting'
+
+      signalSwitchInProgressRef.current = true
+
+      manualStopRef.current = true
+      userRequestedPlaybackRef.current = false
+      updateReconnectDiagnostics({
+        stoppedByUser: true,
+        lastEvent: 'signal-switch',
+        lastEventTimestamp: Date.now(),
+      })
+
+      clearReconnectTimers()
+      clearMetadataPoll()
+      stopAnalysisLoop()
+      resetMetadataState()
+
+      if (audio) {
+        applyStreamSourceToAudio(audio, nextSignal.streamUrl)
+      }
+
+      resetAnalyzerState()
+      resetReconnectState(true, null)
+      updateActiveSignal(nextSignal)
+      setErrorMessage(null)
+
+      if (!shouldResumePlayback) {
+        setSignalState('Signal Off')
+        signalSwitchInProgressRef.current = false
+        return
+      }
+
+      manualStopRef.current = false
+      userRequestedPlaybackRef.current = true
+      resetReconnectState(false, null)
+      setSignalState('Connecting')
+
+      await ensureAudioGraph()
+      const started = await attemptPlay('switch')
+      signalSwitchInProgressRef.current = false
+
+      if (started) {
+        void ensureMetadataPolling()
+      }
+    },
+    [
+      applyStreamSourceToAudio,
+      attemptPlay,
+      clearMetadataPoll,
+      clearReconnectTimers,
+      ensureAudioGraph,
+      ensureMetadataPolling,
+      resetAnalyzerState,
+      resetMetadataState,
+      resetReconnectState,
+      signalState,
+      stopAnalysisLoop,
+      updateActiveSignal,
+      updateReconnectDiagnostics,
+    ],
+  )
+
+  const selectSignalSource = useCallback(
+    async (id: DevSignalSourceId) => {
+      setSelectedSignalSourceId(id)
+
+      if (id === 'custom-dev-url') {
+        return
+      }
+
+      const source = findSignalSourceById(id)
+      const nextSignal: DevSignalSourceConfiguration = {
+        id: source.id,
+        stationName: source.stationName,
+        streamUrl: source.streamUrl,
+        stationWebsite: source.stationWebsite,
+        sourceAttribution: source.sourceAttribution,
+      }
+
+      await applySignalSource(nextSignal, false)
+    },
+    [applySignalSource],
+  )
+
+  const applyCustomSignalSource = useCallback(async () => {
+    const normalizedUrl = normalizeCustomStreamUrl(customStreamUrlInput)
+    setSelectedSignalSourceId('custom-dev-url')
+
+    if (!normalizedUrl) {
+      manualStopRef.current = true
+      userRequestedPlaybackRef.current = false
+      clearReconnectTimers()
+      clearMetadataPoll()
+      resetMetadataState()
+      resetAnalyzerState()
+      resetReconnectState(true, null)
+      stopAnalysisLoop()
+
+      const audio = audioRef.current
+      if (audio) {
+        audio.pause()
+        audio.removeAttribute('src')
+        audio.load()
+      }
+
+      setErrorMessage('Stream Unavailable: enter a valid HTTP(S) custom stream URL.')
+      setSignalState('Stream Unavailable')
+      return
+    }
+
+    const nextSignal: DevSignalSourceConfiguration = {
+      id: 'custom-dev-url',
+      stationName: 'Custom DEV Signal',
+      streamUrl: normalizedUrl,
+      stationWebsite: normalizedUrl,
+      sourceAttribution: 'External development signal',
+    }
+
+    await applySignalSource(nextSignal, false)
+  }, [
+    applySignalSource,
+    clearMetadataPoll,
+    clearReconnectTimers,
+    customStreamUrlInput,
+    resetAnalyzerState,
+    resetMetadataState,
+    resetReconnectState,
+    stopAnalysisLoop,
+  ])
+
   const startSignal = useCallback(async () => {
     const audio = audioRef.current
     if (!audio) {
@@ -1133,13 +1762,23 @@ export function useExternalRadioController(defaultThemeId: string): UseExternalR
     setSignalState('Connecting')
     setErrorMessage(null)
 
+    applyStreamSourceToAudio(audio, activeSignalRef.current.streamUrl)
+    resetReconnectState(false, null)
+
     await ensureAudioGraph()
     const started = await attemptPlay('start')
 
     if (started) {
       void ensureMetadataPolling()
     }
-  }, [attemptPlay, ensureAudioGraph, ensureMetadataPolling, updateReconnectDiagnostics])
+  }, [
+    applyStreamSourceToAudio,
+    attemptPlay,
+    ensureAudioGraph,
+    ensureMetadataPolling,
+    resetReconnectState,
+    updateReconnectDiagnostics,
+  ])
 
   const stopSignal = useCallback(async () => {
     manualStopRef.current = true
@@ -1152,6 +1791,10 @@ export function useExternalRadioController(defaultThemeId: string): UseExternalR
 
     clearReconnectTimers()
     clearMetadataPoll()
+    resetMetadataState()
+    resetAnalyzerState()
+    resetReconnectState(true, null)
+    stopAnalysisLoop()
 
     const audio = audioRef.current
     if (audio) {
@@ -1161,7 +1804,15 @@ export function useExternalRadioController(defaultThemeId: string): UseExternalR
     }
 
     setSignalState('Signal Off')
-  }, [clearMetadataPoll, clearReconnectTimers, updateReconnectDiagnostics])
+  }, [
+    clearMetadataPoll,
+    clearReconnectTimers,
+    resetAnalyzerState,
+    resetMetadataState,
+    resetReconnectState,
+    stopAnalysisLoop,
+    updateReconnectDiagnostics,
+  ])
 
   const reconnectSignal = useCallback(async () => {
     manualStopRef.current = false
@@ -1177,7 +1828,7 @@ export function useExternalRadioController(defaultThemeId: string): UseExternalR
     audio.autoplay = false
     audio.loop = false
     audio.crossOrigin = 'anonymous'
-    audio.src = STREAM_URL
+    audio.src = activeSignalRef.current.streamUrl
     audio.volume = 0.72
     audioRef.current = audio
 
@@ -1327,11 +1978,30 @@ export function useExternalRadioController(defaultThemeId: string): UseExternalR
   const canStop = signalState !== 'Signal Off'
   const canReconnect = signalState !== 'Signal Off'
 
+  const averageFrequencyEnergy = clampFinite01(
+    (analyzerDiagnostics.latest.bassEnergy +
+      analyzerDiagnostics.latest.midrangeEnergy +
+      analyzerDiagnostics.latest.trebleEnergy) /
+      3,
+  )
+
+  const analyzerAssessment =
+    analyzerDiagnostics.latest.hasNanOrInfinity ||
+    analyzerDiagnostics.latest.hasNegativeRange ||
+    analyzerDiagnostics.latest.hasLargeFrameGap
+      ? 'Validation warning'
+      : analyzerDiagnostics.latest.timeDomainRms > 0.02 && analyzerDiagnostics.latest.nonZeroFftBinRatio > 0.1
+        ? 'Reactive'
+        : signalState === 'Signal Off'
+          ? 'Idle'
+          : 'Low signal'
+
   return useMemo(() => {
     return {
-      streamUrl: STREAM_URL,
-      stationName: STATION_NAME,
-      stationWebsite: STATION_WEBSITE,
+      streamUrl: activeSignal.streamUrl,
+      stationName: activeSignal.stationName,
+      stationWebsite: activeSignal.stationWebsite,
+      stationAttribution: activeSignal.sourceAttribution,
       signalState,
       isPlaying: signalState === 'On Air' || signalState === 'Buffering' || signalState === 'Reconnecting',
       canStart,
@@ -1347,6 +2017,12 @@ export function useExternalRadioController(defaultThemeId: string): UseExternalR
       setVisualFeedOpen,
       selectedThemeId,
       setSelectedThemeId,
+      signalSources: DEV_SIGNAL_SOURCES,
+      selectedSignalSourceId,
+      customStreamUrlInput,
+      setCustomStreamUrlInput,
+      selectSignalSource,
+      applyCustomSignalSource,
       startSignal,
       stopSignal,
       reconnectSignal,
@@ -1355,23 +2031,48 @@ export function useExternalRadioController(defaultThemeId: string): UseExternalR
       metadataProbeResults,
       reconnectDiagnostics,
       analyzerDiagnostics,
+      comparisonReadout: {
+        selectedStation: activeSignal.stationName,
+        streamUrl: activeSignal.streamUrl,
+        playbackStatus: signalState,
+        analyzerAssessment,
+        liveRms: analyzerDiagnostics.latest.timeDomainRms,
+        averageFrequencyEnergy,
+        audioContextState: analyzerDiagnostics.latest.audioContextState,
+        elapsedCurrentTime: analyzerDiagnostics.latest.audioCurrentTime,
+        reconnectAttempts: reconnectDiagnostics.reconnectAttemptCount,
+      },
+      resourceDiagnostics,
+      memoryDiagnostics,
+      runtimeCounters,
       errorMessage,
     }
   }, [
+    activeSignal,
     analyzerDiagnostics,
+    analyzerAssessment,
+    applyCustomSignalSource,
     applyVolume,
+    averageFrequencyEnergy,
     canReconnect,
     canStart,
     canStop,
+    customStreamUrlInput,
     errorMessage,
     getLatestAudioSnapshot,
     metadata,
     metadataProbeResults,
+    memoryDiagnostics,
     motionEnabled,
     reconnectDiagnostics,
     reconnectSignal,
+    resourceDiagnostics,
+    runtimeCounters,
+    selectSignalSource,
+    selectedSignalSourceId,
     selectedBehavior,
     selectedThemeId,
+    setCustomStreamUrlInput,
     signalState,
     startSignal,
     stopSignal,

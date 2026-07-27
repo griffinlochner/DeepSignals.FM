@@ -10,7 +10,14 @@ import { computeImageDepthFraming, IMAGE_DEPTH_PARITY_FRAMING } from "./framing"
 import { getImageDepthTexturePair } from "./imageDepthTextureCache";
 import { AmbientParticleField } from "./ambientParticleField";
 import { REACTIVE_BEHAVIOR_PROFILES } from "./reactivePreviewProfile";
-import { resolveImageDepthElapsedSeconds, writeImageDepthParityStats } from "./timing";
+import {
+  decrementImageDepthRendererInstance,
+  decrementImageDepthSceneInstance,
+  incrementImageDepthRendererInstance,
+  incrementImageDepthSceneInstance,
+  resolveImageDepthElapsedSeconds,
+  writeImageDepthParityStats,
+} from "./timing";
 import type { ImageDepthAsset, ImageDepthScenePreset, ImageDepthSurfaceGlowHotspot } from "./types";
 
 type ImageDepthThemeSceneProps = ThemeSceneProps & {
@@ -64,6 +71,15 @@ function isParticlePerfEnabled() {
 
   const searchParams = new URLSearchParams(window.location.search);
   return searchParams.get("particlePerf") === "1";
+}
+
+function isParityStatsEnabled() {
+  if (!import.meta.env.DEV || typeof window === "undefined") {
+    return false;
+  }
+
+  const searchParams = new URLSearchParams(window.location.search);
+  return searchParams.get("imageDepthStats") === "1";
 }
 
 type SurfaceGlowUniformState = {
@@ -366,6 +382,7 @@ export function ImageDepthThemeScene({
     }
 
     const scene = new THREE.Scene();
+    incrementImageDepthSceneInstance();
     scene.background = new THREE.Color(0x08110d);
     scene.fog = new THREE.FogExp2(0x08110d, 0.045);
 
@@ -374,6 +391,7 @@ export function ImageDepthThemeScene({
     scene.add(camera);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: "high-performance" });
+    incrementImageDepthRendererInstance();
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.NoToneMapping;
@@ -573,6 +591,7 @@ if (uSurfaceGlowEnabled > 0.5) {
     let ambientParticleField: AmbientParticleField | null = null;
     const ambientParticlesEnabled = isAmbientParticlesEnabled();
     const particleDebugEnabled = isParticleDebugEnabled();
+    const parityStatsEnabled = isParityStatsEnabled();
 
     sharedMaterialRef.current = material;
 
@@ -1509,79 +1528,81 @@ if (uSurfaceGlowEnabled > 0.5) {
           });
         }
 
-        writeImageDepthParityStats("production", {
-          elapsedSeconds,
-          playbackMix: playbackVisualMixRef.current,
-          grayscale: 1 - playbackVisualMixRef.current,
-          hueOffsetDegrees,
-          currentSaturation,
-          effectiveSaturation:
-            playbackVisualMixRef.current * currentSaturation * (1 + glowPulseAmount * 0.7),
-          glowPulseAmount,
-          reactivePreviewEnabled: reactiveBehaviorEnabled,
-          analysisSignalAvailable,
-          reactiveIsolationEnabled,
-          reactiveTimingAuthorityActive,
-          musicAuthorityActive: reactiveTimingAuthorityActive,
-          fullOnBehaviorActive,
-          fullOnCurrentPhase,
-          fullOnLowTargetDepth,
-          fullOnHighTargetDepth,
-          fullOnCurrentDepth,
-          fullOnKickBreathEnvelope,
-          fullOnAttackDurationMs,
-          fullOnReleaseDurationMs,
-          sourceBpm,
-          beatIntervalMs,
-          acceptedEventMinimumIntervalMs,
-          fullOnMillisecondsSincePreviousAcceptedEvent,
-          fullOnRecentAcceptedEventRate,
-          sectionIntensity,
-          acceptedKickEventCount,
-          acceptedKickEventEdge,
-          millisecondsSinceAcceptedKickEvent,
-          inactivityReturnActive,
-          grayscaleFilterActive,
-          finalSaturation,
-          reactiveSaturationMultiplier,
-          saturationBloomMultiplier,
-          authoredBaseSaturation,
-          authoredPeriodicSaturationContribution,
-          kickBloomEnvelope: fullOnKickBloomEnvelope,
-          hueEventStride: reactiveBehaviorProfile.hueEventStride,
-          hueEventStepAppliedDegrees: fullOnHueEventStepAppliedDegrees,
-          authoredBaseGlow: authoredGlowPulseAmount,
-          reactiveKickBloom,
-          reactiveKickSurfaceGlowBloom,
-          authoredCyclicBreathingEnabled,
-          authoredDepthContribution,
-          authoredAmbientGeometryContribution,
-          chillKickBreathEnvelope,
-          chillKickTargetDepth,
-          depthReactiveContribution,
-          depthSustainedContribution: reactiveDepthSustained,
-          depthPulseContribution: reactiveDepthPulse,
-          combinedDepthBeforeClamp,
-          configuredDepthMinimum,
-          configuredDepthMaximum,
-          depthFinalAfterClamp,
-          finalDisplacementScale,
-          parallaxEnabled: autonomousParallaxEnabled,
-          parallaxCapabilityEnabled: profile.depth.pointerParallaxEnabled,
-          parallaxAmplitudeScale: autonomousParallaxProfile.horizontalExcursion,
-          autonomousTargetX: autonomousPointer.x,
-          autonomousTargetY: autonomousPointer.y,
-          autonomousPointerX: autonomousSmoothedPointer.x,
-          autonomousPointerY: autonomousSmoothedPointer.y,
-          cameraPositionX: blendedPointer.x * 0.06,
-          cameraPositionY: -blendedPointer.y * 0.045,
-          saturationReactiveBoost: reactiveSaturationBoost,
-          globalLightReactiveBoost: reactiveGlobalLightBoost,
-          surfaceGlowReactiveBoost: reactiveSurfaceGlowBoost,
-          transientReactiveAccent: reactiveTransientAccent,
-          brightness: 1 + glowPulseAmount,
-          filter,
-        });
+        if (parityStatsEnabled) {
+          writeImageDepthParityStats("production", {
+            elapsedSeconds,
+            playbackMix: playbackVisualMixRef.current,
+            grayscale: 1 - playbackVisualMixRef.current,
+            hueOffsetDegrees,
+            currentSaturation,
+            effectiveSaturation:
+              playbackVisualMixRef.current * currentSaturation * (1 + glowPulseAmount * 0.7),
+            glowPulseAmount,
+            reactivePreviewEnabled: reactiveBehaviorEnabled,
+            analysisSignalAvailable,
+            reactiveIsolationEnabled,
+            reactiveTimingAuthorityActive,
+            musicAuthorityActive: reactiveTimingAuthorityActive,
+            fullOnBehaviorActive,
+            fullOnCurrentPhase,
+            fullOnLowTargetDepth,
+            fullOnHighTargetDepth,
+            fullOnCurrentDepth,
+            fullOnKickBreathEnvelope,
+            fullOnAttackDurationMs,
+            fullOnReleaseDurationMs,
+            sourceBpm,
+            beatIntervalMs,
+            acceptedEventMinimumIntervalMs,
+            fullOnMillisecondsSincePreviousAcceptedEvent,
+            fullOnRecentAcceptedEventRate,
+            sectionIntensity,
+            acceptedKickEventCount,
+            acceptedKickEventEdge,
+            millisecondsSinceAcceptedKickEvent,
+            inactivityReturnActive,
+            grayscaleFilterActive,
+            finalSaturation,
+            reactiveSaturationMultiplier,
+            saturationBloomMultiplier,
+            authoredBaseSaturation,
+            authoredPeriodicSaturationContribution,
+            kickBloomEnvelope: fullOnKickBloomEnvelope,
+            hueEventStride: reactiveBehaviorProfile.hueEventStride,
+            hueEventStepAppliedDegrees: fullOnHueEventStepAppliedDegrees,
+            authoredBaseGlow: authoredGlowPulseAmount,
+            reactiveKickBloom,
+            reactiveKickSurfaceGlowBloom,
+            authoredCyclicBreathingEnabled,
+            authoredDepthContribution,
+            authoredAmbientGeometryContribution,
+            chillKickBreathEnvelope,
+            chillKickTargetDepth,
+            depthReactiveContribution,
+            depthSustainedContribution: reactiveDepthSustained,
+            depthPulseContribution: reactiveDepthPulse,
+            combinedDepthBeforeClamp,
+            configuredDepthMinimum,
+            configuredDepthMaximum,
+            depthFinalAfterClamp,
+            finalDisplacementScale,
+            parallaxEnabled: autonomousParallaxEnabled,
+            parallaxCapabilityEnabled: profile.depth.pointerParallaxEnabled,
+            parallaxAmplitudeScale: autonomousParallaxProfile.horizontalExcursion,
+            autonomousTargetX: autonomousPointer.x,
+            autonomousTargetY: autonomousPointer.y,
+            autonomousPointerX: autonomousSmoothedPointer.x,
+            autonomousPointerY: autonomousSmoothedPointer.y,
+            cameraPositionX: blendedPointer.x * 0.06,
+            cameraPositionY: -blendedPointer.y * 0.045,
+            saturationReactiveBoost: reactiveSaturationBoost,
+            globalLightReactiveBoost: reactiveGlobalLightBoost,
+            surfaceGlowReactiveBoost: reactiveSurfaceGlowBoost,
+            transientReactiveAccent: reactiveTransientAccent,
+            brightness: 1 + glowPulseAmount,
+            filter,
+          });
+        }
 
         renderer.render(scene, camera);
       } catch (error) {
@@ -1625,6 +1646,8 @@ if (uSurfaceGlowEnabled > 0.5) {
       glowMaterial.dispose();
       scene.clear();
       renderer.dispose();
+      decrementImageDepthRendererInstance();
+      decrementImageDepthSceneInstance();
 
       if (renderer.domElement.parentElement === container) {
         container.removeChild(renderer.domElement);

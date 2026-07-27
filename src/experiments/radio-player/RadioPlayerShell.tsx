@@ -6,15 +6,20 @@ import VisualFeedWindow from '../../components/VisualFeedWindow'
 import RadioAnalyzerDiagnosticsPanel from './RadioAnalyzerDiagnosticsPanel'
 import { defaultThemeId, themeRegistry } from '../../themes/themeRegistry'
 import type { ThemeSceneProps } from '../../themes/themeTypes'
-import { useExternalRadioController } from './useExternalRadioController'
+import { useExternalRadioController, type DevSignalSourceId } from './useExternalRadioController'
 import '../../styles/player.css'
 import './radioPlayer.css'
 
 type DevDepthMode = 'stabilized-depth' | 'lighting-only'
 
+function formatMetric(value: number, digits = 3) {
+  return Number.isFinite(value) ? value.toFixed(digits) : '0.000'
+}
+
 function RadioPlayerShell() {
   const radio = useExternalRadioController(defaultThemeId)
   const [devDepthMode, setDevDepthMode] = useState<DevDepthMode>('stabilized-depth')
+  const [analyzerPanelOpen, setAnalyzerPanelOpen] = useState(false)
   const [reducedMotion, setReducedMotion] = useState(() => {
     if (typeof window === 'undefined') {
       return false
@@ -36,6 +41,16 @@ function RadioPlayerShell() {
 
     query.addListener(sync)
     return () => query.removeListener(sync)
+  }, [])
+
+  useEffect(() => {
+    document.documentElement.classList.add('radio-player-scroll-root')
+    document.body.classList.add('radio-player-scroll-root')
+
+    return () => {
+      document.documentElement.classList.remove('radio-player-scroll-root')
+      document.body.classList.remove('radio-player-scroll-root')
+    }
   }, [])
 
   const activeTheme = useMemo(() => {
@@ -74,6 +89,7 @@ function RadioPlayerShell() {
     radio.metadata.status === 'available' && radio.metadata.artist && radio.metadata.title
       ? `${radio.metadata.artist} - ${radio.metadata.title}`
       : 'Track metadata unavailable'
+  const showCustomSignalInput = import.meta.env.DEV && radio.selectedSignalSourceId === 'custom-dev-url'
 
   return (
     <div
@@ -92,12 +108,12 @@ function RadioPlayerShell() {
           <p className="radio-player-shell__eyebrow">DeepSignals Radio Prototype · DEV only</p>
           <h1 className="radio-player-shell__title">{radio.stationName}</h1>
           <p className="radio-player-shell__source-label">External Development Signal</p>
-          <p className="radio-player-shell__source-attribution">
-            Programming and audio provided by PsyRadio.FM
-          </p>
-          <a className="radio-player-shell__source-link" href={radio.stationWebsite} target="_blank" rel="noreferrer">
-            {radio.stationWebsite}
-          </a>
+          <p className="radio-player-shell__source-attribution">{radio.stationAttribution}</p>
+          {radio.stationWebsite ? (
+            <a className="radio-player-shell__source-link" href={radio.stationWebsite} target="_blank" rel="noreferrer">
+              {radio.stationWebsite}
+            </a>
+          ) : null}
 
           <div className="radio-player-shell__status-block">
             <p className="radio-player-shell__status">{radio.signalState}</p>
@@ -120,6 +136,88 @@ function RadioPlayerShell() {
           </div>
 
           <div className="radio-player-shell__control-grid">
+            {import.meta.env.DEV ? (
+              <div className="radio-player-shell__field radio-player-shell__field--signal-source">
+                <p className="radio-player-shell__label">Signal Source (DEV)</p>
+                <select
+                  className="radio-player-shell__select"
+                  value={radio.selectedSignalSourceId}
+                  onChange={(event) => {
+                    void radio.selectSignalSource(event.target.value as DevSignalSourceId)
+                  }}
+                >
+                  {radio.signalSources.map((source) => (
+                    <option key={source.id} value={source.id}>
+                      {source.label}
+                    </option>
+                  ))}
+                </select>
+
+                {showCustomSignalInput ? (
+                  <div className="radio-player-shell__custom-source-row">
+                    <input
+                      className="radio-player-shell__input"
+                      type="url"
+                      value={radio.customStreamUrlInput}
+                      onChange={(event) => radio.setCustomStreamUrlInput(event.target.value)}
+                      placeholder="https://example.com/live-stream"
+                      spellCheck={false}
+                    />
+                    <button type="button" onClick={() => void radio.applyCustomSignalSource()}>
+                      Apply Signal
+                    </button>
+                  </div>
+                ) : null}
+
+                <dl className="radio-player-shell__comparison-grid">
+                  <div>
+                    <dt>Selected station</dt>
+                    <dd>{radio.comparisonReadout.selectedStation}</dd>
+                  </div>
+                  <div>
+                    <dt>Stream URL</dt>
+                    <dd className="radio-player-shell__mono">{radio.comparisonReadout.streamUrl}</dd>
+                  </div>
+                  <div>
+                    <dt>Playback status</dt>
+                    <dd>{radio.comparisonReadout.playbackStatus}</dd>
+                  </div>
+                  <div>
+                    <dt>Analyzer assessment</dt>
+                    <dd>{radio.comparisonReadout.analyzerAssessment}</dd>
+                  </div>
+                  <div>
+                    <dt>Live RMS</dt>
+                    <dd>{formatMetric(radio.comparisonReadout.liveRms, 4)}</dd>
+                  </div>
+                  <div>
+                    <dt>Avg frequency energy</dt>
+                    <dd>{formatMetric(radio.comparisonReadout.averageFrequencyEnergy, 4)}</dd>
+                  </div>
+                  <div>
+                    <dt>AudioContext state</dt>
+                    <dd>{radio.comparisonReadout.audioContextState}</dd>
+                  </div>
+                  <div>
+                    <dt>Elapsed currentTime</dt>
+                    <dd>{formatMetric(radio.comparisonReadout.elapsedCurrentTime, 2)} s</dd>
+                  </div>
+                  <div>
+                    <dt>Reconnect attempts</dt>
+                    <dd>{radio.comparisonReadout.reconnectAttempts}</dd>
+                  </div>
+                  <div>
+                    <dt>Heap used / peak</dt>
+                    <dd>
+                      {radio.memoryDiagnostics.supported
+                        ? `${(radio.memoryDiagnostics.usedJsHeapSize / (1024 * 1024)).toFixed(1)} MB / ${(radio.memoryDiagnostics.peakUsedJsHeapSize / (1024 * 1024)).toFixed(1)} MB`
+                        : 'n/a'}
+                    </dd>
+                  </div>
+                </dl>
+              </div>
+            ) : null}
+
             <div className="radio-player-shell__field">
               <p className="radio-player-shell__label">Environment</p>
               <ThemeSelector
@@ -215,6 +313,7 @@ function RadioPlayerShell() {
 
           <details className="radio-player-shell__dev-details">
             <summary>DEV Diagnostics</summary>
+            <p>Selected station: {radio.stationName}</p>
             <p>Stream URL: {radio.streamUrl}</p>
             <p>Browser online: {radio.reconnectDiagnostics.browserOnline ? 'yes' : 'no'}</p>
             <p>Stopped by user: {radio.reconnectDiagnostics.stoppedByUser ? 'yes' : 'no'}</p>
@@ -234,6 +333,18 @@ function RadioPlayerShell() {
                 ? ` at ${new Date(radio.reconnectDiagnostics.lastEventTimestamp).toLocaleTimeString()}`
                 : ''}
             </p>
+            <p>
+              Resources: audio elements={radio.resourceDiagnostics.audioElementsCreated}, audio contexts={radio.resourceDiagnostics.audioContextsCreated}, source nodes={radio.resourceDiagnostics.sourceNodesCreated}, analyzers={radio.resourceDiagnostics.analyzersCreated}, analysis loops started={radio.resourceDiagnostics.analysisLoopsStarted}, loop active={radio.resourceDiagnostics.isAnalysisLoopRunning ? 'yes' : 'no'}
+            </p>
+            <p>
+              Runtime counters: frames={radio.runtimeCounters.animationFramesProcessed}, ui publications={radio.runtimeCounters.diagnosticUiPublications}, rolling samples={radio.runtimeCounters.rollingSampleCount}, spike events={radio.runtimeCounters.spikeEventCount}, RAF chains={radio.runtimeCounters.activeRafChains}, active timers={radio.runtimeCounters.activeTimers}, renderers={radio.runtimeCounters.rendererInstances}, scenes={radio.runtimeCounters.sceneInstances}
+            </p>
+            <p>
+              Heap: {radio.memoryDiagnostics.supported ? `${(radio.memoryDiagnostics.usedJsHeapSize / (1024 * 1024)).toFixed(1)} MB used / ${(radio.memoryDiagnostics.totalJsHeapSize / (1024 * 1024)).toFixed(1)} MB total / ${(radio.memoryDiagnostics.jsHeapSizeLimit / (1024 * 1024)).toFixed(0)} MB limit` : 'performance.memory unavailable'}
+            </p>
+            <p>
+              Heap delta from playback start: {radio.memoryDiagnostics.supported ? `${(radio.memoryDiagnostics.deltaSincePlaybackStart / (1024 * 1024)).toFixed(1)} MB` : 'n/a'}
+            </p>
             <p>Metadata endpoint: {radio.metadata.sourceEndpoint ?? 'none'}</p>
             <ul>
               {radio.metadataProbeResults.length === 0 ? <li>No metadata probes executed yet.</li> : null}
@@ -246,9 +357,12 @@ function RadioPlayerShell() {
           </details>
 
           {import.meta.env.DEV ? (
-            <details className="radio-player-shell__dev-details">
+            <details
+              className="radio-player-shell__dev-details"
+              onToggle={(event) => setAnalyzerPanelOpen((event.currentTarget as HTMLDetailsElement).open)}
+            >
               <summary>DEV Analyzer Panel</summary>
-              <RadioAnalyzerDiagnosticsPanel diagnostics={radio.analyzerDiagnostics} />
+              {analyzerPanelOpen ? <RadioAnalyzerDiagnosticsPanel diagnostics={radio.analyzerDiagnostics} /> : null}
             </details>
           ) : null}
         </section>

@@ -16,7 +16,7 @@ function formatStateChangeTimestamp(timestampMs: number) {
 function RadioAnalyzerDiagnosticsPanel({ diagnostics }: RadioAnalyzerDiagnosticsPanelProps) {
   const latest = diagnostics.latest
   const sampleCount = diagnostics.rollingSamples.length
-  const spikes = diagnostics.spikes.slice(0, 8)
+  const spikes = diagnostics.spikes
   const recentSamples = diagnostics.rollingSamples.slice(-28)
 
   const hasValidationIssue =
@@ -101,7 +101,7 @@ function RadioAnalyzerDiagnosticsPanel({ diagnostics }: RadioAnalyzerDiagnostics
         <ul>
           {spikes.map((spike) => (
             <li key={spike.id}>
-              <strong>{spike.reason}</strong> · stage={spike.stage} · {formatStateChangeTimestamp(spike.timestampMs)} · captured {spike.samples.length} buffered samples
+              <strong>{spike.reason}</strong> · stage={spike.stage} · {formatStateChangeTimestamp(spike.timestampMs)} · rms {format(spike.snapshot.timeDomainRms, 3)} · bass {format(spike.snapshot.bassEnergy, 3)} · norm {format(spike.snapshot.normalizedDepth, 3)} · final {format(spike.snapshot.finalSmoothedDepth, 3)}
             </li>
           ))}
         </ul>
