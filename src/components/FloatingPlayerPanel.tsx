@@ -134,15 +134,6 @@ function FloatingPlayerPanel({
       ) : (
         <div className="floating-player-panel__body" id={contentId}>
           <div className="floating-player-panel__field">
-            <p className="floating-player-panel__label">Environment</p>
-            <ThemeSelector
-              value={selectedEnvironmentId}
-              options={environmentOptions}
-              onChange={onEnvironmentChange}
-            />
-          </div>
-
-          <div className="floating-player-panel__field">
             <p className="floating-player-panel__label">Signal Source</p>
             <SignalSourceSelector value={selectedSignalId || ''} signals={signalOptions} onChange={onSignalChange} />
           </div>
@@ -164,6 +155,15 @@ function FloatingPlayerPanel({
               isDisabled={!selectedSignalId}
               onToggle={() => void onAudioTogglePlay()}
             />
+
+            <div className="floating-player-panel__field floating-player-panel__environment-field">
+              <p className="floating-player-panel__label">Environment</p>
+              <ThemeSelector
+                value={selectedEnvironmentId}
+                options={environmentOptions}
+                onChange={onEnvironmentChange}
+              />
+            </div>
 
             <label className="floating-player-panel__switch floating-player-panel__visual-switch">
               <input
