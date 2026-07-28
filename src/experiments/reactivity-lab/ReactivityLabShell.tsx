@@ -54,6 +54,7 @@ type SharedResourceDiagnostics = {
   audioContexts: number
   mediaElementSourceNodes: number
   analyzers: number
+  gainNodes: number
   activeAnalysisLoops: number
   sourceType: SourceType
 }
@@ -150,6 +151,7 @@ function resolveMp3ResourceDiagnostics(status: AudioAnalysisStatus, graphDetails
     audioContexts: hasGraph ? 1 : 0,
     mediaElementSourceNodes: hasGraph ? 1 : 0,
     analyzers: hasGraph ? 1 : 0,
+    gainNodes: hasGraph ? 1 : 0,
     activeAnalysisLoops: status === 'running' ? 1 : 0,
     sourceType: 'local-mp3',
   }
@@ -167,12 +169,15 @@ function ReactivityLabShell() {
   const [sourceType, setSourceType] = useState<SourceType>('local-mp3')
   const [selectedMp3SourceId, setSelectedMp3SourceId] = useState(AUDIO_SOURCES[0]?.id ?? '')
   const [selectedRadioPresetId, setSelectedRadioPresetId] = useState<LabRadioPresetId>('psyradio-progressive')
+  const [mp3ListenerVolume, setMp3ListenerVolume] = useState(0.72)
   const [radioSnapshot, setRadioSnapshot] = useState<AudioReactiveSnapshot>(ZERO_SNAPSHOT)
   const [lastStartFailure, setLastStartFailure] = useState<string | null>(null)
 
   const previousSourceTypeRef = useRef<SourceType>('local-mp3')
-  const audioController = usePersistentAudioController(0.72, selectedMp3SourceId)
-  const radioController = useExternalRadioController(defaultThemeId)
+  const audioController = usePersistentAudioController(1, selectedMp3SourceId)
+  const radioController = useExternalRadioController(defaultThemeId, {
+    audioOutputMode: 'post-analyzer-gain',
+  })
   const {
     signalState: radioSignalState,
     volume: radioVolume,
@@ -197,7 +202,15 @@ function ReactivityLabShell() {
     audioSourceId: selectedMp3SourceId,
     sourceBpm: audioController.audioSource.bpm ?? null,
     publishDiagnostics: true,
+    listenerVolume: mp3ListenerVolume,
+    routeAudioThroughPostAnalyzerGain: true,
   })
+
+  useEffect(() => {
+    if (audioController.volume !== 1) {
+      audioController.setVolume(1)
+    }
+  }, [audioController])
 
   const applyRadioPreset = async (presetId: LabRadioPresetId) => {
     if (presetId === 'psyradio-chillout') {
@@ -278,6 +291,7 @@ function ReactivityLabShell() {
       audioContexts: radioResourceDiagnostics.audioContextsCreated,
       mediaElementSourceNodes: radioResourceDiagnostics.sourceNodesCreated,
       analyzers: radioResourceDiagnostics.analyzersCreated,
+      gainNodes: radioResourceDiagnostics.gainNodesCreated,
       activeAnalysisLoops: radioResourceDiagnostics.isAnalysisLoopRunning ? 1 : 0,
       sourceType: 'external-radio',
     }
@@ -352,7 +366,7 @@ function ReactivityLabShell() {
     await stopSignal()
   }
 
-  const currentVolume = sourceType === 'local-mp3' ? audioController.volume : radioVolume
+  const currentVolume = sourceType === 'local-mp3' ? mp3ListenerVolume : radioVolume
   const activeSourceLabel = sourceType === 'local-mp3' ? 'Local MP3' : 'External radio'
   const activeSelectionLabel = sourceType === 'local-mp3'
     ? (selectedMp3 ? formatAudioSourceLabel(selectedMp3) : 'n/a')
@@ -365,7 +379,7 @@ function ReactivityLabShell() {
 
   const handleVolumeChange = (value: number) => {
     if (sourceType === 'local-mp3') {
-      audioController.setVolume(value)
+      setMp3ListenerVolume(value)
       return
     }
 
@@ -480,6 +494,10 @@ function ReactivityLabShell() {
             <div>
               <dt>analyzers</dt>
               <dd>{telemetryResourceDiagnostics.analyzers}</dd>
+            </div>
+            <div>
+              <dt>GainNodes</dt>
+              <dd>{telemetryResourceDiagnostics.gainNodes}</dd>
             </div>
             <div>
               <dt>active analysis loops</dt>

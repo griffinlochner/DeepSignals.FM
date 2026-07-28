@@ -14,6 +14,8 @@ type UseAudioAnalysisArgs = {
   audioSourceId: string | null
   sourceBpm: number | null
   publishDiagnostics: boolean
+  listenerVolume?: number
+  routeAudioThroughPostAnalyzerGain?: boolean
 }
 
 type BassPulseDebugReadout = {
@@ -94,6 +96,7 @@ type AnalysisGraph = {
   context: AudioContext
   source: MediaElementAudioSourceNode
   analyser: AnalyserNode
+  listenerGain: GainNode | null
   frequencyData: Float32Array
   timeDomainData: Float32Array
   bandRanges: FrequencyBandRanges
@@ -418,7 +421,16 @@ function getDocumentVisible() {
   return document.visibilityState === 'visible'
 }
 
-export function useAudioAnalysis({ audioElement, playbackStatus, isSeeking, audioSourceId, sourceBpm, publishDiagnostics }: UseAudioAnalysisArgs): UseAudioAnalysisResult {
+export function useAudioAnalysis({
+  audioElement,
+  playbackStatus,
+  isSeeking,
+  audioSourceId,
+  sourceBpm,
+  publishDiagnostics,
+  listenerVolume = 0.7,
+  routeAudioThroughPostAnalyzerGain = false,
+}: UseAudioAnalysisArgs): UseAudioAnalysisResult {
   const [status, setStatus] = useState<AudioAnalysisStatus>(audioElement ? 'paused' : 'unavailable')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [snapshot, setSnapshot] = useState<AudioReactiveSnapshot>(ZERO_SNAPSHOT)
@@ -579,6 +591,14 @@ export function useAudioAnalysis({ audioElement, playbackStatus, isSeeking, audi
           // Ignore disconnect cleanup errors.
         }
 
+        if (graph.listenerGain) {
+          try {
+            graph.listenerGain.disconnect()
+          } catch {
+            // Ignore disconnect cleanup errors.
+          }
+        }
+
         if (closeContext) {
           try {
             await graph.context.close()
@@ -619,6 +639,7 @@ export function useAudioAnalysis({ audioElement, playbackStatus, isSeeking, audi
         const context = new AudioContext()
         const source = context.createMediaElementSource(audioElement)
         const analyser = context.createAnalyser()
+        const listenerGain = routeAudioThroughPostAnalyzerGain ? context.createGain() : null
 
         analyser.fftSize = ANALYSER_CONFIG.fftSize
         analyser.smoothingTimeConstant = ANALYSER_CONFIG.smoothingTimeConstant
@@ -626,7 +647,15 @@ export function useAudioAnalysis({ audioElement, playbackStatus, isSeeking, audi
         analyser.maxDecibels = ANALYSER_CONFIG.maxDecibels
 
         source.connect(analyser)
-        analyser.connect(context.destination)
+
+        if (listenerGain) {
+          listenerGain.gain.value = clamp01(listenerVolume)
+          analyser.connect(listenerGain)
+          listenerGain.connect(context.destination)
+          audioElement.volume = 1
+        } else {
+          analyser.connect(context.destination)
+        }
 
         const frequencyBinCount = analyser.frequencyBinCount
 
@@ -688,6 +717,7 @@ export function useAudioAnalysis({ audioElement, playbackStatus, isSeeking, audi
           context,
           source,
           analyser,
+          listenerGain,
           frequencyData: new Float32Array(frequencyBinCount),
           timeDomainData: new Float32Array(analyser.fftSize),
           bandRanges,
@@ -737,7 +767,32 @@ export function useAudioAnalysis({ audioElement, playbackStatus, isSeeking, audi
       setStatus('error')
       setErrorMessage(error instanceof Error ? error.message : 'Audio analysis resume failed.')
     }
-  }, [activateOnsetWarmup, audioElement, documentVisible, playbackStatus, teardownGraph, zeroSnapshotNow])
+  }, [
+    activateOnsetWarmup,
+    audioElement,
+    documentVisible,
+    listenerVolume,
+    playbackStatus,
+    routeAudioThroughPostAnalyzerGain,
+    teardownGraph,
+    zeroSnapshotNow,
+  ])
+
+  useEffect(() => {
+    if (!routeAudioThroughPostAnalyzerGain) {
+      return
+    }
+
+    if (audioElement) {
+      audioElement.volume = 1
+    }
+
+    const graph = graphRef.current
+
+    if (graph?.listenerGain) {
+      graph.listenerGain.gain.value = clamp01(listenerVolume)
+    }
+  }, [audioElement, listenerVolume, routeAudioThroughPostAnalyzerGain])
 
   const runAnalysisFrame = useCallback(
     (nowMs: number) => {
