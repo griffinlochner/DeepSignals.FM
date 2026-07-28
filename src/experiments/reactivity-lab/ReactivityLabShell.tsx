@@ -29,6 +29,7 @@ import {
   wrapSignedDegrees,
 } from '../../app/reactiveBehaviorMapping'
 import {
+  FULLON_BUILT_IN_PRESET,
   resolveSnapshotSignal,
 } from '../../app/reactiveBehaviorPresetSchema'
 import {
@@ -808,6 +809,12 @@ function ReactivityLabShell() {
     setPresetInlineStatus(`Loaded preset "${preset.name}".`)
   }
 
+  const handleLoadBuiltInFullOnPreset = () => {
+    applyBehaviorPreset(FULLON_BUILT_IN_PRESET)
+    setPresetInlineError(null)
+    setPresetInlineStatus('Loaded built-in preset "FULLON".')
+  }
+
   const handleDeleteSelectedPreset = () => {
     if (!selectedBehaviorPresetName) {
       setPresetInlineError('Select a saved preset to delete.')
@@ -1078,6 +1085,13 @@ function ReactivityLabShell() {
                 <section className="reactivity-lab__preset-panel" aria-label="Behavior presets">
                   <h2 className="reactivity-lab__preset-title">Behavior Presets (DEV)</h2>
 
+                  <div className="reactivity-lab__preset-subpanel" aria-label="Built-In Presets">
+                    <p className="reactivity-lab__preset-subtitle">Built-In Presets</p>
+                    <div className="reactivity-lab__button-row">
+                      <button type="button" onClick={handleLoadBuiltInFullOnPreset}>Load Built-In FULLON</button>
+                    </div>
+                  </div>
+
                   <label className="reactivity-lab__field">
                     <span className="reactivity-lab__label">Preset name</span>
                     <input
@@ -1095,7 +1109,7 @@ function ReactivityLabShell() {
                   </div>
 
                   <label className="reactivity-lab__field">
-                    <span className="reactivity-lab__label">Saved presets</span>
+                    <span className="reactivity-lab__label">Saved Presets</span>
                     <select
                       className="reactivity-lab__select"
                       value={selectedBehaviorPresetName}

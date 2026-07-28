@@ -161,6 +161,23 @@
   letter-spacing: 0.08em;
 }
 
+.reactivity-lab__preset-subpanel {
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid rgb(128 180 225 / 20%);
+  background: rgb(7 15 24 / 62%);
+  display: grid;
+  gap: 8px;
+}
+
+.reactivity-lab__preset-subtitle {
+  margin: 0;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgb(176 212 244 / 90%);
+}
+
 .reactivity-lab__text-input,
 .reactivity-lab__textarea {
   border-radius: 10px;
