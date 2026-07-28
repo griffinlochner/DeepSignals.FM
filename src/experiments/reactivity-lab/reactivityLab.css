@@ -1,15 +1,24 @@
 .reactivity-lab {
   min-height: 100vh;
-  padding: 24px;
+  padding: 20px;
   background:
     radial-gradient(circle at 15% 20%, rgb(22 49 64 / 45%) 0%, transparent 45%),
     radial-gradient(circle at 85% 10%, rgb(44 24 72 / 35%) 0%, transparent 40%),
     linear-gradient(180deg, #081018 0%, #0a121d 100%);
   color: #dcecff;
+  overflow-x: clip;
+}
+
+.reactivity-lab__workspace-shell {
+  width: min(1760px, 100%);
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 
 .reactivity-lab__panel {
-  width: min(760px, calc(100vw - 48px));
+  width: 100%;
   padding: 18px;
   border: 1px solid rgb(118 167 211 / 28%);
   background: rgb(8 17 28 / 85%);
@@ -37,6 +46,10 @@
   gap: 14px;
 }
 
+.reactivity-lab__controls-grid--top {
+  grid-template-columns: repeat(4, minmax(180px, 1fr));
+}
+
 .reactivity-lab__field {
   display: flex;
   flex-direction: column;
@@ -57,6 +70,10 @@
   border: 1px solid rgb(137 186 227 / 40%);
   background: rgb(8 16 26 / 92%);
   color: #dcecff;
+}
+
+.reactivity-lab__range {
+  width: 100%;
 }
 
 .reactivity-lab .signal-source-selector__select {
@@ -91,11 +108,17 @@
 .reactivity-lab__status,
 .reactivity-lab__resources,
 .reactivity-lab__telemetry-summary {
-  margin-top: 14px;
   padding: 12px;
   border-radius: 10px;
   border: 1px solid rgb(128 180 225 / 25%);
   background: rgb(8 16 26 / 68%);
+}
+
+.reactivity-lab__status--compact {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 4px 12px;
 }
 
 .reactivity-lab__status p,
@@ -155,12 +178,124 @@
   color: rgb(160 202 241 / 90%);
 }
 
+.reactivity-lab__visual-workspace {
+  display: grid;
+  grid-template-columns: minmax(320px, 420px) minmax(0, 1fr);
+  gap: 14px;
+  align-items: stretch;
+}
+
+.reactivity-lab__visual-controls,
+.reactivity-lab__image-depth-scene-column {
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid rgb(128 180 225 / 25%);
+  background: rgb(8 16 26 / 68%);
+}
+
+.reactivity-lab__visual-controls h2 {
+  margin: 0 0 10px;
+  font-size: 0.92rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.reactivity-lab__image-depth-scene-wrap {
+  position: relative;
+  width: 100%;
+  min-height: 520px;
+  height: clamp(520px, 65vh, 900px);
+  max-width: 100%;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgb(127 174 215 / 28%);
+  background: rgb(4 10 18 / 72%);
+}
+
+.reactivity-lab__image-depth-scene {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.reactivity-lab__image-depth-scene canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.reactivity-lab__inline-button {
+  height: 34px;
+  border-radius: 10px;
+  border: 1px solid rgb(137 186 227 / 50%);
+  background: linear-gradient(180deg, rgb(22 52 76 / 90%), rgb(14 30 46 / 92%));
+  color: #eef7ff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.reactivity-lab__diagnostics-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.reactivity-lab__details {
+  border: 1px solid rgb(128 180 225 / 25%);
+  border-radius: 10px;
+  background: rgb(8 16 26 / 68%);
+  overflow: hidden;
+}
+
+.reactivity-lab__details > summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 10px 12px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #e9f4ff;
+}
+
+.reactivity-lab__details > summary::-webkit-details-marker {
+  display: none;
+}
+
+.reactivity-lab__details-body {
+  padding: 0 12px 12px;
+}
+
 @media (max-width: 900px) {
   .reactivity-lab {
     padding: 14px;
   }
 
-  .reactivity-lab__panel {
-    width: 100%;
+  .reactivity-lab__controls-grid--top {
+    grid-template-columns: repeat(2, minmax(180px, 1fr));
+  }
+
+  .reactivity-lab__visual-workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .reactivity-lab__image-depth-scene-wrap {
+    min-height: 420px;
+    height: clamp(360px, 52vh, 700px);
+  }
+}
+
+@media (max-width: 680px) {
+  .reactivity-lab__controls-grid--top {
+    grid-template-columns: 1fr;
+  }
+
+  .reactivity-lab__visual-workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .reactivity-lab__image-depth-scene-wrap {
+    min-height: 320px;
+    height: clamp(320px, 48vh, 520px);
   }
 }

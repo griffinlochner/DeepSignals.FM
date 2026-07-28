@@ -4,6 +4,7 @@ import type {
   AudioAnalysisGraphDetails,
   AudioAnalysisStatus,
   AudioReactiveSnapshot,
+  ReactivePreviewTelemetry,
   AudioSource,
 } from '../../app/playerTypes'
 import { useAudioAnalysis } from '../../app/useAudioAnalysis'
@@ -13,6 +14,8 @@ import SignalSourceSelector from '../../components/SignalSourceSelector'
 import VolumeControl from '../../components/VolumeControl'
 import { useExternalRadioController, type DevSignalSourceId } from '../radio-player/useExternalRadioController'
 import { defaultThemeId } from '../../themes/themeRegistry'
+import { imageDepthEnvironmentCatalog } from '../../themes/image-depth/environmentCatalog'
+import { ImageDepthThemeScene, type ImageDepthSceneDevCounters } from '../../themes/image-depth/ImageDepthThemeScene'
 import './reactivityLab.css'
 
 type SourceType = 'local-mp3' | 'external-radio'
@@ -119,6 +122,18 @@ const MP3_SIGNAL_OPTIONS = AUDIO_SOURCES.map((source) => ({
   label: formatAudioSourceLabel(source),
 }))
 
+const DEFAULT_MANUAL_DEPTH = 0.5
+
+const INITIAL_SCENE_DEV_COUNTERS: ImageDepthSceneDevCounters = {
+  sceneComponentMountCount: 0,
+  sceneComponentUnmountCount: 0,
+  rendererCreationCount: 0,
+  textureLoadCount: 0,
+  materialGeometryInitializationCount: 0,
+  environmentChangeCount: 0,
+  depthUpdateCount: 0,
+}
+
 function mapRadioSignalStateToAnalysisStatus(signalState: string): AudioAnalysisStatus {
   if (signalState === 'On Air' || signalState === 'Buffering' || signalState === 'Reconnecting') {
     return 'running'
@@ -170,6 +185,14 @@ function ReactivityLabShell() {
   const [selectedMp3SourceId, setSelectedMp3SourceId] = useState(AUDIO_SOURCES[0]?.id ?? '')
   const [selectedRadioPresetId, setSelectedRadioPresetId] = useState<LabRadioPresetId>('psyradio-progressive')
   const [mp3ListenerVolume, setMp3ListenerVolume] = useState(0.72)
+  const [selectedImageDepthEnvironmentId, setSelectedImageDepthEnvironmentId] = useState(
+    imageDepthEnvironmentCatalog[0]?.id ?? '',
+  )
+  const [manualDepthOverride, setManualDepthOverride] = useState(DEFAULT_MANUAL_DEPTH)
+  const [renderedDepth, setRenderedDepth] = useState(DEFAULT_MANUAL_DEPTH)
+  const [sceneDevCounters, setSceneDevCounters] = useState<ImageDepthSceneDevCounters>(
+    INITIAL_SCENE_DEV_COUNTERS,
+  )
   const [radioSnapshot, setRadioSnapshot] = useState<AudioReactiveSnapshot>(ZERO_SNAPSHOT)
   const [lastStartFailure, setLastStartFailure] = useState<string | null>(null)
 
@@ -306,6 +329,15 @@ function ReactivityLabShell() {
     return AUDIO_SOURCES.find((source) => source.id === selectedMp3SourceId) ?? null
   }, [selectedMp3SourceId])
 
+  const selectedImageDepthEnvironment = useMemo(() => {
+    return (
+      imageDepthEnvironmentCatalog.find((environment) => environment.id === selectedImageDepthEnvironmentId) ??
+      imageDepthEnvironmentCatalog[0]
+    )
+  }, [selectedImageDepthEnvironmentId])
+
+  const previewScenePreset = selectedImageDepthEnvironment?.productionScenePreset ?? null
+
   const isMp3Playing = audioController.playbackStatus === 'playing'
 
   const isRadioPlaying =
@@ -386,168 +418,282 @@ function ReactivityLabShell() {
     setRadioVolume(value)
   }
 
+  const handleReactiveTelemetry = (telemetry: ReactivePreviewTelemetry) => {
+    setRenderedDepth(telemetry.depthFinalAfterClamp)
+  }
+
+  const handleSceneDevCountersChange = (nextCounters: ImageDepthSceneDevCounters) => {
+    setSceneDevCounters(nextCounters)
+  }
+
   return (
     <main className="reactivity-lab" aria-label="Reactivity lab">
-      <section className="reactivity-lab__panel" aria-label="Reactivity lab controls">
-        <p className="reactivity-lab__eyebrow">DeepSignals Reactivity Lab - DEV only</p>
-        <h1 className="reactivity-lab__title">Common Audio Telemetry Validation</h1>
+      <div className="reactivity-lab__workspace-shell">
+        <section className="reactivity-lab__panel" aria-label="Reactivity lab controls">
+          <p className="reactivity-lab__eyebrow">DeepSignals Reactivity Lab - DEV only</p>
+          <h1 className="reactivity-lab__title">Common Audio Telemetry Validation</h1>
 
-        <div className="reactivity-lab__controls-grid">
-          <label className="reactivity-lab__field">
-            <span className="reactivity-lab__label">Source Type</span>
-            <select
-              className="reactivity-lab__select"
-              value={sourceType}
-              onChange={(event) => setSourceType(event.target.value as SourceType)}
-            >
-              <option value="local-mp3">Local MP3</option>
-              <option value="external-radio">External radio</option>
-            </select>
-          </label>
-
-          {sourceType === 'local-mp3' ? (
-            <div className="reactivity-lab__field">
-              <span className="reactivity-lab__label">Local MP3</span>
-              <SignalSourceSelector
-                value={selectedMp3SourceId}
-                signals={MP3_SIGNAL_OPTIONS}
-                onChange={setSelectedMp3SourceId}
-              />
-            </div>
-          ) : (
+          <div className="reactivity-lab__controls-grid reactivity-lab__controls-grid--top">
             <label className="reactivity-lab__field">
-              <span className="reactivity-lab__label">External Radio Preset</span>
+              <span className="reactivity-lab__label">Source Type</span>
               <select
                 className="reactivity-lab__select"
-                value={selectedRadioPresetId}
-                onChange={(event) => handleRadioPresetChange(event.target.value as LabRadioPresetId)}
+                value={sourceType}
+                onChange={(event) => setSourceType(event.target.value as SourceType)}
               >
-                {RADIO_PRESET_OPTIONS.map((preset) => (
-                  <option key={preset.id} value={preset.id}>
-                    {preset.label}
+                <option value="local-mp3">Local MP3</option>
+                <option value="external-radio">External radio</option>
+              </select>
+            </label>
+
+            {sourceType === 'local-mp3' ? (
+              <div className="reactivity-lab__field">
+                <span className="reactivity-lab__label">Local MP3</span>
+                <SignalSourceSelector
+                  value={selectedMp3SourceId}
+                  signals={MP3_SIGNAL_OPTIONS}
+                  onChange={setSelectedMp3SourceId}
+                />
+              </div>
+            ) : (
+              <label className="reactivity-lab__field">
+                <span className="reactivity-lab__label">External Radio Preset</span>
+                <select
+                  className="reactivity-lab__select"
+                  value={selectedRadioPresetId}
+                  onChange={(event) => handleRadioPresetChange(event.target.value as LabRadioPresetId)}
+                >
+                  {RADIO_PRESET_OPTIONS.map((preset) => (
+                    <option key={preset.id} value={preset.id}>
+                      {preset.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+
+            <div className="reactivity-lab__field">
+              <span className="reactivity-lab__label">Playback</span>
+              <div className="reactivity-lab__button-row">
+                <button
+                  type="button"
+                  onClick={() => void handleStart()}
+                  disabled={isCurrentSourcePlaying}
+                >
+                  {startButtonLabel}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleStop()}
+                  disabled={!isCurrentSourcePlaying}
+                >
+                  Stop
+                </button>
+              </div>
+            </div>
+
+            <div className="reactivity-lab__field">
+              <span className="reactivity-lab__label">Listener Volume</span>
+              <VolumeControl value={currentVolume} onChange={handleVolumeChange} />
+            </div>
+          </div>
+
+          <section className="reactivity-lab__status reactivity-lab__status--compact" aria-label="Current source status">
+            <p className="reactivity-lab__status-primary">Active source: {activeSourceLabel}</p>
+            <p className="reactivity-lab__status-primary">Playback state: {activePlaybackState}</p>
+            <p className="reactivity-lab__status-primary">Active track/station: {activeSelectionLabel}</p>
+          </section>
+        </section>
+
+        <section className="reactivity-lab__visual-workspace" aria-label="Image depth manual preview">
+          <aside className="reactivity-lab__visual-controls">
+            <h2>Image Depth Manual Preview</h2>
+
+            <label className="reactivity-lab__field">
+              <span className="reactivity-lab__label">Image-depth environment</span>
+              <select
+                className="reactivity-lab__select"
+                value={selectedImageDepthEnvironment?.id ?? ''}
+                onChange={(event) => setSelectedImageDepthEnvironmentId(event.target.value)}
+              >
+                {imageDepthEnvironmentCatalog.map((environment) => (
+                  <option key={environment.id} value={environment.id}>
+                    {environment.displayName}
                   </option>
                 ))}
               </select>
             </label>
-          )}
 
-          <div className="reactivity-lab__field">
-            <span className="reactivity-lab__label">Playback</span>
-            <div className="reactivity-lab__button-row">
-              <button
-                type="button"
-                onClick={() => void handleStart()}
-                disabled={isCurrentSourcePlaying}
-              >
-                {startButtonLabel}
-              </button>
-              <button
-                type="button"
-                onClick={() => void handleStop()}
-                disabled={!isCurrentSourcePlaying}
-              >
-                Stop
-              </button>
+            <label className="reactivity-lab__field">
+              <span className="reactivity-lab__label">Manual depth override</span>
+              <input
+                className="reactivity-lab__range"
+                type="range"
+                min="0"
+                max="1"
+                step="0.01"
+                value={manualDepthOverride}
+                onChange={(event) => setManualDepthOverride(Number(event.target.value))}
+              />
+              <strong>{manualDepthOverride.toFixed(2)}</strong>
+            </label>
+
+            <div className="reactivity-lab__field">
+              <span className="reactivity-lab__label">Rendered depth</span>
+              <p className="reactivity-lab__status-primary">{renderedDepth.toFixed(3)}</p>
+            </div>
+
+            <button
+              type="button"
+              className="reactivity-lab__inline-button"
+              onClick={() => setManualDepthOverride(DEFAULT_MANUAL_DEPTH)}
+            >
+              Reset Depth to 0.5
+            </button>
+          </aside>
+
+          <div className="reactivity-lab__image-depth-scene-column">
+            <div className="reactivity-lab__image-depth-scene-wrap">
+              {selectedImageDepthEnvironment && previewScenePreset ? (
+                <ImageDepthThemeScene
+                  sceneId={`${selectedImageDepthEnvironment.id}-reactivity-lab-preview`}
+                  sceneBackdrop={selectedImageDepthEnvironment.sceneBackdrop}
+                  asset={selectedImageDepthEnvironment.asset}
+                  scenePreset={previewScenePreset}
+                  className="reactivity-lab__image-depth-scene"
+                  manualDepthOverride={manualDepthOverride}
+                  isPlaying={false}
+                  volume={0}
+                  signalId={null}
+                  audioLevel={0}
+                  reducedMotion={false}
+                  motionEnabled
+                  sourceBpm={null}
+                  reactivePreviewEnabled={false}
+                  reactiveBehavior="chill"
+                  reactiveDepthMode="default"
+                  onReactivePreviewTelemetry={handleReactiveTelemetry}
+                  onDevSceneCountersChange={handleSceneDevCountersChange}
+                />
+              ) : null}
             </div>
           </div>
-
-          <div className="reactivity-lab__field">
-            <span className="reactivity-lab__label">Listener Volume</span>
-            <VolumeControl value={currentVolume} onChange={handleVolumeChange} />
-          </div>
-        </div>
-
-        <section className="reactivity-lab__status" aria-label="Current source status">
-          <p className="reactivity-lab__status-primary">
-            Active source: {activeSourceLabel}
-          </p>
-          <p className="reactivity-lab__status-primary">
-            Active track/station: {activeSelectionLabel}
-          </p>
-          <p className="reactivity-lab__status-primary">
-            Playback state: {activePlaybackState}
-          </p>
-          <p className="reactivity-lab__status-secondary">{inactiveSelectionLabel}</p>
-          <p className="reactivity-lab__status-secondary">
-            Last radio lifecycle event: {reconnectDiagnostics.lastEvent ?? 'n/a'}
-          </p>
-          <p className="reactivity-lab__status-secondary">
-            Last start failure: {lastStartFailure ?? radioErrorMessage ?? 'none'}
-          </p>
         </section>
 
-        <section className="reactivity-lab__resources" aria-label="Audio resource diagnostics">
-          <h2>Resource Diagnostics</h2>
-          <dl>
-            <div>
-              <dt>audio elements</dt>
-              <dd>{telemetryResourceDiagnostics.audioElements}</dd>
-            </div>
-            <div>
-              <dt>AudioContexts</dt>
-              <dd>{telemetryResourceDiagnostics.audioContexts}</dd>
-            </div>
-            <div>
-              <dt>MediaElementSourceNodes</dt>
-              <dd>{telemetryResourceDiagnostics.mediaElementSourceNodes}</dd>
-            </div>
-            <div>
-              <dt>analyzers</dt>
-              <dd>{telemetryResourceDiagnostics.analyzers}</dd>
-            </div>
-            <div>
-              <dt>GainNodes</dt>
-              <dd>{telemetryResourceDiagnostics.gainNodes}</dd>
-            </div>
-            <div>
-              <dt>active analysis loops</dt>
-              <dd>{telemetryResourceDiagnostics.activeAnalysisLoops}</dd>
-            </div>
-            <div>
-              <dt>current source type</dt>
-              <dd>{telemetryResourceDiagnostics.sourceType}</dd>
-            </div>
-          </dl>
+        <section className="reactivity-lab__diagnostics-stack" aria-label="Diagnostics panels">
+          <details className="reactivity-lab__details">
+            <summary>Common audio telemetry</summary>
+            <div className="reactivity-lab__details-body">
+              <section className="reactivity-lab__telemetry-summary" aria-label="Telemetry summary values">
+                <h2>Common Snapshot Fields</h2>
+                <p>energy: {telemetrySnapshot.energy.toFixed(3)}</p>
+                <p>smoothedEnergy: {telemetrySnapshot.smoothedEnergy.toFixed(3)}</p>
+                <p>bass: {telemetrySnapshot.bass.toFixed(3)}</p>
+                <p>kickPulse: {telemetrySnapshot.kickPulse.toFixed(3)}</p>
+                <p>bassPulse: {telemetrySnapshot.bassPulse.toFixed(3)}</p>
+                <p>mids: {telemetrySnapshot.mids.toFixed(3)}</p>
+                <p>highs: {telemetrySnapshot.highs.toFixed(3)}</p>
+                <p>transient: {telemetrySnapshot.transient.toFixed(3)}</p>
+                <p>analysis status: {telemetryStatus}</p>
+                <p>graph context: {telemetryGraphDetails.contextState ?? 'n/a'}</p>
+                <p>graph range: {formatDbRange(telemetryGraphDetails.minDecibels, telemetryGraphDetails.maxDecibels)}</p>
+              </section>
 
-          {radioGraphDetailsSummary ? (
-            <p className="reactivity-lab__resource-note">
-              Radio frame diagnostics: rms {radioGraphDetailsSummary.timeDomainRms.toFixed(4)}, frame delta{' '}
-              {radioGraphDetailsSummary.frameDeltaMs.toFixed(2)} ms, context{' '}
-              {radioGraphDetailsSummary.audioContextState}
-            </p>
-          ) : null}
+              <AudioAnalysisDiagnostics
+                status={telemetryStatus}
+                snapshot={telemetrySnapshot}
+                bassPulseDebug={sourceType === 'local-mp3' ? mp3Analysis.bassPulseDebug : ZERO_BASS_PULSE_DEBUG}
+                kickPulseDebug={sourceType === 'local-mp3' ? mp3Analysis.kickPulseDebug : ZERO_KICK_PULSE_DEBUG}
+                graphDetails={telemetryGraphDetails}
+                errorMessage={telemetryErrorMessage}
+                diagnosticsPublishHz={sourceType === 'local-mp3' ? mp3Analysis.diagnosticsPublishHz : 20}
+                analysisCalculationMode="requestAnimationFrame"
+                sourceBpm={telemetrySourceBpm}
+                effectiveReactiveBpm={telemetrySourceBpm}
+                reactiveDiagnosticsEnabled={false}
+                ignoreSourceBpmEnabled={false}
+              />
+            </div>
+          </details>
+
+          <details className="reactivity-lab__details">
+            <summary>Resource diagnostics</summary>
+            <div className="reactivity-lab__details-body">
+              <section className="reactivity-lab__resources" aria-label="Audio resource diagnostics">
+                <h2>Resource Diagnostics</h2>
+                <dl>
+                  <div>
+                    <dt>audio elements</dt>
+                    <dd>{telemetryResourceDiagnostics.audioElements}</dd>
+                  </div>
+                  <div>
+                    <dt>AudioContexts</dt>
+                    <dd>{telemetryResourceDiagnostics.audioContexts}</dd>
+                  </div>
+                  <div>
+                    <dt>MediaElementSourceNodes</dt>
+                    <dd>{telemetryResourceDiagnostics.mediaElementSourceNodes}</dd>
+                  </div>
+                  <div>
+                    <dt>analyzers</dt>
+                    <dd>{telemetryResourceDiagnostics.analyzers}</dd>
+                  </div>
+                  <div>
+                    <dt>GainNodes</dt>
+                    <dd>{telemetryResourceDiagnostics.gainNodes}</dd>
+                  </div>
+                  <div>
+                    <dt>active analysis loops</dt>
+                    <dd>{telemetryResourceDiagnostics.activeAnalysisLoops}</dd>
+                  </div>
+                  <div>
+                    <dt>current source type</dt>
+                    <dd>{telemetryResourceDiagnostics.sourceType}</dd>
+                  </div>
+                </dl>
+
+                {radioGraphDetailsSummary ? (
+                  <p className="reactivity-lab__resource-note">
+                    Radio frame diagnostics: rms {radioGraphDetailsSummary.timeDomainRms.toFixed(4)}, frame delta{' '}
+                    {radioGraphDetailsSummary.frameDeltaMs.toFixed(2)} ms, context{' '}
+                    {radioGraphDetailsSummary.audioContextState}
+                  </p>
+                ) : null}
+              </section>
+            </div>
+          </details>
+
+          <details className="reactivity-lab__details">
+            <summary>Detailed lifecycle/status diagnostics</summary>
+            <div className="reactivity-lab__details-body">
+              <section className="reactivity-lab__status" aria-label="Detailed source status diagnostics">
+                <p className="reactivity-lab__status-primary">Active source: {activeSourceLabel}</p>
+                <p className="reactivity-lab__status-primary">Active track/station: {activeSelectionLabel}</p>
+                <p className="reactivity-lab__status-primary">Playback state: {activePlaybackState}</p>
+                <p className="reactivity-lab__status-secondary">{inactiveSelectionLabel}</p>
+                <p className="reactivity-lab__status-secondary">
+                  Last radio lifecycle event: {reconnectDiagnostics.lastEvent ?? 'n/a'}
+                </p>
+                <p className="reactivity-lab__status-secondary">
+                  Last start failure: {lastStartFailure ?? radioErrorMessage ?? 'none'}
+                </p>
+                <p className="reactivity-lab__status-secondary">
+                  Scene mounts: {sceneDevCounters.sceneComponentMountCount} | unmounts: {sceneDevCounters.sceneComponentUnmountCount}
+                </p>
+                <p className="reactivity-lab__status-secondary">
+                  Renderer creates: {sceneDevCounters.rendererCreationCount} | texture loads: {sceneDevCounters.textureLoadCount}
+                </p>
+                <p className="reactivity-lab__status-secondary">
+                  Material/geometry inits: {sceneDevCounters.materialGeometryInitializationCount} | environment changes: {sceneDevCounters.environmentChangeCount}
+                </p>
+                <p className="reactivity-lab__status-secondary">
+                  Depth updates: {sceneDevCounters.depthUpdateCount}
+                </p>
+              </section>
+            </div>
+          </details>
         </section>
-      </section>
-
-      <AudioAnalysisDiagnostics
-        status={telemetryStatus}
-        snapshot={telemetrySnapshot}
-        bassPulseDebug={sourceType === 'local-mp3' ? mp3Analysis.bassPulseDebug : ZERO_BASS_PULSE_DEBUG}
-        kickPulseDebug={sourceType === 'local-mp3' ? mp3Analysis.kickPulseDebug : ZERO_KICK_PULSE_DEBUG}
-        graphDetails={telemetryGraphDetails}
-        errorMessage={telemetryErrorMessage}
-        diagnosticsPublishHz={sourceType === 'local-mp3' ? mp3Analysis.diagnosticsPublishHz : 20}
-        analysisCalculationMode="requestAnimationFrame"
-        sourceBpm={telemetrySourceBpm}
-        effectiveReactiveBpm={telemetrySourceBpm}
-        reactiveDiagnosticsEnabled={false}
-        ignoreSourceBpmEnabled={false}
-      />
-
-      <section className="reactivity-lab__telemetry-summary" aria-label="Telemetry summary values">
-        <h2>Common Snapshot Fields</h2>
-        <p>energy: {telemetrySnapshot.energy.toFixed(3)}</p>
-        <p>smoothedEnergy: {telemetrySnapshot.smoothedEnergy.toFixed(3)}</p>
-        <p>bass: {telemetrySnapshot.bass.toFixed(3)}</p>
-        <p>kickPulse: {telemetrySnapshot.kickPulse.toFixed(3)}</p>
-        <p>bassPulse: {telemetrySnapshot.bassPulse.toFixed(3)}</p>
-        <p>mids: {telemetrySnapshot.mids.toFixed(3)}</p>
-        <p>highs: {telemetrySnapshot.highs.toFixed(3)}</p>
-        <p>transient: {telemetrySnapshot.transient.toFixed(3)}</p>
-        <p>analysis status: {telemetryStatus}</p>
-        <p>graph context: {telemetryGraphDetails.contextState ?? 'n/a'}</p>
-        <p>graph range: {formatDbRange(telemetryGraphDetails.minDecibels, telemetryGraphDetails.maxDecibels)}</p>
-      </section>
+      </div>
     </main>
   )
 }

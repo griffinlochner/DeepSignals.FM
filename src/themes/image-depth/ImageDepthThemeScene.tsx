@@ -26,7 +26,35 @@ type ImageDepthThemeSceneProps = ThemeSceneProps & {
   asset: ImageDepthAsset;
   scenePreset: ImageDepthScenePreset;
   className?: string;
+  manualDepthOverride?: number;
+  onDevSceneCountersChange?: (counters: ImageDepthSceneDevCounters) => void;
 };
+
+export type ImageDepthSceneDevCounters = {
+  sceneComponentMountCount: number;
+  sceneComponentUnmountCount: number;
+  rendererCreationCount: number;
+  textureLoadCount: number;
+  materialGeometryInitializationCount: number;
+  environmentChangeCount: number;
+  depthUpdateCount: number;
+};
+
+const imageDepthSceneDevCounters: ImageDepthSceneDevCounters = {
+  sceneComponentMountCount: 0,
+  sceneComponentUnmountCount: 0,
+  rendererCreationCount: 0,
+  textureLoadCount: 0,
+  materialGeometryInitializationCount: 0,
+  environmentChangeCount: 0,
+  depthUpdateCount: 0,
+};
+
+function publishImageDepthSceneDevCounters(
+  callback: ImageDepthThemeSceneProps['onDevSceneCountersChange'],
+) {
+  callback?.({ ...imageDepthSceneDevCounters });
+}
 
 const SATURATION_EPSILON = 0.0001;
 const DISPLACEMENT_SCALE_MULTIPLIER = 0.36;
@@ -290,6 +318,8 @@ export function ImageDepthThemeScene({
   asset,
   scenePreset,
   className,
+  manualDepthOverride,
+  onDevSceneCountersChange,
 }: ImageDepthThemeSceneProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const sharedMaterialRef = useRef<THREE.MeshStandardMaterial | null>(null);
@@ -308,6 +338,20 @@ export function ImageDepthThemeScene({
     reactiveDepthMode,
     onReactivePreviewTelemetry,
   });
+  const depthOverrideRef = useRef<number | null>(
+    typeof manualDepthOverride === "number" && Number.isFinite(manualDepthOverride)
+      ? clamp(manualDepthOverride, 0, 1)
+      : null,
+  );
+  const devCountersCallbackRef = useRef<ImageDepthThemeSceneProps['onDevSceneCountersChange']>(
+    onDevSceneCountersChange,
+  );
+  const lastEnvironmentKeyRef = useRef<string | null>(null);
+  const lastDepthValueRef = useRef<number | null>(
+    typeof manualDepthOverride === "number" && Number.isFinite(manualDepthOverride)
+      ? clamp(manualDepthOverride, 0, 1)
+      : null,
+  );
 
   const behavior = scenePreset.behavior;
   const reactiveBehaviorProfile = reactiveBehavior === 'fullon' ? REACTIVE_BEHAVIOR_PROFILES.fullon : REACTIVE_BEHAVIOR_PROFILES.chill;
@@ -376,6 +420,50 @@ export function ImageDepthThemeScene({
   ]);
 
   useEffect(() => {
+    devCountersCallbackRef.current = onDevSceneCountersChange;
+    publishImageDepthSceneDevCounters(onDevSceneCountersChange);
+  }, [onDevSceneCountersChange]);
+
+  useEffect(() => {
+    imageDepthSceneDevCounters.sceneComponentMountCount += 1;
+    publishImageDepthSceneDevCounters(devCountersCallbackRef.current);
+
+    return () => {
+      imageDepthSceneDevCounters.sceneComponentUnmountCount += 1;
+      publishImageDepthSceneDevCounters(devCountersCallbackRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    const environmentKey = `${sceneId}|${asset.id}|${scenePreset.id}`;
+
+    if (lastEnvironmentKeyRef.current === environmentKey) {
+      return;
+    }
+
+    lastEnvironmentKeyRef.current = environmentKey;
+    imageDepthSceneDevCounters.environmentChangeCount += 1;
+    publishImageDepthSceneDevCounters(devCountersCallbackRef.current);
+  }, [asset.id, sceneId, scenePreset.id]);
+
+  useEffect(() => {
+    const nextDepthValue =
+      typeof manualDepthOverride === "number" && Number.isFinite(manualDepthOverride)
+        ? clamp(manualDepthOverride, 0, 1)
+        : null;
+
+    depthOverrideRef.current = nextDepthValue;
+
+    if (lastDepthValueRef.current === nextDepthValue) {
+      return;
+    }
+
+    lastDepthValueRef.current = nextDepthValue;
+    imageDepthSceneDevCounters.depthUpdateCount += 1;
+    publishImageDepthSceneDevCounters(devCountersCallbackRef.current);
+  }, [manualDepthOverride]);
+
+  useEffect(() => {
     const container = containerRef.current;
     if (!container) {
       return;
@@ -392,6 +480,8 @@ export function ImageDepthThemeScene({
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: "high-performance" });
     incrementImageDepthRendererInstance();
+    imageDepthSceneDevCounters.rendererCreationCount += 1;
+    publishImageDepthSceneDevCounters(devCountersCallbackRef.current);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.NoToneMapping;
@@ -412,12 +502,17 @@ export function ImageDepthThemeScene({
     scene.add(ambientLight, keyLight, rimLight);
 
     const material = new THREE.MeshStandardMaterial({
-      displacementScale: profile.depth.staticDepth * profile.depth.depthStrength * DISPLACEMENT_SCALE_MULTIPLIER,
+      displacementScale:
+        (depthOverrideRef.current ?? profile.depth.staticDepth) *
+        profile.depth.depthStrength *
+        DISPLACEMENT_SCALE_MULTIPLIER,
       roughness: 1,
       metalness: 0,
       side: THREE.DoubleSide,
       toneMapped: false,
     });
+    imageDepthSceneDevCounters.materialGeometryInitializationCount += 1;
+    publishImageDepthSceneDevCounters(devCountersCallbackRef.current);
     const surfaceGlowUniforms = createSurfaceGlowUniformState();
 
     material.onBeforeCompile = (shader) => {
@@ -702,6 +797,9 @@ if (uSurfaceGlowEnabled > 0.5) {
     }, 350);
 
     syncSurfaceGlowUniforms(surfaceGlowUniforms, scenePreset, material.map);
+
+    imageDepthSceneDevCounters.textureLoadCount += 1;
+    publishImageDepthSceneDevCounters(devCountersCallbackRef.current);
 
     getImageDepthTexturePair(asset)
       .then(({ colorTexture, depthTexture }) => {
@@ -1161,11 +1259,13 @@ if (uSurfaceGlowEnabled > 0.5) {
         blendedPointer.x = autonomousSmoothedPointer.x;
         blendedPointer.y = autonomousSmoothedPointer.y;
 
+        const manualDepth = depthOverrideRef.current;
         let breathingMix = 0.5;
-        let authoredDepthContribution = profile.depth.staticDepth;
+        let authoredDepthContribution = manualDepth ?? profile.depth.staticDepth;
         const minBreathingDepth = Math.min(profile.depth.breathingMin, profile.depth.breathingMax);
         const maxBreathingDepth = Math.max(profile.depth.breathingMin, profile.depth.breathingMax);
-        const authoredCyclicBreathingEnabled = automaticMotionActive && !reactiveTimingAuthorityActive;
+        const authoredCyclicBreathingEnabled =
+          manualDepth === null && automaticMotionActive && !reactiveTimingAuthorityActive;
 
         if (authoredCyclicBreathingEnabled) {
           const breathingRange = maxBreathingDepth - minBreathingDepth;
@@ -1174,13 +1274,13 @@ if (uSurfaceGlowEnabled > 0.5) {
           breathingMix = (cycle + 1) * 0.5;
           authoredDepthContribution = minBreathingDepth + breathingRange * breathingMix;
         } else {
-          authoredDepthContribution = profile.depth.staticDepth;
+          authoredDepthContribution = manualDepth ?? profile.depth.staticDepth;
         }
 
         const combinedDepthBeforeClamp = reactiveTimingAuthorityActive
           ? fullOnBehaviorActive
             ? depthReactiveContribution
-            : profile.depth.staticDepth + depthReactiveContribution
+            : (manualDepth ?? profile.depth.staticDepth) + depthReactiveContribution
           : authoredDepthContribution + depthReactiveContribution;
         const configuredDepthMinimum = reactiveTimingAuthorityActive ? REACTIVE_DEPTH_MIN : AUTHORED_DEPTH_MIN;
         const configuredDepthMaximum = reactiveTimingAuthorityActive ? REACTIVE_DEPTH_MAX : AUTHORED_DEPTH_MAX;
@@ -1661,9 +1761,14 @@ if (uSurfaceGlowEnabled > 0.5) {
       return;
     }
 
+    const effectiveStaticDepth =
+      typeof manualDepthOverride === "number" && Number.isFinite(manualDepthOverride)
+        ? clamp(manualDepthOverride, 0, 1)
+        : profile.depth.staticDepth;
+
     material.displacementScale =
-      profile.depth.staticDepth * profile.depth.depthStrength * DISPLACEMENT_SCALE_MULTIPLIER;
-  }, [profile.depth.staticDepth, profile.depth.depthStrength]);
+      effectiveStaticDepth * profile.depth.depthStrength * DISPLACEMENT_SCALE_MULTIPLIER;
+  }, [manualDepthOverride, profile.depth.staticDepth, profile.depth.depthStrength]);
 
   const containerStyle = useMemo<CSSProperties | undefined>(() => {
     if (!sceneBackdrop) {
