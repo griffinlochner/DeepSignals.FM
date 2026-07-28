@@ -1,5 +1,5 @@
 import { useId, useMemo } from 'react'
-import type { AudioPlaybackStatus, ReactiveBehaviorId, SignalSource } from '../app/playerTypes'
+import type { AudioPlaybackStatus, SignalSource } from '../app/playerTypes'
 import type { ThemeId } from '../themes/themeTypes'
 import PanelChevronIcon from './PanelChevronIcon'
 import PlayStopButton from './PlayStopButton'
@@ -34,9 +34,6 @@ type FloatingPlayerPanelProps = {
   motionEnabled: boolean
   supportsMotion: boolean
   onMotionToggle: (enabled: boolean) => void
-  showBehaviorControl: boolean
-  selectedBehavior: ReactiveBehaviorId
-  onBehaviorChange: (value: ReactiveBehaviorId) => void
   signalTelemetryVisible: boolean
   onSignalTelemetryChange: (enabled: boolean) => void
   visualFeedOpen: boolean
@@ -70,9 +67,6 @@ function FloatingPlayerPanel({
   motionEnabled,
   supportsMotion,
   onMotionToggle,
-  showBehaviorControl,
-  selectedBehavior,
-  onBehaviorChange,
   signalTelemetryVisible,
   onSignalTelemetryChange,
   visualFeedOpen,
@@ -198,34 +192,6 @@ function FloatingPlayerPanel({
               </span>
             </label>
           </section>
-
-          {showBehaviorControl ? (
-            <section className="floating-player-panel__field" aria-label="Behavior">
-              <p className="floating-player-panel__label">Behavior</p>
-              <div className="floating-player-panel__behavior-segmented" role="radiogroup" aria-label="Behavior">
-                <button
-                  type="button"
-                  className="floating-player-panel__behavior-option"
-                  role="radio"
-                  aria-checked={selectedBehavior === 'chill'}
-                  data-selected={selectedBehavior === 'chill' ? 'true' : 'false'}
-                  onClick={() => onBehaviorChange('chill')}
-                >
-                  Chill
-                </button>
-                <button
-                  type="button"
-                  className="floating-player-panel__behavior-option"
-                  role="radio"
-                  aria-checked={selectedBehavior === 'fullon'}
-                  data-selected={selectedBehavior === 'fullon' ? 'true' : 'false'}
-                  onClick={() => onBehaviorChange('fullon')}
-                >
-                  Full On
-                </button>
-              </div>
-            </section>
-          ) : null}
 
           <section className="floating-player-panel__field" aria-label="Signal Telemetry">
             <label className="floating-player-panel__switch">
