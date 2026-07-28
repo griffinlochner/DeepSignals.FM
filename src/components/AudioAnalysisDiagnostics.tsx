@@ -53,6 +53,7 @@ type AudioAnalysisDiagnosticsProps = {
   sourceBpm: number | null
   effectiveReactiveBpm: number | null
   ignoreSourceBpmEnabled?: boolean
+  motionEnabled?: boolean
   reactiveBehaviorOverride?: ReactiveBehaviorId | null
   reactiveDiagnosticsEnabled?: boolean
   getReactivePreviewTelemetry?: (() => ReactivePreviewTelemetry) | null
@@ -221,6 +222,7 @@ function AudioAnalysisDiagnostics({
   sourceBpm,
   effectiveReactiveBpm,
   ignoreSourceBpmEnabled = false,
+  motionEnabled = true,
   reactiveBehaviorOverride = null,
   reactiveDiagnosticsEnabled = false,
   getReactivePreviewTelemetry = null,
@@ -325,6 +327,7 @@ function AudioAnalysisDiagnostics({
 
             <section className="audio-analysis-diagnostics__readout" aria-label="Reactive behavior state">
               <p>Reactive Behavior: {displayedReactiveTelemetry.selectedReactiveBehavior}</p>
+              <p>Motion Toggle: {motionEnabled ? 'On' : 'Off'}</p>
               <p>Reactive Isolation: {displayedReactiveTelemetry.reactiveIsolationEnabled ? 'On' : 'Off'}</p>
               <p>Music Authority: {displayedReactiveTelemetry.musicAuthorityActive ? 'On' : 'Off'}</p>
               <p>Motion Gate: {displayedReactiveTelemetry.motionGateOpen ? 'Open' : 'Closed'}</p>

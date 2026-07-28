@@ -79,7 +79,7 @@ function sanitizeReactiveBehaviorId(value: unknown): ReactiveBehaviorId {
 
 function sanitizeVolume(value: unknown) {
   if (typeof value !== 'number' || !Number.isFinite(value)) {
-    return 0.7
+    return 1
   }
 
   return Math.min(1, Math.max(0, value))
@@ -89,7 +89,7 @@ function readStoredPlayerPreferences(): PlayerPreferencesV2 {
   const fallback: PlayerPreferencesV2 = {
     selectedThemeId: defaultThemeId,
     selectedAudioSourceId: AUDIO_SOURCES[0]?.id ?? '',
-    volume: 0.7,
+    volume: 1,
     motionEnabled: true,
     visualFeedOpen: false,
     selectedBehavior: 'chill',
@@ -109,7 +109,7 @@ function readStoredPlayerPreferences(): PlayerPreferencesV2 {
       return {
         selectedThemeId: sanitizeThemeId(parsed.selectedThemeId),
         selectedAudioSourceId: sanitizeAudioSourceId(parsed.selectedAudioSourceId),
-        volume: sanitizeVolume(parsed.volume),
+        volume: 1,
         motionEnabled: sanitizeBoolean(parsed.motionEnabled, true),
         visualFeedOpen: sanitizeBoolean(parsed.visualFeedOpen, false),
         selectedBehavior: sanitizeReactiveBehaviorId(parsed.selectedBehavior),
@@ -128,7 +128,7 @@ function readStoredPlayerPreferences(): PlayerPreferencesV2 {
     return {
       selectedThemeId: sanitizeThemeId(parsed.selectedThemeId),
       selectedAudioSourceId: sanitizeAudioSourceId(parsed.selectedAudioSourceId),
-      volume: sanitizeVolume(parsed.volume),
+      volume: 1,
       motionEnabled: sanitizeBoolean(parsed.motionEnabled, true),
       visualFeedOpen: sanitizeBoolean(parsed.visualFeedOpen, false),
       selectedBehavior: 'chill',
@@ -329,6 +329,7 @@ function PlayerShell({ className }: PlayerShellProps) {
   const supportsAudioReactiveBehavior = activeTheme?.supportsAudioReactiveBehavior ?? false
   const effectiveReactiveBehavior = reactiveBehaviorOverride ?? selectedBehavior
   const productionFullOnActive = supportsAudioReactiveBehavior && effectiveReactiveBehavior === 'fullon'
+  const productionDepthMotionSuppressed = supportsAudioReactiveBehavior && !motionEnabled
 
   const handleSignalChange = (id: string) => {
     setSelectedSignalId(sanitizeAudioSourceId(id) || null)
@@ -346,6 +347,14 @@ function PlayerShell({ className }: PlayerShellProps) {
 
   useEffect(() => {
     const resetFullOnOverrides = () => {
+      if (
+        fullOnDepthCurrentRef.current === FULLON_STOP_SETTLE_DEPTH &&
+        fullOnHueCurrentRef.current === FULLON_STOP_SETTLE_HUE_DEGREES &&
+        fullOnSaturationCurrentRef.current === FULLON_STOP_SETTLE_SATURATION
+      ) {
+        return
+      }
+
       fullOnDepthCurrentRef.current = FULLON_STOP_SETTLE_DEPTH
       fullOnHueCurrentRef.current = FULLON_STOP_SETTLE_HUE_DEGREES
       fullOnSaturationCurrentRef.current = FULLON_STOP_SETTLE_SATURATION
@@ -360,9 +369,10 @@ function PlayerShell({ className }: PlayerShellProps) {
     }
 
     let rafId: number | null = null
+    const getLatestSnapshot = audioAnalysis.getLatestSnapshot
 
     const tick = () => {
-      const snapshot = audioAnalysis.getLatestSnapshot()
+      const snapshot = getLatestSnapshot()
       const isPlayingNow = audioController.playbackStatus === 'playing'
 
       const energySignal = resolveSnapshotSignal(snapshot, FULLON_BUILT_IN_PRESET.depth.signal)
@@ -405,7 +415,11 @@ function PlayerShell({ className }: PlayerShellProps) {
       fullOnSaturationCurrentRef.current =
         Math.abs(nextSaturation - saturationTarget) < 0.0005 ? saturationTarget : nextSaturation
 
-      setFullOnDepthOverride(fullOnDepthCurrentRef.current)
+      const effectiveRenderedDepth = productionDepthMotionSuppressed
+        ? FULLON_STOP_SETTLE_DEPTH
+        : fullOnDepthCurrentRef.current
+
+      setFullOnDepthOverride(effectiveRenderedDepth)
       setFullOnHueShiftOverrideDegrees(fullOnHueCurrentRef.current)
       setFullOnSaturationOverrideMultiplier(fullOnSaturationCurrentRef.current)
 
@@ -417,7 +431,7 @@ function PlayerShell({ className }: PlayerShellProps) {
         selectedSaturationSignalField: FULLON_BUILT_IN_PRESET.saturation.signal,
         reactivePreviewEnabled: true,
         fullOnTargetDepth: depthTarget,
-        fullOnCurrentDepth: fullOnDepthCurrentRef.current,
+        fullOnCurrentDepth: effectiveRenderedDepth,
         reactiveHueTargetDegrees: hueTarget,
         reactiveHueOffsetDegrees: fullOnHueCurrentRef.current,
         finalHueShiftDegrees: fullOnHueCurrentRef.current,
@@ -436,7 +450,36 @@ function PlayerShell({ className }: PlayerShellProps) {
         window.cancelAnimationFrame(rafId)
       }
     }
-  }, [audioAnalysis, audioController.playbackStatus, productionFullOnActive])
+  }, [
+    audioAnalysis.getLatestSnapshot,
+    audioController.playbackStatus,
+    productionDepthMotionSuppressed,
+    productionFullOnActive,
+  ])
+
+  const effectiveProductionDepthOverride = productionDepthMotionSuppressed
+    ? FULLON_STOP_SETTLE_DEPTH
+    : productionFullOnActive
+      ? fullOnDepthOverride
+      : undefined
+
+  const handleSceneCountersChange = useCallback((nextCounters: ImageDepthSceneCounters) => {
+    setSceneCounters((current) => {
+      if (
+        current.sceneComponentMountCount === nextCounters.sceneComponentMountCount &&
+        current.sceneComponentUnmountCount === nextCounters.sceneComponentUnmountCount &&
+        current.rendererCreationCount === nextCounters.rendererCreationCount &&
+        current.textureLoadCount === nextCounters.textureLoadCount &&
+        current.materialGeometryInitializationCount === nextCounters.materialGeometryInitializationCount &&
+        current.environmentChangeCount === nextCounters.environmentChangeCount &&
+        current.depthUpdateCount === nextCounters.depthUpdateCount
+      ) {
+        return current
+      }
+
+      return nextCounters
+    })
+  }, [])
 
   const sceneProps: ThemeSceneProps = {
     isPlaying: audioController.playbackStatus === 'playing',
@@ -449,12 +492,10 @@ function PlayerShell({ className }: PlayerShellProps) {
     getLatestAudioSnapshot: audioAnalysis.getLatestSnapshot,
     reactivePreviewEnabled: supportsAudioReactiveBehavior && !productionFullOnActive,
     reactiveBehavior: productionFullOnActive ? 'chill' : effectiveReactiveBehavior,
-    manualDepthOverride: productionFullOnActive ? fullOnDepthOverride : undefined,
+    manualDepthOverride: effectiveProductionDepthOverride,
     manualHueShiftOverrideDegrees: productionFullOnActive ? fullOnHueShiftOverrideDegrees : null,
     manualSaturationOverrideMultiplier: productionFullOnActive ? fullOnSaturationOverrideMultiplier : null,
-    onDevSceneCountersChange: (counters) => {
-      setSceneCounters(counters)
-    },
+    onDevSceneCountersChange: handleSceneCountersChange,
     onReactivePreviewTelemetry: (telemetry) => {
       reactivePreviewTelemetryRef.current = productionFullOnActive
         ? {
@@ -464,7 +505,9 @@ function PlayerShell({ className }: PlayerShellProps) {
             selectedHueSignalField: FULLON_BUILT_IN_PRESET.hue.signal,
             selectedSaturationSignalField: FULLON_BUILT_IN_PRESET.saturation.signal,
             fullOnTargetDepth: reactivePreviewTelemetryRef.current.fullOnTargetDepth,
-            fullOnCurrentDepth: reactivePreviewTelemetryRef.current.fullOnCurrentDepth,
+            fullOnCurrentDepth: productionDepthMotionSuppressed
+              ? FULLON_STOP_SETTLE_DEPTH
+              : reactivePreviewTelemetryRef.current.fullOnCurrentDepth,
             reactiveHueTargetDegrees: reactivePreviewTelemetryRef.current.reactiveHueTargetDegrees,
             reactiveHueOffsetDegrees: reactivePreviewTelemetryRef.current.reactiveHueOffsetDegrees,
             finalHueShiftDegrees: reactivePreviewTelemetryRef.current.finalHueShiftDegrees,
@@ -552,6 +595,7 @@ function PlayerShell({ className }: PlayerShellProps) {
           sourceBpm={registrySourceBpm}
           effectiveReactiveBpm={effectiveReactiveBpm}
           ignoreSourceBpmEnabled={ignoreSourceBpmEnabled}
+          motionEnabled={motionEnabled}
           reactiveBehaviorOverride={reactiveBehaviorOverride}
           reactiveDiagnosticsEnabled={reactiveDiagnosticsEnabled}
           getReactivePreviewTelemetry={getReactivePreviewTelemetry}

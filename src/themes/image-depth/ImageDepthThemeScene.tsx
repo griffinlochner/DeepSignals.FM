@@ -1299,7 +1299,7 @@ if (uSurfaceGlowEnabled > 0.5) {
         const minBreathingDepth = Math.min(profile.depth.breathingMin, profile.depth.breathingMax);
         const maxBreathingDepth = Math.max(profile.depth.breathingMin, profile.depth.breathingMax);
         const authoredCyclicBreathingEnabled =
-          manualDepth === null && automaticMotionActive && !reactiveTimingAuthorityActive;
+          manualDepth === null && automaticMotionActive && !reactiveTimingAuthorityActive && !reactiveBehaviorEnabled;
 
         if (authoredCyclicBreathingEnabled) {
           const breathingRange = maxBreathingDepth - minBreathingDepth;
@@ -1615,8 +1615,8 @@ if (uSurfaceGlowEnabled > 0.5) {
             smoothedEnergy: smoothedEnergyRaw,
             sectionIntensity,
             fullOnPhase,
-            fullOnTargetDepth: fullOnBehaviorActive ? fullOnAppliedTargetDepth : 0,
-            fullOnCurrentDepth,
+            fullOnTargetDepth: fullOnBehaviorActive ? fullOnAppliedTargetDepth : depthFinalAfterClamp,
+            fullOnCurrentDepth: fullOnBehaviorActive ? fullOnCurrentDepth : depthFinalAfterClamp,
             fullOnTargetSaturation: computedFinalSaturation,
             fullOnCurrentSaturation: finalSaturation,
             millisecondsSinceAcceptedKickEvent: Number.isFinite(millisecondsSinceAcceptedKickEvent)
