@@ -10,6 +10,15 @@ export type TelemetrySignalField =
 
 export type DepthMode = 'manual' | 'audio-mapped'
 export type HueMode = 'off' | 'manual' | 'audio-mapped'
+export type SaturationMode = 'off' | 'manual' | 'audio-mapped'
+
+export const DEFAULT_SATURATION_PRESET_FIELDS = {
+  mode: 'off' as SaturationMode,
+  signal: 'smoothedEnergy' as TelemetrySignalField,
+  min: 0.85,
+  max: 1.15,
+  smoothing: 0.05,
+} as const
 
 export type ReactivityLabBehaviorPresetV1 = {
   schemaVersion: 1
@@ -30,7 +39,35 @@ export type ReactivityLabBehaviorPresetV1 = {
   }
 }
 
-export const REACTIVITY_LAB_PRESET_SCHEMA_VERSION = 1
+export type ReactivityLabBehaviorPresetV2 = {
+  schemaVersion: 2
+  name: string
+  depth: {
+    mode: DepthMode
+    signal: TelemetrySignalField
+    min: number
+    max: number
+    smoothing: number
+  }
+  hue: {
+    mode: HueMode
+    signal: TelemetrySignalField
+    minDegrees: number
+    maxDegrees: number
+    smoothing: number
+  }
+  saturation: {
+    mode: SaturationMode
+    signal: TelemetrySignalField
+    min: number
+    max: number
+    smoothing: number
+  }
+}
+
+export type ReactivityLabBehaviorPreset = ReactivityLabBehaviorPresetV2
+
+export const REACTIVITY_LAB_PRESET_SCHEMA_VERSION = 2
 export const REACTIVITY_LAB_BEHAVIOR_PRESETS_STORAGE_KEY = 'deepsignals.dev.reactivityLab.behaviorPresets.v1'
 
 export const DEPTH_CONTROL_LIMITS = {
@@ -47,8 +84,16 @@ export const HUE_CONTROL_LIMITS = {
   smoothingMax: 0.5,
 } as const
 
+export const SATURATION_CONTROL_LIMITS = {
+  min: 0,
+  max: 2,
+  smoothingMin: 0.01,
+  smoothingMax: 0.5,
+} as const
+
 const DEPTH_MODES: ReadonlyArray<DepthMode> = ['manual', 'audio-mapped']
 const HUE_MODES: ReadonlyArray<HueMode> = ['off', 'manual', 'audio-mapped']
+const SATURATION_MODES: ReadonlyArray<SaturationMode> = ['off', 'manual', 'audio-mapped']
 const TELEMETRY_SIGNALS: ReadonlyArray<TelemetrySignalField> = [
   'energy',
   'smoothedEnergy',
@@ -72,19 +117,26 @@ function inRange(value: number, minimum: number, maximum: number) {
   return value >= minimum && value <= maximum
 }
 
-export function validateBehaviorPreset(input: unknown): { valid: true; preset: ReactivityLabBehaviorPresetV1 } | { valid: false; error: string } {
-  if (!isObjectLike(input)) {
-    return { valid: false, error: 'Preset must be a JSON object.' }
-  }
-
-  const schemaVersion = input.schemaVersion
-  if (schemaVersion !== REACTIVITY_LAB_PRESET_SCHEMA_VERSION) {
-    return {
-      valid: false,
-      error: `Unsupported schemaVersion: ${String(schemaVersion)}. Expected ${REACTIVITY_LAB_PRESET_SCHEMA_VERSION}.`,
+function validatePresetCore(input: Record<string, unknown>): {
+  valid: true
+  base: {
+    name: string
+    depth: {
+      mode: DepthMode
+      signal: TelemetrySignalField
+      min: number
+      max: number
+      smoothing: number
+    }
+    hue: {
+      mode: HueMode
+      signal: TelemetrySignalField
+      minDegrees: number
+      maxDegrees: number
+      smoothing: number
     }
   }
-
+} | { valid: false; error: string } {
   const name = input.name
   if (typeof name !== 'string' || name.trim().length === 0) {
     return { valid: false, error: 'Preset name must be a non-empty string.' }
@@ -166,33 +218,109 @@ export function validateBehaviorPreset(input: unknown): { valid: true; preset: R
     }
   }
 
-  const preset: ReactivityLabBehaviorPresetV1 = {
-    schemaVersion: 1,
-    name: name.trim(),
-    depth: {
-      mode: depth.mode as DepthMode,
-      signal: depth.signal as TelemetrySignalField,
-      min: depthMin,
-      max: depthMax,
-      smoothing: depthSmoothing,
+  return {
+    valid: true,
+    base: {
+      name: name.trim(),
+      depth: {
+        mode: depth.mode as DepthMode,
+        signal: depth.signal as TelemetrySignalField,
+        min: depthMin,
+        max: depthMax,
+        smoothing: depthSmoothing,
+      },
+      hue: {
+        mode: hue.mode as HueMode,
+        signal: hue.signal as TelemetrySignalField,
+        minDegrees: hueMin,
+        maxDegrees: hueMax,
+        smoothing: hueSmoothing,
+      },
     },
-    hue: {
-      mode: hue.mode as HueMode,
-      signal: hue.signal as TelemetrySignalField,
-      minDegrees: hueMin,
-      maxDegrees: hueMax,
-      smoothing: hueSmoothing,
+  }
+}
+
+export function validateBehaviorPreset(input: unknown): { valid: true; preset: ReactivityLabBehaviorPreset } | { valid: false; error: string } {
+  if (!isObjectLike(input)) {
+    return { valid: false, error: 'Preset must be a JSON object.' }
+  }
+
+  const schemaVersion = input.schemaVersion
+  if (schemaVersion !== 1 && schemaVersion !== REACTIVITY_LAB_PRESET_SCHEMA_VERSION) {
+    return {
+      valid: false,
+      error: `Unsupported schemaVersion: ${String(schemaVersion)}. Expected 1 or ${REACTIVITY_LAB_PRESET_SCHEMA_VERSION}.`,
+    }
+  }
+
+  const coreValidation = validatePresetCore(input)
+  if (!coreValidation.valid) {
+    return coreValidation
+  }
+
+  const saturationInput = schemaVersion === 1
+    ? DEFAULT_SATURATION_PRESET_FIELDS
+    : input.saturation
+
+  if (!isObjectLike(saturationInput)) {
+    return { valid: false, error: 'Preset saturation config is missing.' }
+  }
+
+  if (!SATURATION_MODES.includes(saturationInput.mode as SaturationMode)) {
+    return { valid: false, error: `Unknown saturation.mode: ${String(saturationInput.mode)}.` }
+  }
+
+  if (!TELEMETRY_SIGNALS.includes(saturationInput.signal as TelemetrySignalField)) {
+    return { valid: false, error: `Unknown saturation.signal: ${String(saturationInput.signal)}.` }
+  }
+
+  const saturationMin = saturationInput.min
+  const saturationMax = saturationInput.max
+  const saturationSmoothing = saturationInput.smoothing
+  if (!isFiniteNumber(saturationMin) || !isFiniteNumber(saturationMax) || !isFiniteNumber(saturationSmoothing)) {
+    return { valid: false, error: 'Saturation min/max/smoothing must be finite numbers.' }
+  }
+
+  if (saturationMin > saturationMax) {
+    return { valid: false, error: 'Saturation min must be less than or equal to saturation max.' }
+  }
+
+  if (!inRange(saturationMin, SATURATION_CONTROL_LIMITS.min, SATURATION_CONTROL_LIMITS.max) || !inRange(saturationMax, SATURATION_CONTROL_LIMITS.min, SATURATION_CONTROL_LIMITS.max)) {
+    return {
+      valid: false,
+      error: `Saturation min/max must be within ${SATURATION_CONTROL_LIMITS.min}..${SATURATION_CONTROL_LIMITS.max}.`,
+    }
+  }
+
+  if (!inRange(saturationSmoothing, SATURATION_CONTROL_LIMITS.smoothingMin, SATURATION_CONTROL_LIMITS.smoothingMax)) {
+    return {
+      valid: false,
+      error: `Saturation smoothing must be within ${SATURATION_CONTROL_LIMITS.smoothingMin}..${SATURATION_CONTROL_LIMITS.smoothingMax}.`,
+    }
+  }
+
+  const preset: ReactivityLabBehaviorPreset = {
+    schemaVersion: REACTIVITY_LAB_PRESET_SCHEMA_VERSION,
+    name: coreValidation.base.name,
+    depth: coreValidation.base.depth,
+    hue: coreValidation.base.hue,
+    saturation: {
+      mode: saturationInput.mode as SaturationMode,
+      signal: saturationInput.signal as TelemetrySignalField,
+      min: saturationMin,
+      max: saturationMax,
+      smoothing: saturationSmoothing,
     },
   }
 
   return { valid: true, preset }
 }
 
-export function serializeBehaviorPreset(preset: ReactivityLabBehaviorPresetV1) {
+export function serializeBehaviorPreset(preset: ReactivityLabBehaviorPreset) {
   return JSON.stringify(preset, null, 2)
 }
 
-export function parseBehaviorPresetJson(jsonText: string): { valid: true; preset: ReactivityLabBehaviorPresetV1 } | { valid: false; error: string } {
+export function parseBehaviorPresetJson(jsonText: string): { valid: true; preset: ReactivityLabBehaviorPreset } | { valid: false; error: string } {
   const trimmed = jsonText.trim()
   if (!trimmed) {
     return { valid: false, error: 'Import JSON is empty.' }
@@ -206,7 +334,7 @@ export function parseBehaviorPresetJson(jsonText: string): { valid: true; preset
   }
 }
 
-export function readStoredBehaviorPresets(): ReactivityLabBehaviorPresetV1[] {
+export function readStoredBehaviorPresets(): ReactivityLabBehaviorPreset[] {
   if (typeof window === 'undefined') {
     return []
   }
@@ -222,7 +350,7 @@ export function readStoredBehaviorPresets(): ReactivityLabBehaviorPresetV1[] {
       return []
     }
 
-    const validPresets: ReactivityLabBehaviorPresetV1[] = []
+    const validPresets: ReactivityLabBehaviorPreset[] = []
     for (const candidate of parsed) {
       const validation = validateBehaviorPreset(candidate)
       if (validation.valid) {
@@ -236,7 +364,7 @@ export function readStoredBehaviorPresets(): ReactivityLabBehaviorPresetV1[] {
   }
 }
 
-export function writeStoredBehaviorPresets(presets: ReactivityLabBehaviorPresetV1[]) {
+export function writeStoredBehaviorPresets(presets: ReactivityLabBehaviorPreset[]) {
   if (typeof window === 'undefined') {
     return
   }

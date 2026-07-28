@@ -10,6 +10,7 @@ import type {
 import { useAudioAnalysis } from '../../app/useAudioAnalysis'
 import { usePersistentAudioController } from '../../app/usePersistentAudioController'
 import AudioAnalysisDiagnostics from '../../components/AudioAnalysisDiagnostics'
+import PanelChevronIcon from '../../components/PanelChevronIcon'
 import SignalSourceSelector from '../../components/SignalSourceSelector'
 import VolumeControl from '../../components/VolumeControl'
 import { useExternalRadioController, type DevSignalSourceId } from '../radio-player/useExternalRadioController'
@@ -23,12 +24,14 @@ import {
 import {
   DEPTH_CONTROL_LIMITS,
   HUE_CONTROL_LIMITS,
+  SATURATION_CONTROL_LIMITS,
   type DepthMode,
   type HueMode,
+  type SaturationMode,
   parseBehaviorPresetJson,
   readStoredBehaviorPresets,
   REACTIVITY_LAB_BEHAVIOR_PRESETS_STORAGE_KEY,
-  type ReactivityLabBehaviorPresetV1,
+  type ReactivityLabBehaviorPreset,
   serializeBehaviorPreset,
   type TelemetrySignalField,
   writeStoredBehaviorPresets,
@@ -37,7 +40,6 @@ import './reactivityLab.css'
 
 type SourceType = 'local-mp3' | 'external-radio'
 type LabRadioPresetId = 'psyradio-progressive' | 'psyradio-chillout' | 'psyndora' | 'psystream'
-type ReactivityIsolationMode = 'depth-hue' | 'depth-only' | 'hue-only' | 'reactive-off'
 
 type MeterDebugReadout = {
   fastBass: number
@@ -150,7 +152,11 @@ const DEFAULT_MINIMUM_HUE_SHIFT_DEGREES = -30
 const DEFAULT_MAXIMUM_HUE_SHIFT_DEGREES = 30
 const DEFAULT_HUE_RESPONSE_SMOOTHING = 0.12
 const STOP_SETTLE_HUE_SHIFT_DEGREES = 0
-const DEFAULT_REACTIVITY_ISOLATION_MODE: ReactivityIsolationMode = 'depth-hue'
+const DEFAULT_MANUAL_SATURATION = 1
+const DEFAULT_MINIMUM_SATURATION = 0.85
+const DEFAULT_MAXIMUM_SATURATION = 1.15
+const DEFAULT_SATURATION_RESPONSE_SMOOTHING = 0.05
+const STOP_SETTLE_SATURATION = 1
 
 const TELEMETRY_SIGNAL_OPTIONS: Array<{ id: TelemetrySignalField; label: string }> = [
   { id: 'energy', label: 'Energy' },
@@ -297,11 +303,18 @@ function ReactivityLabShell() {
   const [hueResponseSmoothing, setHueResponseSmoothing] = useState(DEFAULT_HUE_RESPONSE_SMOOTHING)
   const [manualHueShiftDegrees, setManualHueShiftDegrees] = useState(DEFAULT_MANUAL_HUE_SHIFT_DEGREES)
   const [mappedHueShiftDegrees, setMappedHueShiftDegrees] = useState(DEFAULT_MANUAL_HUE_SHIFT_DEGREES)
-  const [reactivityIsolationMode, setReactivityIsolationMode] = useState<ReactivityIsolationMode>(
-    DEFAULT_REACTIVITY_ISOLATION_MODE,
-  )
+  const [saturationMode, setSaturationMode] = useState<SaturationMode>('off')
+  const [saturationSignalField, setSaturationSignalField] = useState<TelemetrySignalField>('smoothedEnergy')
+  const [minimumSaturation, setMinimumSaturation] = useState(DEFAULT_MINIMUM_SATURATION)
+  const [maximumSaturation, setMaximumSaturation] = useState(DEFAULT_MAXIMUM_SATURATION)
+  const [saturationResponseSmoothing, setSaturationResponseSmoothing] = useState(DEFAULT_SATURATION_RESPONSE_SMOOTHING)
+  const [manualSaturation, setManualSaturation] = useState(DEFAULT_MANUAL_SATURATION)
+  const [mappedSaturation, setMappedSaturation] = useState(DEFAULT_MANUAL_SATURATION)
+  const [depthPreviewEnabled, setDepthPreviewEnabled] = useState(true)
+  const [huePreviewEnabled, setHuePreviewEnabled] = useState(true)
+  const [saturationPreviewEnabled, setSaturationPreviewEnabled] = useState(false)
   const [presetNameInput, setPresetNameInput] = useState('')
-  const [savedBehaviorPresets, setSavedBehaviorPresets] = useState<ReactivityLabBehaviorPresetV1[]>(() =>
+  const [savedBehaviorPresets, setSavedBehaviorPresets] = useState<ReactivityLabBehaviorPreset[]>(() =>
     readStoredBehaviorPresets(),
   )
   const [selectedBehaviorPresetName, setSelectedBehaviorPresetName] = useState(() => {
@@ -313,6 +326,7 @@ function ReactivityLabShell() {
   const [presetInlineStatus, setPresetInlineStatus] = useState<string | null>(null)
   const [renderedDepth, setRenderedDepth] = useState(DEFAULT_MANUAL_DEPTH)
   const [renderedHueShiftDegrees, setRenderedHueShiftDegrees] = useState(DEFAULT_MANUAL_HUE_SHIFT_DEGREES)
+  const [renderedSaturation, setRenderedSaturation] = useState(DEFAULT_MANUAL_SATURATION)
   const [sceneDevCounters, setSceneDevCounters] = useState<ImageDepthSceneDevCounters>(
     INITIAL_SCENE_DEV_COUNTERS,
   )
@@ -329,6 +343,9 @@ function ReactivityLabShell() {
   const mappedHueTargetRef = useRef(DEFAULT_MANUAL_HUE_SHIFT_DEGREES)
   const mappedHueCurrentRef = useRef(DEFAULT_MANUAL_HUE_SHIFT_DEGREES)
   const mappedHueRafRef = useRef<number | null>(null)
+  const mappedSaturationTargetRef = useRef(DEFAULT_MANUAL_SATURATION)
+  const mappedSaturationCurrentRef = useRef(DEFAULT_MANUAL_SATURATION)
+  const mappedSaturationRafRef = useRef<number | null>(null)
   const audioController = usePersistentAudioController(1, selectedMp3SourceId)
   const radioController = useExternalRadioController(defaultThemeId, {
     audioOutputMode: 'post-analyzer-gain',
@@ -485,6 +502,7 @@ function ReactivityLabShell() {
 
   const selectedDepthSignalValue = resolveSnapshotSignal(telemetrySnapshot, depthSignalField)
   const selectedHueSignalValue = resolveSnapshotSignal(telemetrySnapshot, hueSignalField)
+  const selectedSaturationSignalValue = resolveSnapshotSignal(telemetrySnapshot, saturationSignalField)
 
   const mappedTargetDepth = clampToDepthRange(
     minimumDepth + selectedDepthSignalValue * (maximumDepth - minimumDepth),
@@ -494,43 +512,56 @@ function ReactivityLabShell() {
 
   const mappedTargetHueShiftDegrees =
     minimumHueShiftDegrees + selectedHueSignalValue * (maximumHueShiftDegrees - minimumHueShiftDegrees)
+  const mappedTargetSaturation =
+    minimumSaturation + selectedSaturationSignalValue * (maximumSaturation - minimumSaturation)
 
-  const depthMappingActive =
-    depthMode === 'audio-mapped' &&
-    reactivityIsolationMode !== 'hue-only' &&
-    reactivityIsolationMode !== 'reactive-off'
-  const hueMappingActive =
-    hueMode === 'audio-mapped' &&
-    reactivityIsolationMode !== 'depth-only' &&
-    reactivityIsolationMode !== 'reactive-off'
+  const depthMappingActive = depthPreviewEnabled && depthMode === 'audio-mapped'
+  const hueMappingActive = huePreviewEnabled && hueMode === 'audio-mapped'
+  const saturationMappingActive = saturationPreviewEnabled && saturationMode === 'audio-mapped'
 
   const targetDepthForDisplay = depthMappingActive
     ? (isAudioStopped ? STOP_SETTLE_DEPTH : mappedTargetDepth)
-    : manualDepthOverride
+    : depthPreviewEnabled
+      ? manualDepthOverride
+      : STOP_SETTLE_DEPTH
 
   const targetHueShiftForDisplay = hueMappingActive
     ? (isAudioStopped ? STOP_SETTLE_HUE_SHIFT_DEGREES : mappedTargetHueShiftDegrees)
-    : hueMode === 'manual'
-      ? manualHueShiftDegrees
-      : STOP_SETTLE_HUE_SHIFT_DEGREES
-
-  const liveDepthOverride = reactivityIsolationMode === 'reactive-off'
-    ? STOP_SETTLE_DEPTH
-    : reactivityIsolationMode === 'hue-only'
-      ? manualDepthOverride
-      : depthMode === 'audio-mapped'
-        ? mappedDepthOverride
-        : manualDepthOverride
-
-  const liveHueShiftOverrideDegrees = reactivityIsolationMode === 'reactive-off'
-    ? STOP_SETTLE_HUE_SHIFT_DEGREES
-    : reactivityIsolationMode === 'depth-only'
+    : !huePreviewEnabled
       ? STOP_SETTLE_HUE_SHIFT_DEGREES
-      : hueMode === 'off'
-        ? STOP_SETTLE_HUE_SHIFT_DEGREES
-        : hueMode === 'audio-mapped'
-          ? mappedHueShiftDegrees
-          : manualHueShiftDegrees
+      : hueMode === 'manual'
+        ? manualHueShiftDegrees
+        : STOP_SETTLE_HUE_SHIFT_DEGREES
+
+  const targetSaturationForDisplay = saturationMappingActive
+    ? (isAudioStopped ? STOP_SETTLE_SATURATION : mappedTargetSaturation)
+    : !saturationPreviewEnabled
+      ? STOP_SETTLE_SATURATION
+      : saturationMode === 'manual'
+        ? manualSaturation
+        : STOP_SETTLE_SATURATION
+
+  const liveDepthOverride = !depthPreviewEnabled
+    ? STOP_SETTLE_DEPTH
+    : depthMode === 'audio-mapped'
+      ? mappedDepthOverride
+      : manualDepthOverride
+
+  const liveHueShiftOverrideDegrees = !huePreviewEnabled
+    ? STOP_SETTLE_HUE_SHIFT_DEGREES
+    : hueMode === 'off'
+      ? STOP_SETTLE_HUE_SHIFT_DEGREES
+      : hueMode === 'audio-mapped'
+        ? mappedHueShiftDegrees
+        : manualHueShiftDegrees
+
+  const liveSaturationOverride = !saturationPreviewEnabled
+    ? STOP_SETTLE_SATURATION
+    : saturationMode === 'off'
+      ? STOP_SETTLE_SATURATION
+      : saturationMode === 'audio-mapped'
+        ? mappedSaturation
+        : manualSaturation
 
   useEffect(() => {
     if (!depthMappingActive) {
@@ -627,7 +658,56 @@ function ReactivityLabShell() {
     }
   }, [hueMappingActive, manualHueShiftDegrees, hueResponseSmoothing])
 
-  const applyBehaviorPreset = useCallback((preset: ReactivityLabBehaviorPresetV1) => {
+  useEffect(() => {
+    if (!saturationMappingActive) {
+      return
+    }
+
+    mappedSaturationTargetRef.current = isAudioStopped ? STOP_SETTLE_SATURATION : mappedTargetSaturation
+  }, [isAudioStopped, mappedTargetSaturation, saturationMappingActive])
+
+  useEffect(() => {
+    if (!saturationMappingActive) {
+      if (mappedSaturationRafRef.current !== null) {
+        window.cancelAnimationFrame(mappedSaturationRafRef.current)
+        mappedSaturationRafRef.current = null
+      }
+
+      return
+    }
+
+    mappedSaturationCurrentRef.current = manualSaturation
+
+    const tick = () => {
+      const targetSaturation = mappedSaturationTargetRef.current
+      const currentSaturation = mappedSaturationCurrentRef.current
+      let nextSaturation = currentSaturation + (targetSaturation - currentSaturation) * saturationResponseSmoothing
+
+      if (Math.abs(targetSaturation - nextSaturation) < 0.0005) {
+        nextSaturation = targetSaturation
+      }
+
+      nextSaturation = Math.max(0, nextSaturation)
+
+      if (nextSaturation !== currentSaturation) {
+        mappedSaturationCurrentRef.current = nextSaturation
+        setMappedSaturation(nextSaturation)
+      }
+
+      mappedSaturationRafRef.current = window.requestAnimationFrame(tick)
+    }
+
+    mappedSaturationRafRef.current = window.requestAnimationFrame(tick)
+
+    return () => {
+      if (mappedSaturationRafRef.current !== null) {
+        window.cancelAnimationFrame(mappedSaturationRafRef.current)
+        mappedSaturationRafRef.current = null
+      }
+    }
+  }, [manualSaturation, saturationMappingActive, saturationResponseSmoothing])
+
+  const applyBehaviorPreset = useCallback((preset: ReactivityLabBehaviorPreset) => {
     setDepthMode(preset.depth.mode)
     setDepthSignalField(preset.depth.signal)
     setMinimumDepth(preset.depth.min)
@@ -639,13 +719,19 @@ function ReactivityLabShell() {
     setMinimumHueShiftDegrees(preset.hue.minDegrees)
     setMaximumHueShiftDegrees(preset.hue.maxDegrees)
     setHueResponseSmoothing(preset.hue.smoothing)
+
+    setSaturationMode(preset.saturation.mode)
+    setSaturationSignalField(preset.saturation.signal)
+    setMinimumSaturation(preset.saturation.min)
+    setMaximumSaturation(preset.saturation.max)
+    setSaturationResponseSmoothing(preset.saturation.smoothing)
   }, [])
 
-  const currentBehaviorPreset = useMemo<ReactivityLabBehaviorPresetV1>(() => {
+  const currentBehaviorPreset = useMemo<ReactivityLabBehaviorPreset>(() => {
     const normalizedName = presetNameInput.trim().length > 0 ? presetNameInput.trim() : 'Untitled Behavior Preset'
 
     return {
-      schemaVersion: 1,
+      schemaVersion: 2,
       name: normalizedName,
       depth: {
         mode: depthMode,
@@ -661,6 +747,13 @@ function ReactivityLabShell() {
         maxDegrees: maximumHueShiftDegrees,
         smoothing: hueResponseSmoothing,
       },
+      saturation: {
+        mode: saturationMode,
+        signal: saturationSignalField,
+        min: minimumSaturation,
+        max: maximumSaturation,
+        smoothing: saturationResponseSmoothing,
+      },
     }
   }, [
     depthMode,
@@ -673,10 +766,15 @@ function ReactivityLabShell() {
     minimumHueShiftDegrees,
     maximumHueShiftDegrees,
     hueResponseSmoothing,
+    saturationMode,
+    saturationSignalField,
+    minimumSaturation,
+    maximumSaturation,
+    saturationResponseSmoothing,
     presetNameInput,
   ])
 
-  const persistBehaviorPresets = (nextPresets: ReactivityLabBehaviorPresetV1[]) => {
+  const persistBehaviorPresets = (nextPresets: ReactivityLabBehaviorPreset[]) => {
     writeStoredBehaviorPresets(nextPresets)
     setSavedBehaviorPresets(nextPresets)
   }
@@ -690,7 +788,7 @@ function ReactivityLabShell() {
       return
     }
 
-    const presetToSave: ReactivityLabBehaviorPresetV1 = {
+    const presetToSave: ReactivityLabBehaviorPreset = {
       ...currentBehaviorPreset,
       name: trimmedName,
     }
@@ -852,6 +950,7 @@ function ReactivityLabShell() {
 
   const handleSceneColorDiagnosticsChange = useCallback((nextDiagnostics: ImageDepthSceneColorDiagnostics) => {
     setSceneColorDiagnostics(nextDiagnostics)
+    setRenderedSaturation(nextDiagnostics.finalSaturationMultiplier)
   }, [])
 
   return (
@@ -953,7 +1052,12 @@ function ReactivityLabShell() {
             </label>
 
             <details className="reactivity-lab__details" open>
-              <summary>Behavior presets</summary>
+              <summary>
+                <span>Behavior presets</span>
+                <span className="reactivity-lab__details-chevron" aria-hidden="true">
+                  <PanelChevronIcon collapsed expandDirection="down" />
+                </span>
+              </summary>
               <div className="reactivity-lab__details-body">
                 <section className="reactivity-lab__preset-panel" aria-label="Behavior presets">
                   <h2 className="reactivity-lab__preset-title">Behavior Presets (DEV)</h2>
@@ -1020,21 +1124,42 @@ function ReactivityLabShell() {
             </details>
 
             <details className="reactivity-lab__details" open>
-              <summary>Depth mapping</summary>
+              <summary>
+                <span>Depth mapping</span>
+                <span className="reactivity-lab__details-chevron" aria-hidden="true">
+                  <PanelChevronIcon collapsed expandDirection="down" />
+                </span>
+              </summary>
               <div className="reactivity-lab__details-body">
-                <label className="reactivity-lab__field">
-                  <span className="reactivity-lab__label">Reactivity Isolation</span>
-                  <select
-                    className="reactivity-lab__select"
-                    value={reactivityIsolationMode}
-                    onChange={(event) => setReactivityIsolationMode(event.target.value as ReactivityIsolationMode)}
-                  >
-                    <option value="depth-hue">Depth + Hue</option>
-                    <option value="depth-only">Depth only</option>
-                    <option value="hue-only">Hue only</option>
-                    <option value="reactive-off">Reactive effects off</option>
-                  </select>
-                </label>
+                <div className="reactivity-lab__field">
+                  <span className="reactivity-lab__label">Preview channel toggles</span>
+                  <span className="reactivity-lab__toggle-row">
+                    <label className="reactivity-lab__toggle-pill">
+                      <input
+                        type="checkbox"
+                        checked={depthPreviewEnabled}
+                        onChange={(event) => setDepthPreviewEnabled(event.target.checked)}
+                      />
+                      <span>Depth enabled</span>
+                    </label>
+                    <label className="reactivity-lab__toggle-pill">
+                      <input
+                        type="checkbox"
+                        checked={huePreviewEnabled}
+                        onChange={(event) => setHuePreviewEnabled(event.target.checked)}
+                      />
+                      <span>Hue enabled</span>
+                    </label>
+                    <label className="reactivity-lab__toggle-pill">
+                      <input
+                        type="checkbox"
+                        checked={saturationPreviewEnabled}
+                        onChange={(event) => setSaturationPreviewEnabled(event.target.checked)}
+                      />
+                      <span>Saturation enabled</span>
+                    </label>
+                  </span>
+                </div>
 
                 <label className="reactivity-lab__field">
                   <span className="reactivity-lab__label">Depth Mode</span>
@@ -1163,7 +1288,12 @@ function ReactivityLabShell() {
             </details>
 
             <details className="reactivity-lab__details" open>
-              <summary>Hue mapping</summary>
+              <summary>
+                <span>Hue mapping</span>
+                <span className="reactivity-lab__details-chevron" aria-hidden="true">
+                  <PanelChevronIcon collapsed expandDirection="down" />
+                </span>
+              </summary>
               <div className="reactivity-lab__details-body">
                 <label className="reactivity-lab__field">
                   <span className="reactivity-lab__label">Hue Mode</span>
@@ -1288,7 +1418,142 @@ function ReactivityLabShell() {
             </details>
 
             <details className="reactivity-lab__details" open>
-              <summary>Live mapping readout</summary>
+              <summary>
+                <span>Saturation mapping</span>
+                <span className="reactivity-lab__details-chevron" aria-hidden="true">
+                  <PanelChevronIcon collapsed expandDirection="down" />
+                </span>
+              </summary>
+              <div className="reactivity-lab__details-body">
+                <label className="reactivity-lab__field">
+                  <span className="reactivity-lab__label">Saturation Mode</span>
+                  <select
+                    className="reactivity-lab__select"
+                    value={saturationMode}
+                    onChange={(event) => setSaturationMode(event.target.value as SaturationMode)}
+                  >
+                    <option value="off">Off / Neutral</option>
+                    <option value="manual">Manual</option>
+                    <option value="audio-mapped">Audio Mapped</option>
+                  </select>
+                </label>
+
+                <label className="reactivity-lab__field">
+                  <span className="reactivity-lab__label">Saturation Signal</span>
+                  <select
+                    className="reactivity-lab__select"
+                    value={saturationSignalField}
+                    onChange={(event) => setSaturationSignalField(event.target.value as TelemetrySignalField)}
+                    disabled={saturationMode !== 'audio-mapped'}
+                  >
+                    {TELEMETRY_SIGNAL_OPTIONS.map((option) => (
+                      <option key={option.id} value={option.id}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="reactivity-lab__field">
+                  <span className="reactivity-lab__label">Minimum Saturation</span>
+                  <input
+                    className="reactivity-lab__range"
+                    type="range"
+                    min={SATURATION_CONTROL_LIMITS.min}
+                    max={SATURATION_CONTROL_LIMITS.max}
+                    step="0.01"
+                    value={minimumSaturation}
+                    onChange={(event) => {
+                      const nextMinimum = Number(event.target.value)
+                      setMinimumSaturation(Math.max(0, nextMinimum))
+
+                      if (nextMinimum > maximumSaturation) {
+                        setMaximumSaturation(Math.max(0, nextMinimum))
+                      }
+                    }}
+                    disabled={saturationMode !== 'audio-mapped'}
+                  />
+                  <strong>{minimumSaturation.toFixed(2)}</strong>
+                </label>
+
+                <label className="reactivity-lab__field">
+                  <span className="reactivity-lab__label">Maximum Saturation</span>
+                  <input
+                    className="reactivity-lab__range"
+                    type="range"
+                    min={SATURATION_CONTROL_LIMITS.min}
+                    max={SATURATION_CONTROL_LIMITS.max}
+                    step="0.01"
+                    value={maximumSaturation}
+                    onChange={(event) => {
+                      const nextMaximum = Number(event.target.value)
+                      setMaximumSaturation(Math.max(0, nextMaximum))
+
+                      if (nextMaximum < minimumSaturation) {
+                        setMinimumSaturation(Math.max(0, nextMaximum))
+                      }
+                    }}
+                    disabled={saturationMode !== 'audio-mapped'}
+                  />
+                  <strong>{maximumSaturation.toFixed(2)}</strong>
+                </label>
+
+                <label className="reactivity-lab__field">
+                  <span className="reactivity-lab__label">Saturation Response Smoothing</span>
+                  <input
+                    className="reactivity-lab__range"
+                    type="range"
+                    min={SATURATION_CONTROL_LIMITS.smoothingMin}
+                    max={SATURATION_CONTROL_LIMITS.smoothingMax}
+                    step="0.01"
+                    value={saturationResponseSmoothing}
+                    onChange={(event) => setSaturationResponseSmoothing(Number(event.target.value))}
+                    disabled={saturationMode !== 'audio-mapped'}
+                  />
+                  <strong>{saturationResponseSmoothing.toFixed(2)}</strong>
+                </label>
+
+                <label className="reactivity-lab__field">
+                  <span className="reactivity-lab__label">Manual Saturation</span>
+                  <input
+                    className="reactivity-lab__range"
+                    type="range"
+                    min={SATURATION_CONTROL_LIMITS.min}
+                    max={SATURATION_CONTROL_LIMITS.max}
+                    step="0.01"
+                    value={manualSaturation}
+                    onChange={(event) => setManualSaturation(Math.max(0, Number(event.target.value)))}
+                    disabled={saturationMode !== 'manual'}
+                  />
+                  <strong>{manualSaturation.toFixed(2)}</strong>
+                </label>
+
+                <div className="reactivity-lab__button-row">
+                  <button
+                    type="button"
+                    className="reactivity-lab__inline-button"
+                    onClick={() => {
+                      setSaturationMode('off')
+                      setSaturationSignalField('smoothedEnergy')
+                      setMinimumSaturation(DEFAULT_MINIMUM_SATURATION)
+                      setMaximumSaturation(DEFAULT_MAXIMUM_SATURATION)
+                      setSaturationResponseSmoothing(DEFAULT_SATURATION_RESPONSE_SMOOTHING)
+                      setManualSaturation(DEFAULT_MANUAL_SATURATION)
+                    }}
+                  >
+                    Reset Saturation Defaults
+                  </button>
+                </div>
+              </div>
+            </details>
+
+            <details className="reactivity-lab__details" open>
+              <summary>
+                <span>Live mapping readout</span>
+                <span className="reactivity-lab__details-chevron" aria-hidden="true">
+                  <PanelChevronIcon collapsed expandDirection="down" />
+                </span>
+              </summary>
               <div className="reactivity-lab__details-body">
                 <div className="reactivity-lab__comparison-stack" aria-label="Mapped depth comparison">
                   <div className="reactivity-lab__comparison-row">
@@ -1347,6 +1612,38 @@ function ReactivityLabShell() {
                     <p className="reactivity-lab__comparison-value reactivity-lab__comparison-value--hue reactivity-lab__status-primary">{renderedHueShiftDegrees.toFixed(1)}deg</p>
                   </div>
                 </div>
+
+                <div className="reactivity-lab__comparison-stack" aria-label="Mapped saturation comparison">
+                  <div className="reactivity-lab__comparison-row">
+                    <span className="reactivity-lab__comparison-label reactivity-lab__label">Saturation Selected Signal</span>
+                    <div className="reactivity-lab__comparison-meter" aria-hidden="true">
+                      <span className="reactivity-lab__comparison-meter-fill" style={{ width: `${selectedSaturationSignalValue * 100}%` }} />
+                    </div>
+                    <p className="reactivity-lab__comparison-value reactivity-lab__status-primary">{selectedSaturationSignalValue.toFixed(3)}</p>
+                  </div>
+
+                  <div className="reactivity-lab__comparison-row">
+                    <span className="reactivity-lab__comparison-label reactivity-lab__label">Target Saturation</span>
+                    <div className="reactivity-lab__comparison-meter" aria-hidden="true">
+                      <span
+                        className="reactivity-lab__comparison-meter-fill"
+                        style={{ width: `${normalizeValueWithinRange(targetSaturationForDisplay, minimumSaturation, maximumSaturation) * 100}%` }}
+                      />
+                    </div>
+                    <p className="reactivity-lab__comparison-value reactivity-lab__status-primary">{targetSaturationForDisplay.toFixed(3)}</p>
+                  </div>
+
+                  <div className="reactivity-lab__comparison-row">
+                    <span className="reactivity-lab__comparison-label reactivity-lab__label">Rendered Saturation</span>
+                    <div className="reactivity-lab__comparison-meter" aria-hidden="true">
+                      <span
+                        className="reactivity-lab__comparison-meter-fill"
+                        style={{ width: `${normalizeValueWithinRange(renderedSaturation, minimumSaturation, maximumSaturation) * 100}%` }}
+                      />
+                    </div>
+                    <p className="reactivity-lab__comparison-value reactivity-lab__status-primary">{renderedSaturation.toFixed(3)}</p>
+                  </div>
+                </div>
               </div>
             </details>
           </aside>
@@ -1362,6 +1659,7 @@ function ReactivityLabShell() {
                   className="reactivity-lab__image-depth-scene"
                   manualDepthOverride={liveDepthOverride}
                   manualHueShiftOverrideDegrees={liveHueShiftOverrideDegrees}
+                  manualSaturationOverrideMultiplier={liveSaturationOverride}
                   preserveColorWhenStopped
                   isPlaying={false}
                   volume={0}
@@ -1384,7 +1682,12 @@ function ReactivityLabShell() {
 
         <section className="reactivity-lab__diagnostics-stack" aria-label="Diagnostics panels">
           <details className="reactivity-lab__details">
-            <summary>Detailed telemetry/resource diagnostics</summary>
+            <summary>
+              <span>Detailed telemetry/resource diagnostics</span>
+              <span className="reactivity-lab__details-chevron" aria-hidden="true">
+                <PanelChevronIcon collapsed expandDirection="down" />
+              </span>
+            </summary>
             <div className="reactivity-lab__details-body">
               <div className="reactivity-lab__diagnostics-stack-inner">
                 <section className="reactivity-lab__telemetry-summary" aria-label="Telemetry summary values">

@@ -28,6 +28,7 @@ type ImageDepthThemeSceneProps = ThemeSceneProps & {
   className?: string;
   manualDepthOverride?: number;
   manualHueShiftOverrideDegrees?: number | null;
+  manualSaturationOverrideMultiplier?: number | null;
   preserveColorWhenStopped?: boolean;
   onDevSceneCountersChange?: (counters: ImageDepthSceneDevCounters) => void;
   onDevColorDiagnosticsChange?: (diagnostics: ImageDepthSceneColorDiagnostics) => void;
@@ -335,6 +336,7 @@ export function ImageDepthThemeScene({
   className,
   manualDepthOverride,
   manualHueShiftOverrideDegrees,
+  manualSaturationOverrideMultiplier,
   preserveColorWhenStopped = false,
   onDevSceneCountersChange,
   onDevColorDiagnosticsChange,
@@ -356,6 +358,7 @@ export function ImageDepthThemeScene({
     reactiveDepthMode,
     onReactivePreviewTelemetry,
     manualHueShiftOverrideDegrees,
+    manualSaturationOverrideMultiplier,
     preserveColorWhenStopped,
     onDevColorDiagnosticsChange,
   });
@@ -427,6 +430,7 @@ export function ImageDepthThemeScene({
       reactiveDepthMode,
       onReactivePreviewTelemetry,
       manualHueShiftOverrideDegrees,
+      manualSaturationOverrideMultiplier,
       preserveColorWhenStopped,
       onDevColorDiagnosticsChange,
     };
@@ -442,6 +446,7 @@ export function ImageDepthThemeScene({
     sourceBpm,
     reducedMotion,
     manualHueShiftOverrideDegrees,
+    manualSaturationOverrideMultiplier,
     preserveColorWhenStopped,
     onDevColorDiagnosticsChange,
   ]);
@@ -1349,6 +1354,7 @@ if (uSurfaceGlowEnabled > 0.5) {
           typeof manualHueOverrideDegrees === "number" && Number.isFinite(manualHueOverrideDegrees)
             ? manualHueOverrideDegrees
             : authoredOrReactiveHueOffsetDegrees;
+        const manualSaturationOverrideMultiplier = visualState.manualSaturationOverrideMultiplier;
 
         const authoredBaseSaturation = profile.saturationPulse.enabled
           ? Math.max(profile.color.saturation, (profile.saturationPulse.minimumSaturation + profile.saturationPulse.maximumSaturation) * 0.5)
@@ -1389,7 +1395,11 @@ if (uSurfaceGlowEnabled > 0.5) {
         const saturationBloomMultiplier =
           1 + (fullOnBehaviorActive ? fullOnKickBloomEnvelope * reactiveBehaviorProfile.kickSaturationBloomMaxBoost : 0);
         const rawFinalSaturation = currentSaturation * reactiveSaturationMultiplier * saturationBloomMultiplier;
-        const finalSaturation = clamp(rawFinalSaturation, 0, reactiveBehaviorProfile.saturationCap);
+        const computedFinalSaturation = clamp(rawFinalSaturation, 0, reactiveBehaviorProfile.saturationCap);
+        const finalSaturation =
+          typeof manualSaturationOverrideMultiplier === "number" && Number.isFinite(manualSaturationOverrideMultiplier)
+            ? Math.max(0, manualSaturationOverrideMultiplier)
+            : computedFinalSaturation;
         currentSaturation = finalSaturation;
 
         const authoredGlowPulseAmountBase =
@@ -1451,7 +1461,7 @@ if (uSurfaceGlowEnabled > 0.5) {
           ? 0
           : defaultGrayscaleAmount;
         const finalSaturationMultiplier = preserveColorWhileStopped && !isPlayingNow
-          ? 1
+          ? Math.max(currentSaturation, 0)
           : defaultSaturationMultiplier;
         const finalBrightnessMultiplier = preserveColorWhileStopped && !isPlayingNow
           ? 1
