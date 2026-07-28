@@ -344,6 +344,7 @@
 }
 
 .floating-player-panel__volume-row .volume-control__range {
+  margin: 0;
   width: 100%;
   min-width: 190px;
   max-width: none;
@@ -374,13 +375,22 @@
   }
 
   .floating-player-panel__volume-row {
-    grid-template-columns: 1fr;
-    gap: 6px;
+    grid-template-columns: max-content minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  .floating-player-panel__volume-row .volume-control {
+    align-items: center;
   }
 
   .floating-player-panel__seek-row {
-    grid-template-columns: 1fr;
-    gap: 6px;
+    grid-template-columns: max-content minmax(0, 1fr) max-content;
+    gap: 8px;
+  }
+
+  .floating-player-panel__seek-row .floating-player-panel__label,
+  .floating-player-panel__volume-row .floating-player-panel__label {
+    white-space: nowrap;
   }
 
   .floating-player-panel__seek-time {

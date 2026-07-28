@@ -48,6 +48,10 @@ const PLAYER_PREFERENCES_STORAGE_KEY_V2 = 'deepsignals.player.preferences.v2'
 const SIGNAL_TELEMETRY_VISIBLE_STORAGE_KEY_V1 = 'deepsignals.player.signal-telemetry.visible.v1'
 const SIGNAL_TELEMETRY_COLLAPSED_STORAGE_KEY_V1 = 'deepsignals.player.signal-telemetry.collapsed.v1'
 
+const SIGNAL_TELEMETRY_MAX_WIDTH = 820
+const SIGNAL_TELEMETRY_MIN_HEIGHT_FOR_COLLAPSED = 620
+const SIGNAL_TELEMETRY_MIN_HEIGHT_FOR_EXPANDED = 760
+
 const FULLON_STOP_SETTLE_DEPTH = 0.5
 const FULLON_STOP_SETTLE_HUE_DEGREES = 0
 const FULLON_STOP_SETTLE_SATURATION = 1
@@ -215,6 +219,22 @@ function isIgnoreSourceBpmEnabled() {
   return searchParams.get('ignoreSourceBpm') === '1'
 }
 
+function isSignalTelemetryUiAvailable(viewportWidth: number, viewportHeight: number, collapsed: boolean) {
+  if (viewportWidth <= SIGNAL_TELEMETRY_MAX_WIDTH) {
+    return false
+  }
+
+  if (viewportHeight <= SIGNAL_TELEMETRY_MIN_HEIGHT_FOR_COLLAPSED) {
+    return false
+  }
+
+  if (!collapsed && viewportHeight <= SIGNAL_TELEMETRY_MIN_HEIGHT_FOR_EXPANDED) {
+    return false
+  }
+
+  return true
+}
+
 const ZERO_REACTIVE_PREVIEW_TELEMETRY: ReactivePreviewTelemetry = {
   selectedReactiveBehavior: 'Chill',
   selectedDepthSignalField: 'n/a',
@@ -312,6 +332,10 @@ function PlayerShell({ className }: PlayerShellProps) {
   const [signalTelemetryCollapsed, setSignalTelemetryCollapsed] = useState(() =>
     readStoredSignalTelemetryCollapsedPreference(),
   )
+  const [viewportSize, setViewportSize] = useState(() => ({
+    width: typeof window === 'undefined' ? 1024 : window.innerWidth,
+    height: typeof window === 'undefined' ? 768 : window.innerHeight,
+  }))
   const [panelCollapsed, setPanelCollapsed] = useState(false)
   const [visualFeedOpen, setVisualFeedOpen] = useState(storedPreferences.visualFeedOpen)
   const reactivePreviewTelemetryRef = useRef<ReactivePreviewTelemetry>(ZERO_REACTIVE_PREVIEW_TELEMETRY)
@@ -374,6 +398,28 @@ function PlayerShell({ className }: PlayerShellProps) {
   const supportsAudioReactiveBehavior = activeTheme?.supportsAudioReactiveBehavior ?? false
   const productionFullOnActive = supportsAudioReactiveBehavior
   const productionDepthMotionSuppressed = supportsAudioReactiveBehavior && !motionEnabled
+  const signalTelemetryUiAvailable = isSignalTelemetryUiAvailable(
+    viewportSize.width,
+    viewportSize.height,
+    signalTelemetryCollapsed,
+  )
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return
+    }
+
+    const handleViewportChange = () => {
+      setViewportSize({ width: window.innerWidth, height: window.innerHeight })
+    }
+
+    handleViewportChange()
+    window.addEventListener('resize', handleViewportChange)
+
+    return () => {
+      window.removeEventListener('resize', handleViewportChange)
+    }
+  }, [])
 
   const handleSignalChange = (id: string) => {
     setSelectedSignalId(sanitizeAudioSourceId(id) || null)
@@ -675,7 +721,7 @@ function PlayerShell({ className }: PlayerShellProps) {
         />
       ) : null}
 
-      {!audioDebugEnabled && signalTelemetryVisible ? (
+      {!audioDebugEnabled && signalTelemetryVisible && signalTelemetryUiAvailable ? (
         <SignalTelemetryPanel
           analysisStatus={audioAnalysis.status}
           playbackStatus={audioController.playbackStatus}
@@ -710,6 +756,7 @@ function PlayerShell({ className }: PlayerShellProps) {
         motionEnabled={motionEnabled}
         supportsMotion={supportsMotion}
         onMotionToggle={setMotionEnabled}
+        showSignalTelemetryControl={signalTelemetryUiAvailable}
         signalTelemetryVisible={signalTelemetryVisible}
         onSignalTelemetryChange={setSignalTelemetryVisible}
         visualFeedOpen={visualFeedOpen && supportsVisualFeed}

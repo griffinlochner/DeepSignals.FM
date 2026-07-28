@@ -34,6 +34,7 @@ type FloatingPlayerPanelProps = {
   motionEnabled: boolean
   supportsMotion: boolean
   onMotionToggle: (enabled: boolean) => void
+  showSignalTelemetryControl: boolean
   signalTelemetryVisible: boolean
   onSignalTelemetryChange: (enabled: boolean) => void
   visualFeedOpen: boolean
@@ -67,6 +68,7 @@ function FloatingPlayerPanel({
   motionEnabled,
   supportsMotion,
   onMotionToggle,
+  showSignalTelemetryControl,
   signalTelemetryVisible,
   onSignalTelemetryChange,
   visualFeedOpen,
@@ -193,21 +195,23 @@ function FloatingPlayerPanel({
             </label>
           </section>
 
-          <section className="floating-player-panel__field" aria-label="Signal Telemetry">
-            <label className="floating-player-panel__switch">
-              <input
-                className="floating-player-panel__switch-checkbox"
-                type="checkbox"
-                checked={signalTelemetryVisible}
-                onChange={(event) => onSignalTelemetryChange(event.target.checked)}
-                aria-label="Signal Telemetry"
-              />
-              <span className="floating-player-panel__switch-label">Signal Telemetry</span>
-              <span className="floating-player-panel__switch-track" aria-hidden="true">
-                <span className="floating-player-panel__switch-thumb" />
-              </span>
-            </label>
-          </section>
+          {showSignalTelemetryControl ? (
+            <section className="floating-player-panel__field" aria-label="Signal Telemetry">
+              <label className="floating-player-panel__switch">
+                <input
+                  className="floating-player-panel__switch-checkbox"
+                  type="checkbox"
+                  checked={signalTelemetryVisible}
+                  onChange={(event) => onSignalTelemetryChange(event.target.checked)}
+                  aria-label="Signal Telemetry"
+                />
+                <span className="floating-player-panel__switch-label">Signal Telemetry</span>
+                <span className="floating-player-panel__switch-track" aria-hidden="true">
+                  <span className="floating-player-panel__switch-thumb" />
+                </span>
+              </label>
+            </section>
+          ) : null}
 
           <section className="floating-player-panel__volume-row" aria-label="Volume control">
             <p className="floating-player-panel__label">Volume</p>
