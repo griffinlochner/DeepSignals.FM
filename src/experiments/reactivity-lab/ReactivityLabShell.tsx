@@ -20,21 +20,23 @@ import {
   type ImageDepthSceneColorDiagnostics,
   type ImageDepthSceneDevCounters,
 } from '../../themes/image-depth/ImageDepthThemeScene'
+import {
+  DEPTH_CONTROL_LIMITS,
+  HUE_CONTROL_LIMITS,
+  type DepthMode,
+  type HueMode,
+  parseBehaviorPresetJson,
+  readStoredBehaviorPresets,
+  REACTIVITY_LAB_BEHAVIOR_PRESETS_STORAGE_KEY,
+  type ReactivityLabBehaviorPresetV1,
+  serializeBehaviorPreset,
+  type TelemetrySignalField,
+  writeStoredBehaviorPresets,
+} from './behaviorPresets'
 import './reactivityLab.css'
 
 type SourceType = 'local-mp3' | 'external-radio'
 type LabRadioPresetId = 'psyradio-progressive' | 'psyradio-chillout' | 'psyndora' | 'psystream'
-type DepthMode = 'manual' | 'audio-mapped'
-type TelemetrySignalField =
-  | 'energy'
-  | 'smoothedEnergy'
-  | 'bass'
-  | 'kickPulse'
-  | 'bassPulse'
-  | 'mids'
-  | 'highs'
-  | 'transient'
-type HueMode = 'off' | 'manual' | 'audio-mapped'
 type ReactivityIsolationMode = 'depth-hue' | 'depth-only' | 'hue-only' | 'reactive-off'
 
 type MeterDebugReadout = {
@@ -298,6 +300,17 @@ function ReactivityLabShell() {
   const [reactivityIsolationMode, setReactivityIsolationMode] = useState<ReactivityIsolationMode>(
     DEFAULT_REACTIVITY_ISOLATION_MODE,
   )
+  const [presetNameInput, setPresetNameInput] = useState('')
+  const [savedBehaviorPresets, setSavedBehaviorPresets] = useState<ReactivityLabBehaviorPresetV1[]>(() =>
+    readStoredBehaviorPresets(),
+  )
+  const [selectedBehaviorPresetName, setSelectedBehaviorPresetName] = useState(() => {
+    const presets = readStoredBehaviorPresets()
+    return presets[0]?.name ?? ''
+  })
+  const [importPresetJsonText, setImportPresetJsonText] = useState('')
+  const [presetInlineError, setPresetInlineError] = useState<string | null>(null)
+  const [presetInlineStatus, setPresetInlineStatus] = useState<string | null>(null)
   const [renderedDepth, setRenderedDepth] = useState(DEFAULT_MANUAL_DEPTH)
   const [renderedHueShiftDegrees, setRenderedHueShiftDegrees] = useState(DEFAULT_MANUAL_HUE_SHIFT_DEGREES)
   const [sceneDevCounters, setSceneDevCounters] = useState<ImageDepthSceneDevCounters>(
@@ -614,6 +627,150 @@ function ReactivityLabShell() {
     }
   }, [hueMappingActive, manualHueShiftDegrees, hueResponseSmoothing])
 
+  const applyBehaviorPreset = useCallback((preset: ReactivityLabBehaviorPresetV1) => {
+    setDepthMode(preset.depth.mode)
+    setDepthSignalField(preset.depth.signal)
+    setMinimumDepth(preset.depth.min)
+    setMaximumDepth(preset.depth.max)
+    setResponseSmoothing(preset.depth.smoothing)
+
+    setHueMode(preset.hue.mode)
+    setHueSignalField(preset.hue.signal)
+    setMinimumHueShiftDegrees(preset.hue.minDegrees)
+    setMaximumHueShiftDegrees(preset.hue.maxDegrees)
+    setHueResponseSmoothing(preset.hue.smoothing)
+  }, [])
+
+  const currentBehaviorPreset = useMemo<ReactivityLabBehaviorPresetV1>(() => {
+    const normalizedName = presetNameInput.trim().length > 0 ? presetNameInput.trim() : 'Untitled Behavior Preset'
+
+    return {
+      schemaVersion: 1,
+      name: normalizedName,
+      depth: {
+        mode: depthMode,
+        signal: depthSignalField,
+        min: minimumDepth,
+        max: maximumDepth,
+        smoothing: responseSmoothing,
+      },
+      hue: {
+        mode: hueMode,
+        signal: hueSignalField,
+        minDegrees: minimumHueShiftDegrees,
+        maxDegrees: maximumHueShiftDegrees,
+        smoothing: hueResponseSmoothing,
+      },
+    }
+  }, [
+    depthMode,
+    depthSignalField,
+    minimumDepth,
+    maximumDepth,
+    responseSmoothing,
+    hueMode,
+    hueSignalField,
+    minimumHueShiftDegrees,
+    maximumHueShiftDegrees,
+    hueResponseSmoothing,
+    presetNameInput,
+  ])
+
+  const persistBehaviorPresets = (nextPresets: ReactivityLabBehaviorPresetV1[]) => {
+    writeStoredBehaviorPresets(nextPresets)
+    setSavedBehaviorPresets(nextPresets)
+  }
+
+  const handleSaveCurrentPreset = () => {
+    const trimmedName = presetNameInput.trim()
+
+    if (!trimmedName) {
+      setPresetInlineError('Preset name is required before saving.')
+      setPresetInlineStatus(null)
+      return
+    }
+
+    const presetToSave: ReactivityLabBehaviorPresetV1 = {
+      ...currentBehaviorPreset,
+      name: trimmedName,
+    }
+
+    const existingIndex = savedBehaviorPresets.findIndex((preset) => preset.name === trimmedName)
+    const nextPresets = [...savedBehaviorPresets]
+    if (existingIndex >= 0) {
+      nextPresets.splice(existingIndex, 1, presetToSave)
+    } else {
+      nextPresets.push(presetToSave)
+    }
+
+    persistBehaviorPresets(nextPresets)
+    setSelectedBehaviorPresetName(trimmedName)
+    setPresetInlineError(null)
+    setPresetInlineStatus(`Saved preset "${trimmedName}" to ${REACTIVITY_LAB_BEHAVIOR_PRESETS_STORAGE_KEY}.`)
+  }
+
+  const handleLoadSelectedPreset = () => {
+    const preset = savedBehaviorPresets.find((candidate) => candidate.name === selectedBehaviorPresetName)
+
+    if (!preset) {
+      setPresetInlineError('Select a saved preset to load.')
+      setPresetInlineStatus(null)
+      return
+    }
+
+    applyBehaviorPreset(preset)
+    setPresetNameInput(preset.name)
+    setPresetInlineError(null)
+    setPresetInlineStatus(`Loaded preset "${preset.name}".`)
+  }
+
+  const handleDeleteSelectedPreset = () => {
+    if (!selectedBehaviorPresetName) {
+      setPresetInlineError('Select a saved preset to delete.')
+      setPresetInlineStatus(null)
+      return
+    }
+
+    const nextPresets = savedBehaviorPresets.filter((preset) => preset.name !== selectedBehaviorPresetName)
+    persistBehaviorPresets(nextPresets)
+    setSelectedBehaviorPresetName(nextPresets[0]?.name ?? '')
+    setPresetInlineError(null)
+    setPresetInlineStatus(`Deleted preset "${selectedBehaviorPresetName}".`)
+  }
+
+  const handleCopyCurrentPresetJson = async () => {
+    try {
+      const presetJson = serializeBehaviorPreset(currentBehaviorPreset)
+      await navigator.clipboard.writeText(presetJson)
+      setPresetInlineError(null)
+      setPresetInlineStatus('Copied current preset JSON to clipboard.')
+    } catch {
+      setPresetInlineError('Clipboard copy failed. Browser clipboard permission may be blocked.')
+      setPresetInlineStatus(null)
+    }
+  }
+
+  const handleApplyImportedPreset = () => {
+    const validation = parseBehaviorPresetJson(importPresetJsonText)
+
+    if (!validation.valid) {
+      setPresetInlineError(validation.error)
+      setPresetInlineStatus(null)
+      return
+    }
+
+    applyBehaviorPreset(validation.preset)
+    setPresetNameInput(validation.preset.name)
+    setPresetInlineError(null)
+    setPresetInlineStatus(`Applied imported preset "${validation.preset.name}".`)
+  }
+
+  const handleClearImportPreset = () => {
+    setImportPresetJsonText('')
+    setPresetInlineError(null)
+    setPresetInlineStatus('Cleared import JSON.')
+  }
+
   const handleRadioPresetChange = (nextPresetId: LabRadioPresetId) => {
     setSelectedRadioPresetId(nextPresetId)
     setLastStartFailure(null)
@@ -774,6 +931,68 @@ function ReactivityLabShell() {
             <p className="reactivity-lab__status-primary">Playback state: {activePlaybackState}</p>
             <p className="reactivity-lab__status-primary">Active track/station: {activeSelectionLabel}</p>
           </section>
+
+          <section className="reactivity-lab__preset-panel" aria-label="Behavior presets">
+            <h2 className="reactivity-lab__preset-title">Behavior Presets (DEV)</h2>
+
+            <label className="reactivity-lab__field">
+              <span className="reactivity-lab__label">Preset name</span>
+              <input
+                className="reactivity-lab__text-input"
+                type="text"
+                value={presetNameInput}
+                onChange={(event) => setPresetNameInput(event.target.value)}
+                placeholder="Enter preset name"
+              />
+            </label>
+
+            <div className="reactivity-lab__button-row">
+              <button type="button" onClick={handleSaveCurrentPreset}>Save Current Preset</button>
+              <button type="button" onClick={() => void handleCopyCurrentPresetJson()}>Copy Current Preset JSON</button>
+            </div>
+
+            <label className="reactivity-lab__field">
+              <span className="reactivity-lab__label">Saved presets</span>
+              <select
+                className="reactivity-lab__select"
+                value={selectedBehaviorPresetName}
+                onChange={(event) => setSelectedBehaviorPresetName(event.target.value)}
+              >
+                {savedBehaviorPresets.length === 0 ? (
+                  <option value="">No saved presets</option>
+                ) : null}
+                {savedBehaviorPresets.map((preset) => (
+                  <option key={preset.name} value={preset.name}>
+                    {preset.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <div className="reactivity-lab__button-row">
+              <button type="button" onClick={handleLoadSelectedPreset}>Load Selected</button>
+              <button type="button" onClick={handleDeleteSelectedPreset}>Delete Selected</button>
+            </div>
+
+            <label className="reactivity-lab__field">
+              <span className="reactivity-lab__label">Import JSON</span>
+              <textarea
+                className="reactivity-lab__textarea"
+                value={importPresetJsonText}
+                onChange={(event) => setImportPresetJsonText(event.target.value)}
+                placeholder="Paste preset JSON"
+                rows={8}
+              />
+            </label>
+
+            <div className="reactivity-lab__button-row">
+              <button type="button" onClick={handleApplyImportedPreset}>Apply Imported Preset</button>
+              <button type="button" onClick={handleClearImportPreset}>Clear Import</button>
+            </div>
+
+            {presetInlineError ? <p className="reactivity-lab__preset-error">{presetInlineError}</p> : null}
+            {presetInlineStatus ? <p className="reactivity-lab__preset-status">{presetInlineStatus}</p> : null}
+          </section>
         </section>
 
         <section className="reactivity-lab__visual-workspace" aria-label="Image depth manual preview">
@@ -827,8 +1046,8 @@ function ReactivityLabShell() {
               <input
                 className="reactivity-lab__range"
                 type="range"
-                min="0"
-                max="1"
+                min={DEPTH_CONTROL_LIMITS.min}
+                max={DEPTH_CONTROL_LIMITS.max}
                 step="0.01"
                 value={minimumDepth}
                 onChange={(event) => {
@@ -849,8 +1068,8 @@ function ReactivityLabShell() {
               <input
                 className="reactivity-lab__range"
                 type="range"
-                min="0"
-                max="1"
+                min={DEPTH_CONTROL_LIMITS.min}
+                max={DEPTH_CONTROL_LIMITS.max}
                 step="0.01"
                 value={maximumDepth}
                 onChange={(event) => {
@@ -871,8 +1090,8 @@ function ReactivityLabShell() {
               <input
                 className="reactivity-lab__range"
                 type="range"
-                min="0.02"
-                max="0.5"
+                min={DEPTH_CONTROL_LIMITS.smoothingMin}
+                max={DEPTH_CONTROL_LIMITS.smoothingMax}
                 step="0.01"
                 value={responseSmoothing}
                 onChange={(event) => setResponseSmoothing(Number(event.target.value))}
@@ -917,8 +1136,8 @@ function ReactivityLabShell() {
               <input
                 className="reactivity-lab__range"
                 type="range"
-                min="-180"
-                max="180"
+                min={HUE_CONTROL_LIMITS.minDegrees}
+                max={HUE_CONTROL_LIMITS.maxDegrees}
                 step="1"
                 value={minimumHueShiftDegrees}
                 onChange={(event) => {
@@ -939,8 +1158,8 @@ function ReactivityLabShell() {
               <input
                 className="reactivity-lab__range"
                 type="range"
-                min="-180"
-                max="180"
+                min={HUE_CONTROL_LIMITS.minDegrees}
+                max={HUE_CONTROL_LIMITS.maxDegrees}
                 step="1"
                 value={maximumHueShiftDegrees}
                 onChange={(event) => {
@@ -961,8 +1180,8 @@ function ReactivityLabShell() {
               <input
                 className="reactivity-lab__range"
                 type="range"
-                min="0.02"
-                max="0.5"
+                min={HUE_CONTROL_LIMITS.smoothingMin}
+                max={HUE_CONTROL_LIMITS.smoothingMax}
                 step="0.01"
                 value={hueResponseSmoothing}
                 onChange={(event) => setHueResponseSmoothing(Number(event.target.value))}
@@ -976,8 +1195,8 @@ function ReactivityLabShell() {
               <input
                 className="reactivity-lab__range"
                 type="range"
-                min="-180"
-                max="180"
+                min={HUE_CONTROL_LIMITS.minDegrees}
+                max={HUE_CONTROL_LIMITS.maxDegrees}
                 step="1"
                 value={manualHueShiftDegrees}
                 onChange={(event) => setManualHueShiftDegrees(Number(event.target.value))}

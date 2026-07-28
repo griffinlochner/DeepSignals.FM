@@ -122,6 +122,51 @@
   gap: 4px 12px;
 }
 
+.reactivity-lab__preset-panel {
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid rgb(128 180 225 / 25%);
+  background: rgb(8 16 26 / 68%);
+  display: grid;
+  gap: 10px;
+}
+
+.reactivity-lab__preset-title {
+  margin: 0;
+  font-size: 0.92rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.reactivity-lab__text-input,
+.reactivity-lab__textarea {
+  border-radius: 10px;
+  border: 1px solid rgb(137 186 227 / 40%);
+  background: rgb(8 16 26 / 92%);
+  color: #dcecff;
+  padding: 8px 10px;
+}
+
+.reactivity-lab__textarea {
+  resize: vertical;
+  min-height: 130px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.78rem;
+}
+
+.reactivity-lab__preset-error {
+  margin: 0;
+  color: #ffb7be;
+  font-size: 0.82rem;
+}
+
+.reactivity-lab__preset-status {
+  margin: 0;
+  color: rgb(160 221 183 / 95%);
+  font-size: 0.82rem;
+}
+
 .reactivity-lab__status p,
 .reactivity-lab__resources p,
 .reactivity-lab__telemetry-summary p {
