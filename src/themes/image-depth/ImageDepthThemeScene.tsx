@@ -27,7 +27,22 @@ type ImageDepthThemeSceneProps = ThemeSceneProps & {
   scenePreset: ImageDepthScenePreset;
   className?: string;
   manualDepthOverride?: number;
+  manualHueShiftOverrideDegrees?: number | null;
+  preserveColorWhenStopped?: boolean;
   onDevSceneCountersChange?: (counters: ImageDepthSceneDevCounters) => void;
+  onDevColorDiagnosticsChange?: (diagnostics: ImageDepthSceneColorDiagnostics) => void;
+};
+
+export type ImageDepthSceneColorDiagnostics = {
+  colorTextureUrl: string;
+  depthTextureUrl: string;
+  finalFilterString: string;
+  finalHueDegrees: number;
+  finalSaturationMultiplier: number;
+  finalGrayscaleAmount: number;
+  finalBrightnessMultiplier: number;
+  finalContrastMultiplier: number;
+  playbackVisualState: 'playing-color' | 'stopped-color-preserved' | 'stopped-grayscale';
 };
 
 export type ImageDepthSceneDevCounters = {
@@ -319,7 +334,10 @@ export function ImageDepthThemeScene({
   scenePreset,
   className,
   manualDepthOverride,
+  manualHueShiftOverrideDegrees,
+  preserveColorWhenStopped = false,
   onDevSceneCountersChange,
+  onDevColorDiagnosticsChange,
 }: ImageDepthThemeSceneProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const sharedMaterialRef = useRef<THREE.MeshStandardMaterial | null>(null);
@@ -337,6 +355,9 @@ export function ImageDepthThemeScene({
     reactiveBehavior,
     reactiveDepthMode,
     onReactivePreviewTelemetry,
+    manualHueShiftOverrideDegrees,
+    preserveColorWhenStopped,
+    onDevColorDiagnosticsChange,
   });
   const depthOverrideRef = useRef<number | null>(
     typeof manualDepthOverride === "number" && Number.isFinite(manualDepthOverride)
@@ -405,6 +426,9 @@ export function ImageDepthThemeScene({
       reactiveBehavior,
       reactiveDepthMode,
       onReactivePreviewTelemetry,
+      manualHueShiftOverrideDegrees,
+      preserveColorWhenStopped,
+      onDevColorDiagnosticsChange,
     };
   }, [
     getLatestAudioSnapshot,
@@ -417,6 +441,9 @@ export function ImageDepthThemeScene({
     reactiveDepthMode,
     sourceBpm,
     reducedMotion,
+    manualHueShiftOverrideDegrees,
+    preserveColorWhenStopped,
+    onDevColorDiagnosticsChange,
   ]);
 
   useEffect(() => {
@@ -860,6 +887,8 @@ if (uSurfaceGlowEnabled > 0.5) {
 
         const visualState = visualStateRef.current;
         const isPlayingNow = visualState.isPlaying;
+        const preserveColorWhileStopped = visualState.preserveColorWhenStopped === true;
+        const colorPresentationActive = isPlayingNow || preserveColorWhileStopped;
         const reducedMotionActive = visualState.reducedMotion;
         const geometryMotionEnabled = visualState.motionEnabled !== false;
         const spatialMotionActive = geometryMotionEnabled && !reducedMotionActive;
@@ -1297,6 +1326,7 @@ if (uSurfaceGlowEnabled > 0.5) {
         material.displacementScale = finalDisplacementScale;
         material.bumpScale = depthFinalAfterClamp * 0.04;
 
+        const manualHueOverrideDegrees = visualState.manualHueShiftOverrideDegrees;
         const sharedChillHueOffsetDegrees =
           reactiveBehaviorEnabled && !fullOnBehaviorActive && isPlayingNow && !reducedMotionActive
             ? Math.sin(
@@ -1306,7 +1336,7 @@ if (uSurfaceGlowEnabled > 0.5) {
               reactiveBehaviorProfile.chillHueDriftRangeDegrees
             : 0;
         const authoredSaturationCycleSuppressed = allowReactiveLighting;
-        const hueOffsetDegrees =
+        const authoredOrReactiveHueOffsetDegrees =
           fullOnAuthoringSuppressionActive && allowReactiveLighting
             ? reactiveHueOffsetDegreesRef.current
             : reactiveBehaviorEnabled && !fullOnBehaviorActive
@@ -1315,6 +1345,10 @@ if (uSurfaceGlowEnabled > 0.5) {
               ? Math.sin((elapsedSeconds / Math.max(profile.color.cycleSeconds, 1)) * Math.PI * 2) *
                 profile.color.hueRangeDegrees
               : 0;
+        const hueOffsetDegrees =
+          typeof manualHueOverrideDegrees === "number" && Number.isFinite(manualHueOverrideDegrees)
+            ? manualHueOverrideDegrees
+            : authoredOrReactiveHueOffsetDegrees;
 
         const authoredBaseSaturation = profile.saturationPulse.enabled
           ? Math.max(profile.color.saturation, (profile.saturationPulse.minimumSaturation + profile.saturationPulse.maximumSaturation) * 0.5)
@@ -1377,7 +1411,7 @@ if (uSurfaceGlowEnabled > 0.5) {
 
         playbackVisualMixRef.current = stepImageDepthPlaybackVisualMix(
           playbackVisualMixRef.current,
-          isPlayingNow,
+          colorPresentationActive,
           reducedMotionActive,
         );
 
@@ -1409,13 +1443,51 @@ if (uSurfaceGlowEnabled > 0.5) {
         camera.position.y = -blendedPointer.y * 0.045;
         camera.lookAt(0, 0, -0.4);
 
-        const filter = formatImageDepthPlaybackFilter({
-          playbackVisualMix: playbackVisualMixRef.current,
-          hueOffsetDegrees,
-          currentSaturation,
-          glowPulseAmount,
-        });
+        const defaultGrayscaleAmount = 1 - playbackVisualMixRef.current;
+        const defaultSaturationMultiplier =
+          playbackVisualMixRef.current * currentSaturation * (1 + glowPulseAmount * 0.7);
+        const defaultBrightnessMultiplier = 1 + glowPulseAmount;
+        const finalGrayscaleAmount = preserveColorWhileStopped && !isPlayingNow
+          ? 0
+          : defaultGrayscaleAmount;
+        const finalSaturationMultiplier = preserveColorWhileStopped && !isPlayingNow
+          ? 1
+          : defaultSaturationMultiplier;
+        const finalBrightnessMultiplier = preserveColorWhileStopped && !isPlayingNow
+          ? 1
+          : defaultBrightnessMultiplier;
+        const finalContrastMultiplier = 1;
+        const filter = preserveColorWhileStopped && !isPlayingNow
+          ? [
+              `grayscale(${finalGrayscaleAmount.toFixed(3)})`,
+              `hue-rotate(${hueOffsetDegrees.toFixed(3)}deg)`,
+              `saturate(${Math.max(finalSaturationMultiplier, 0).toFixed(3)})`,
+              `brightness(${Math.max(finalBrightnessMultiplier, 0).toFixed(3)})`,
+              `contrast(${finalContrastMultiplier.toFixed(3)})`,
+            ].join(" ")
+          : formatImageDepthPlaybackFilter({
+              playbackVisualMix: playbackVisualMixRef.current,
+              hueOffsetDegrees,
+              currentSaturation,
+              glowPulseAmount,
+            });
         const grayscaleFilterActive = playbackVisualMixRef.current < 0.995;
+
+        visualState.onDevColorDiagnosticsChange?.({
+          colorTextureUrl: asset.colorImageUrl,
+          depthTextureUrl: asset.depthMapUrl,
+          finalFilterString: filter,
+          finalHueDegrees: hueOffsetDegrees,
+          finalSaturationMultiplier,
+          finalGrayscaleAmount,
+          finalBrightnessMultiplier,
+          finalContrastMultiplier,
+          playbackVisualState: isPlayingNow
+            ? 'playing-color'
+            : preserveColorWhileStopped
+              ? 'stopped-color-preserved'
+              : 'stopped-grayscale',
+        });
 
         surfaceGlowUniforms.uSurfaceGlowEnabled.value =
           scenePreset.surfaceGlows.enabled && scenePreset.surfaceGlows.hotspots.length > 0 ? 1 : 0;
@@ -1546,6 +1618,7 @@ if (uSurfaceGlowEnabled > 0.5) {
             hueEventStepAppliedDegrees: fullOnHueEventStepAppliedDegrees,
             reactiveHueTargetDegrees: reactiveHueTargetDegreesRef.current,
             reactiveHueOffsetDegrees: reactiveHueOffsetDegreesRef.current,
+            finalHueShiftDegrees: hueOffsetDegrees,
             authoredBaseSaturation,
             authoredPeriodicSaturationContribution,
             reactiveSaturationMultiplier,

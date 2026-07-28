@@ -105,6 +105,7 @@ export type ReactivePreviewTelemetry = {
   hueEventStepAppliedDegrees: number
   reactiveHueTargetDegrees: number
   reactiveHueOffsetDegrees: number
+  finalHueShiftDegrees: number
   authoredBaseSaturation: number
   authoredPeriodicSaturationContribution: number
   reactiveSaturationMultiplier: number

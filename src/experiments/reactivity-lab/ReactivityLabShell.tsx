@@ -15,13 +15,17 @@ import VolumeControl from '../../components/VolumeControl'
 import { useExternalRadioController, type DevSignalSourceId } from '../radio-player/useExternalRadioController'
 import { defaultThemeId } from '../../themes/themeRegistry'
 import { imageDepthEnvironmentCatalog } from '../../themes/image-depth/environmentCatalog'
-import { ImageDepthThemeScene, type ImageDepthSceneDevCounters } from '../../themes/image-depth/ImageDepthThemeScene'
+import {
+  ImageDepthThemeScene,
+  type ImageDepthSceneColorDiagnostics,
+  type ImageDepthSceneDevCounters,
+} from '../../themes/image-depth/ImageDepthThemeScene'
 import './reactivityLab.css'
 
 type SourceType = 'local-mp3' | 'external-radio'
 type LabRadioPresetId = 'psyradio-progressive' | 'psyradio-chillout' | 'psyndora' | 'psystream'
 type DepthMode = 'manual' | 'audio-mapped'
-type DepthSignalField =
+type TelemetrySignalField =
   | 'energy'
   | 'smoothedEnergy'
   | 'bass'
@@ -30,6 +34,8 @@ type DepthSignalField =
   | 'mids'
   | 'highs'
   | 'transient'
+type HueMode = 'off' | 'manual' | 'audio-mapped'
+type ReactivityIsolationMode = 'depth-hue' | 'depth-only' | 'hue-only' | 'reactive-off'
 
 type MeterDebugReadout = {
   fastBass: number
@@ -137,8 +143,14 @@ const DEFAULT_MINIMUM_DEPTH = 0.1
 const DEFAULT_MAXIMUM_DEPTH = 0.9
 const DEFAULT_RESPONSE_SMOOTHING = 0.14
 const STOP_SETTLE_DEPTH = 0.5
+const DEFAULT_MANUAL_HUE_SHIFT_DEGREES = 0
+const DEFAULT_MINIMUM_HUE_SHIFT_DEGREES = -30
+const DEFAULT_MAXIMUM_HUE_SHIFT_DEGREES = 30
+const DEFAULT_HUE_RESPONSE_SMOOTHING = 0.12
+const STOP_SETTLE_HUE_SHIFT_DEGREES = 0
+const DEFAULT_REACTIVITY_ISOLATION_MODE: ReactivityIsolationMode = 'depth-hue'
 
-const DEPTH_SIGNAL_OPTIONS: Array<{ id: DepthSignalField; label: string }> = [
+const TELEMETRY_SIGNAL_OPTIONS: Array<{ id: TelemetrySignalField; label: string }> = [
   { id: 'energy', label: 'Energy' },
   { id: 'smoothedEnergy', label: 'Smoothed Energy' },
   { id: 'bass', label: 'Bass' },
@@ -157,6 +169,18 @@ const INITIAL_SCENE_DEV_COUNTERS: ImageDepthSceneDevCounters = {
   materialGeometryInitializationCount: 0,
   environmentChangeCount: 0,
   depthUpdateCount: 0,
+}
+
+const INITIAL_SCENE_COLOR_DIAGNOSTICS: ImageDepthSceneColorDiagnostics = {
+  colorTextureUrl: '',
+  depthTextureUrl: '',
+  finalFilterString: 'grayscale(0.000) hue-rotate(0.000deg) saturate(1.000) brightness(1.000) contrast(1.000)',
+  finalHueDegrees: 0,
+  finalSaturationMultiplier: 1,
+  finalGrayscaleAmount: 0,
+  finalBrightnessMultiplier: 1,
+  finalContrastMultiplier: 1,
+  playbackVisualState: 'stopped-color-preserved',
 }
 
 function mapRadioSignalStateToAnalysisStatus(signalState: string): AudioAnalysisStatus {
@@ -213,7 +237,39 @@ function clampToDepthRange(value: number, minimumDepth: number, maximumDepth: nu
   return Math.min(maximumDepth, Math.max(minimumDepth, Number.isFinite(value) ? value : minimumDepth))
 }
 
-function resolveSnapshotSignal(snapshot: AudioReactiveSnapshot, field: DepthSignalField) {
+function wrapSignedDegrees(value: number) {
+  let wrapped = value % 360
+
+  if (wrapped <= -180) {
+    wrapped += 360
+  }
+
+  if (wrapped > 180) {
+    wrapped -= 360
+  }
+
+  return wrapped
+}
+
+function resolveShortestHueDeltaDegrees(fromDegrees: number, toDegrees: number) {
+  return wrapSignedDegrees(toDegrees - fromDegrees)
+}
+
+function normalizeValueWithinRange(value: number, minimum: number, maximum: number) {
+  if (!Number.isFinite(value)) {
+    return 0
+  }
+
+  const span = maximum - minimum
+
+  if (!Number.isFinite(span) || Math.abs(span) < 0.000001) {
+    return 0
+  }
+
+  return clampUnit((value - minimum) / span)
+}
+
+function resolveSnapshotSignal(snapshot: AudioReactiveSnapshot, field: TelemetrySignalField) {
   return clampUnit(snapshot[field])
 }
 
@@ -227,14 +283,28 @@ function ReactivityLabShell() {
   )
   const [manualDepthOverride, setManualDepthOverride] = useState(DEFAULT_MANUAL_DEPTH)
   const [depthMode, setDepthMode] = useState<DepthMode>('manual')
-  const [depthSignalField, setDepthSignalField] = useState<DepthSignalField>('bass')
+  const [depthSignalField, setDepthSignalField] = useState<TelemetrySignalField>('bass')
   const [minimumDepth, setMinimumDepth] = useState(DEFAULT_MINIMUM_DEPTH)
   const [maximumDepth, setMaximumDepth] = useState(DEFAULT_MAXIMUM_DEPTH)
   const [responseSmoothing, setResponseSmoothing] = useState(DEFAULT_RESPONSE_SMOOTHING)
   const [mappedDepthOverride, setMappedDepthOverride] = useState(DEFAULT_MANUAL_DEPTH)
+  const [hueMode, setHueMode] = useState<HueMode>('off')
+  const [hueSignalField, setHueSignalField] = useState<TelemetrySignalField>('mids')
+  const [minimumHueShiftDegrees, setMinimumHueShiftDegrees] = useState(DEFAULT_MINIMUM_HUE_SHIFT_DEGREES)
+  const [maximumHueShiftDegrees, setMaximumHueShiftDegrees] = useState(DEFAULT_MAXIMUM_HUE_SHIFT_DEGREES)
+  const [hueResponseSmoothing, setHueResponseSmoothing] = useState(DEFAULT_HUE_RESPONSE_SMOOTHING)
+  const [manualHueShiftDegrees, setManualHueShiftDegrees] = useState(DEFAULT_MANUAL_HUE_SHIFT_DEGREES)
+  const [mappedHueShiftDegrees, setMappedHueShiftDegrees] = useState(DEFAULT_MANUAL_HUE_SHIFT_DEGREES)
+  const [reactivityIsolationMode, setReactivityIsolationMode] = useState<ReactivityIsolationMode>(
+    DEFAULT_REACTIVITY_ISOLATION_MODE,
+  )
   const [renderedDepth, setRenderedDepth] = useState(DEFAULT_MANUAL_DEPTH)
+  const [renderedHueShiftDegrees, setRenderedHueShiftDegrees] = useState(DEFAULT_MANUAL_HUE_SHIFT_DEGREES)
   const [sceneDevCounters, setSceneDevCounters] = useState<ImageDepthSceneDevCounters>(
     INITIAL_SCENE_DEV_COUNTERS,
+  )
+  const [sceneColorDiagnostics, setSceneColorDiagnostics] = useState<ImageDepthSceneColorDiagnostics>(
+    INITIAL_SCENE_COLOR_DIAGNOSTICS,
   )
   const [radioSnapshot, setRadioSnapshot] = useState<AudioReactiveSnapshot>(ZERO_SNAPSHOT)
   const [lastStartFailure, setLastStartFailure] = useState<string | null>(null)
@@ -243,6 +313,9 @@ function ReactivityLabShell() {
   const mappedDepthTargetRef = useRef(DEFAULT_MANUAL_DEPTH)
   const mappedDepthCurrentRef = useRef(DEFAULT_MANUAL_DEPTH)
   const mappedDepthRafRef = useRef<number | null>(null)
+  const mappedHueTargetRef = useRef(DEFAULT_MANUAL_HUE_SHIFT_DEGREES)
+  const mappedHueCurrentRef = useRef(DEFAULT_MANUAL_HUE_SHIFT_DEGREES)
+  const mappedHueRafRef = useRef<number | null>(null)
   const audioController = usePersistentAudioController(1, selectedMp3SourceId)
   const radioController = useExternalRadioController(defaultThemeId, {
     audioOutputMode: 'post-analyzer-gain',
@@ -397,27 +470,65 @@ function ReactivityLabShell() {
     ? audioController.playbackStatus !== 'playing'
     : radioSignalState === 'Signal Off'
 
-  const selectedSignalValue = resolveSnapshotSignal(telemetrySnapshot, depthSignalField)
+  const selectedDepthSignalValue = resolveSnapshotSignal(telemetrySnapshot, depthSignalField)
+  const selectedHueSignalValue = resolveSnapshotSignal(telemetrySnapshot, hueSignalField)
+
   const mappedTargetDepth = clampToDepthRange(
-    minimumDepth + selectedSignalValue * (maximumDepth - minimumDepth),
+    minimumDepth + selectedDepthSignalValue * (maximumDepth - minimumDepth),
     minimumDepth,
     maximumDepth,
   )
-  const targetDepthForDisplay = depthMode === 'audio-mapped'
+
+  const mappedTargetHueShiftDegrees =
+    minimumHueShiftDegrees + selectedHueSignalValue * (maximumHueShiftDegrees - minimumHueShiftDegrees)
+
+  const depthMappingActive =
+    depthMode === 'audio-mapped' &&
+    reactivityIsolationMode !== 'hue-only' &&
+    reactivityIsolationMode !== 'reactive-off'
+  const hueMappingActive =
+    hueMode === 'audio-mapped' &&
+    reactivityIsolationMode !== 'depth-only' &&
+    reactivityIsolationMode !== 'reactive-off'
+
+  const targetDepthForDisplay = depthMappingActive
     ? (isAudioStopped ? STOP_SETTLE_DEPTH : mappedTargetDepth)
     : manualDepthOverride
-  const liveDepthOverride = depthMode === 'audio-mapped' ? mappedDepthOverride : manualDepthOverride
+
+  const targetHueShiftForDisplay = hueMappingActive
+    ? (isAudioStopped ? STOP_SETTLE_HUE_SHIFT_DEGREES : mappedTargetHueShiftDegrees)
+    : hueMode === 'manual'
+      ? manualHueShiftDegrees
+      : STOP_SETTLE_HUE_SHIFT_DEGREES
+
+  const liveDepthOverride = reactivityIsolationMode === 'reactive-off'
+    ? STOP_SETTLE_DEPTH
+    : reactivityIsolationMode === 'hue-only'
+      ? manualDepthOverride
+      : depthMode === 'audio-mapped'
+        ? mappedDepthOverride
+        : manualDepthOverride
+
+  const liveHueShiftOverrideDegrees = reactivityIsolationMode === 'reactive-off'
+    ? STOP_SETTLE_HUE_SHIFT_DEGREES
+    : reactivityIsolationMode === 'depth-only'
+      ? STOP_SETTLE_HUE_SHIFT_DEGREES
+      : hueMode === 'off'
+        ? STOP_SETTLE_HUE_SHIFT_DEGREES
+        : hueMode === 'audio-mapped'
+          ? mappedHueShiftDegrees
+          : manualHueShiftDegrees
 
   useEffect(() => {
-    if (depthMode !== 'audio-mapped') {
+    if (!depthMappingActive) {
       return
     }
 
     mappedDepthTargetRef.current = isAudioStopped ? STOP_SETTLE_DEPTH : mappedTargetDepth
-  }, [depthMode, isAudioStopped, mappedTargetDepth])
+  }, [depthMappingActive, isAudioStopped, mappedTargetDepth])
 
   useEffect(() => {
-    if (depthMode !== 'audio-mapped') {
+    if (!depthMappingActive) {
       if (mappedDepthRafRef.current !== null) {
         window.cancelAnimationFrame(mappedDepthRafRef.current)
         mappedDepthRafRef.current = null
@@ -453,7 +564,55 @@ function ReactivityLabShell() {
         mappedDepthRafRef.current = null
       }
     }
-  }, [depthMode, manualDepthOverride, responseSmoothing])
+  }, [depthMappingActive, manualDepthOverride, responseSmoothing])
+
+  useEffect(() => {
+    if (!hueMappingActive) {
+      return
+    }
+
+    mappedHueTargetRef.current = isAudioStopped ? STOP_SETTLE_HUE_SHIFT_DEGREES : mappedTargetHueShiftDegrees
+  }, [hueMappingActive, isAudioStopped, mappedTargetHueShiftDegrees])
+
+  useEffect(() => {
+    if (!hueMappingActive) {
+      if (mappedHueRafRef.current !== null) {
+        window.cancelAnimationFrame(mappedHueRafRef.current)
+        mappedHueRafRef.current = null
+      }
+
+      return
+    }
+
+    mappedHueCurrentRef.current = manualHueShiftDegrees
+
+    const tick = () => {
+      const targetHue = mappedHueTargetRef.current
+      const currentHue = mappedHueCurrentRef.current
+      const shortestDelta = resolveShortestHueDeltaDegrees(currentHue, targetHue)
+      let nextHue = wrapSignedDegrees(currentHue + shortestDelta * hueResponseSmoothing)
+
+      if (Math.abs(shortestDelta) < 0.05) {
+        nextHue = wrapSignedDegrees(targetHue)
+      }
+
+      if (nextHue !== currentHue) {
+        mappedHueCurrentRef.current = nextHue
+        setMappedHueShiftDegrees(nextHue)
+      }
+
+      mappedHueRafRef.current = window.requestAnimationFrame(tick)
+    }
+
+    mappedHueRafRef.current = window.requestAnimationFrame(tick)
+
+    return () => {
+      if (mappedHueRafRef.current !== null) {
+        window.cancelAnimationFrame(mappedHueRafRef.current)
+        mappedHueRafRef.current = null
+      }
+    }
+  }, [hueMappingActive, manualHueShiftDegrees, hueResponseSmoothing])
 
   const handleRadioPresetChange = (nextPresetId: LabRadioPresetId) => {
     setSelectedRadioPresetId(nextPresetId)
@@ -527,10 +686,15 @@ function ReactivityLabShell() {
 
   const handleReactiveTelemetry = (telemetry: ReactivePreviewTelemetry) => {
     setRenderedDepth(telemetry.depthFinalAfterClamp)
+    setRenderedHueShiftDegrees(telemetry.finalHueShiftDegrees)
   }
 
   const handleSceneDevCountersChange = useCallback((nextCounters: ImageDepthSceneDevCounters) => {
     setSceneDevCounters(nextCounters)
+  }, [])
+
+  const handleSceneColorDiagnosticsChange = useCallback((nextDiagnostics: ImageDepthSceneColorDiagnostics) => {
+    setSceneColorDiagnostics(nextDiagnostics)
   }, [])
 
   return (
@@ -617,6 +781,20 @@ function ReactivityLabShell() {
             <h2>Image Depth Manual Preview</h2>
 
             <label className="reactivity-lab__field">
+              <span className="reactivity-lab__label">Reactivity Isolation</span>
+              <select
+                className="reactivity-lab__select"
+                value={reactivityIsolationMode}
+                onChange={(event) => setReactivityIsolationMode(event.target.value as ReactivityIsolationMode)}
+              >
+                <option value="depth-hue">Depth + Hue</option>
+                <option value="depth-only">Depth only</option>
+                <option value="hue-only">Hue only</option>
+                <option value="reactive-off">Reactive effects off</option>
+              </select>
+            </label>
+
+            <label className="reactivity-lab__field">
               <span className="reactivity-lab__label">Depth Mode</span>
               <select
                 className="reactivity-lab__select"
@@ -633,10 +811,10 @@ function ReactivityLabShell() {
               <select
                 className="reactivity-lab__select"
                 value={depthSignalField}
-                onChange={(event) => setDepthSignalField(event.target.value as DepthSignalField)}
+                onChange={(event) => setDepthSignalField(event.target.value as TelemetrySignalField)}
                 disabled={depthMode !== 'audio-mapped'}
               >
-                {DEPTH_SIGNAL_OPTIONS.map((option) => (
+                {TELEMETRY_SIGNAL_OPTIONS.map((option) => (
                   <option key={option.id} value={option.id}>
                     {option.label}
                   </option>
@@ -703,6 +881,111 @@ function ReactivityLabShell() {
               <strong>{responseSmoothing.toFixed(2)}</strong>
             </label>
 
+            <h2>Hue Mapping</h2>
+
+            <label className="reactivity-lab__field">
+              <span className="reactivity-lab__label">Hue Mode</span>
+              <select
+                className="reactivity-lab__select"
+                value={hueMode}
+                onChange={(event) => setHueMode(event.target.value as HueMode)}
+              >
+                <option value="manual">Manual</option>
+                <option value="audio-mapped">Audio Mapped</option>
+                <option value="off">Off / Neutral</option>
+              </select>
+            </label>
+
+            <label className="reactivity-lab__field">
+              <span className="reactivity-lab__label">Hue Signal</span>
+              <select
+                className="reactivity-lab__select"
+                value={hueSignalField}
+                onChange={(event) => setHueSignalField(event.target.value as TelemetrySignalField)}
+                disabled={hueMode !== 'audio-mapped'}
+              >
+                {TELEMETRY_SIGNAL_OPTIONS.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="reactivity-lab__field">
+              <span className="reactivity-lab__label">Minimum Hue Shift</span>
+              <input
+                className="reactivity-lab__range"
+                type="range"
+                min="-180"
+                max="180"
+                step="1"
+                value={minimumHueShiftDegrees}
+                onChange={(event) => {
+                  const nextMinimum = Number(event.target.value)
+                  setMinimumHueShiftDegrees(nextMinimum)
+
+                  if (nextMinimum > maximumHueShiftDegrees) {
+                    setMaximumHueShiftDegrees(nextMinimum)
+                  }
+                }}
+                disabled={hueMode !== 'audio-mapped'}
+              />
+              <strong>{minimumHueShiftDegrees.toFixed(0)}deg</strong>
+            </label>
+
+            <label className="reactivity-lab__field">
+              <span className="reactivity-lab__label">Maximum Hue Shift</span>
+              <input
+                className="reactivity-lab__range"
+                type="range"
+                min="-180"
+                max="180"
+                step="1"
+                value={maximumHueShiftDegrees}
+                onChange={(event) => {
+                  const nextMaximum = Number(event.target.value)
+                  setMaximumHueShiftDegrees(nextMaximum)
+
+                  if (nextMaximum < minimumHueShiftDegrees) {
+                    setMinimumHueShiftDegrees(nextMaximum)
+                  }
+                }}
+                disabled={hueMode !== 'audio-mapped'}
+              />
+              <strong>{maximumHueShiftDegrees.toFixed(0)}deg</strong>
+            </label>
+
+            <label className="reactivity-lab__field">
+              <span className="reactivity-lab__label">Hue Response Smoothing</span>
+              <input
+                className="reactivity-lab__range"
+                type="range"
+                min="0.02"
+                max="0.5"
+                step="0.01"
+                value={hueResponseSmoothing}
+                onChange={(event) => setHueResponseSmoothing(Number(event.target.value))}
+                disabled={hueMode !== 'audio-mapped'}
+              />
+              <strong>{hueResponseSmoothing.toFixed(2)}</strong>
+            </label>
+
+            <label className="reactivity-lab__field">
+              <span className="reactivity-lab__label">Manual Hue Shift</span>
+              <input
+                className="reactivity-lab__range"
+                type="range"
+                min="-180"
+                max="180"
+                step="1"
+                value={manualHueShiftDegrees}
+                onChange={(event) => setManualHueShiftDegrees(Number(event.target.value))}
+                disabled={hueMode !== 'manual'}
+              />
+              <strong>{manualHueShiftDegrees.toFixed(0)}deg</strong>
+            </label>
+
             <label className="reactivity-lab__field">
               <span className="reactivity-lab__label">Image-depth environment</span>
               <select
@@ -735,11 +1018,11 @@ function ReactivityLabShell() {
 
             <div className="reactivity-lab__comparison-stack" aria-label="Mapped depth comparison">
               <div className="reactivity-lab__comparison-row">
-                <span className="reactivity-lab__label">Selected Signal</span>
+                <span className="reactivity-lab__label">Depth Selected Signal</span>
                 <div className="reactivity-lab__comparison-meter" aria-hidden="true">
-                  <span className="reactivity-lab__comparison-meter-fill" style={{ width: `${selectedSignalValue * 100}%` }} />
+                  <span className="reactivity-lab__comparison-meter-fill" style={{ width: `${selectedDepthSignalValue * 100}%` }} />
                 </div>
-                <p className="reactivity-lab__status-primary">{selectedSignalValue.toFixed(3)}</p>
+                <p className="reactivity-lab__status-primary">{selectedDepthSignalValue.toFixed(3)}</p>
               </div>
 
               <div className="reactivity-lab__comparison-row">
@@ -756,6 +1039,38 @@ function ReactivityLabShell() {
                   <span className="reactivity-lab__comparison-meter-fill" style={{ width: `${clampUnit(renderedDepth) * 100}%` }} />
                 </div>
                 <p className="reactivity-lab__status-primary">{renderedDepth.toFixed(3)}</p>
+              </div>
+            </div>
+
+            <div className="reactivity-lab__comparison-stack" aria-label="Mapped hue comparison">
+              <div className="reactivity-lab__comparison-row">
+                <span className="reactivity-lab__label">Hue Selected Signal</span>
+                <div className="reactivity-lab__comparison-meter" aria-hidden="true">
+                  <span className="reactivity-lab__comparison-meter-fill" style={{ width: `${selectedHueSignalValue * 100}%` }} />
+                </div>
+                <p className="reactivity-lab__status-primary">{selectedHueSignalValue.toFixed(3)}</p>
+              </div>
+
+              <div className="reactivity-lab__comparison-row">
+                <span className="reactivity-lab__label">Target Hue Shift</span>
+                <div className="reactivity-lab__comparison-meter" aria-hidden="true">
+                  <span
+                    className="reactivity-lab__comparison-meter-fill"
+                    style={{ width: `${normalizeValueWithinRange(targetHueShiftForDisplay, minimumHueShiftDegrees, maximumHueShiftDegrees) * 100}%` }}
+                  />
+                </div>
+                <p className="reactivity-lab__status-primary">{targetHueShiftForDisplay.toFixed(1)}deg</p>
+              </div>
+
+              <div className="reactivity-lab__comparison-row">
+                <span className="reactivity-lab__label">Rendered Hue Shift</span>
+                <div className="reactivity-lab__comparison-meter" aria-hidden="true">
+                  <span
+                    className="reactivity-lab__comparison-meter-fill"
+                    style={{ width: `${normalizeValueWithinRange(renderedHueShiftDegrees, minimumHueShiftDegrees, maximumHueShiftDegrees) * 100}%` }}
+                  />
+                </div>
+                <p className="reactivity-lab__status-primary">{renderedHueShiftDegrees.toFixed(1)}deg</p>
               </div>
             </div>
 
@@ -779,6 +1094,20 @@ function ReactivityLabShell() {
               >
                 Reset Mapping Defaults
               </button>
+              <button
+                type="button"
+                className="reactivity-lab__inline-button"
+                onClick={() => {
+                  setHueMode('off')
+                  setHueSignalField('mids')
+                  setMinimumHueShiftDegrees(DEFAULT_MINIMUM_HUE_SHIFT_DEGREES)
+                  setMaximumHueShiftDegrees(DEFAULT_MAXIMUM_HUE_SHIFT_DEGREES)
+                  setHueResponseSmoothing(DEFAULT_HUE_RESPONSE_SMOOTHING)
+                  setManualHueShiftDegrees(DEFAULT_MANUAL_HUE_SHIFT_DEGREES)
+                }}
+              >
+                Reset Hue Defaults
+              </button>
             </div>
           </aside>
 
@@ -792,6 +1121,8 @@ function ReactivityLabShell() {
                   scenePreset={previewScenePreset}
                   className="reactivity-lab__image-depth-scene"
                   manualDepthOverride={liveDepthOverride}
+                  manualHueShiftOverrideDegrees={liveHueShiftOverrideDegrees}
+                  preserveColorWhenStopped
                   isPlaying={false}
                   volume={0}
                   signalId={null}
@@ -804,6 +1135,7 @@ function ReactivityLabShell() {
                   reactiveDepthMode="default"
                   onReactivePreviewTelemetry={handleReactiveTelemetry}
                   onDevSceneCountersChange={handleSceneDevCountersChange}
+                  onDevColorDiagnosticsChange={handleSceneColorDiagnosticsChange}
                 />
               ) : null}
             </div>
@@ -918,6 +1250,21 @@ function ReactivityLabShell() {
                 </p>
                 <p className="reactivity-lab__status-secondary">
                   Depth updates: {sceneDevCounters.depthUpdateCount}
+                </p>
+                <p className="reactivity-lab__status-secondary">
+                  Color texture: {sceneColorDiagnostics.colorTextureUrl.split('/').pop() || 'n/a'}
+                </p>
+                <p className="reactivity-lab__status-secondary">
+                  Depth texture: {sceneColorDiagnostics.depthTextureUrl.split('/').pop() || 'n/a'}
+                </p>
+                <p className="reactivity-lab__status-secondary">
+                  Final filter: {sceneColorDiagnostics.finalFilterString}
+                </p>
+                <p className="reactivity-lab__status-secondary">
+                  Final hue: {sceneColorDiagnostics.finalHueDegrees.toFixed(2)}deg | saturation: {sceneColorDiagnostics.finalSaturationMultiplier.toFixed(3)} | grayscale: {sceneColorDiagnostics.finalGrayscaleAmount.toFixed(3)}
+                </p>
+                <p className="reactivity-lab__status-secondary">
+                  Brightness: {sceneColorDiagnostics.finalBrightnessMultiplier.toFixed(3)} | contrast: {sceneColorDiagnostics.finalContrastMultiplier.toFixed(3)} | visual state: {sceneColorDiagnostics.playbackVisualState}
                 </p>
               </section>
             </div>

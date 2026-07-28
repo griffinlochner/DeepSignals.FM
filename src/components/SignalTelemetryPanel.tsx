@@ -117,6 +117,7 @@ const ZERO_REACTIVE_TELEMETRY: ReactivePreviewTelemetry = {
   hueEventStepAppliedDegrees: 0,
   reactiveHueTargetDegrees: 0,
   reactiveHueOffsetDegrees: 0,
+  finalHueShiftDegrees: 0,
   authoredBaseSaturation: 1,
   authoredPeriodicSaturationContribution: 0,
   reactiveSaturationMultiplier: 1,
