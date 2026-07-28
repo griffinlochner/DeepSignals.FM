@@ -1034,7 +1034,7 @@ function ReactivityLabShell() {
 
         <section className="reactivity-lab__visual-workspace" aria-label="Image depth manual preview">
           <aside className="reactivity-lab__visual-controls">
-            <h2>Permanent Behavior Authoring Controls</h2>
+            <h2>Behavior Authoring Controls</h2>
 
             <label className="reactivity-lab__field">
               <span className="reactivity-lab__label">Image-depth environment</span>
@@ -1050,6 +1050,36 @@ function ReactivityLabShell() {
                 ))}
               </select>
             </label>
+
+            <div className="reactivity-lab__field">
+              <span className="reactivity-lab__label">Preview Effect Toggles</span>
+              <span className="reactivity-lab__toggle-row">
+                <label className="reactivity-lab__toggle-pill">
+                  <input
+                    type="checkbox"
+                    checked={depthPreviewEnabled}
+                    onChange={(event) => setDepthPreviewEnabled(event.target.checked)}
+                  />
+                  <span>Depth</span>
+                </label>
+                <label className="reactivity-lab__toggle-pill">
+                  <input
+                    type="checkbox"
+                    checked={huePreviewEnabled}
+                    onChange={(event) => setHuePreviewEnabled(event.target.checked)}
+                  />
+                  <span>Hue</span>
+                </label>
+                <label className="reactivity-lab__toggle-pill">
+                  <input
+                    type="checkbox"
+                    checked={saturationPreviewEnabled}
+                    onChange={(event) => setSaturationPreviewEnabled(event.target.checked)}
+                  />
+                  <span>Saturation</span>
+                </label>
+              </span>
+            </div>
 
             <details className="reactivity-lab__details" open>
               <summary>
@@ -1131,36 +1161,6 @@ function ReactivityLabShell() {
                 </span>
               </summary>
               <div className="reactivity-lab__details-body">
-                <div className="reactivity-lab__field">
-                  <span className="reactivity-lab__label">Preview channel toggles</span>
-                  <span className="reactivity-lab__toggle-row">
-                    <label className="reactivity-lab__toggle-pill">
-                      <input
-                        type="checkbox"
-                        checked={depthPreviewEnabled}
-                        onChange={(event) => setDepthPreviewEnabled(event.target.checked)}
-                      />
-                      <span>Depth enabled</span>
-                    </label>
-                    <label className="reactivity-lab__toggle-pill">
-                      <input
-                        type="checkbox"
-                        checked={huePreviewEnabled}
-                        onChange={(event) => setHuePreviewEnabled(event.target.checked)}
-                      />
-                      <span>Hue enabled</span>
-                    </label>
-                    <label className="reactivity-lab__toggle-pill">
-                      <input
-                        type="checkbox"
-                        checked={saturationPreviewEnabled}
-                        onChange={(event) => setSaturationPreviewEnabled(event.target.checked)}
-                      />
-                      <span>Saturation enabled</span>
-                    </label>
-                  </span>
-                </div>
-
                 <label className="reactivity-lab__field">
                   <span className="reactivity-lab__label">Depth Mode</span>
                   <select
