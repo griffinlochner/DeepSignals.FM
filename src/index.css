@@ -46,6 +46,20 @@ body {
   background: #020202;
 }
 
+html.reactivity-lab-page,
+body.reactivity-lab-page {
+  height: auto;
+  min-height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+#root.reactivity-lab-page {
+  height: auto;
+  min-height: 100vh;
+  overflow: visible;
+}
+
 h1,
 h2 {
   font-family: var(--heading);

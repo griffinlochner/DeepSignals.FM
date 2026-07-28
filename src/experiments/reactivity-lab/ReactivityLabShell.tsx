@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AUDIO_SOURCES, formatAudioSourceLabel } from '../../app/audioSources'
 import type {
   AudioAnalysisGraphDetails,
@@ -422,9 +422,9 @@ function ReactivityLabShell() {
     setRenderedDepth(telemetry.depthFinalAfterClamp)
   }
 
-  const handleSceneDevCountersChange = (nextCounters: ImageDepthSceneDevCounters) => {
+  const handleSceneDevCountersChange = useCallback((nextCounters: ImageDepthSceneDevCounters) => {
     setSceneDevCounters(nextCounters)
-  }
+  }, [])
 
   return (
     <main className="reactivity-lab" aria-label="Reactivity lab">
