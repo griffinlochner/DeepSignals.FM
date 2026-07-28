@@ -858,8 +858,8 @@ function ReactivityLabShell() {
     <main className="reactivity-lab" aria-label="Reactivity lab">
       <div className="reactivity-lab__workspace-shell">
         <section className="reactivity-lab__panel" aria-label="Reactivity lab controls">
-          <p className="reactivity-lab__eyebrow">DeepSignals Reactivity Lab - DEV only</p>
-          <h1 className="reactivity-lab__title">Common Audio Telemetry Validation</h1>
+          <p className="reactivity-lab__eyebrow">DeepSignals DEV Reactivity Lab</p>
+          <h1 className="reactivity-lab__title">Behavior Authoring Workspace</h1>
 
           <div className="reactivity-lab__controls-grid reactivity-lab__controls-grid--top">
             <label className="reactivity-lab__field">
@@ -931,279 +931,11 @@ function ReactivityLabShell() {
             <p className="reactivity-lab__status-primary">Playback state: {activePlaybackState}</p>
             <p className="reactivity-lab__status-primary">Active track/station: {activeSelectionLabel}</p>
           </section>
-
-          <section className="reactivity-lab__preset-panel" aria-label="Behavior presets">
-            <h2 className="reactivity-lab__preset-title">Behavior Presets (DEV)</h2>
-
-            <label className="reactivity-lab__field">
-              <span className="reactivity-lab__label">Preset name</span>
-              <input
-                className="reactivity-lab__text-input"
-                type="text"
-                value={presetNameInput}
-                onChange={(event) => setPresetNameInput(event.target.value)}
-                placeholder="Enter preset name"
-              />
-            </label>
-
-            <div className="reactivity-lab__button-row">
-              <button type="button" onClick={handleSaveCurrentPreset}>Save Current Preset</button>
-              <button type="button" onClick={() => void handleCopyCurrentPresetJson()}>Copy Current Preset JSON</button>
-            </div>
-
-            <label className="reactivity-lab__field">
-              <span className="reactivity-lab__label">Saved presets</span>
-              <select
-                className="reactivity-lab__select"
-                value={selectedBehaviorPresetName}
-                onChange={(event) => setSelectedBehaviorPresetName(event.target.value)}
-              >
-                {savedBehaviorPresets.length === 0 ? (
-                  <option value="">No saved presets</option>
-                ) : null}
-                {savedBehaviorPresets.map((preset) => (
-                  <option key={preset.name} value={preset.name}>
-                    {preset.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <div className="reactivity-lab__button-row">
-              <button type="button" onClick={handleLoadSelectedPreset}>Load Selected</button>
-              <button type="button" onClick={handleDeleteSelectedPreset}>Delete Selected</button>
-            </div>
-
-            <label className="reactivity-lab__field">
-              <span className="reactivity-lab__label">Import JSON</span>
-              <textarea
-                className="reactivity-lab__textarea"
-                value={importPresetJsonText}
-                onChange={(event) => setImportPresetJsonText(event.target.value)}
-                placeholder="Paste preset JSON"
-                rows={8}
-              />
-            </label>
-
-            <div className="reactivity-lab__button-row">
-              <button type="button" onClick={handleApplyImportedPreset}>Apply Imported Preset</button>
-              <button type="button" onClick={handleClearImportPreset}>Clear Import</button>
-            </div>
-
-            {presetInlineError ? <p className="reactivity-lab__preset-error">{presetInlineError}</p> : null}
-            {presetInlineStatus ? <p className="reactivity-lab__preset-status">{presetInlineStatus}</p> : null}
-          </section>
         </section>
 
         <section className="reactivity-lab__visual-workspace" aria-label="Image depth manual preview">
           <aside className="reactivity-lab__visual-controls">
-            <h2>Image Depth Manual Preview</h2>
-
-            <label className="reactivity-lab__field">
-              <span className="reactivity-lab__label">Reactivity Isolation</span>
-              <select
-                className="reactivity-lab__select"
-                value={reactivityIsolationMode}
-                onChange={(event) => setReactivityIsolationMode(event.target.value as ReactivityIsolationMode)}
-              >
-                <option value="depth-hue">Depth + Hue</option>
-                <option value="depth-only">Depth only</option>
-                <option value="hue-only">Hue only</option>
-                <option value="reactive-off">Reactive effects off</option>
-              </select>
-            </label>
-
-            <label className="reactivity-lab__field">
-              <span className="reactivity-lab__label">Depth Mode</span>
-              <select
-                className="reactivity-lab__select"
-                value={depthMode}
-                onChange={(event) => setDepthMode(event.target.value as DepthMode)}
-              >
-                <option value="manual">Manual</option>
-                <option value="audio-mapped">Audio Mapped</option>
-              </select>
-            </label>
-
-            <label className="reactivity-lab__field">
-              <span className="reactivity-lab__label">Depth Signal</span>
-              <select
-                className="reactivity-lab__select"
-                value={depthSignalField}
-                onChange={(event) => setDepthSignalField(event.target.value as TelemetrySignalField)}
-                disabled={depthMode !== 'audio-mapped'}
-              >
-                {TELEMETRY_SIGNAL_OPTIONS.map((option) => (
-                  <option key={option.id} value={option.id}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="reactivity-lab__field">
-              <span className="reactivity-lab__label">Minimum Depth</span>
-              <input
-                className="reactivity-lab__range"
-                type="range"
-                min={DEPTH_CONTROL_LIMITS.min}
-                max={DEPTH_CONTROL_LIMITS.max}
-                step="0.01"
-                value={minimumDepth}
-                onChange={(event) => {
-                  const nextMinimum = Number(event.target.value)
-                  setMinimumDepth(nextMinimum)
-
-                  if (nextMinimum > maximumDepth) {
-                    setMaximumDepth(nextMinimum)
-                  }
-                }}
-                disabled={depthMode !== 'audio-mapped'}
-              />
-              <strong>{minimumDepth.toFixed(2)}</strong>
-            </label>
-
-            <label className="reactivity-lab__field">
-              <span className="reactivity-lab__label">Maximum Depth</span>
-              <input
-                className="reactivity-lab__range"
-                type="range"
-                min={DEPTH_CONTROL_LIMITS.min}
-                max={DEPTH_CONTROL_LIMITS.max}
-                step="0.01"
-                value={maximumDepth}
-                onChange={(event) => {
-                  const nextMaximum = Number(event.target.value)
-                  setMaximumDepth(nextMaximum)
-
-                  if (nextMaximum < minimumDepth) {
-                    setMinimumDepth(nextMaximum)
-                  }
-                }}
-                disabled={depthMode !== 'audio-mapped'}
-              />
-              <strong>{maximumDepth.toFixed(2)}</strong>
-            </label>
-
-            <label className="reactivity-lab__field">
-              <span className="reactivity-lab__label">Response Smoothing</span>
-              <input
-                className="reactivity-lab__range"
-                type="range"
-                min={DEPTH_CONTROL_LIMITS.smoothingMin}
-                max={DEPTH_CONTROL_LIMITS.smoothingMax}
-                step="0.01"
-                value={responseSmoothing}
-                onChange={(event) => setResponseSmoothing(Number(event.target.value))}
-                disabled={depthMode !== 'audio-mapped'}
-              />
-              <strong>{responseSmoothing.toFixed(2)}</strong>
-            </label>
-
-            <h2>Hue Mapping</h2>
-
-            <label className="reactivity-lab__field">
-              <span className="reactivity-lab__label">Hue Mode</span>
-              <select
-                className="reactivity-lab__select"
-                value={hueMode}
-                onChange={(event) => setHueMode(event.target.value as HueMode)}
-              >
-                <option value="manual">Manual</option>
-                <option value="audio-mapped">Audio Mapped</option>
-                <option value="off">Off / Neutral</option>
-              </select>
-            </label>
-
-            <label className="reactivity-lab__field">
-              <span className="reactivity-lab__label">Hue Signal</span>
-              <select
-                className="reactivity-lab__select"
-                value={hueSignalField}
-                onChange={(event) => setHueSignalField(event.target.value as TelemetrySignalField)}
-                disabled={hueMode !== 'audio-mapped'}
-              >
-                {TELEMETRY_SIGNAL_OPTIONS.map((option) => (
-                  <option key={option.id} value={option.id}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="reactivity-lab__field">
-              <span className="reactivity-lab__label">Minimum Hue Shift</span>
-              <input
-                className="reactivity-lab__range"
-                type="range"
-                min={HUE_CONTROL_LIMITS.minDegrees}
-                max={HUE_CONTROL_LIMITS.maxDegrees}
-                step="1"
-                value={minimumHueShiftDegrees}
-                onChange={(event) => {
-                  const nextMinimum = Number(event.target.value)
-                  setMinimumHueShiftDegrees(nextMinimum)
-
-                  if (nextMinimum > maximumHueShiftDegrees) {
-                    setMaximumHueShiftDegrees(nextMinimum)
-                  }
-                }}
-                disabled={hueMode !== 'audio-mapped'}
-              />
-              <strong>{minimumHueShiftDegrees.toFixed(0)}deg</strong>
-            </label>
-
-            <label className="reactivity-lab__field">
-              <span className="reactivity-lab__label">Maximum Hue Shift</span>
-              <input
-                className="reactivity-lab__range"
-                type="range"
-                min={HUE_CONTROL_LIMITS.minDegrees}
-                max={HUE_CONTROL_LIMITS.maxDegrees}
-                step="1"
-                value={maximumHueShiftDegrees}
-                onChange={(event) => {
-                  const nextMaximum = Number(event.target.value)
-                  setMaximumHueShiftDegrees(nextMaximum)
-
-                  if (nextMaximum < minimumHueShiftDegrees) {
-                    setMinimumHueShiftDegrees(nextMaximum)
-                  }
-                }}
-                disabled={hueMode !== 'audio-mapped'}
-              />
-              <strong>{maximumHueShiftDegrees.toFixed(0)}deg</strong>
-            </label>
-
-            <label className="reactivity-lab__field">
-              <span className="reactivity-lab__label">Hue Response Smoothing</span>
-              <input
-                className="reactivity-lab__range"
-                type="range"
-                min={HUE_CONTROL_LIMITS.smoothingMin}
-                max={HUE_CONTROL_LIMITS.smoothingMax}
-                step="0.01"
-                value={hueResponseSmoothing}
-                onChange={(event) => setHueResponseSmoothing(Number(event.target.value))}
-                disabled={hueMode !== 'audio-mapped'}
-              />
-              <strong>{hueResponseSmoothing.toFixed(2)}</strong>
-            </label>
-
-            <label className="reactivity-lab__field">
-              <span className="reactivity-lab__label">Manual Hue Shift</span>
-              <input
-                className="reactivity-lab__range"
-                type="range"
-                min={HUE_CONTROL_LIMITS.minDegrees}
-                max={HUE_CONTROL_LIMITS.maxDegrees}
-                step="1"
-                value={manualHueShiftDegrees}
-                onChange={(event) => setManualHueShiftDegrees(Number(event.target.value))}
-                disabled={hueMode !== 'manual'}
-              />
-              <strong>{manualHueShiftDegrees.toFixed(0)}deg</strong>
-            </label>
+            <h2>Permanent Behavior Authoring Controls</h2>
 
             <label className="reactivity-lab__field">
               <span className="reactivity-lab__label">Image-depth environment</span>
@@ -1220,114 +952,403 @@ function ReactivityLabShell() {
               </select>
             </label>
 
-            <label className="reactivity-lab__field">
-              <span className="reactivity-lab__label">Manual depth override</span>
-              <input
-                className="reactivity-lab__range"
-                type="range"
-                min="0"
-                max="1"
-                step="0.01"
-                value={manualDepthOverride}
-                onChange={(event) => setManualDepthOverride(Number(event.target.value))}
-                disabled={depthMode !== 'manual'}
-              />
-              <strong>{manualDepthOverride.toFixed(2)}</strong>
-            </label>
+            <details className="reactivity-lab__details" open>
+              <summary>Behavior presets</summary>
+              <div className="reactivity-lab__details-body">
+                <section className="reactivity-lab__preset-panel" aria-label="Behavior presets">
+                  <h2 className="reactivity-lab__preset-title">Behavior Presets (DEV)</h2>
 
-            <div className="reactivity-lab__comparison-stack" aria-label="Mapped depth comparison">
-              <div className="reactivity-lab__comparison-row">
-                <span className="reactivity-lab__label">Depth Selected Signal</span>
-                <div className="reactivity-lab__comparison-meter" aria-hidden="true">
-                  <span className="reactivity-lab__comparison-meter-fill" style={{ width: `${selectedDepthSignalValue * 100}%` }} />
-                </div>
-                <p className="reactivity-lab__status-primary">{selectedDepthSignalValue.toFixed(3)}</p>
+                  <label className="reactivity-lab__field">
+                    <span className="reactivity-lab__label">Preset name</span>
+                    <input
+                      className="reactivity-lab__text-input"
+                      type="text"
+                      value={presetNameInput}
+                      onChange={(event) => setPresetNameInput(event.target.value)}
+                      placeholder="Enter preset name"
+                    />
+                  </label>
+
+                  <div className="reactivity-lab__button-row">
+                    <button type="button" onClick={handleSaveCurrentPreset}>Save Current Preset</button>
+                    <button type="button" onClick={() => void handleCopyCurrentPresetJson()}>Copy Current Preset JSON</button>
+                  </div>
+
+                  <label className="reactivity-lab__field">
+                    <span className="reactivity-lab__label">Saved presets</span>
+                    <select
+                      className="reactivity-lab__select"
+                      value={selectedBehaviorPresetName}
+                      onChange={(event) => setSelectedBehaviorPresetName(event.target.value)}
+                    >
+                      {savedBehaviorPresets.length === 0 ? (
+                        <option value="">No saved presets</option>
+                      ) : null}
+                      {savedBehaviorPresets.map((preset) => (
+                        <option key={preset.name} value={preset.name}>
+                          {preset.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <div className="reactivity-lab__button-row">
+                    <button type="button" onClick={handleLoadSelectedPreset}>Load Selected</button>
+                    <button type="button" onClick={handleDeleteSelectedPreset}>Delete Selected</button>
+                  </div>
+
+                  <label className="reactivity-lab__field">
+                    <span className="reactivity-lab__label">Import JSON</span>
+                    <textarea
+                      className="reactivity-lab__textarea"
+                      value={importPresetJsonText}
+                      onChange={(event) => setImportPresetJsonText(event.target.value)}
+                      placeholder="Paste preset JSON"
+                      rows={8}
+                    />
+                  </label>
+
+                  <div className="reactivity-lab__button-row">
+                    <button type="button" onClick={handleApplyImportedPreset}>Apply Imported Preset</button>
+                    <button type="button" onClick={handleClearImportPreset}>Clear Import</button>
+                  </div>
+
+                  {presetInlineError ? <p className="reactivity-lab__preset-error">{presetInlineError}</p> : null}
+                  {presetInlineStatus ? <p className="reactivity-lab__preset-status">{presetInlineStatus}</p> : null}
+                </section>
               </div>
+            </details>
 
-              <div className="reactivity-lab__comparison-row">
-                <span className="reactivity-lab__label">Target Depth</span>
-                <div className="reactivity-lab__comparison-meter" aria-hidden="true">
-                  <span className="reactivity-lab__comparison-meter-fill" style={{ width: `${clampUnit(targetDepthForDisplay) * 100}%` }} />
-                </div>
-                <p className="reactivity-lab__status-primary">{targetDepthForDisplay.toFixed(3)}</p>
-              </div>
+            <details className="reactivity-lab__details" open>
+              <summary>Depth mapping</summary>
+              <div className="reactivity-lab__details-body">
+                <label className="reactivity-lab__field">
+                  <span className="reactivity-lab__label">Reactivity Isolation</span>
+                  <select
+                    className="reactivity-lab__select"
+                    value={reactivityIsolationMode}
+                    onChange={(event) => setReactivityIsolationMode(event.target.value as ReactivityIsolationMode)}
+                  >
+                    <option value="depth-hue">Depth + Hue</option>
+                    <option value="depth-only">Depth only</option>
+                    <option value="hue-only">Hue only</option>
+                    <option value="reactive-off">Reactive effects off</option>
+                  </select>
+                </label>
 
-              <div className="reactivity-lab__comparison-row">
-                <span className="reactivity-lab__label">Rendered Depth</span>
-                <div className="reactivity-lab__comparison-meter" aria-hidden="true">
-                  <span className="reactivity-lab__comparison-meter-fill" style={{ width: `${clampUnit(renderedDepth) * 100}%` }} />
-                </div>
-                <p className="reactivity-lab__status-primary">{renderedDepth.toFixed(3)}</p>
-              </div>
-            </div>
+                <label className="reactivity-lab__field">
+                  <span className="reactivity-lab__label">Depth Mode</span>
+                  <select
+                    className="reactivity-lab__select"
+                    value={depthMode}
+                    onChange={(event) => setDepthMode(event.target.value as DepthMode)}
+                  >
+                    <option value="manual">Manual</option>
+                    <option value="audio-mapped">Audio Mapped</option>
+                  </select>
+                </label>
 
-            <div className="reactivity-lab__comparison-stack" aria-label="Mapped hue comparison">
-              <div className="reactivity-lab__comparison-row">
-                <span className="reactivity-lab__label">Hue Selected Signal</span>
-                <div className="reactivity-lab__comparison-meter" aria-hidden="true">
-                  <span className="reactivity-lab__comparison-meter-fill" style={{ width: `${selectedHueSignalValue * 100}%` }} />
-                </div>
-                <p className="reactivity-lab__status-primary">{selectedHueSignalValue.toFixed(3)}</p>
-              </div>
+                <label className="reactivity-lab__field">
+                  <span className="reactivity-lab__label">Depth Signal</span>
+                  <select
+                    className="reactivity-lab__select"
+                    value={depthSignalField}
+                    onChange={(event) => setDepthSignalField(event.target.value as TelemetrySignalField)}
+                    disabled={depthMode !== 'audio-mapped'}
+                  >
+                    {TELEMETRY_SIGNAL_OPTIONS.map((option) => (
+                      <option key={option.id} value={option.id}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
 
-              <div className="reactivity-lab__comparison-row">
-                <span className="reactivity-lab__label">Target Hue Shift</span>
-                <div className="reactivity-lab__comparison-meter" aria-hidden="true">
-                  <span
-                    className="reactivity-lab__comparison-meter-fill"
-                    style={{ width: `${normalizeValueWithinRange(targetHueShiftForDisplay, minimumHueShiftDegrees, maximumHueShiftDegrees) * 100}%` }}
+                <label className="reactivity-lab__field">
+                  <span className="reactivity-lab__label">Minimum Depth</span>
+                  <input
+                    className="reactivity-lab__range"
+                    type="range"
+                    min={DEPTH_CONTROL_LIMITS.min}
+                    max={DEPTH_CONTROL_LIMITS.max}
+                    step="0.01"
+                    value={minimumDepth}
+                    onChange={(event) => {
+                      const nextMinimum = Number(event.target.value)
+                      setMinimumDepth(nextMinimum)
+
+                      if (nextMinimum > maximumDepth) {
+                        setMaximumDepth(nextMinimum)
+                      }
+                    }}
+                    disabled={depthMode !== 'audio-mapped'}
                   />
-                </div>
-                <p className="reactivity-lab__status-primary">{targetHueShiftForDisplay.toFixed(1)}deg</p>
-              </div>
+                  <strong>{minimumDepth.toFixed(2)}</strong>
+                </label>
 
-              <div className="reactivity-lab__comparison-row">
-                <span className="reactivity-lab__label">Rendered Hue Shift</span>
-                <div className="reactivity-lab__comparison-meter" aria-hidden="true">
-                  <span
-                    className="reactivity-lab__comparison-meter-fill"
-                    style={{ width: `${normalizeValueWithinRange(renderedHueShiftDegrees, minimumHueShiftDegrees, maximumHueShiftDegrees) * 100}%` }}
+                <label className="reactivity-lab__field">
+                  <span className="reactivity-lab__label">Maximum Depth</span>
+                  <input
+                    className="reactivity-lab__range"
+                    type="range"
+                    min={DEPTH_CONTROL_LIMITS.min}
+                    max={DEPTH_CONTROL_LIMITS.max}
+                    step="0.01"
+                    value={maximumDepth}
+                    onChange={(event) => {
+                      const nextMaximum = Number(event.target.value)
+                      setMaximumDepth(nextMaximum)
+
+                      if (nextMaximum < minimumDepth) {
+                        setMinimumDepth(nextMaximum)
+                      }
+                    }}
+                    disabled={depthMode !== 'audio-mapped'}
                   />
-                </div>
-                <p className="reactivity-lab__status-primary">{renderedHueShiftDegrees.toFixed(1)}deg</p>
-              </div>
-            </div>
+                  <strong>{maximumDepth.toFixed(2)}</strong>
+                </label>
 
-            <div className="reactivity-lab__button-row">
-              <button
-                type="button"
-                className="reactivity-lab__inline-button"
-                onClick={() => setManualDepthOverride(DEFAULT_MANUAL_DEPTH)}
-              >
-                Reset Depth to 0.5
-              </button>
-              <button
-                type="button"
-                className="reactivity-lab__inline-button"
-                onClick={() => {
-                  setDepthSignalField('bass')
-                  setMinimumDepth(DEFAULT_MINIMUM_DEPTH)
-                  setMaximumDepth(DEFAULT_MAXIMUM_DEPTH)
-                  setResponseSmoothing(DEFAULT_RESPONSE_SMOOTHING)
-                }}
-              >
-                Reset Mapping Defaults
-              </button>
-              <button
-                type="button"
-                className="reactivity-lab__inline-button"
-                onClick={() => {
-                  setHueMode('off')
-                  setHueSignalField('mids')
-                  setMinimumHueShiftDegrees(DEFAULT_MINIMUM_HUE_SHIFT_DEGREES)
-                  setMaximumHueShiftDegrees(DEFAULT_MAXIMUM_HUE_SHIFT_DEGREES)
-                  setHueResponseSmoothing(DEFAULT_HUE_RESPONSE_SMOOTHING)
-                  setManualHueShiftDegrees(DEFAULT_MANUAL_HUE_SHIFT_DEGREES)
-                }}
-              >
-                Reset Hue Defaults
-              </button>
-            </div>
+                <label className="reactivity-lab__field">
+                  <span className="reactivity-lab__label">Response Smoothing</span>
+                  <input
+                    className="reactivity-lab__range"
+                    type="range"
+                    min={DEPTH_CONTROL_LIMITS.smoothingMin}
+                    max={DEPTH_CONTROL_LIMITS.smoothingMax}
+                    step="0.01"
+                    value={responseSmoothing}
+                    onChange={(event) => setResponseSmoothing(Number(event.target.value))}
+                    disabled={depthMode !== 'audio-mapped'}
+                  />
+                  <strong>{responseSmoothing.toFixed(2)}</strong>
+                </label>
+
+                <label className="reactivity-lab__field">
+                  <span className="reactivity-lab__label">Manual depth override</span>
+                  <input
+                    className="reactivity-lab__range"
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.01"
+                    value={manualDepthOverride}
+                    onChange={(event) => setManualDepthOverride(Number(event.target.value))}
+                    disabled={depthMode !== 'manual'}
+                  />
+                  <strong>{manualDepthOverride.toFixed(2)}</strong>
+                </label>
+
+                <div className="reactivity-lab__button-row">
+                  <button
+                    type="button"
+                    className="reactivity-lab__inline-button"
+                    onClick={() => setManualDepthOverride(DEFAULT_MANUAL_DEPTH)}
+                  >
+                    Reset Depth to 0.5
+                  </button>
+                  <button
+                    type="button"
+                    className="reactivity-lab__inline-button"
+                    onClick={() => {
+                      setDepthSignalField('bass')
+                      setMinimumDepth(DEFAULT_MINIMUM_DEPTH)
+                      setMaximumDepth(DEFAULT_MAXIMUM_DEPTH)
+                      setResponseSmoothing(DEFAULT_RESPONSE_SMOOTHING)
+                    }}
+                  >
+                    Reset Depth Defaults
+                  </button>
+                </div>
+              </div>
+            </details>
+
+            <details className="reactivity-lab__details" open>
+              <summary>Hue mapping</summary>
+              <div className="reactivity-lab__details-body">
+                <label className="reactivity-lab__field">
+                  <span className="reactivity-lab__label">Hue Mode</span>
+                  <select
+                    className="reactivity-lab__select"
+                    value={hueMode}
+                    onChange={(event) => setHueMode(event.target.value as HueMode)}
+                  >
+                    <option value="manual">Manual</option>
+                    <option value="audio-mapped">Audio Mapped</option>
+                    <option value="off">Off / Neutral</option>
+                  </select>
+                </label>
+
+                <label className="reactivity-lab__field">
+                  <span className="reactivity-lab__label">Hue Signal</span>
+                  <select
+                    className="reactivity-lab__select"
+                    value={hueSignalField}
+                    onChange={(event) => setHueSignalField(event.target.value as TelemetrySignalField)}
+                    disabled={hueMode !== 'audio-mapped'}
+                  >
+                    {TELEMETRY_SIGNAL_OPTIONS.map((option) => (
+                      <option key={option.id} value={option.id}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="reactivity-lab__field">
+                  <span className="reactivity-lab__label">Minimum Hue Shift</span>
+                  <input
+                    className="reactivity-lab__range"
+                    type="range"
+                    min={HUE_CONTROL_LIMITS.minDegrees}
+                    max={HUE_CONTROL_LIMITS.maxDegrees}
+                    step="1"
+                    value={minimumHueShiftDegrees}
+                    onChange={(event) => {
+                      const nextMinimum = Number(event.target.value)
+                      setMinimumHueShiftDegrees(nextMinimum)
+
+                      if (nextMinimum > maximumHueShiftDegrees) {
+                        setMaximumHueShiftDegrees(nextMinimum)
+                      }
+                    }}
+                    disabled={hueMode !== 'audio-mapped'}
+                  />
+                  <strong>{minimumHueShiftDegrees.toFixed(0)}deg</strong>
+                </label>
+
+                <label className="reactivity-lab__field">
+                  <span className="reactivity-lab__label">Maximum Hue Shift</span>
+                  <input
+                    className="reactivity-lab__range"
+                    type="range"
+                    min={HUE_CONTROL_LIMITS.minDegrees}
+                    max={HUE_CONTROL_LIMITS.maxDegrees}
+                    step="1"
+                    value={maximumHueShiftDegrees}
+                    onChange={(event) => {
+                      const nextMaximum = Number(event.target.value)
+                      setMaximumHueShiftDegrees(nextMaximum)
+
+                      if (nextMaximum < minimumHueShiftDegrees) {
+                        setMinimumHueShiftDegrees(nextMaximum)
+                      }
+                    }}
+                    disabled={hueMode !== 'audio-mapped'}
+                  />
+                  <strong>{maximumHueShiftDegrees.toFixed(0)}deg</strong>
+                </label>
+
+                <label className="reactivity-lab__field">
+                  <span className="reactivity-lab__label">Hue Response Smoothing</span>
+                  <input
+                    className="reactivity-lab__range"
+                    type="range"
+                    min={HUE_CONTROL_LIMITS.smoothingMin}
+                    max={HUE_CONTROL_LIMITS.smoothingMax}
+                    step="0.01"
+                    value={hueResponseSmoothing}
+                    onChange={(event) => setHueResponseSmoothing(Number(event.target.value))}
+                    disabled={hueMode !== 'audio-mapped'}
+                  />
+                  <strong>{hueResponseSmoothing.toFixed(2)}</strong>
+                </label>
+
+                <label className="reactivity-lab__field">
+                  <span className="reactivity-lab__label">Manual Hue Shift</span>
+                  <input
+                    className="reactivity-lab__range"
+                    type="range"
+                    min={HUE_CONTROL_LIMITS.minDegrees}
+                    max={HUE_CONTROL_LIMITS.maxDegrees}
+                    step="1"
+                    value={manualHueShiftDegrees}
+                    onChange={(event) => setManualHueShiftDegrees(Number(event.target.value))}
+                    disabled={hueMode !== 'manual'}
+                  />
+                  <strong>{manualHueShiftDegrees.toFixed(0)}deg</strong>
+                </label>
+
+                <div className="reactivity-lab__button-row">
+                  <button
+                    type="button"
+                    className="reactivity-lab__inline-button"
+                    onClick={() => {
+                      setHueMode('off')
+                      setHueSignalField('mids')
+                      setMinimumHueShiftDegrees(DEFAULT_MINIMUM_HUE_SHIFT_DEGREES)
+                      setMaximumHueShiftDegrees(DEFAULT_MAXIMUM_HUE_SHIFT_DEGREES)
+                      setHueResponseSmoothing(DEFAULT_HUE_RESPONSE_SMOOTHING)
+                      setManualHueShiftDegrees(DEFAULT_MANUAL_HUE_SHIFT_DEGREES)
+                    }}
+                  >
+                    Reset Hue Defaults
+                  </button>
+                </div>
+              </div>
+            </details>
+
+            <details className="reactivity-lab__details" open>
+              <summary>Live mapping readout</summary>
+              <div className="reactivity-lab__details-body">
+                <div className="reactivity-lab__comparison-stack" aria-label="Mapped depth comparison">
+                  <div className="reactivity-lab__comparison-row">
+                    <span className="reactivity-lab__comparison-label reactivity-lab__label">Depth Selected Signal</span>
+                    <div className="reactivity-lab__comparison-meter" aria-hidden="true">
+                      <span className="reactivity-lab__comparison-meter-fill" style={{ width: `${selectedDepthSignalValue * 100}%` }} />
+                    </div>
+                    <p className="reactivity-lab__comparison-value reactivity-lab__status-primary">{selectedDepthSignalValue.toFixed(3)}</p>
+                  </div>
+
+                  <div className="reactivity-lab__comparison-row">
+                    <span className="reactivity-lab__comparison-label reactivity-lab__label">Target Depth</span>
+                    <div className="reactivity-lab__comparison-meter" aria-hidden="true">
+                      <span className="reactivity-lab__comparison-meter-fill" style={{ width: `${clampUnit(targetDepthForDisplay) * 100}%` }} />
+                    </div>
+                    <p className="reactivity-lab__comparison-value reactivity-lab__status-primary">{targetDepthForDisplay.toFixed(3)}</p>
+                  </div>
+
+                  <div className="reactivity-lab__comparison-row">
+                    <span className="reactivity-lab__comparison-label reactivity-lab__label">Rendered Depth</span>
+                    <div className="reactivity-lab__comparison-meter" aria-hidden="true">
+                      <span className="reactivity-lab__comparison-meter-fill" style={{ width: `${clampUnit(renderedDepth) * 100}%` }} />
+                    </div>
+                    <p className="reactivity-lab__comparison-value reactivity-lab__status-primary">{renderedDepth.toFixed(3)}</p>
+                  </div>
+                </div>
+
+                <div className="reactivity-lab__comparison-stack" aria-label="Mapped hue comparison">
+                  <div className="reactivity-lab__comparison-row">
+                    <span className="reactivity-lab__comparison-label reactivity-lab__label">Hue Selected Signal</span>
+                    <div className="reactivity-lab__comparison-meter" aria-hidden="true">
+                      <span className="reactivity-lab__comparison-meter-fill" style={{ width: `${selectedHueSignalValue * 100}%` }} />
+                    </div>
+                    <p className="reactivity-lab__comparison-value reactivity-lab__comparison-value--hue reactivity-lab__status-primary">{selectedHueSignalValue.toFixed(3)}</p>
+                  </div>
+
+                  <div className="reactivity-lab__comparison-row">
+                    <span className="reactivity-lab__comparison-label reactivity-lab__label">Target Hue Shift</span>
+                    <div className="reactivity-lab__comparison-meter" aria-hidden="true">
+                      <span
+                        className="reactivity-lab__comparison-meter-fill"
+                        style={{ width: `${normalizeValueWithinRange(targetHueShiftForDisplay, minimumHueShiftDegrees, maximumHueShiftDegrees) * 100}%` }}
+                      />
+                    </div>
+                    <p className="reactivity-lab__comparison-value reactivity-lab__comparison-value--hue reactivity-lab__status-primary">{targetHueShiftForDisplay.toFixed(1)}deg</p>
+                  </div>
+
+                  <div className="reactivity-lab__comparison-row">
+                    <span className="reactivity-lab__comparison-label reactivity-lab__label">Rendered Hue Shift</span>
+                    <div className="reactivity-lab__comparison-meter" aria-hidden="true">
+                      <span
+                        className="reactivity-lab__comparison-meter-fill"
+                        style={{ width: `${normalizeValueWithinRange(renderedHueShiftDegrees, minimumHueShiftDegrees, maximumHueShiftDegrees) * 100}%` }}
+                      />
+                    </div>
+                    <p className="reactivity-lab__comparison-value reactivity-lab__comparison-value--hue reactivity-lab__status-primary">{renderedHueShiftDegrees.toFixed(1)}deg</p>
+                  </div>
+                </div>
+              </div>
+            </details>
           </aside>
 
           <div className="reactivity-lab__image-depth-scene-column">
@@ -1363,91 +1384,82 @@ function ReactivityLabShell() {
 
         <section className="reactivity-lab__diagnostics-stack" aria-label="Diagnostics panels">
           <details className="reactivity-lab__details">
-            <summary>Common audio telemetry</summary>
+            <summary>Detailed telemetry/resource diagnostics</summary>
             <div className="reactivity-lab__details-body">
-              <section className="reactivity-lab__telemetry-summary" aria-label="Telemetry summary values">
-                <h2>Common Snapshot Fields</h2>
-                <p>energy: {telemetrySnapshot.energy.toFixed(3)}</p>
-                <p>smoothedEnergy: {telemetrySnapshot.smoothedEnergy.toFixed(3)}</p>
-                <p>bass: {telemetrySnapshot.bass.toFixed(3)}</p>
-                <p>kickPulse: {telemetrySnapshot.kickPulse.toFixed(3)}</p>
-                <p>bassPulse: {telemetrySnapshot.bassPulse.toFixed(3)}</p>
-                <p>mids: {telemetrySnapshot.mids.toFixed(3)}</p>
-                <p>highs: {telemetrySnapshot.highs.toFixed(3)}</p>
-                <p>transient: {telemetrySnapshot.transient.toFixed(3)}</p>
-                <p>analysis status: {telemetryStatus}</p>
-                <p>graph context: {telemetryGraphDetails.contextState ?? 'n/a'}</p>
-                <p>graph range: {formatDbRange(telemetryGraphDetails.minDecibels, telemetryGraphDetails.maxDecibels)}</p>
-              </section>
+              <div className="reactivity-lab__diagnostics-stack-inner">
+                <section className="reactivity-lab__telemetry-summary" aria-label="Telemetry summary values">
+                  <h2>Common Snapshot Fields</h2>
+                  <p>energy: {telemetrySnapshot.energy.toFixed(3)}</p>
+                  <p>smoothedEnergy: {telemetrySnapshot.smoothedEnergy.toFixed(3)}</p>
+                  <p>bass: {telemetrySnapshot.bass.toFixed(3)}</p>
+                  <p>kickPulse: {telemetrySnapshot.kickPulse.toFixed(3)}</p>
+                  <p>bassPulse: {telemetrySnapshot.bassPulse.toFixed(3)}</p>
+                  <p>mids: {telemetrySnapshot.mids.toFixed(3)}</p>
+                  <p>highs: {telemetrySnapshot.highs.toFixed(3)}</p>
+                  <p>transient: {telemetrySnapshot.transient.toFixed(3)}</p>
+                  <p>analysis status: {telemetryStatus}</p>
+                  <p>graph context: {telemetryGraphDetails.contextState ?? 'n/a'}</p>
+                  <p>graph range: {formatDbRange(telemetryGraphDetails.minDecibels, telemetryGraphDetails.maxDecibels)}</p>
+                </section>
 
-              <AudioAnalysisDiagnostics
-                status={telemetryStatus}
-                snapshot={telemetrySnapshot}
-                bassPulseDebug={sourceType === 'local-mp3' ? mp3Analysis.bassPulseDebug : ZERO_BASS_PULSE_DEBUG}
-                kickPulseDebug={sourceType === 'local-mp3' ? mp3Analysis.kickPulseDebug : ZERO_KICK_PULSE_DEBUG}
-                graphDetails={telemetryGraphDetails}
-                errorMessage={telemetryErrorMessage}
-                diagnosticsPublishHz={sourceType === 'local-mp3' ? mp3Analysis.diagnosticsPublishHz : 20}
-                analysisCalculationMode="requestAnimationFrame"
-                sourceBpm={telemetrySourceBpm}
-                effectiveReactiveBpm={telemetrySourceBpm}
-                reactiveDiagnosticsEnabled={false}
-                ignoreSourceBpmEnabled={false}
-              />
-            </div>
-          </details>
+                <AudioAnalysisDiagnostics
+                  status={telemetryStatus}
+                  snapshot={telemetrySnapshot}
+                  bassPulseDebug={sourceType === 'local-mp3' ? mp3Analysis.bassPulseDebug : ZERO_BASS_PULSE_DEBUG}
+                  kickPulseDebug={sourceType === 'local-mp3' ? mp3Analysis.kickPulseDebug : ZERO_KICK_PULSE_DEBUG}
+                  graphDetails={telemetryGraphDetails}
+                  errorMessage={telemetryErrorMessage}
+                  diagnosticsPublishHz={sourceType === 'local-mp3' ? mp3Analysis.diagnosticsPublishHz : 20}
+                  analysisCalculationMode="requestAnimationFrame"
+                  sourceBpm={telemetrySourceBpm}
+                  effectiveReactiveBpm={telemetrySourceBpm}
+                  reactiveDiagnosticsEnabled={false}
+                  ignoreSourceBpmEnabled={false}
+                />
 
-          <details className="reactivity-lab__details">
-            <summary>Resource diagnostics</summary>
-            <div className="reactivity-lab__details-body">
-              <section className="reactivity-lab__resources" aria-label="Audio resource diagnostics">
-                <h2>Resource Diagnostics</h2>
-                <dl>
-                  <div>
-                    <dt>audio elements</dt>
-                    <dd>{telemetryResourceDiagnostics.audioElements}</dd>
-                  </div>
-                  <div>
-                    <dt>AudioContexts</dt>
-                    <dd>{telemetryResourceDiagnostics.audioContexts}</dd>
-                  </div>
-                  <div>
-                    <dt>MediaElementSourceNodes</dt>
-                    <dd>{telemetryResourceDiagnostics.mediaElementSourceNodes}</dd>
-                  </div>
-                  <div>
-                    <dt>analyzers</dt>
-                    <dd>{telemetryResourceDiagnostics.analyzers}</dd>
-                  </div>
-                  <div>
-                    <dt>GainNodes</dt>
-                    <dd>{telemetryResourceDiagnostics.gainNodes}</dd>
-                  </div>
-                  <div>
-                    <dt>active analysis loops</dt>
-                    <dd>{telemetryResourceDiagnostics.activeAnalysisLoops}</dd>
-                  </div>
-                  <div>
-                    <dt>current source type</dt>
-                    <dd>{telemetryResourceDiagnostics.sourceType}</dd>
-                  </div>
-                </dl>
+                <section className="reactivity-lab__resources" aria-label="Audio resource diagnostics">
+                  <h2>Resource Diagnostics</h2>
+                  <dl>
+                    <div>
+                      <dt>audio elements</dt>
+                      <dd>{telemetryResourceDiagnostics.audioElements}</dd>
+                    </div>
+                    <div>
+                      <dt>AudioContexts</dt>
+                      <dd>{telemetryResourceDiagnostics.audioContexts}</dd>
+                    </div>
+                    <div>
+                      <dt>MediaElementSourceNodes</dt>
+                      <dd>{telemetryResourceDiagnostics.mediaElementSourceNodes}</dd>
+                    </div>
+                    <div>
+                      <dt>analyzers</dt>
+                      <dd>{telemetryResourceDiagnostics.analyzers}</dd>
+                    </div>
+                    <div>
+                      <dt>GainNodes</dt>
+                      <dd>{telemetryResourceDiagnostics.gainNodes}</dd>
+                    </div>
+                    <div>
+                      <dt>active analysis loops</dt>
+                      <dd>{telemetryResourceDiagnostics.activeAnalysisLoops}</dd>
+                    </div>
+                    <div>
+                      <dt>current source type</dt>
+                      <dd>{telemetryResourceDiagnostics.sourceType}</dd>
+                    </div>
+                  </dl>
 
-                {radioGraphDetailsSummary ? (
-                  <p className="reactivity-lab__resource-note">
-                    Radio frame diagnostics: rms {radioGraphDetailsSummary.timeDomainRms.toFixed(4)}, frame delta{' '}
-                    {radioGraphDetailsSummary.frameDeltaMs.toFixed(2)} ms, context{' '}
-                    {radioGraphDetailsSummary.audioContextState}
-                  </p>
-                ) : null}
-              </section>
-            </div>
-          </details>
+                  {radioGraphDetailsSummary ? (
+                    <p className="reactivity-lab__resource-note">
+                      Radio frame diagnostics: rms {radioGraphDetailsSummary.timeDomainRms.toFixed(4)}, frame delta{' '}
+                      {radioGraphDetailsSummary.frameDeltaMs.toFixed(2)} ms, context{' '}
+                      {radioGraphDetailsSummary.audioContextState}
+                    </p>
+                  ) : null}
+                </section>
 
-          <details className="reactivity-lab__details">
-            <summary>Detailed lifecycle/status diagnostics</summary>
-            <div className="reactivity-lab__details-body">
-              <section className="reactivity-lab__status" aria-label="Detailed source status diagnostics">
+                <section className="reactivity-lab__status" aria-label="Detailed source status diagnostics">
                 <p className="reactivity-lab__status-primary">Active source: {activeSourceLabel}</p>
                 <p className="reactivity-lab__status-primary">Active track/station: {activeSelectionLabel}</p>
                 <p className="reactivity-lab__status-primary">Playback state: {activePlaybackState}</p>
@@ -1485,7 +1497,8 @@ function ReactivityLabShell() {
                 <p className="reactivity-lab__status-secondary">
                   Brightness: {sceneColorDiagnostics.finalBrightnessMultiplier.toFixed(3)} | contrast: {sceneColorDiagnostics.finalContrastMultiplier.toFixed(3)} | visual state: {sceneColorDiagnostics.playbackVisualState}
                 </p>
-              </section>
+                </section>
+              </div>
             </div>
           </details>
         </section>

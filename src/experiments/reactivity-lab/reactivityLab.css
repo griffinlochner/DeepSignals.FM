@@ -290,9 +290,10 @@
 
 .reactivity-lab__comparison-row {
   display: grid;
-  grid-template-columns: minmax(110px, 1fr) minmax(0, 2fr) auto;
+  grid-template-columns: minmax(156px, 168px) minmax(0, 1fr) minmax(9ch, 10ch);
   gap: 8px;
   align-items: center;
+  min-height: 30px;
 }
 
 .reactivity-lab__comparison-meter {
@@ -309,9 +310,30 @@
   background: linear-gradient(90deg, rgb(74 173 255 / 90%), rgb(142 227 255 / 90%));
 }
 
+.reactivity-lab__comparison-label {
+  white-space: nowrap;
+}
+
+.reactivity-lab__comparison-value {
+  margin: 0;
+  min-width: 9ch;
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.reactivity-lab__comparison-value--hue {
+  min-width: 10ch;
+}
+
 .reactivity-lab__diagnostics-stack {
   display: flex;
   flex-direction: column;
+  gap: 10px;
+}
+
+.reactivity-lab__diagnostics-stack-inner {
+  display: grid;
   gap: 10px;
 }
 
@@ -337,6 +359,10 @@
 
 .reactivity-lab__details-body {
   padding: 0 12px 12px;
+}
+
+.reactivity-lab__details-body .reactivity-lab__preset-panel {
+  margin-top: 0;
 }
 
 @media (max-width: 900px) {
