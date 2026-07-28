@@ -157,8 +157,15 @@ type AudioResourceDiagnostics = {
   audioContextsCreated: number
   sourceNodesCreated: number
   analyzersCreated: number
+  gainNodesCreated: number
   analysisLoopsStarted: number
   isAnalysisLoopRunning: boolean
+}
+
+type ExternalRadioAudioOutputMode = 'media-element-volume' | 'post-analyzer-gain'
+
+type UseExternalRadioControllerOptions = {
+  audioOutputMode?: ExternalRadioAudioOutputMode
 }
 
 type UseExternalRadioControllerResult = {
@@ -544,7 +551,12 @@ function normalizeCustomStreamUrl(url: string) {
   }
 }
 
-export function useExternalRadioController(defaultThemeId: string): UseExternalRadioControllerResult {
+export function useExternalRadioController(
+  defaultThemeId: string,
+  options?: UseExternalRadioControllerOptions,
+): UseExternalRadioControllerResult {
+  const audioOutputMode = options?.audioOutputMode ?? 'media-element-volume'
+  const routeAudioThroughPostAnalyzerGain = audioOutputMode === 'post-analyzer-gain'
   const [selectedSignalSourceId, setSelectedSignalSourceId] = useState<DevSignalSourceId>(
     DEFAULT_SIGNAL_SOURCE_ID,
   )
@@ -590,6 +602,7 @@ export function useExternalRadioController(defaultThemeId: string): UseExternalR
     audioContextsCreated: 0,
     sourceNodesCreated: 0,
     analyzersCreated: 0,
+    gainNodesCreated: 0,
     analysisLoopsStarted: 0,
     isAnalysisLoopRunning: false,
   })
@@ -600,6 +613,7 @@ export function useExternalRadioController(defaultThemeId: string): UseExternalR
   const contextRef = useRef<AudioContext | null>(null)
   const sourceRef = useRef<MediaElementAudioSourceNode | null>(null)
   const analyserRef = useRef<AnalyserNode | null>(null)
+  const listenerGainRef = useRef<GainNode | null>(null)
   const timeDataRef = useRef<Uint8Array<ArrayBuffer> | null>(null)
   const frequencyDataRef = useRef<Uint8Array<ArrayBuffer> | null>(null)
   const animationFrameRef = useRef<number | null>(null)
@@ -1593,8 +1607,26 @@ export function useExternalRadioController(defaultThemeId: string): UseExternalR
         analyzersCreated: previous.analyzersCreated + 1,
       }))
 
+      const listenerGain = routeAudioThroughPostAnalyzerGain ? context.createGain() : null
+      listenerGainRef.current = listenerGain
+
+      if (listenerGain) {
+        listenerGain.gain.value = clamp01(volume)
+        setResourceDiagnostics((previous) => ({
+          ...previous,
+          gainNodesCreated: previous.gainNodesCreated + 1,
+        }))
+      }
+
       source.connect(analyser)
-      analyser.connect(context.destination)
+
+      if (listenerGain) {
+        analyser.connect(listenerGain)
+        listenerGain.connect(context.destination)
+        audio.volume = 1
+      } else {
+        analyser.connect(context.destination)
+      }
 
       timeDataRef.current = new Uint8Array(analyser.fftSize)
       frequencyDataRef.current = new Uint8Array(analyser.frequencyBinCount)
@@ -1605,16 +1637,21 @@ export function useExternalRadioController(defaultThemeId: string): UseExternalR
     if (contextRef.current.state !== 'running') {
       await contextRef.current.resume()
     }
-  }, [startAnalysisLoop])
+  }, [routeAudioThroughPostAnalyzerGain, startAnalysisLoop, volume])
 
   const applyVolume = useCallback((value: number) => {
     const next = clamp01(value)
     setVolumeState(next)
 
+    if (routeAudioThroughPostAnalyzerGain && listenerGainRef.current) {
+      listenerGainRef.current.gain.value = next
+      return
+    }
+
     if (audioRef.current) {
       audioRef.current.volume = next
     }
-  }, [])
+  }, [routeAudioThroughPostAnalyzerGain])
 
   const applySignalSource = useCallback(
     async (nextSignal: DevSignalSourceConfiguration, startPlayback: boolean) => {
@@ -1829,7 +1866,7 @@ export function useExternalRadioController(defaultThemeId: string): UseExternalR
     audio.loop = false
     audio.crossOrigin = 'anonymous'
     audio.src = activeSignalRef.current.streamUrl
-    audio.volume = 0.72
+    audio.volume = routeAudioThroughPostAnalyzerGain ? 1 : 0.72
     audioRef.current = audio
 
     const setEvent = (name: string) => {
@@ -1955,8 +1992,17 @@ export function useExternalRadioController(defaultThemeId: string): UseExternalR
         }
       }
 
+      if (listenerGainRef.current) {
+        try {
+          listenerGainRef.current.disconnect()
+        } catch {
+          // Node may already be disconnected.
+        }
+      }
+
       sourceRef.current = null
       analyserRef.current = null
+      listenerGainRef.current = null
       timeDataRef.current = null
       frequencyDataRef.current = null
 
@@ -1966,13 +2012,34 @@ export function useExternalRadioController(defaultThemeId: string): UseExternalR
       contextRef.current = null
       previousContextStateRef.current = 'closed'
     }
-  }, [clearMetadataPoll, clearReconnectTimers, reconnectNow, resumeStableState, scheduleReconnect, stopAnalysisLoop, updateReconnectDiagnostics])
+  }, [
+    clearMetadataPoll,
+    clearReconnectTimers,
+    reconnectNow,
+    resumeStableState,
+    routeAudioThroughPostAnalyzerGain,
+    scheduleReconnect,
+    stopAnalysisLoop,
+    updateReconnectDiagnostics,
+  ])
 
   useEffect(() => {
+    if (routeAudioThroughPostAnalyzerGain) {
+      if (audioRef.current) {
+        audioRef.current.volume = 1
+      }
+
+      if (listenerGainRef.current) {
+        listenerGainRef.current.gain.value = clamp01(volume)
+      }
+
+      return
+    }
+
     if (audioRef.current) {
       audioRef.current.volume = volume
     }
-  }, [volume])
+  }, [routeAudioThroughPostAnalyzerGain, volume])
 
   const canStart = signalState === 'Signal Off' || signalState === 'Stream Unavailable'
   const canStop = signalState !== 'Signal Off'

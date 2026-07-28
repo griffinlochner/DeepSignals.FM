@@ -3,6 +3,7 @@ import type {
   AudioAnalysisGraphDetails,
   AudioAnalysisStatus,
   AudioReactiveSnapshot,
+  ImageDepthSceneCounters,
   ReactiveBehaviorId,
   ReactivePreviewTelemetry,
 } from '../app/playerTypes'
@@ -52,9 +53,11 @@ type AudioAnalysisDiagnosticsProps = {
   sourceBpm: number | null
   effectiveReactiveBpm: number | null
   ignoreSourceBpmEnabled?: boolean
+  motionEnabled?: boolean
   reactiveBehaviorOverride?: ReactiveBehaviorId | null
   reactiveDiagnosticsEnabled?: boolean
   getReactivePreviewTelemetry?: (() => ReactivePreviewTelemetry) | null
+  sceneCounters?: ImageDepthSceneCounters | null
 }
 
 type MeterRowProps = {
@@ -112,6 +115,9 @@ function readParallaxDiagnostics(): ParallaxDiagnostics {
 
 const ZERO_REACTIVE_TELEMETRY: ReactivePreviewTelemetry = {
   selectedReactiveBehavior: 'Chill',
+  selectedDepthSignalField: 'n/a',
+  selectedHueSignalField: 'n/a',
+  selectedSaturationSignalField: 'n/a',
   reactivePreviewEnabled: false,
   reactiveIsolationEnabled: false,
   reactiveTimingAuthorityActive: false,
@@ -144,6 +150,8 @@ const ZERO_REACTIVE_TELEMETRY: ReactivePreviewTelemetry = {
   fullOnPhase: 'n/a',
   fullOnTargetDepth: 0,
   fullOnCurrentDepth: 0,
+  fullOnTargetSaturation: 1,
+  fullOnCurrentSaturation: 1,
   millisecondsSinceAcceptedKickEvent: 0,
   inactivityReturnActive: false,
   kickBreathEnvelope: 0,
@@ -156,6 +164,7 @@ const ZERO_REACTIVE_TELEMETRY: ReactivePreviewTelemetry = {
   hueEventStepAppliedDegrees: 0,
   reactiveHueTargetDegrees: 0,
   reactiveHueOffsetDegrees: 0,
+  finalHueShiftDegrees: 0,
   authoredBaseSaturation: 1,
   authoredPeriodicSaturationContribution: 0,
   reactiveSaturationMultiplier: 1,
@@ -213,9 +222,11 @@ function AudioAnalysisDiagnostics({
   sourceBpm,
   effectiveReactiveBpm,
   ignoreSourceBpmEnabled = false,
+  motionEnabled = true,
   reactiveBehaviorOverride = null,
   reactiveDiagnosticsEnabled = false,
   getReactivePreviewTelemetry = null,
+  sceneCounters = null,
 }: AudioAnalysisDiagnosticsProps) {
   const [collapsed, setCollapsed] = useState(false)
   const [reactiveTelemetry, setReactiveTelemetry] = useState<ReactivePreviewTelemetry>(ZERO_REACTIVE_TELEMETRY)
@@ -258,6 +269,15 @@ function AudioAnalysisDiagnostics({
   }, [reactiveDiagnosticsEnabled])
 
   const displayedReactiveTelemetry = reactiveDiagnosticsEnabled ? reactiveTelemetry : ZERO_REACTIVE_TELEMETRY
+  const hasGraph = graphDetails.contextState !== null
+  const resourceDiagnostics = {
+    audioElements: 1,
+    audioContexts: hasGraph ? 1 : 0,
+    mediaElementSourceNodes: hasGraph ? 1 : 0,
+    analyzers: hasGraph ? 1 : 0,
+    gainNodes: hasGraph ? 1 : 0,
+    activeAnalysisLoops: status === 'running' ? 1 : 0,
+  }
   const bpmAssistanceState = effectiveReactiveBpm
     ? 'Active'
     : sourceBpm && ignoreSourceBpmEnabled
@@ -307,6 +327,7 @@ function AudioAnalysisDiagnostics({
 
             <section className="audio-analysis-diagnostics__readout" aria-label="Reactive behavior state">
               <p>Reactive Behavior: {displayedReactiveTelemetry.selectedReactiveBehavior}</p>
+              <p>Motion Toggle: {motionEnabled ? 'On' : 'Off'}</p>
               <p>Reactive Isolation: {displayedReactiveTelemetry.reactiveIsolationEnabled ? 'On' : 'Off'}</p>
               <p>Music Authority: {displayedReactiveTelemetry.musicAuthorityActive ? 'On' : 'Off'}</p>
               <p>Motion Gate: {displayedReactiveTelemetry.motionGateOpen ? 'Open' : 'Closed'}</p>
@@ -319,6 +340,32 @@ function AudioAnalysisDiagnostics({
                 {Math.round(displayedReactiveTelemetry.acceptedEventMinimumIntervalMs)}ms | Generic Timing {fallbackTimingActive ? 'on' : 'off'}
               </p>
             </section>
+
+            <section className="audio-analysis-diagnostics__readout" aria-label="Audio graph resource counts">
+              <p>Audio Resources</p>
+              <p>
+                audio elements {resourceDiagnostics.audioElements} | AudioContexts {resourceDiagnostics.audioContexts} | MediaElementSourceNodes{' '}
+                {resourceDiagnostics.mediaElementSourceNodes}
+              </p>
+              <p>
+                analyzers {resourceDiagnostics.analyzers} | GainNodes {resourceDiagnostics.gainNodes} | active analysis loops{' '}
+                {resourceDiagnostics.activeAnalysisLoops}
+              </p>
+            </section>
+
+            {sceneCounters ? (
+              <section className="audio-analysis-diagnostics__readout" aria-label="Scene lifecycle resource counters">
+                <p>Scene Resources</p>
+                <p>
+                  scene mounts {sceneCounters.sceneComponentMountCount} | unmounts {sceneCounters.sceneComponentUnmountCount} | renderer creates{' '}
+                  {sceneCounters.rendererCreationCount}
+                </p>
+                <p>
+                  texture loads {sceneCounters.textureLoadCount} | material/geometry inits {sceneCounters.materialGeometryInitializationCount} | environment changes{' '}
+                  {sceneCounters.environmentChangeCount}
+                </p>
+              </section>
+            ) : null}
 
             <section className="audio-analysis-diagnostics__meters" aria-label="Live analysis values">
               <MeterRow label="Energy" value={snapshot.energy} />
@@ -383,6 +430,21 @@ function AudioAnalysisDiagnostics({
           <p>
             smE {formatNumber(displayedReactiveTelemetry.smoothedEnergy)} | section{' '}
             {formatNumber(displayedReactiveTelemetry.sectionIntensity)}
+          </p>
+          <p>
+            depthSig {displayedReactiveTelemetry.selectedDepthSignalField} | targetD{' '}
+            {formatNumber(displayedReactiveTelemetry.fullOnTargetDepth)} | renderedD{' '}
+            {formatNumber(displayedReactiveTelemetry.fullOnCurrentDepth)}
+          </p>
+          <p>
+            hueSig {displayedReactiveTelemetry.selectedHueSignalField} | targetHue{' '}
+            {formatNumber(displayedReactiveTelemetry.reactiveHueTargetDegrees)}deg | renderedHue{' '}
+            {formatNumber(displayedReactiveTelemetry.finalHueShiftDegrees)}deg
+          </p>
+          <p>
+            satSig {displayedReactiveTelemetry.selectedSaturationSignalField} | targetSat{' '}
+            {formatNumber(displayedReactiveTelemetry.fullOnTargetSaturation)} | renderedSat{' '}
+            {formatNumber(displayedReactiveTelemetry.fullOnCurrentSaturation)}
           </p>
           <p>
             event {displayedReactiveTelemetry.kickPulseAcceptedEvent ? 'on' : 'off'} | count{' '}

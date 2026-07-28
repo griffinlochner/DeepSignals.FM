@@ -14,6 +14,8 @@ type UseAudioAnalysisArgs = {
   audioSourceId: string | null
   sourceBpm: number | null
   publishDiagnostics: boolean
+  listenerVolume?: number
+  routeAudioThroughPostAnalyzerGain?: boolean
 }
 
 type BassPulseDebugReadout = {
@@ -94,10 +96,25 @@ type AnalysisGraph = {
   context: AudioContext
   source: MediaElementAudioSourceNode
   analyser: AnalyserNode
+  listenerGain: GainNode | null
   frequencyData: Float32Array
   timeDomainData: Float32Array
   bandRanges: FrequencyBandRanges
-  onContextStateChange: () => void
+}
+
+let sharedAnalysisGraph: AnalysisGraph | null = null
+let sharedAnalysisElement: HTMLAudioElement | null = null
+
+function disconnectNode(node: AudioNode | null) {
+  if (!node) {
+    return
+  }
+
+  try {
+    node.disconnect()
+  } catch {
+    // Ignore graph cleanup disconnect errors.
+  }
 }
 
 const ANALYSIS_PUBLISH_HZ = 20
@@ -418,7 +435,121 @@ function getDocumentVisible() {
   return document.visibilityState === 'visible'
 }
 
-export function useAudioAnalysis({ audioElement, playbackStatus, isSeeking, audioSourceId, sourceBpm, publishDiagnostics }: UseAudioAnalysisArgs): UseAudioAnalysisResult {
+function configureGraphOutputRouting(
+  graph: AnalysisGraph,
+  routeAudioThroughPostAnalyzerGain: boolean,
+  listenerVolume: number,
+  audioElement: HTMLAudioElement,
+) {
+  disconnectNode(graph.analyser)
+  disconnectNode(graph.listenerGain)
+
+  if (routeAudioThroughPostAnalyzerGain) {
+    const gain = graph.listenerGain ?? graph.context.createGain()
+    gain.gain.value = clamp01(listenerVolume)
+    graph.listenerGain = gain
+    graph.analyser.connect(gain)
+    gain.connect(graph.context.destination)
+    audioElement.volume = 1
+    return
+  }
+
+  graph.analyser.connect(graph.context.destination)
+}
+
+function ensureSharedAnalysisGraph(
+  audioElement: HTMLAudioElement,
+  routeAudioThroughPostAnalyzerGain: boolean,
+  listenerVolume: number,
+) {
+  if (sharedAnalysisGraph && sharedAnalysisElement === audioElement) {
+    configureGraphOutputRouting(sharedAnalysisGraph, routeAudioThroughPostAnalyzerGain, listenerVolume, audioElement)
+    return sharedAnalysisGraph
+  }
+
+  if (sharedAnalysisGraph && sharedAnalysisElement && sharedAnalysisElement !== audioElement) {
+    disconnectNode(sharedAnalysisGraph.source)
+    disconnectNode(sharedAnalysisGraph.analyser)
+    disconnectNode(sharedAnalysisGraph.listenerGain)
+    void sharedAnalysisGraph.context.close().catch(() => {
+      // Ignore context close failures during replacement.
+    })
+    sharedAnalysisGraph = null
+    sharedAnalysisElement = null
+  }
+
+  const context = new AudioContext()
+  const source = context.createMediaElementSource(audioElement)
+  const analyser = context.createAnalyser()
+
+  analyser.fftSize = ANALYSER_CONFIG.fftSize
+  analyser.smoothingTimeConstant = ANALYSER_CONFIG.smoothingTimeConstant
+  analyser.minDecibels = ANALYSER_CONFIG.minDecibels
+  analyser.maxDecibels = ANALYSER_CONFIG.maxDecibels
+
+  source.connect(analyser)
+
+  const frequencyBinCount = analyser.frequencyBinCount
+
+  const bandRanges: FrequencyBandRanges = {
+    bass: computeBandRange(
+      BAND_LIMITS_HZ.bassLow,
+      BAND_LIMITS_HZ.bassHigh,
+      context.sampleRate,
+      analyser.fftSize,
+      frequencyBinCount,
+    ),
+    kick: computeBandRange(
+      BAND_LIMITS_HZ.kickLow,
+      BAND_LIMITS_HZ.kickHigh,
+      context.sampleRate,
+      analyser.fftSize,
+      frequencyBinCount,
+    ),
+    mids: computeBandRange(
+      BAND_LIMITS_HZ.midsLow,
+      BAND_LIMITS_HZ.midsHigh,
+      context.sampleRate,
+      analyser.fftSize,
+      frequencyBinCount,
+    ),
+    highs: computeBandRange(
+      BAND_LIMITS_HZ.highsLow,
+      BAND_LIMITS_HZ.highsHigh,
+      context.sampleRate,
+      analyser.fftSize,
+      frequencyBinCount,
+    ),
+  }
+
+  const graph: AnalysisGraph = {
+    context,
+    source,
+    analyser,
+    listenerGain: null,
+    frequencyData: new Float32Array(frequencyBinCount),
+    timeDomainData: new Float32Array(analyser.fftSize),
+    bandRanges,
+  }
+
+  configureGraphOutputRouting(graph, routeAudioThroughPostAnalyzerGain, listenerVolume, audioElement)
+
+  sharedAnalysisGraph = graph
+  sharedAnalysisElement = audioElement
+
+  return graph
+}
+
+export function useAudioAnalysis({
+  audioElement,
+  playbackStatus,
+  isSeeking,
+  audioSourceId,
+  sourceBpm,
+  publishDiagnostics,
+  listenerVolume = 0.7,
+  routeAudioThroughPostAnalyzerGain = false,
+}: UseAudioAnalysisArgs): UseAudioAnalysisResult {
   const [status, setStatus] = useState<AudioAnalysisStatus>(audioElement ? 'paused' : 'unavailable')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [snapshot, setSnapshot] = useState<AudioReactiveSnapshot>(ZERO_SNAPSHOT)
@@ -429,6 +560,7 @@ export function useAudioAnalysis({ audioElement, playbackStatus, isSeeking, audi
 
   const graphRef = useRef<AnalysisGraph | null>(null)
   const connectedElementRef = useRef<HTMLAudioElement | null>(null)
+  const contextStateListenerRef = useRef<(() => void) | null>(null)
   const snapshotRef = useRef<AudioReactiveSnapshot>(ZERO_SNAPSHOT)
   const envelopesRef = useRef<EnvelopeState>(EMPTY_ENVELOPES)
   const previousFrequencyDataRef = useRef<Float32Array | null>(null)
@@ -552,8 +684,7 @@ export function useAudioAnalysis({ audioElement, playbackStatus, isSeeking, audi
     [publishDiagnostics, publishSnapshot],
   )
 
-  const teardownGraph = useCallback(
-    async (closeContext: boolean) => {
+  const teardownGraph = useCallback(() => {
       stopAnalysisLoop()
       stopDecayLoop()
 
@@ -565,26 +696,11 @@ export function useAudioAnalysis({ audioElement, playbackStatus, isSeeking, audi
       lastAcceptedKickAtMsRef.current = -Infinity
 
       if (graph) {
-        graph.context.removeEventListener('statechange', graph.onContextStateChange)
+        const contextStateListener = contextStateListenerRef.current
 
-        try {
-          graph.source.disconnect()
-        } catch {
-          // Ignore disconnect cleanup errors.
-        }
-
-        try {
-          graph.analyser.disconnect()
-        } catch {
-          // Ignore disconnect cleanup errors.
-        }
-
-        if (closeContext) {
-          try {
-            await graph.context.close()
-          } catch {
-            // Ignore context close failures during teardown.
-          }
+        if (contextStateListener) {
+          graph.context.removeEventListener('statechange', contextStateListener)
+          contextStateListenerRef.current = null
         }
       }
 
@@ -605,7 +721,7 @@ export function useAudioAnalysis({ audioElement, playbackStatus, isSeeking, audi
     setErrorMessage(null)
 
     if (connectedElementRef.current && connectedElementRef.current !== audioElement) {
-      await teardownGraph(true)
+      teardownGraph()
       zeroSnapshotNow(true)
       activateOnsetWarmup()
     }
@@ -616,99 +732,49 @@ export function useAudioAnalysis({ audioElement, playbackStatus, isSeeking, audi
       setStatus('initializing')
 
       try {
-        const context = new AudioContext()
-        const source = context.createMediaElementSource(audioElement)
-        const analyser = context.createAnalyser()
-
-        analyser.fftSize = ANALYSER_CONFIG.fftSize
-        analyser.smoothingTimeConstant = ANALYSER_CONFIG.smoothingTimeConstant
-        analyser.minDecibels = ANALYSER_CONFIG.minDecibels
-        analyser.maxDecibels = ANALYSER_CONFIG.maxDecibels
-
-        source.connect(analyser)
-        analyser.connect(context.destination)
-
-        const frequencyBinCount = analyser.frequencyBinCount
-
-        const bandRanges: FrequencyBandRanges = {
-          bass: computeBandRange(
-            BAND_LIMITS_HZ.bassLow,
-            BAND_LIMITS_HZ.bassHigh,
-            context.sampleRate,
-            analyser.fftSize,
-            frequencyBinCount,
-          ),
-          kick: computeBandRange(
-            BAND_LIMITS_HZ.kickLow,
-            BAND_LIMITS_HZ.kickHigh,
-            context.sampleRate,
-            analyser.fftSize,
-            frequencyBinCount,
-          ),
-          mids: computeBandRange(
-            BAND_LIMITS_HZ.midsLow,
-            BAND_LIMITS_HZ.midsHigh,
-            context.sampleRate,
-            analyser.fftSize,
-            frequencyBinCount,
-          ),
-          highs: computeBandRange(
-            BAND_LIMITS_HZ.highsLow,
-            BAND_LIMITS_HZ.highsHigh,
-            context.sampleRate,
-            analyser.fftSize,
-            frequencyBinCount,
-          ),
-        }
+        const initializedGraph = ensureSharedAnalysisGraph(audioElement, routeAudioThroughPostAnalyzerGain, listenerVolume)
+        graph = initializedGraph
 
         const onContextStateChange = () => {
           setGraphDetails((current) => ({
             ...current,
-            contextState: context.state,
+            contextState: initializedGraph.context.state,
           }))
 
-          if (context.state === 'suspended') {
+          if (initializedGraph.context.state === 'suspended') {
             setStatus('suspended')
             return
           }
 
-          if (context.state === 'running') {
+          if (initializedGraph.context.state === 'running') {
             setStatus(playbackStatus === 'playing' && getDocumentVisible() ? 'running' : 'paused')
             return
           }
 
-          if (context.state === 'closed') {
+          if (initializedGraph.context.state === 'closed') {
             setStatus('unavailable')
           }
         }
 
-        context.addEventListener('statechange', onContextStateChange)
+        initializedGraph.context.addEventListener('statechange', onContextStateChange)
+        contextStateListenerRef.current = onContextStateChange
 
-        graph = {
-          context,
-          source,
-          analyser,
-          frequencyData: new Float32Array(frequencyBinCount),
-          timeDomainData: new Float32Array(analyser.fftSize),
-          bandRanges,
-          onContextStateChange,
-        }
-
-        graphRef.current = graph
-        previousFrequencyDataRef.current = new Float32Array(frequencyBinCount)
+        graphRef.current = initializedGraph
+        previousFrequencyDataRef.current = new Float32Array(initializedGraph.frequencyData.length)
         connectedElementRef.current = audioElement
         activateOnsetWarmup()
 
         setGraphDetails({
-          contextState: context.state,
-          sampleRate: context.sampleRate,
-          fftSize: analyser.fftSize,
-          frequencyBinCount,
-          smoothingTimeConstant: analyser.smoothingTimeConstant,
-          minDecibels: analyser.minDecibels,
-          maxDecibels: analyser.maxDecibels,
+          contextState: initializedGraph.context.state,
+          sampleRate: initializedGraph.context.sampleRate,
+          fftSize: initializedGraph.analyser.fftSize,
+          frequencyBinCount: initializedGraph.analyser.frequencyBinCount,
+          smoothingTimeConstant: initializedGraph.analyser.smoothingTimeConstant,
+          minDecibels: initializedGraph.analyser.minDecibels,
+          maxDecibels: initializedGraph.analyser.maxDecibels,
         })
       } catch (error) {
+        teardownGraph()
         setStatus('error')
         setErrorMessage(error instanceof Error ? error.message : 'Audio analysis initialization failed.')
         return
@@ -737,7 +803,27 @@ export function useAudioAnalysis({ audioElement, playbackStatus, isSeeking, audi
       setStatus('error')
       setErrorMessage(error instanceof Error ? error.message : 'Audio analysis resume failed.')
     }
-  }, [activateOnsetWarmup, audioElement, documentVisible, playbackStatus, teardownGraph, zeroSnapshotNow])
+  }, [
+    activateOnsetWarmup,
+    audioElement,
+    documentVisible,
+    listenerVolume,
+    playbackStatus,
+    routeAudioThroughPostAnalyzerGain,
+    teardownGraph,
+    zeroSnapshotNow,
+  ])
+
+  useEffect(() => {
+    const graph = graphRef.current
+    const activeElement = connectedElementRef.current
+
+    if (!graph || !activeElement) {
+      return
+    }
+
+    configureGraphOutputRouting(graph, routeAudioThroughPostAnalyzerGain, listenerVolume, activeElement)
+  }, [audioElement, listenerVolume, routeAudioThroughPostAnalyzerGain])
 
   const runAnalysisFrame = useCallback(
     (nowMs: number) => {
@@ -1294,7 +1380,7 @@ export function useAudioAnalysis({ audioElement, playbackStatus, isSeeking, audi
       return
     }
 
-    void teardownGraph(true)
+    teardownGraph()
     zeroSnapshotNow(true)
     activateOnsetWarmup()
     setStatus('unavailable')
@@ -1304,7 +1390,7 @@ export function useAudioAnalysis({ audioElement, playbackStatus, isSeeking, audi
     return () => {
       stopAnalysisLoop()
       stopDecayLoop()
-      void teardownGraph(true)
+      teardownGraph()
     }
   }, [stopAnalysisLoop, stopDecayLoop, teardownGraph])
 
