@@ -1,16 +1,12 @@
-export type TelemetrySignalField =
-  | 'energy'
-  | 'smoothedEnergy'
-  | 'bass'
-  | 'kickPulse'
-  | 'bassPulse'
-  | 'mids'
-  | 'highs'
-  | 'transient'
+import type {
+  DepthMode,
+  HueMode,
+  ReactiveBehaviorPresetV2,
+  SaturationMode,
+  TelemetrySignalField,
+} from '../../app/reactiveBehaviorPresetSchema'
 
-export type DepthMode = 'manual' | 'audio-mapped'
-export type HueMode = 'off' | 'manual' | 'audio-mapped'
-export type SaturationMode = 'off' | 'manual' | 'audio-mapped'
+export type { DepthMode, HueMode, SaturationMode, TelemetrySignalField }
 
 export const DEFAULT_SATURATION_PRESET_FIELDS = {
   mode: 'off' as SaturationMode,
@@ -39,31 +35,7 @@ export type ReactivityLabBehaviorPresetV1 = {
   }
 }
 
-export type ReactivityLabBehaviorPresetV2 = {
-  schemaVersion: 2
-  name: string
-  depth: {
-    mode: DepthMode
-    signal: TelemetrySignalField
-    min: number
-    max: number
-    smoothing: number
-  }
-  hue: {
-    mode: HueMode
-    signal: TelemetrySignalField
-    minDegrees: number
-    maxDegrees: number
-    smoothing: number
-  }
-  saturation: {
-    mode: SaturationMode
-    signal: TelemetrySignalField
-    min: number
-    max: number
-    smoothing: number
-  }
-}
+export type ReactivityLabBehaviorPresetV2 = ReactiveBehaviorPresetV2
 
 export type ReactivityLabBehaviorPreset = ReactivityLabBehaviorPresetV2
 

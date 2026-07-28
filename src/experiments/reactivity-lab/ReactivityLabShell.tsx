@@ -22,6 +22,16 @@ import {
   type ImageDepthSceneDevCounters,
 } from '../../themes/image-depth/ImageDepthThemeScene'
 import {
+  clampUnit,
+  mapSignalTarget,
+  resolveShortestHueDeltaDegrees,
+  stepSmoothedValue,
+  wrapSignedDegrees,
+} from '../../app/reactiveBehaviorMapping'
+import {
+  resolveSnapshotSignal,
+} from '../../app/reactiveBehaviorPresetSchema'
+import {
   DEPTH_CONTROL_LIMITS,
   HUE_CONTROL_LIMITS,
   SATURATION_CONTROL_LIMITS,
@@ -237,30 +247,8 @@ function formatDbRange(minDecibels: number | null, maxDecibels: number | null) {
   return `${minDecibels} to ${maxDecibels} dB`
 }
 
-function clampUnit(value: number) {
-  return Math.min(1, Math.max(0, Number.isFinite(value) ? value : 0))
-}
-
 function clampToDepthRange(value: number, minimumDepth: number, maximumDepth: number) {
   return Math.min(maximumDepth, Math.max(minimumDepth, Number.isFinite(value) ? value : minimumDepth))
-}
-
-function wrapSignedDegrees(value: number) {
-  let wrapped = value % 360
-
-  if (wrapped <= -180) {
-    wrapped += 360
-  }
-
-  if (wrapped > 180) {
-    wrapped -= 360
-  }
-
-  return wrapped
-}
-
-function resolveShortestHueDeltaDegrees(fromDegrees: number, toDegrees: number) {
-  return wrapSignedDegrees(toDegrees - fromDegrees)
 }
 
 function normalizeValueWithinRange(value: number, minimum: number, maximum: number) {
@@ -275,10 +263,6 @@ function normalizeValueWithinRange(value: number, minimum: number, maximum: numb
   }
 
   return clampUnit((value - minimum) / span)
-}
-
-function resolveSnapshotSignal(snapshot: AudioReactiveSnapshot, field: TelemetrySignalField) {
-  return clampUnit(snapshot[field])
 }
 
 function ReactivityLabShell() {
@@ -505,15 +489,17 @@ function ReactivityLabShell() {
   const selectedSaturationSignalValue = resolveSnapshotSignal(telemetrySnapshot, saturationSignalField)
 
   const mappedTargetDepth = clampToDepthRange(
-    minimumDepth + selectedDepthSignalValue * (maximumDepth - minimumDepth),
+    mapSignalTarget(selectedDepthSignalValue, minimumDepth, maximumDepth),
     minimumDepth,
     maximumDepth,
   )
 
-  const mappedTargetHueShiftDegrees =
-    minimumHueShiftDegrees + selectedHueSignalValue * (maximumHueShiftDegrees - minimumHueShiftDegrees)
-  const mappedTargetSaturation =
-    minimumSaturation + selectedSaturationSignalValue * (maximumSaturation - minimumSaturation)
+  const mappedTargetHueShiftDegrees = mapSignalTarget(
+    selectedHueSignalValue,
+    minimumHueShiftDegrees,
+    maximumHueShiftDegrees,
+  )
+  const mappedTargetSaturation = mapSignalTarget(selectedSaturationSignalValue, minimumSaturation, maximumSaturation)
 
   const depthMappingActive = depthPreviewEnabled && depthMode === 'audio-mapped'
   const hueMappingActive = huePreviewEnabled && hueMode === 'audio-mapped'
@@ -586,7 +572,7 @@ function ReactivityLabShell() {
     const tick = () => {
       const targetDepth = mappedDepthTargetRef.current
       const currentDepth = mappedDepthCurrentRef.current
-      let nextDepth = currentDepth + (targetDepth - currentDepth) * responseSmoothing
+      let nextDepth = stepSmoothedValue(currentDepth, targetDepth, responseSmoothing)
 
       if (Math.abs(targetDepth - nextDepth) < 0.0005) {
         nextDepth = targetDepth
@@ -634,7 +620,7 @@ function ReactivityLabShell() {
       const targetHue = mappedHueTargetRef.current
       const currentHue = mappedHueCurrentRef.current
       const shortestDelta = resolveShortestHueDeltaDegrees(currentHue, targetHue)
-      let nextHue = wrapSignedDegrees(currentHue + shortestDelta * hueResponseSmoothing)
+      let nextHue = wrapSignedDegrees(stepSmoothedValue(currentHue, currentHue + shortestDelta, hueResponseSmoothing))
 
       if (Math.abs(shortestDelta) < 0.05) {
         nextHue = wrapSignedDegrees(targetHue)
@@ -681,7 +667,7 @@ function ReactivityLabShell() {
     const tick = () => {
       const targetSaturation = mappedSaturationTargetRef.current
       const currentSaturation = mappedSaturationCurrentRef.current
-      let nextSaturation = currentSaturation + (targetSaturation - currentSaturation) * saturationResponseSmoothing
+      let nextSaturation = stepSmoothedValue(currentSaturation, targetSaturation, saturationResponseSmoothing)
 
       if (Math.abs(targetSaturation - nextSaturation) < 0.0005) {
         nextSaturation = targetSaturation

@@ -1,5 +1,10 @@
 import type { ReactNode } from 'react'
-import type { AudioReactiveSnapshot, ReactiveBehaviorId, ReactivePreviewTelemetry } from '../app/playerTypes'
+import type {
+  AudioReactiveSnapshot,
+  ImageDepthSceneCounters,
+  ReactiveBehaviorId,
+  ReactivePreviewTelemetry,
+} from '../app/playerTypes'
 
 export type ThemeId = string
 
@@ -18,6 +23,10 @@ export type ThemeSceneProps = {
   reactiveBehavior?: ReactiveBehaviorId
   reactiveDepthMode?: 'default' | 'stabilized-depth' | 'lighting-only'
   onReactivePreviewTelemetry?: (telemetry: ReactivePreviewTelemetry) => void
+  onDevSceneCountersChange?: (counters: ImageDepthSceneCounters) => void
+  manualDepthOverride?: number
+  manualHueShiftOverrideDegrees?: number | null
+  manualSaturationOverrideMultiplier?: number | null
 }
 
 export type ThemeVisualFeedFrameProps = {

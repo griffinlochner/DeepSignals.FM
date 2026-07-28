@@ -73,6 +73,9 @@ function formatDepthPair(current: number, target: number) {
 
 const ZERO_REACTIVE_TELEMETRY: ReactivePreviewTelemetry = {
   selectedReactiveBehavior: 'Chill',
+  selectedDepthSignalField: 'n/a',
+  selectedHueSignalField: 'n/a',
+  selectedSaturationSignalField: 'n/a',
   reactivePreviewEnabled: false,
   reactiveIsolationEnabled: false,
   reactiveTimingAuthorityActive: false,
@@ -105,6 +108,8 @@ const ZERO_REACTIVE_TELEMETRY: ReactivePreviewTelemetry = {
   fullOnPhase: 'n/a',
   fullOnTargetDepth: 0,
   fullOnCurrentDepth: 0,
+  fullOnTargetSaturation: 1,
+  fullOnCurrentSaturation: 1,
   millisecondsSinceAcceptedKickEvent: 0,
   inactivityReturnActive: false,
   kickBreathEnvelope: 0,

@@ -1582,6 +1582,9 @@ if (uSurfaceGlowEnabled > 0.5) {
 
           visualState.onReactivePreviewTelemetry({
             selectedReactiveBehavior: reactiveBehaviorProfile.label,
+            selectedDepthSignalField: fullOnBehaviorActive ? 'energy' : 'bass',
+            selectedHueSignalField: fullOnBehaviorActive ? 'energy' : 'kickPulse',
+            selectedSaturationSignalField: fullOnBehaviorActive ? 'bass' : 'smoothedEnergy',
             reactivePreviewEnabled: reactiveBehaviorEnabled,
             reactiveIsolationEnabled,
             reactiveTimingAuthorityActive,
@@ -1614,6 +1617,8 @@ if (uSurfaceGlowEnabled > 0.5) {
             fullOnPhase,
             fullOnTargetDepth: fullOnBehaviorActive ? fullOnAppliedTargetDepth : 0,
             fullOnCurrentDepth,
+            fullOnTargetSaturation: computedFinalSaturation,
+            fullOnCurrentSaturation: finalSaturation,
             millisecondsSinceAcceptedKickEvent: Number.isFinite(millisecondsSinceAcceptedKickEvent)
               ? millisecondsSinceAcceptedKickEvent
               : 0,

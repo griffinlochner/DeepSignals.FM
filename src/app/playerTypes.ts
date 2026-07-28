@@ -61,6 +61,9 @@ export type AudioAnalysisGraphDetails = {
 
 export type ReactivePreviewTelemetry = {
   selectedReactiveBehavior: 'Chill' | 'Full On'
+  selectedDepthSignalField: string
+  selectedHueSignalField: string
+  selectedSaturationSignalField: string
   reactivePreviewEnabled: boolean
   reactiveIsolationEnabled: boolean
   reactiveTimingAuthorityActive: boolean
@@ -93,6 +96,8 @@ export type ReactivePreviewTelemetry = {
   fullOnPhase: 'low' | 'high' | 'n/a'
   fullOnTargetDepth: number
   fullOnCurrentDepth: number
+  fullOnTargetSaturation: number
+  fullOnCurrentSaturation: number
   millisecondsSinceAcceptedKickEvent: number
   inactivityReturnActive: boolean
   kickBreathEnvelope: number
@@ -130,6 +135,16 @@ export type ReactivePreviewTelemetry = {
 }
 
 export type ReactiveBehaviorId = 'chill' | 'fullon'
+
+export type ImageDepthSceneCounters = {
+  sceneComponentMountCount: number
+  sceneComponentUnmountCount: number
+  rendererCreationCount: number
+  textureLoadCount: number
+  materialGeometryInitializationCount: number
+  environmentChangeCount: number
+  depthUpdateCount: number
+}
 
 export type TrackInfo = {
   title: string
