@@ -8,7 +8,6 @@ import VisualFeedWindow from '../components/VisualFeedWindow'
 import { themeRegistry } from '../themes/themeRegistry'
 import type {
   ImageDepthSceneCounters,
-  ReactiveBehaviorId,
   ReactivePreviewTelemetry,
   SignalSource,
 } from './playerTypes'
@@ -40,12 +39,18 @@ type PlayerPreferencesV1 = {
 }
 
 type PlayerPreferencesV2 = PlayerPreferencesV1 & {
-  selectedBehavior: ReactiveBehaviorId
-  signalTelemetryVisible: boolean
+  selectedBehavior?: 'chill' | 'fullon'
+  signalTelemetryVisible?: boolean
 }
 
 const PLAYER_PREFERENCES_STORAGE_KEY_V1 = 'deepsignals.player.preferences.v1'
 const PLAYER_PREFERENCES_STORAGE_KEY_V2 = 'deepsignals.player.preferences.v2'
+const SIGNAL_TELEMETRY_VISIBLE_STORAGE_KEY_V1 = 'deepsignals.player.signal-telemetry.visible.v1'
+const SIGNAL_TELEMETRY_COLLAPSED_STORAGE_KEY_V1 = 'deepsignals.player.signal-telemetry.collapsed.v1'
+
+const SIGNAL_TELEMETRY_MAX_WIDTH = 820
+const SIGNAL_TELEMETRY_MIN_HEIGHT_FOR_COLLAPSED = 620
+const SIGNAL_TELEMETRY_MIN_HEIGHT_FOR_EXPANDED = 760
 
 const FULLON_STOP_SETTLE_DEPTH = 0.5
 const FULLON_STOP_SETTLE_HUE_DEGREES = 0
@@ -73,10 +78,6 @@ function sanitizeBoolean(value: unknown, fallback: boolean) {
   return typeof value === 'boolean' ? value : fallback
 }
 
-function sanitizeReactiveBehaviorId(value: unknown): ReactiveBehaviorId {
-  return value === 'fullon' ? 'fullon' : 'chill'
-}
-
 function sanitizeVolume(value: unknown) {
   if (typeof value !== 'number' || !Number.isFinite(value)) {
     return 1
@@ -92,8 +93,6 @@ function readStoredPlayerPreferences(): PlayerPreferencesV2 {
     volume: 1,
     motionEnabled: true,
     visualFeedOpen: false,
-    selectedBehavior: 'chill',
-    signalTelemetryVisible: false,
   }
 
   if (typeof window === 'undefined') {
@@ -112,8 +111,6 @@ function readStoredPlayerPreferences(): PlayerPreferencesV2 {
         volume: 1,
         motionEnabled: sanitizeBoolean(parsed.motionEnabled, true),
         visualFeedOpen: sanitizeBoolean(parsed.visualFeedOpen, false),
-        selectedBehavior: sanitizeReactiveBehaviorId(parsed.selectedBehavior),
-        signalTelemetryVisible: sanitizeBoolean(parsed.signalTelemetryVisible, false),
       }
     }
 
@@ -131,9 +128,59 @@ function readStoredPlayerPreferences(): PlayerPreferencesV2 {
       volume: 1,
       motionEnabled: sanitizeBoolean(parsed.motionEnabled, true),
       visualFeedOpen: sanitizeBoolean(parsed.visualFeedOpen, false),
-      selectedBehavior: 'chill',
-      signalTelemetryVisible: false,
     }
+  } catch {
+    return fallback
+  }
+}
+
+function readStoredSignalTelemetryVisiblePreference() {
+  const fallback = true
+
+  if (typeof window === 'undefined') {
+    return fallback
+  }
+
+  try {
+    const raw = window.localStorage.getItem(SIGNAL_TELEMETRY_VISIBLE_STORAGE_KEY_V1)
+
+    if (!raw) {
+      return fallback
+    }
+
+    const parsed = JSON.parse(raw) as { visible?: unknown } | unknown
+
+    if (typeof parsed === 'object' && parsed !== null && 'visible' in parsed) {
+      return sanitizeBoolean((parsed as { visible?: unknown }).visible, fallback)
+    }
+
+    return fallback
+  } catch {
+    return fallback
+  }
+}
+
+function readStoredSignalTelemetryCollapsedPreference() {
+  const fallback = false
+
+  if (typeof window === 'undefined') {
+    return fallback
+  }
+
+  try {
+    const raw = window.localStorage.getItem(SIGNAL_TELEMETRY_COLLAPSED_STORAGE_KEY_V1)
+
+    if (!raw) {
+      return fallback
+    }
+
+    const parsed = JSON.parse(raw) as { collapsed?: unknown } | unknown
+
+    if (typeof parsed === 'object' && parsed !== null && 'collapsed' in parsed) {
+      return sanitizeBoolean((parsed as { collapsed?: unknown }).collapsed, fallback)
+    }
+
+    return fallback
   } catch {
     return fallback
   }
@@ -148,7 +195,7 @@ function isAudioDebugEnabled() {
   return searchParams.get('audioDebug') === '1'
 }
 
-function readReactiveBehaviorOverrideFromQuery(): ReactiveBehaviorId | null {
+function readReactiveBehaviorOverrideFromQuery(): 'chill' | 'fullon' | null {
   if (!import.meta.env.DEV || typeof window === 'undefined') {
     return null
   }
@@ -170,6 +217,22 @@ function isIgnoreSourceBpmEnabled() {
 
   const searchParams = new URLSearchParams(window.location.search)
   return searchParams.get('ignoreSourceBpm') === '1'
+}
+
+function isSignalTelemetryUiAvailable(viewportWidth: number, viewportHeight: number, collapsed: boolean) {
+  if (viewportWidth <= SIGNAL_TELEMETRY_MAX_WIDTH) {
+    return false
+  }
+
+  if (viewportHeight <= SIGNAL_TELEMETRY_MIN_HEIGHT_FOR_COLLAPSED) {
+    return false
+  }
+
+  if (!collapsed && viewportHeight <= SIGNAL_TELEMETRY_MIN_HEIGHT_FOR_EXPANDED) {
+    return false
+  }
+
+  return true
 }
 
 const ZERO_REACTIVE_PREVIEW_TELEMETRY: ReactivePreviewTelemetry = {
@@ -264,9 +327,15 @@ function PlayerShell({ className }: PlayerShellProps) {
   const [storedPreferences] = useState<PlayerPreferencesV2>(() => readStoredPlayerPreferences())
   const [selectedThemeId, setSelectedThemeId] = useState<ThemeId>(storedPreferences.selectedThemeId)
   const [selectedSignalId, setSelectedSignalId] = useState<string | null>(storedPreferences.selectedAudioSourceId)
-  const [selectedBehavior, setSelectedBehavior] = useState<ReactiveBehaviorId>(storedPreferences.selectedBehavior)
   const [motionEnabled, setMotionEnabled] = useState(storedPreferences.motionEnabled)
-  const [signalTelemetryVisible, setSignalTelemetryVisible] = useState(storedPreferences.signalTelemetryVisible)
+  const [signalTelemetryVisible, setSignalTelemetryVisible] = useState(() => readStoredSignalTelemetryVisiblePreference())
+  const [signalTelemetryCollapsed, setSignalTelemetryCollapsed] = useState(() =>
+    readStoredSignalTelemetryCollapsedPreference(),
+  )
+  const [viewportSize, setViewportSize] = useState(() => ({
+    width: typeof window === 'undefined' ? 1024 : window.innerWidth,
+    height: typeof window === 'undefined' ? 768 : window.innerHeight,
+  }))
   const [panelCollapsed, setPanelCollapsed] = useState(false)
   const [visualFeedOpen, setVisualFeedOpen] = useState(storedPreferences.visualFeedOpen)
   const reactivePreviewTelemetryRef = useRef<ReactivePreviewTelemetry>(ZERO_REACTIVE_PREVIEW_TELEMETRY)
@@ -327,9 +396,30 @@ function PlayerShell({ className }: PlayerShellProps) {
   const supportsMotion = activeTheme?.supportsMotion ?? true
   const supportsVisualFeed = activeTheme?.supportsVisualFeed ?? true
   const supportsAudioReactiveBehavior = activeTheme?.supportsAudioReactiveBehavior ?? false
-  const effectiveReactiveBehavior = reactiveBehaviorOverride ?? selectedBehavior
-  const productionFullOnActive = supportsAudioReactiveBehavior && effectiveReactiveBehavior === 'fullon'
+  const productionFullOnActive = supportsAudioReactiveBehavior
   const productionDepthMotionSuppressed = supportsAudioReactiveBehavior && !motionEnabled
+  const signalTelemetryUiAvailable = isSignalTelemetryUiAvailable(
+    viewportSize.width,
+    viewportSize.height,
+    signalTelemetryCollapsed,
+  )
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return
+    }
+
+    const handleViewportChange = () => {
+      setViewportSize({ width: window.innerWidth, height: window.innerHeight })
+    }
+
+    handleViewportChange()
+    window.addEventListener('resize', handleViewportChange)
+
+    return () => {
+      window.removeEventListener('resize', handleViewportChange)
+    }
+  }, [])
 
   const handleSignalChange = (id: string) => {
     setSelectedSignalId(sanitizeAudioSourceId(id) || null)
@@ -491,7 +581,7 @@ function PlayerShell({ className }: PlayerShellProps) {
     motionEnabled,
     getLatestAudioSnapshot: audioAnalysis.getLatestSnapshot,
     reactivePreviewEnabled: supportsAudioReactiveBehavior && !productionFullOnActive,
-    reactiveBehavior: productionFullOnActive ? 'chill' : effectiveReactiveBehavior,
+    reactiveBehavior: 'chill',
     manualDepthOverride: effectiveProductionDepthOverride,
     manualHueShiftOverrideDegrees: productionFullOnActive ? fullOnHueShiftOverrideDegrees : null,
     manualSaturationOverrideMultiplier: productionFullOnActive ? fullOnSaturationOverrideMultiplier : null,
@@ -537,15 +627,43 @@ function PlayerShell({ className }: PlayerShellProps) {
         volume: sanitizeVolume(audioController.volume),
         motionEnabled,
         visualFeedOpen: visualFeedOpen && supportsVisualFeed,
-        selectedBehavior: sanitizeReactiveBehaviorId(selectedBehavior),
-        signalTelemetryVisible,
       }
 
       window.localStorage.setItem(PLAYER_PREFERENCES_STORAGE_KEY_V2, JSON.stringify(payload))
     } catch {
       // Gracefully ignore localStorage write failures.
     }
-  }, [audioController.volume, motionEnabled, selectedBehavior, selectedSignalId, selectedThemeId, signalTelemetryVisible, supportsVisualFeed, visualFeedOpen])
+  }, [audioController.volume, motionEnabled, selectedSignalId, selectedThemeId, supportsVisualFeed, visualFeedOpen])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return
+    }
+
+    try {
+      window.localStorage.setItem(
+        SIGNAL_TELEMETRY_VISIBLE_STORAGE_KEY_V1,
+        JSON.stringify({ visible: signalTelemetryVisible }),
+      )
+    } catch {
+      // Gracefully ignore localStorage write failures.
+    }
+  }, [signalTelemetryVisible])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return
+    }
+
+    try {
+      window.localStorage.setItem(
+        SIGNAL_TELEMETRY_COLLAPSED_STORAGE_KEY_V1,
+        JSON.stringify({ collapsed: signalTelemetryCollapsed }),
+      )
+    } catch {
+      // Gracefully ignore localStorage write failures.
+    }
+  }, [signalTelemetryCollapsed])
 
   const transmissionLabel = useMemo(() => {
     return formatAudioSourceLabel(audioController.audioSource)
@@ -603,12 +721,14 @@ function PlayerShell({ className }: PlayerShellProps) {
         />
       ) : null}
 
-      {!audioDebugEnabled && signalTelemetryVisible ? (
+      {!audioDebugEnabled && signalTelemetryVisible && signalTelemetryUiAvailable ? (
         <SignalTelemetryPanel
           analysisStatus={audioAnalysis.status}
           playbackStatus={audioController.playbackStatus}
           getLatestSnapshot={audioAnalysis.getLatestSnapshot}
           getLatestReactiveTelemetry={getReactivePreviewTelemetry}
+          collapsed={signalTelemetryCollapsed}
+          onCollapsedChange={setSignalTelemetryCollapsed}
         />
       ) : null}
 
@@ -636,9 +756,7 @@ function PlayerShell({ className }: PlayerShellProps) {
         motionEnabled={motionEnabled}
         supportsMotion={supportsMotion}
         onMotionToggle={setMotionEnabled}
-        showBehaviorControl={supportsAudioReactiveBehavior}
-        selectedBehavior={selectedBehavior}
-        onBehaviorChange={setSelectedBehavior}
+        showSignalTelemetryControl={signalTelemetryUiAvailable}
         signalTelemetryVisible={signalTelemetryVisible}
         onSignalTelemetryChange={setSignalTelemetryVisible}
         visualFeedOpen={visualFeedOpen && supportsVisualFeed}

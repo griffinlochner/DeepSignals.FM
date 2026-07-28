@@ -13,6 +13,8 @@ type SignalTelemetryPanelProps = {
   playbackStatus: AudioPlaybackStatus
   getLatestSnapshot: () => AudioReactiveSnapshot
   getLatestReactiveTelemetry?: () => ReactivePreviewTelemetry
+  collapsed: boolean
+  onCollapsedChange: (collapsed: boolean) => void
 }
 
 type MeterRowProps = {
@@ -165,8 +167,9 @@ function SignalTelemetryPanel({
   playbackStatus,
   getLatestSnapshot,
   getLatestReactiveTelemetry = () => ZERO_REACTIVE_TELEMETRY,
+  collapsed,
+  onCollapsedChange,
 }: SignalTelemetryPanelProps) {
-  const [collapsed, setCollapsed] = useState(false)
   const [snapshot, setSnapshot] = useState<AudioReactiveSnapshot>(ZERO_SNAPSHOT)
   const [reactiveTelemetry, setReactiveTelemetry] = useState<ReactivePreviewTelemetry>(ZERO_REACTIVE_TELEMETRY)
   const [layout, setLayout] = useState<{ left: number; width: number } | null>(null)
@@ -276,7 +279,7 @@ function SignalTelemetryPanel({
               className="signal-telemetry-panel__toggle"
               aria-label={collapsed ? 'Expand Signal Telemetry' : 'Collapse Signal Telemetry'}
               aria-expanded={!collapsed}
-              onClick={() => setCollapsed((current) => !current)}
+              onClick={() => onCollapsedChange(!collapsed)}
             >
               <PanelChevronIcon collapsed={collapsed} expandDirection="up" />
             </button>

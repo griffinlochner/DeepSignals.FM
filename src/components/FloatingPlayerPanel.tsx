@@ -1,5 +1,5 @@
 import { useId, useMemo } from 'react'
-import type { AudioPlaybackStatus, ReactiveBehaviorId, SignalSource } from '../app/playerTypes'
+import type { AudioPlaybackStatus, SignalSource } from '../app/playerTypes'
 import type { ThemeId } from '../themes/themeTypes'
 import PanelChevronIcon from './PanelChevronIcon'
 import PlayStopButton from './PlayStopButton'
@@ -34,9 +34,7 @@ type FloatingPlayerPanelProps = {
   motionEnabled: boolean
   supportsMotion: boolean
   onMotionToggle: (enabled: boolean) => void
-  showBehaviorControl: boolean
-  selectedBehavior: ReactiveBehaviorId
-  onBehaviorChange: (value: ReactiveBehaviorId) => void
+  showSignalTelemetryControl: boolean
   signalTelemetryVisible: boolean
   onSignalTelemetryChange: (enabled: boolean) => void
   visualFeedOpen: boolean
@@ -70,9 +68,7 @@ function FloatingPlayerPanel({
   motionEnabled,
   supportsMotion,
   onMotionToggle,
-  showBehaviorControl,
-  selectedBehavior,
-  onBehaviorChange,
+  showSignalTelemetryControl,
   signalTelemetryVisible,
   onSignalTelemetryChange,
   visualFeedOpen,
@@ -138,15 +134,6 @@ function FloatingPlayerPanel({
       ) : (
         <div className="floating-player-panel__body" id={contentId}>
           <div className="floating-player-panel__field">
-            <p className="floating-player-panel__label">Environment</p>
-            <ThemeSelector
-              value={selectedEnvironmentId}
-              options={environmentOptions}
-              onChange={onEnvironmentChange}
-            />
-          </div>
-
-          <div className="floating-player-panel__field">
             <p className="floating-player-panel__label">Signal Source</p>
             <SignalSourceSelector value={selectedSignalId || ''} signals={signalOptions} onChange={onSignalChange} />
           </div>
@@ -168,6 +155,15 @@ function FloatingPlayerPanel({
               isDisabled={!selectedSignalId}
               onToggle={() => void onAudioTogglePlay()}
             />
+
+            <div className="floating-player-panel__field floating-player-panel__environment-field">
+              <p className="floating-player-panel__label">Environment</p>
+              <ThemeSelector
+                value={selectedEnvironmentId}
+                options={environmentOptions}
+                onChange={onEnvironmentChange}
+              />
+            </div>
 
             <label className="floating-player-panel__switch floating-player-panel__visual-switch">
               <input
@@ -199,49 +195,23 @@ function FloatingPlayerPanel({
             </label>
           </section>
 
-          {showBehaviorControl ? (
-            <section className="floating-player-panel__field" aria-label="Behavior">
-              <p className="floating-player-panel__label">Behavior</p>
-              <div className="floating-player-panel__behavior-segmented" role="radiogroup" aria-label="Behavior">
-                <button
-                  type="button"
-                  className="floating-player-panel__behavior-option"
-                  role="radio"
-                  aria-checked={selectedBehavior === 'chill'}
-                  data-selected={selectedBehavior === 'chill' ? 'true' : 'false'}
-                  onClick={() => onBehaviorChange('chill')}
-                >
-                  Chill
-                </button>
-                <button
-                  type="button"
-                  className="floating-player-panel__behavior-option"
-                  role="radio"
-                  aria-checked={selectedBehavior === 'fullon'}
-                  data-selected={selectedBehavior === 'fullon' ? 'true' : 'false'}
-                  onClick={() => onBehaviorChange('fullon')}
-                >
-                  Full On
-                </button>
-              </div>
+          {showSignalTelemetryControl ? (
+            <section className="floating-player-panel__field" aria-label="Signal Telemetry">
+              <label className="floating-player-panel__switch">
+                <input
+                  className="floating-player-panel__switch-checkbox"
+                  type="checkbox"
+                  checked={signalTelemetryVisible}
+                  onChange={(event) => onSignalTelemetryChange(event.target.checked)}
+                  aria-label="Signal Telemetry"
+                />
+                <span className="floating-player-panel__switch-label">Signal Telemetry</span>
+                <span className="floating-player-panel__switch-track" aria-hidden="true">
+                  <span className="floating-player-panel__switch-thumb" />
+                </span>
+              </label>
             </section>
           ) : null}
-
-          <section className="floating-player-panel__field" aria-label="Signal Telemetry">
-            <label className="floating-player-panel__switch">
-              <input
-                className="floating-player-panel__switch-checkbox"
-                type="checkbox"
-                checked={signalTelemetryVisible}
-                onChange={(event) => onSignalTelemetryChange(event.target.checked)}
-                aria-label="Signal Telemetry"
-              />
-              <span className="floating-player-panel__switch-label">Signal Telemetry</span>
-              <span className="floating-player-panel__switch-track" aria-hidden="true">
-                <span className="floating-player-panel__switch-thumb" />
-              </span>
-            </label>
-          </section>
 
           <section className="floating-player-panel__volume-row" aria-label="Volume control">
             <p className="floating-player-panel__label">Volume</p>
