@@ -87,10 +87,11 @@
 .reactivity-lab__button-row {
   display: flex;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 .reactivity-lab__button-row button {
-  flex: 1;
+  flex: 1 1 160px;
   height: 40px;
   border-radius: 10px;
   border: 1px solid rgb(137 186 227 / 50%);
@@ -228,12 +229,39 @@
 
 .reactivity-lab__inline-button {
   height: 34px;
+  flex: 1 1 180px;
   border-radius: 10px;
   border: 1px solid rgb(137 186 227 / 50%);
   background: linear-gradient(180deg, rgb(22 52 76 / 90%), rgb(14 30 46 / 92%));
   color: #eef7ff;
   font-weight: 600;
   cursor: pointer;
+}
+
+.reactivity-lab__comparison-stack {
+  display: grid;
+  gap: 8px;
+}
+
+.reactivity-lab__comparison-row {
+  display: grid;
+  grid-template-columns: minmax(110px, 1fr) minmax(0, 2fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.reactivity-lab__comparison-meter {
+  height: 8px;
+  border-radius: 999px;
+  overflow: hidden;
+  border: 1px solid rgb(128 180 225 / 28%);
+  background: rgb(7 14 23 / 84%);
+}
+
+.reactivity-lab__comparison-meter-fill {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, rgb(74 173 255 / 90%), rgb(142 227 255 / 90%));
 }
 
 .reactivity-lab__diagnostics-stack {

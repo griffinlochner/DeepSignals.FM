@@ -20,6 +20,16 @@ import './reactivityLab.css'
 
 type SourceType = 'local-mp3' | 'external-radio'
 type LabRadioPresetId = 'psyradio-progressive' | 'psyradio-chillout' | 'psyndora' | 'psystream'
+type DepthMode = 'manual' | 'audio-mapped'
+type DepthSignalField =
+  | 'energy'
+  | 'smoothedEnergy'
+  | 'bass'
+  | 'kickPulse'
+  | 'bassPulse'
+  | 'mids'
+  | 'highs'
+  | 'transient'
 
 type MeterDebugReadout = {
   fastBass: number
@@ -123,6 +133,21 @@ const MP3_SIGNAL_OPTIONS = AUDIO_SOURCES.map((source) => ({
 }))
 
 const DEFAULT_MANUAL_DEPTH = 0.5
+const DEFAULT_MINIMUM_DEPTH = 0.1
+const DEFAULT_MAXIMUM_DEPTH = 0.9
+const DEFAULT_RESPONSE_SMOOTHING = 0.14
+const STOP_SETTLE_DEPTH = 0.5
+
+const DEPTH_SIGNAL_OPTIONS: Array<{ id: DepthSignalField; label: string }> = [
+  { id: 'energy', label: 'Energy' },
+  { id: 'smoothedEnergy', label: 'Smoothed Energy' },
+  { id: 'bass', label: 'Bass' },
+  { id: 'kickPulse', label: 'Kick Pulse' },
+  { id: 'bassPulse', label: 'Bass Pulse' },
+  { id: 'mids', label: 'Mids' },
+  { id: 'highs', label: 'Highs' },
+  { id: 'transient', label: 'Transient' },
+]
 
 const INITIAL_SCENE_DEV_COUNTERS: ImageDepthSceneDevCounters = {
   sceneComponentMountCount: 0,
@@ -180,6 +205,18 @@ function formatDbRange(minDecibels: number | null, maxDecibels: number | null) {
   return `${minDecibels} to ${maxDecibels} dB`
 }
 
+function clampUnit(value: number) {
+  return Math.min(1, Math.max(0, Number.isFinite(value) ? value : 0))
+}
+
+function clampToDepthRange(value: number, minimumDepth: number, maximumDepth: number) {
+  return Math.min(maximumDepth, Math.max(minimumDepth, Number.isFinite(value) ? value : minimumDepth))
+}
+
+function resolveSnapshotSignal(snapshot: AudioReactiveSnapshot, field: DepthSignalField) {
+  return clampUnit(snapshot[field])
+}
+
 function ReactivityLabShell() {
   const [sourceType, setSourceType] = useState<SourceType>('local-mp3')
   const [selectedMp3SourceId, setSelectedMp3SourceId] = useState(AUDIO_SOURCES[0]?.id ?? '')
@@ -189,6 +226,12 @@ function ReactivityLabShell() {
     imageDepthEnvironmentCatalog[0]?.id ?? '',
   )
   const [manualDepthOverride, setManualDepthOverride] = useState(DEFAULT_MANUAL_DEPTH)
+  const [depthMode, setDepthMode] = useState<DepthMode>('manual')
+  const [depthSignalField, setDepthSignalField] = useState<DepthSignalField>('bass')
+  const [minimumDepth, setMinimumDepth] = useState(DEFAULT_MINIMUM_DEPTH)
+  const [maximumDepth, setMaximumDepth] = useState(DEFAULT_MAXIMUM_DEPTH)
+  const [responseSmoothing, setResponseSmoothing] = useState(DEFAULT_RESPONSE_SMOOTHING)
+  const [mappedDepthOverride, setMappedDepthOverride] = useState(DEFAULT_MANUAL_DEPTH)
   const [renderedDepth, setRenderedDepth] = useState(DEFAULT_MANUAL_DEPTH)
   const [sceneDevCounters, setSceneDevCounters] = useState<ImageDepthSceneDevCounters>(
     INITIAL_SCENE_DEV_COUNTERS,
@@ -197,6 +240,9 @@ function ReactivityLabShell() {
   const [lastStartFailure, setLastStartFailure] = useState<string | null>(null)
 
   const previousSourceTypeRef = useRef<SourceType>('local-mp3')
+  const mappedDepthTargetRef = useRef(DEFAULT_MANUAL_DEPTH)
+  const mappedDepthCurrentRef = useRef(DEFAULT_MANUAL_DEPTH)
+  const mappedDepthRafRef = useRef<number | null>(null)
   const audioController = usePersistentAudioController(1, selectedMp3SourceId)
   const radioController = useExternalRadioController(defaultThemeId, {
     audioOutputMode: 'post-analyzer-gain',
@@ -347,6 +393,67 @@ function ReactivityLabShell() {
     radioSignalState === 'Connecting'
 
   const isCurrentSourcePlaying = sourceType === 'local-mp3' ? isMp3Playing : isRadioPlaying
+  const isAudioStopped = sourceType === 'local-mp3'
+    ? audioController.playbackStatus !== 'playing'
+    : radioSignalState === 'Signal Off'
+
+  const selectedSignalValue = resolveSnapshotSignal(telemetrySnapshot, depthSignalField)
+  const mappedTargetDepth = clampToDepthRange(
+    minimumDepth + selectedSignalValue * (maximumDepth - minimumDepth),
+    minimumDepth,
+    maximumDepth,
+  )
+  const targetDepthForDisplay = depthMode === 'audio-mapped'
+    ? (isAudioStopped ? STOP_SETTLE_DEPTH : mappedTargetDepth)
+    : manualDepthOverride
+  const liveDepthOverride = depthMode === 'audio-mapped' ? mappedDepthOverride : manualDepthOverride
+
+  useEffect(() => {
+    if (depthMode !== 'audio-mapped') {
+      return
+    }
+
+    mappedDepthTargetRef.current = isAudioStopped ? STOP_SETTLE_DEPTH : mappedTargetDepth
+  }, [depthMode, isAudioStopped, mappedTargetDepth])
+
+  useEffect(() => {
+    if (depthMode !== 'audio-mapped') {
+      if (mappedDepthRafRef.current !== null) {
+        window.cancelAnimationFrame(mappedDepthRafRef.current)
+        mappedDepthRafRef.current = null
+      }
+
+      return
+    }
+
+    mappedDepthCurrentRef.current = manualDepthOverride
+
+    const tick = () => {
+      const targetDepth = mappedDepthTargetRef.current
+      const currentDepth = mappedDepthCurrentRef.current
+      let nextDepth = currentDepth + (targetDepth - currentDepth) * responseSmoothing
+
+      if (Math.abs(targetDepth - nextDepth) < 0.0005) {
+        nextDepth = targetDepth
+      }
+
+      if (nextDepth !== currentDepth) {
+        mappedDepthCurrentRef.current = nextDepth
+        setMappedDepthOverride(nextDepth)
+      }
+
+      mappedDepthRafRef.current = window.requestAnimationFrame(tick)
+    }
+
+    mappedDepthRafRef.current = window.requestAnimationFrame(tick)
+
+    return () => {
+      if (mappedDepthRafRef.current !== null) {
+        window.cancelAnimationFrame(mappedDepthRafRef.current)
+        mappedDepthRafRef.current = null
+      }
+    }
+  }, [depthMode, manualDepthOverride, responseSmoothing])
 
   const handleRadioPresetChange = (nextPresetId: LabRadioPresetId) => {
     setSelectedRadioPresetId(nextPresetId)
@@ -510,6 +617,93 @@ function ReactivityLabShell() {
             <h2>Image Depth Manual Preview</h2>
 
             <label className="reactivity-lab__field">
+              <span className="reactivity-lab__label">Depth Mode</span>
+              <select
+                className="reactivity-lab__select"
+                value={depthMode}
+                onChange={(event) => setDepthMode(event.target.value as DepthMode)}
+              >
+                <option value="manual">Manual</option>
+                <option value="audio-mapped">Audio Mapped</option>
+              </select>
+            </label>
+
+            <label className="reactivity-lab__field">
+              <span className="reactivity-lab__label">Depth Signal</span>
+              <select
+                className="reactivity-lab__select"
+                value={depthSignalField}
+                onChange={(event) => setDepthSignalField(event.target.value as DepthSignalField)}
+                disabled={depthMode !== 'audio-mapped'}
+              >
+                {DEPTH_SIGNAL_OPTIONS.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="reactivity-lab__field">
+              <span className="reactivity-lab__label">Minimum Depth</span>
+              <input
+                className="reactivity-lab__range"
+                type="range"
+                min="0"
+                max="1"
+                step="0.01"
+                value={minimumDepth}
+                onChange={(event) => {
+                  const nextMinimum = Number(event.target.value)
+                  setMinimumDepth(nextMinimum)
+
+                  if (nextMinimum > maximumDepth) {
+                    setMaximumDepth(nextMinimum)
+                  }
+                }}
+                disabled={depthMode !== 'audio-mapped'}
+              />
+              <strong>{minimumDepth.toFixed(2)}</strong>
+            </label>
+
+            <label className="reactivity-lab__field">
+              <span className="reactivity-lab__label">Maximum Depth</span>
+              <input
+                className="reactivity-lab__range"
+                type="range"
+                min="0"
+                max="1"
+                step="0.01"
+                value={maximumDepth}
+                onChange={(event) => {
+                  const nextMaximum = Number(event.target.value)
+                  setMaximumDepth(nextMaximum)
+
+                  if (nextMaximum < minimumDepth) {
+                    setMinimumDepth(nextMaximum)
+                  }
+                }}
+                disabled={depthMode !== 'audio-mapped'}
+              />
+              <strong>{maximumDepth.toFixed(2)}</strong>
+            </label>
+
+            <label className="reactivity-lab__field">
+              <span className="reactivity-lab__label">Response Smoothing</span>
+              <input
+                className="reactivity-lab__range"
+                type="range"
+                min="0.02"
+                max="0.5"
+                step="0.01"
+                value={responseSmoothing}
+                onChange={(event) => setResponseSmoothing(Number(event.target.value))}
+                disabled={depthMode !== 'audio-mapped'}
+              />
+              <strong>{responseSmoothing.toFixed(2)}</strong>
+            </label>
+
+            <label className="reactivity-lab__field">
               <span className="reactivity-lab__label">Image-depth environment</span>
               <select
                 className="reactivity-lab__select"
@@ -534,22 +728,58 @@ function ReactivityLabShell() {
                 step="0.01"
                 value={manualDepthOverride}
                 onChange={(event) => setManualDepthOverride(Number(event.target.value))}
+                disabled={depthMode !== 'manual'}
               />
               <strong>{manualDepthOverride.toFixed(2)}</strong>
             </label>
 
-            <div className="reactivity-lab__field">
-              <span className="reactivity-lab__label">Rendered depth</span>
-              <p className="reactivity-lab__status-primary">{renderedDepth.toFixed(3)}</p>
+            <div className="reactivity-lab__comparison-stack" aria-label="Mapped depth comparison">
+              <div className="reactivity-lab__comparison-row">
+                <span className="reactivity-lab__label">Selected Signal</span>
+                <div className="reactivity-lab__comparison-meter" aria-hidden="true">
+                  <span className="reactivity-lab__comparison-meter-fill" style={{ width: `${selectedSignalValue * 100}%` }} />
+                </div>
+                <p className="reactivity-lab__status-primary">{selectedSignalValue.toFixed(3)}</p>
+              </div>
+
+              <div className="reactivity-lab__comparison-row">
+                <span className="reactivity-lab__label">Target Depth</span>
+                <div className="reactivity-lab__comparison-meter" aria-hidden="true">
+                  <span className="reactivity-lab__comparison-meter-fill" style={{ width: `${clampUnit(targetDepthForDisplay) * 100}%` }} />
+                </div>
+                <p className="reactivity-lab__status-primary">{targetDepthForDisplay.toFixed(3)}</p>
+              </div>
+
+              <div className="reactivity-lab__comparison-row">
+                <span className="reactivity-lab__label">Rendered Depth</span>
+                <div className="reactivity-lab__comparison-meter" aria-hidden="true">
+                  <span className="reactivity-lab__comparison-meter-fill" style={{ width: `${clampUnit(renderedDepth) * 100}%` }} />
+                </div>
+                <p className="reactivity-lab__status-primary">{renderedDepth.toFixed(3)}</p>
+              </div>
             </div>
 
-            <button
-              type="button"
-              className="reactivity-lab__inline-button"
-              onClick={() => setManualDepthOverride(DEFAULT_MANUAL_DEPTH)}
-            >
-              Reset Depth to 0.5
-            </button>
+            <div className="reactivity-lab__button-row">
+              <button
+                type="button"
+                className="reactivity-lab__inline-button"
+                onClick={() => setManualDepthOverride(DEFAULT_MANUAL_DEPTH)}
+              >
+                Reset Depth to 0.5
+              </button>
+              <button
+                type="button"
+                className="reactivity-lab__inline-button"
+                onClick={() => {
+                  setDepthSignalField('bass')
+                  setMinimumDepth(DEFAULT_MINIMUM_DEPTH)
+                  setMaximumDepth(DEFAULT_MAXIMUM_DEPTH)
+                  setResponseSmoothing(DEFAULT_RESPONSE_SMOOTHING)
+                }}
+              >
+                Reset Mapping Defaults
+              </button>
+            </div>
           </aside>
 
           <div className="reactivity-lab__image-depth-scene-column">
@@ -561,7 +791,7 @@ function ReactivityLabShell() {
                   asset={selectedImageDepthEnvironment.asset}
                   scenePreset={previewScenePreset}
                   className="reactivity-lab__image-depth-scene"
-                  manualDepthOverride={manualDepthOverride}
+                  manualDepthOverride={liveDepthOverride}
                   isPlaying={false}
                   volume={0}
                   signalId={null}
