@@ -1,0 +1,166 @@
+.reactivity-lab {
+  min-height: 100vh;
+  padding: 24px;
+  background:
+    radial-gradient(circle at 15% 20%, rgb(22 49 64 / 45%) 0%, transparent 45%),
+    radial-gradient(circle at 85% 10%, rgb(44 24 72 / 35%) 0%, transparent 40%),
+    linear-gradient(180deg, #081018 0%, #0a121d 100%);
+  color: #dcecff;
+}
+
+.reactivity-lab__panel {
+  width: min(760px, calc(100vw - 48px));
+  padding: 18px;
+  border: 1px solid rgb(118 167 211 / 28%);
+  background: rgb(8 17 28 / 85%);
+  border-radius: 14px;
+  backdrop-filter: blur(8px);
+}
+
+.reactivity-lab__eyebrow {
+  margin: 0;
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgb(172 211 247 / 78%);
+}
+
+.reactivity-lab__title {
+  margin: 8px 0 18px;
+  font-size: 1.36rem;
+  letter-spacing: 0.02em;
+}
+
+.reactivity-lab__controls-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.reactivity-lab__field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.reactivity-lab__label {
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgb(171 210 246 / 88%);
+}
+
+.reactivity-lab__select {
+  height: 40px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgb(137 186 227 / 40%);
+  background: rgb(8 16 26 / 92%);
+  color: #dcecff;
+}
+
+.reactivity-lab .signal-source-selector__select {
+  height: 40px;
+  border-radius: 10px;
+  border: 1px solid rgb(137 186 227 / 40%);
+  background: rgb(8 16 26 / 92%);
+  color: #dcecff;
+}
+
+.reactivity-lab__button-row {
+  display: flex;
+  gap: 8px;
+}
+
+.reactivity-lab__button-row button {
+  flex: 1;
+  height: 40px;
+  border-radius: 10px;
+  border: 1px solid rgb(137 186 227 / 50%);
+  background: linear-gradient(180deg, rgb(22 52 76 / 90%), rgb(14 30 46 / 92%));
+  color: #eef7ff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.reactivity-lab__button-row button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.reactivity-lab__status,
+.reactivity-lab__resources,
+.reactivity-lab__telemetry-summary {
+  margin-top: 14px;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid rgb(128 180 225 / 25%);
+  background: rgb(8 16 26 / 68%);
+}
+
+.reactivity-lab__status p,
+.reactivity-lab__resources p,
+.reactivity-lab__telemetry-summary p {
+  margin: 5px 0;
+  font-size: 0.88rem;
+}
+
+.reactivity-lab__status-primary {
+  font-size: 0.96rem;
+  font-weight: 600;
+  color: #f1f8ff;
+}
+
+.reactivity-lab__status-secondary {
+  margin-top: 8px;
+  color: rgb(162 194 224 / 88%);
+  font-size: 0.8rem;
+}
+
+.reactivity-lab__resources h2,
+.reactivity-lab__telemetry-summary h2 {
+  margin: 0 0 8px;
+  font-size: 0.92rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.reactivity-lab__resources dl {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px 10px;
+}
+
+.reactivity-lab__resources dl div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid rgb(127 174 215 / 12%);
+  padding-bottom: 4px;
+}
+
+.reactivity-lab__resources dt {
+  color: rgb(176 212 244 / 88%);
+}
+
+.reactivity-lab__resources dd {
+  margin: 0;
+  color: #f2f8ff;
+  font-weight: 600;
+}
+
+.reactivity-lab__resource-note {
+  margin-top: 10px;
+  color: rgb(160 202 241 / 90%);
+}
+
+@media (max-width: 900px) {
+  .reactivity-lab {
+    padding: 14px;
+  }
+
+  .reactivity-lab__panel {
+    width: 100%;
+  }
+}
