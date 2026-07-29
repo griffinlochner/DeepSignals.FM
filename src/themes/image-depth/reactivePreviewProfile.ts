@@ -156,5 +156,3 @@ export const REACTIVE_BEHAVIOR_PROFILES: Record<ReactiveBehaviorId, ReactiveBeha
     saturationCap: 2.38,
   },
 }
-
-export const REACTIVE_PREVIEW_PROFILE = REACTIVE_BEHAVIOR_PROFILES.chill
