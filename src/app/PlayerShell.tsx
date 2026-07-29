@@ -195,21 +195,6 @@ function isAudioDebugEnabled() {
   return searchParams.get('audioDebug') === '1'
 }
 
-function readReactiveBehaviorOverrideFromQuery(): 'chill' | 'fullon' | null {
-  if (!import.meta.env.DEV || typeof window === 'undefined') {
-    return null
-  }
-
-  const searchParams = new URLSearchParams(window.location.search)
-  const requestedBehavior = searchParams.get('reactiveBehavior')?.toLowerCase()
-
-  if (requestedBehavior === 'fullon' || requestedBehavior === 'chill') {
-    return requestedBehavior
-  }
-
-  return null
-}
-
 function isIgnoreSourceBpmEnabled() {
   if (!import.meta.env.DEV || typeof window === 'undefined') {
     return false
@@ -296,13 +281,10 @@ const ZERO_REACTIVE_PREVIEW_TELEMETRY: ReactivePreviewTelemetry = {
   saturationCap: 2,
   authoredBaseGlow: 1,
   reactiveKickBloom: 0,
-  reactiveKickSurfaceGlowBloom: 0,
   globalGlowMultiplier: 1,
   saturationMultiplier: 1,
   globalLightMultiplier: 1,
   finalGlobalGlowMultiplier: 1,
-  finalSurfaceGlowMultiplier: 1,
-  surfaceGlowMultiplier: 1,
   authoredHueCycleSuppressed: false,
   authoredSaturationCycleSuppressed: false,
   authoredGlobalGlowCycleSuppressed: false,
@@ -322,7 +304,6 @@ const ZERO_IMAGE_DEPTH_SCENE_COUNTERS: ImageDepthSceneCounters = {
 
 function PlayerShell({ className }: PlayerShellProps) {
   const [audioDebugEnabled] = useState(() => isAudioDebugEnabled())
-  const [reactiveBehaviorOverride] = useState(() => readReactiveBehaviorOverrideFromQuery())
   const [ignoreSourceBpmEnabled] = useState(() => isIgnoreSourceBpmEnabled())
   const [storedPreferences] = useState<PlayerPreferencesV2>(() => readStoredPlayerPreferences())
   const [selectedThemeId, setSelectedThemeId] = useState<ThemeId>(storedPreferences.selectedThemeId)
@@ -714,7 +695,6 @@ function PlayerShell({ className }: PlayerShellProps) {
           effectiveReactiveBpm={effectiveReactiveBpm}
           ignoreSourceBpmEnabled={ignoreSourceBpmEnabled}
           motionEnabled={motionEnabled}
-          reactiveBehaviorOverride={reactiveBehaviorOverride}
           reactiveDiagnosticsEnabled={reactiveDiagnosticsEnabled}
           getReactivePreviewTelemetry={getReactivePreviewTelemetry}
           sceneCounters={sceneCounters}

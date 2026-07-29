@@ -180,8 +180,6 @@ type UseExternalRadioControllerResult = {
   canReconnect: boolean
   volume: number
   setVolume: (value: number) => void
-  selectedBehavior: ReactiveBehaviorId
-  setSelectedBehavior: (value: ReactiveBehaviorId) => void
   motionEnabled: boolean
   setMotionEnabled: (value: boolean) => void
   visualFeedOpen: boolean
@@ -569,7 +567,7 @@ export function useExternalRadioController(
     sourceAttribution: DEFAULT_SIGNAL_SOURCE.sourceAttribution,
   })
   const [signalState, setSignalState] = useState<SignalState>('Signal Off')
-  const [selectedBehavior, setSelectedBehavior] = useState<ReactiveBehaviorId>('chill')
+  const [selectedBehavior] = useState<ReactiveBehaviorId>('chill')
   const [motionEnabled, setMotionEnabled] = useState(true)
   const [visualFeedOpen, setVisualFeedOpen] = useState(false)
   const [selectedThemeId, setSelectedThemeId] = useState(defaultThemeId)
@@ -2076,8 +2074,6 @@ export function useExternalRadioController(
       canReconnect,
       volume,
       setVolume: applyVolume,
-      selectedBehavior,
-      setSelectedBehavior,
       motionEnabled,
       setMotionEnabled,
       visualFeedOpen,
@@ -2137,7 +2133,6 @@ export function useExternalRadioController(
     runtimeCounters,
     selectSignalSource,
     selectedSignalSourceId,
-    selectedBehavior,
     selectedThemeId,
     setCustomStreamUrlInput,
     signalState,

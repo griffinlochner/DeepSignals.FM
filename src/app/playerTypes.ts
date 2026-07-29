@@ -120,13 +120,10 @@ export type ReactivePreviewTelemetry = {
   saturationCap: number
   authoredBaseGlow: number
   reactiveKickBloom: number
-  reactiveKickSurfaceGlowBloom: number
   globalGlowMultiplier: number
   saturationMultiplier: number
   globalLightMultiplier: number
   finalGlobalGlowMultiplier: number
-  finalSurfaceGlowMultiplier: number
-  surfaceGlowMultiplier: number
   authoredHueCycleSuppressed: boolean
   authoredSaturationCycleSuppressed: boolean
   authoredGlobalGlowCycleSuppressed: boolean

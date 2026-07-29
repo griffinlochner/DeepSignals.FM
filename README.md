@@ -19,11 +19,9 @@ The current public site is a "coming soon" experience while the player is being 
 
 Built primarily as a learning project and a love letter to psychedelic trance.
 
-## Image Environment Workshop
+## Image Environment Workflow
 
-DeepSignals.FM includes an Environment Laboratory for authoring immersive image/depth environments at:
-
-`/experiments/environment-lab`
+DeepSignals.FM uses a source-controlled workflow for image/depth environments.
 
 Proven workflow:
 
@@ -34,14 +32,12 @@ Proven workflow:
 5. Create `public/environments/<id>/`.
 6. Add `<id>-color.webp`.
 7. Add `<id>-depth.png`.
-8. Add one entry in `src/themes/image-depth/environmentCatalog.ts`.
+8. Register the environment in `src/themes/image-depth/environmentCatalog.ts`.
 9. Run `npm run validate:environments`.
-10. Visually verify in `/player` and `/experiments/environment-lab`.
-11. Tune behavior.
-12. Optionally place Surface Glow hotspots.
-13. Export production-ready scene JSON.
-14. Promote the authored scene into the production player.
-15. Validate and commit.
+10. Define or tune behavior in `src/themes/image-depth/productionScenePresets.ts` (or use overrides in the catalog registration seed).
+11. Visually verify in `/player`.
+12. Optionally verify runtime behavior in `/player` while running locally in DEV.
+13. Validate and commit.
 
 Detailed guide: `docs/creating-image-environments.md`
 

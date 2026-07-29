@@ -131,14 +131,6 @@ export const GLOBULAR_KALEIDOSCOPE_TRIBE_AUDIO_SOURCE = createDemoTrackAudioSour
   attribution: 'Globular — Kaleidoscope Tribe, from Entangled Everything.',
 })
 
-export const STATION_IDENT_AUDIO_ASSET = {
-  id: 'deepsignals-fm-ident',
-  kind: 'station-ident',
-  title: 'DeepSignals FM Ident',
-  audioUrl: publicAssetUrl('/audio/idents/deepsignals-fm-ident.mp3'),
-  purpose: 'station-ident',
-} as const
-
 export const AUDIO_SOURCES: AudioSource[] = [
   DEMO_MODULATION_MANIPULATION_AUDIO_SOURCE,
   DEMO_MODULAR_DIMENSIONS_AUDIO_SOURCE,

@@ -16,8 +16,6 @@ type ImageDimensions = {
 const WEBP_RIFF = "RIFF";
 const WEBP_WEBP = "WEBP";
 const PNG_SIGNATURE = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
-const HEX_COLOR_PATTERN = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i;
-const ALLOWED_PULSE_MODES = new Set(["brightness", "bloom", "brightness-bloom", "soft-blink"]);
 
 const scriptFilePath = fileURLToPath(import.meta.url);
 const repoRoot = path.resolve(path.dirname(scriptFilePath), "..");
@@ -119,70 +117,6 @@ async function readImageDimensions(filePath: string): Promise<ImageDimensions | 
   return null;
 }
 
-function isFiniteNumber(value: unknown): value is number {
-  return typeof value === "number" && Number.isFinite(value);
-}
-
-function validateGlowDots(environmentId: string, errors: string[]) {
-  const environment = imageDepthEnvironmentCatalog.find((entry) => entry.id === environmentId);
-  if (!environment) {
-    return;
-  }
-
-  environment.glowDots.forEach((hotspot, index) => {
-    const prefix = `${environmentId} glowDots[${index}]`;
-
-    if (typeof hotspot.id !== "string" || hotspot.id.trim().length === 0) {
-      errors.push(`${prefix}: id must be a non-empty string.`);
-    }
-
-    if (!isFiniteNumber(hotspot.u) || hotspot.u < 0 || hotspot.u > 1) {
-      errors.push(`${prefix}: u must be a finite number between 0 and 1.`);
-    }
-
-    if (!isFiniteNumber(hotspot.v) || hotspot.v < 0 || hotspot.v > 1) {
-      errors.push(`${prefix}: v must be a finite number between 0 and 1.`);
-    }
-
-    if (typeof hotspot.color !== "string" || !HEX_COLOR_PATTERN.test(hotspot.color)) {
-      errors.push(`${prefix}: color must be a 3 or 6 digit hex string.`);
-    }
-
-    const numericFields: Array<[keyof typeof hotspot, number, number]> = [
-      ["radius", 0, Number.POSITIVE_INFINITY],
-      ["softness", 0, 1],
-      ["intensity", 0, Number.POSITIVE_INFINITY],
-      ["pulseAmount", 0, Number.POSITIVE_INFINITY],
-      ["minimumIntensityMultiplier", 0, Number.POSITIVE_INFINITY],
-      ["maximumIntensityMultiplier", 0, Number.POSITIVE_INFINITY],
-      ["radiusExpansionMultiplier", 0, Number.POSITIVE_INFINITY],
-      ["pulseCycleSeconds", 0, Number.POSITIVE_INFINITY],
-      ["hueDriftRangeDegrees", 0, Number.POSITIVE_INFINITY],
-      ["hueDriftCycleSeconds", 0, Number.POSITIVE_INFINITY],
-      ["phase", 0, 1],
-    ];
-
-    numericFields.forEach(([fieldName, min, max]) => {
-      const value = hotspot[fieldName];
-      if (!isFiniteNumber(value) || value < min || value > max) {
-        errors.push(`${prefix}: ${String(fieldName)} must be a finite number in range ${min}..${max}.`);
-      }
-    });
-
-    if (typeof hotspot.pulseEnabled !== "boolean") {
-      errors.push(`${prefix}: pulseEnabled must be boolean.`);
-    }
-
-    if (!ALLOWED_PULSE_MODES.has(hotspot.pulseMode)) {
-      errors.push(`${prefix}: pulseMode is invalid.`);
-    }
-
-    if (typeof hotspot.hueDriftEnabled !== "boolean") {
-      errors.push(`${prefix}: hueDriftEnabled must be boolean.`);
-    }
-  });
-}
-
 async function main() {
   const errors: string[] = [];
   const idCounts = new Map<string, number>();
@@ -198,8 +132,6 @@ async function main() {
     if (!knownSkinIds.has(environment.uiSkin)) {
       errors.push(`${environment.id}: unknown uiSkin ${environment.uiSkin}.`);
     }
-
-    validateGlowDots(environment.id, errors);
 
     const colorPath = toPublicAssetFilePath(environment.asset.colorImageUrl);
     const depthPath = toPublicAssetFilePath(environment.asset.depthMapUrl);
