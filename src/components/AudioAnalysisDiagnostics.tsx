@@ -4,7 +4,6 @@ import type {
   AudioAnalysisStatus,
   AudioReactiveSnapshot,
   ImageDepthSceneCounters,
-  ReactiveBehaviorId,
   ReactivePreviewTelemetry,
 } from '../app/playerTypes'
 import PanelChevronIcon from './PanelChevronIcon'
@@ -54,7 +53,6 @@ type AudioAnalysisDiagnosticsProps = {
   effectiveReactiveBpm: number | null
   ignoreSourceBpmEnabled?: boolean
   motionEnabled?: boolean
-  reactiveBehaviorOverride?: ReactiveBehaviorId | null
   reactiveDiagnosticsEnabled?: boolean
   getReactivePreviewTelemetry?: (() => ReactivePreviewTelemetry) | null
   sceneCounters?: ImageDepthSceneCounters | null
@@ -220,7 +218,6 @@ function AudioAnalysisDiagnostics({
   effectiveReactiveBpm,
   ignoreSourceBpmEnabled = false,
   motionEnabled = true,
-  reactiveBehaviorOverride = null,
   reactiveDiagnosticsEnabled = false,
   getReactivePreviewTelemetry = null,
   sceneCounters = null,
@@ -328,7 +325,6 @@ function AudioAnalysisDiagnostics({
               <p>Reactive Isolation: {displayedReactiveTelemetry.reactiveIsolationEnabled ? 'On' : 'Off'}</p>
               <p>Music Authority: {displayedReactiveTelemetry.musicAuthorityActive ? 'On' : 'Off'}</p>
               <p>Motion Gate: {displayedReactiveTelemetry.motionGateOpen ? 'Open' : 'Closed'}</p>
-              {reactiveBehaviorOverride ? <p>Behavior Override: {reactiveBehaviorOverride} (DEV query)</p> : null}
               <p>
                 Source BPM: {sourceBpm ?? 'n/a'} | Reactive BPM: {effectiveReactiveBpm ?? 'n/a'} | Assist {bpmAssistanceState}
               </p>
