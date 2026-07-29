@@ -1,4 +1,4 @@
-import { MAX_SURFACE_GLOW_HOTSPOTS } from "../../experiments/environment-lab/constants";
+import { MAX_SURFACE_GLOW_HOTSPOTS } from "./imageDepthConstants";
 import type { ImageDepthScenePreset } from "./types";
 
 export const DEFAULT_IMAGE_DEPTH_CHILL_BEHAVIOR: ImageDepthScenePreset["behavior"] = {

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import type { CSSProperties } from "react";
 import * as THREE from "three";
-import { MAX_SURFACE_GLOW_HOTSPOTS } from "../../experiments/environment-lab/constants";
+import { MAX_SURFACE_GLOW_HOTSPOTS } from "./imageDepthConstants";
 import type { AudioReactiveSnapshot } from "../../app/playerTypes";
 import type { ThemeSceneProps } from "../themeTypes";
 import { formatImageDepthPlaybackFilter, stepImageDepthPlaybackVisualMix } from "./imageDepthPlaybackVisuals";

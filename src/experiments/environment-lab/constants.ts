@@ -1,1 +1,1 @@
-export const MAX_SURFACE_GLOW_HOTSPOTS = 32;
+export { MAX_SURFACE_GLOW_HOTSPOTS } from "../../themes/image-depth/imageDepthConstants";
