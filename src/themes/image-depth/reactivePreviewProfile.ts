@@ -21,12 +21,9 @@ export type ReactiveBehaviorProfile = {
   ambientSwayScaleWhenReactive: number
   saturationMaxBoost: number
   globalLightMaxBoost: number
-  surfaceGlowMaxBoost: number
   transientGlowMaxBoost: number
   lightingAttackPerSecond: number
   lightingReleasePerSecond: number
-  glowAttackPerSecond: number
-  glowReleasePerSecond: number
   transientAttackPerSecond: number
   transientReleasePerSecond: number
   fullOnLowDepthTarget: number
@@ -42,13 +39,11 @@ export type ReactiveBehaviorProfile = {
   kickBloomHoldMs: number
   kickSaturationBloomMaxBoost: number
   kickGlobalGlowBloomMaxBoost: number
-  kickSurfaceGlowBloomMaxBoost: number
   chillHueDriftRangeDegrees: number
   chillHueDriftCycleSeconds: number
   authoredHueCycleScale: number
   authoredSaturationCycleScale: number
   authoredGlobalGlowCycleScale: number
-  authoredSurfaceGlowPeriodicScale: number
   sectionIntensityQuietFloor: number
   sectionIntensityFullLevel: number
   hueEventStride: number
@@ -81,12 +76,9 @@ export const REACTIVE_BEHAVIOR_PROFILES: Record<ReactiveBehaviorId, ReactiveBeha
     ambientSwayScaleWhenReactive: 0.13,
     saturationMaxBoost: 0.3,
     globalLightMaxBoost: 0.2,
-    surfaceGlowMaxBoost: 0.28,
     transientGlowMaxBoost: 0.19,
     lightingAttackPerSecond: 4.4,
     lightingReleasePerSecond: 1.8,
-    glowAttackPerSecond: 5.2,
-    glowReleasePerSecond: 2.2,
     transientAttackPerSecond: 11,
     transientReleasePerSecond: 4.4,
     fullOnLowDepthTarget: 0.22,
@@ -102,13 +94,11 @@ export const REACTIVE_BEHAVIOR_PROFILES: Record<ReactiveBehaviorId, ReactiveBeha
     kickBloomHoldMs: 90,
     kickSaturationBloomMaxBoost: 0.12,
     kickGlobalGlowBloomMaxBoost: 0.12,
-    kickSurfaceGlowBloomMaxBoost: 0.12,
     chillHueDriftRangeDegrees: 60,
     chillHueDriftCycleSeconds: 56,
     authoredHueCycleScale: 1,
     authoredSaturationCycleScale: 1,
     authoredGlobalGlowCycleScale: 1,
-    authoredSurfaceGlowPeriodicScale: 1,
     sectionIntensityQuietFloor: 0.2,
     sectionIntensityFullLevel: 0.58,
     hueEventStride: 1,
@@ -137,12 +127,9 @@ export const REACTIVE_BEHAVIOR_PROFILES: Record<ReactiveBehaviorId, ReactiveBeha
     ambientSwayScaleWhenReactive: 0.16,
     saturationMaxBoost: 0.56,
     globalLightMaxBoost: 0.42,
-    surfaceGlowMaxBoost: 0.62,
     transientGlowMaxBoost: 0.28,
     lightingAttackPerSecond: 7.5,
     lightingReleasePerSecond: 2.6,
-    glowAttackPerSecond: 9.5,
-    glowReleasePerSecond: 3.1,
     transientAttackPerSecond: 13,
     transientReleasePerSecond: 4.6,
     fullOnLowDepthTarget: 0.06,
@@ -158,13 +145,11 @@ export const REACTIVE_BEHAVIOR_PROFILES: Record<ReactiveBehaviorId, ReactiveBeha
     kickBloomHoldMs: 130,
     kickSaturationBloomMaxBoost: 0.7,
     kickGlobalGlowBloomMaxBoost: 0.68,
-    kickSurfaceGlowBloomMaxBoost: 1.35,
     chillHueDriftRangeDegrees: 0,
     chillHueDriftCycleSeconds: 1,
     authoredHueCycleScale: 0,
     authoredSaturationCycleScale: 0.2,
     authoredGlobalGlowCycleScale: 0.16,
-    authoredSurfaceGlowPeriodicScale: 0.42,
     sectionIntensityQuietFloor: 0.2,
     sectionIntensityFullLevel: 0.58,
     hueEventStride: 2,

@@ -1,1 +1,0 @@
-export const MAX_SURFACE_GLOW_HOTSPOTS = 32;

@@ -2,8 +2,6 @@ import type {
   ImageDepthAmbientParticlePreset,
   ImageDepthAsset,
   ImageDepthScenePreset,
-  ImageDepthSurfaceGlowDefaults,
-  ImageDepthSurfaceGlowHotspot,
 } from "./types";
 import {
   ANALOG_SIGNAL_LABORATORY_PRODUCTION_SCENE_PRESET,
@@ -14,7 +12,6 @@ import {
   FEMALE_DJ_2_PRODUCTION_SCENE_PRESET,
   SLIME_CAVERN_PRODUCTION_SCENE_PRESET,
   DEFAULT_IMAGE_DEPTH_CHILL_BEHAVIOR,
-  DEFAULT_SURFACE_GLOW_SETTINGS,
   UV_JUNGLE_PRODUCTION_SCENE_PRESET,
 } from "./productionScenePresets";
 
@@ -32,7 +29,6 @@ export type EnvironmentCatalogEntry = {
   id: string;
   displayName: string;
   uiSkin: PlayerSkinId;
-  glowDots: ImageDepthSurfaceGlowHotspot[];
   description: string;
   sceneBackdrop?: string;
   asset: ImageDepthAsset;
@@ -43,18 +39,11 @@ type EnvironmentCatalogSeed = {
   id: string;
   displayName: string;
   uiSkin: PlayerSkinId;
-  glowDots: ImageDepthSurfaceGlowHotspot[];
   description?: string;
   sceneBackdrop?: string;
   productionBehaviorOverride?: ImageDepthScenePreset["behavior"];
-  surfaceGlowDefaultsOverride?: ImageDepthSurfaceGlowDefaults;
-  surfaceGlowsEnabledOverride?: boolean;
   ambientParticlesOverride?: ImageDepthAmbientParticlePreset;
 };
-
-function cloneGlowDots(hotspots: ImageDepthSurfaceGlowHotspot[]): ImageDepthSurfaceGlowHotspot[] {
-  return hotspots.map((hotspot) => ({ ...hotspot }));
-}
 
 function createEnvironmentAssetUrls(id: string) {
   return {
@@ -69,10 +58,6 @@ function cloneBehavior(behavior: ImageDepthScenePreset["behavior"]): ImageDepthS
     color: { ...behavior.color },
     saturationPulse: { ...behavior.saturationPulse },
   };
-}
-
-function cloneSurfaceGlowDefaults(defaults: ImageDepthSurfaceGlowDefaults): ImageDepthSurfaceGlowDefaults {
-  return { ...defaults };
 }
 
 function cloneAmbientParticles(
@@ -95,22 +80,12 @@ function cloneAmbientParticles(
 
 function createDerivedProductionScenePreset(seed: EnvironmentCatalogSeed): ImageDepthScenePreset {
   const behavior = cloneBehavior(seed.productionBehaviorOverride ?? DEFAULT_IMAGE_DEPTH_CHILL_BEHAVIOR);
-  const defaults = cloneSurfaceGlowDefaults(
-    seed.surfaceGlowDefaultsOverride ?? DEFAULT_SURFACE_GLOW_SETTINGS,
-  );
-  const hotspots = cloneGlowDots(seed.glowDots);
-  const surfaceGlowsEnabled = seed.surfaceGlowsEnabledOverride ?? true;
 
   return {
     id: `${seed.id}-default`,
     name: seed.displayName,
     assetId: seed.id,
     behavior,
-    surfaceGlows: {
-      enabled: surfaceGlowsEnabled,
-      defaults,
-      hotspots,
-    },
     ambientParticles: cloneAmbientParticles(seed.ambientParticlesOverride),
   };
 }
@@ -126,7 +101,6 @@ function buildCatalogEntry(seed: EnvironmentCatalogSeed): EnvironmentCatalogEntr
     id: seed.id,
     displayName: seed.displayName,
     uiSkin: seed.uiSkin,
-    glowDots: cloneGlowDots(seed.glowDots),
     description: seed.description ?? createEnvironmentDescription(seed.displayName),
     sceneBackdrop: seed.sceneBackdrop,
     asset: {
@@ -153,14 +127,9 @@ function createSeedFromLegacyPreset(
     id,
     displayName,
     uiSkin,
-    glowDots: cloneGlowDots(legacyPreset.surfaceGlows.hotspots),
     description: options.description,
     sceneBackdrop: options.sceneBackdrop,
     productionBehaviorOverride: cloneBehavior(legacyPreset.behavior),
-    surfaceGlowDefaultsOverride: legacyPreset.surfaceGlows.defaults
-      ? cloneSurfaceGlowDefaults(legacyPreset.surfaceGlows.defaults)
-      : cloneSurfaceGlowDefaults(DEFAULT_SURFACE_GLOW_SETTINGS),
-    surfaceGlowsEnabledOverride: legacyPreset.surfaceGlows.enabled,
     ambientParticlesOverride: cloneAmbientParticles(legacyPreset.ambientParticles),
   };
 }
@@ -279,11 +248,10 @@ export const imageDepthEnvironmentRegistrationSeeds: EnvironmentCatalogSeed[] = 
     ),
   },
   {
-  id: "psychedelic-temple",
-  displayName: "Psychedelic Temple",
-  uiSkin: "violet-cyan",
-  glowDots: [],
-},
+    id: "psychedelic-temple",
+    displayName: "Psychedelic Temple",
+    uiSkin: "violet-cyan",
+  },
 ];
 
 export const imageDepthEnvironmentCatalog: EnvironmentCatalogEntry[] =

@@ -174,13 +174,10 @@ const ZERO_REACTIVE_TELEMETRY: ReactivePreviewTelemetry = {
   saturationCap: 2,
   authoredBaseGlow: 1,
   reactiveKickBloom: 0,
-  reactiveKickSurfaceGlowBloom: 0,
   globalGlowMultiplier: 1,
   saturationMultiplier: 1,
   globalLightMultiplier: 1,
   finalGlobalGlowMultiplier: 1,
-  finalSurfaceGlowMultiplier: 1,
-  surfaceGlowMultiplier: 1,
   authoredHueCycleSuppressed: false,
   authoredSaturationCycleSuppressed: false,
   authoredGlobalGlowCycleSuppressed: false,
@@ -488,8 +485,7 @@ function AudioAnalysisDiagnostics({
             {formatNumber(displayedReactiveTelemetry.kickBloomEnvelope)} | sat x
             {formatNumber(displayedReactiveTelemetry.saturationBloomMultiplier)} | gGlow x
             {formatNumber(displayedReactiveTelemetry.globalGlowMultiplier)} | gLight x
-            {formatNumber(displayedReactiveTelemetry.globalLightMultiplier)} | surface x
-            {formatNumber(displayedReactiveTelemetry.surfaceGlowMultiplier)} | tr{' '}
+            {formatNumber(displayedReactiveTelemetry.globalLightMultiplier)} | tr{' '}
             {formatNumber(displayedReactiveTelemetry.transientAccent)}
           </p>
           <p>
@@ -505,10 +501,8 @@ function AudioAnalysisDiagnostics({
           </p>
           <p>
             glowBase {formatNumber(displayedReactiveTelemetry.authoredBaseGlow)} | kickGlow{' '}
-            {formatNumber(displayedReactiveTelemetry.reactiveKickBloom)} | kickSurface{' '}
-            {formatNumber(displayedReactiveTelemetry.reactiveKickSurfaceGlowBloom)} | glowFinal x
-            {formatNumber(displayedReactiveTelemetry.finalGlobalGlowMultiplier)} | surfaceFinal x
-            {formatNumber(displayedReactiveTelemetry.finalSurfaceGlowMultiplier)}
+            {formatNumber(displayedReactiveTelemetry.reactiveKickBloom)} | glowFinal x
+            {formatNumber(displayedReactiveTelemetry.finalGlobalGlowMultiplier)}
           </p>
           <p>
             hueCycle {displayedReactiveTelemetry.authoredHueCycleSuppressed ? 'suppressed' : 'authored'} | satCycle{' '}
