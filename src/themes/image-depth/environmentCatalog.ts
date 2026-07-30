@@ -9,7 +9,6 @@ import {
   BIOLUMINESCENT_PSY_REEF_PRODUCTION_SCENE_PRESET,
   CRYSTAL_CAVERN_PRODUCTION_SCENE_PRESET,
   FEMALE_DJ_1_PRODUCTION_SCENE_PRESET,
-  FEMALE_DJ_2_PRODUCTION_SCENE_PRESET,
   SLIME_CAVERN_PRODUCTION_SCENE_PRESET,
   DEFAULT_IMAGE_DEPTH_CHILL_BEHAVIOR,
   UV_JUNGLE_PRODUCTION_SCENE_PRESET,
@@ -230,20 +229,6 @@ export const imageDepthEnvironmentRegistrationSeeds: EnvironmentCatalogSeed[] = 
           "Production image-depth Female DJ 1 environment authored through the shared runtime.",
         sceneBackdrop:
           "radial-gradient(circle at 24% 16%, rgba(255, 158, 214, 0.13), transparent 28%), radial-gradient(circle at 74% 22%, rgba(255, 214, 120, 0.1), transparent 26%), radial-gradient(circle at 52% 80%, rgba(255, 96, 180, 0.08), transparent 24%), linear-gradient(180deg, rgba(24, 8, 20, 0.98), rgba(10, 4, 12, 1))",
-      },
-    ),
-  },
-  {
-    ...createSeedFromLegacyPreset(
-      "female-dj-2",
-      "Female DJ 2",
-      "violet-cyan",
-      FEMALE_DJ_2_PRODUCTION_SCENE_PRESET,
-      {
-        description:
-          "Production image-depth Female DJ 2 environment authored through the shared runtime.",
-        sceneBackdrop:
-          "radial-gradient(circle at 22% 18%, rgba(139, 207, 255, 0.12), transparent 28%), radial-gradient(circle at 76% 20%, rgba(255, 120, 194, 0.1), transparent 26%), radial-gradient(circle at 50% 82%, rgba(173, 119, 255, 0.08), transparent 24%), linear-gradient(180deg, rgba(16, 10, 25, 0.98), rgba(7, 4, 12, 1))",
       },
     ),
   },

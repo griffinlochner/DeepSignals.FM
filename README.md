@@ -41,6 +41,20 @@ Proven workflow:
 
 Detailed guide: `docs/creating-image-environments.md`
 
+### Removing an image environment
+
+Use this manual cleanup workflow:
+
+1. Remove the environment seed from `src/themes/image-depth/environmentCatalog.ts`.
+2. Remove its production preset from `src/themes/image-depth/productionScenePresets.ts`.
+3. Remove any now-unused preset imports.
+4. Delete its color and depth assets under `public/environments/<environment-id>/`.
+5. Delete environment-specific wrapper files under `src/themes/<environment-id>/` only if such files actually exist.
+6. Search the repository for the environment id, display name, and preset symbol to confirm no stale references remain.
+7. Run `npm run build`, `npm run lint`, and `npm run validate:environments`.
+
+The environment validator derives its total count from the catalog automatically, so a hard-coded environment count usually does not need updating.
+
 ## Tech Stack
 
 - TypeScript

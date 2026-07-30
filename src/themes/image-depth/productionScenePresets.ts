@@ -238,9 +238,3 @@ export const FEMALE_DJ_1_PRODUCTION_SCENE_PRESET = createProductionScenePreset(
   "Female DJ 1",
   "female-dj-1-default",
 );
-
-export const FEMALE_DJ_2_PRODUCTION_SCENE_PRESET = createProductionScenePreset(
-  "female-dj-2",
-  "Female DJ 2",
-  "female-dj-2-default",
-);
