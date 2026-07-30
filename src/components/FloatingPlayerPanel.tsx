@@ -179,7 +179,16 @@ function FloatingPlayerPanel({
               </span>
             </label>
 
-            <label className="floating-player-panel__switch floating-player-panel__motion-switch">
+            <label
+              className={[
+                'floating-player-panel__switch',
+                'floating-player-panel__motion-switch',
+                !supportsMotion ? 'floating-player-panel__motion-switch--disabled' : '',
+              ]
+                .filter(Boolean)
+                .join(' ')}
+              title={!supportsMotion ? 'Motion is not available for this environment.' : undefined}
+            >
               <input
                 className="floating-player-panel__switch-checkbox"
                 type="checkbox"

@@ -330,6 +330,56 @@
   border-color: rgba(123, 242, 217, 0.54);
 }
 
+.floating-player-panel__motion-switch--disabled,
+.floating-player-panel__motion-switch--disabled .floating-player-panel__switch-label,
+.floating-player-panel__motion-switch--disabled .floating-player-panel__switch-track,
+.floating-player-panel__motion-switch--disabled .floating-player-panel__switch-thumb {
+  cursor: not-allowed;
+}
+
+.floating-player-panel__motion-switch--disabled {
+  border-color: rgba(165, 243, 234, 0.12);
+  background: rgba(8, 21, 26, 0.44);
+}
+
+.floating-player-panel__motion-switch--disabled:hover {
+  border-color: rgba(165, 243, 234, 0.12);
+}
+
+.floating-player-panel__motion-switch--disabled:focus-within {
+  outline: none;
+}
+
+.floating-player-panel__motion-switch--disabled .floating-player-panel__switch-label {
+  color: rgba(189, 229, 223, 0.44);
+}
+
+.floating-player-panel__motion-switch--disabled .floating-player-panel__switch-track {
+  background: rgba(112, 145, 141, 0.26);
+  border-color: rgba(140, 188, 180, 0.24);
+}
+
+.floating-player-panel__motion-switch--disabled .floating-player-panel__switch-thumb {
+  background: rgba(233, 248, 244, 0.48);
+  transform: translateX(0);
+}
+
+.floating-player-panel__motion-switch--disabled
+  .floating-player-panel__switch-checkbox:checked
+  + .floating-player-panel__switch-label
+  + .floating-player-panel__switch-track {
+  background: rgba(112, 145, 141, 0.26);
+  border-color: rgba(140, 188, 180, 0.24);
+}
+
+.floating-player-panel__motion-switch--disabled
+  .floating-player-panel__switch-checkbox:checked
+  + .floating-player-panel__switch-label
+  + .floating-player-panel__switch-track
+  .floating-player-panel__switch-thumb {
+  transform: translateX(0);
+}
+
 .floating-player-panel__volume-row {
   display: grid;
   grid-template-columns: auto minmax(190px, 1fr);
