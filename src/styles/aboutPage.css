@@ -253,7 +253,7 @@
   min-height: auto;
   display: flex;
   align-items: flex-start;
-  padding-bottom: clamp(24px, 4.2vw, 42px);
+  padding-bottom: clamp(2.25rem, 4vw, 3.75rem);
 }
 
 .about-hero__content {
@@ -263,7 +263,7 @@
 }
 
 .about-hero__title {
-  margin: 14px 0 0;
+  margin: clamp(0.75rem, 1.5vw, 1rem) 0 0;
   display: inline-flex;
   align-items: baseline;
   flex-wrap: nowrap;
@@ -351,14 +351,14 @@
   padding-top: 0;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: clamp(10px, 1.9vw, 18px);
+  gap: clamp(0.75rem, 1.5vw, 1rem);
   align-items: start;
   width: 100%;
   min-width: 0;
 }
 
 .about-section + .about-section {
-  margin-top: clamp(26px, 4vw, 44px);
+  margin-top: clamp(2.25rem, 4vw, 3.75rem);
 }
 
 .about-section__copy {
@@ -490,10 +490,6 @@
 @media (max-width: 960px) {
   .about-page-main {
     padding-bottom: 86px;
-  }
-
-  .about-hero {
-    padding-bottom: clamp(18px, 3.4vw, 30px);
   }
 
   .about-hero__visual {
