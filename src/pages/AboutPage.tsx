@@ -33,7 +33,7 @@ function AboutPage() {
       <PublicSiteNav currentPage="about" />
 
       <main className="about-page-main">
-        <div className="about-page-content-frame">
+        <div className="about-content-frame">
           <section className="about-hero" aria-labelledby="about-hero-title">
             <div className="about-hero__content">
               <p className="about-page__eyebrow about-page__label-pulse about-page__label-pulse--zero">00 // INCOMING TRANSMISSION:</p>
@@ -47,7 +47,9 @@ function AboutPage() {
               </h1>
 
               <p className="about-hero__intro">
-                DeepSignals.FM is an independent, ad-free psychedelic trance transmission, broadcasting from the outer reaches of the internet to the farthest corners of the galaxy. We are a community of psytrance enthusiasts, dedicated to sharing the music we love and connecting with listeners around the world.
+                <span className="about-associated-gradient-text">
+                  DeepSignals.FM is an independent, ad-free psychedelic trance transmission, broadcasting from the outer reaches of the internet to the farthest corners of the galaxy. We are a community of psytrance enthusiasts, dedicated to sharing the music we love and connecting with listeners around the world.
+                </span>
               </p>
             </div>
 
@@ -60,7 +62,9 @@ function AboutPage() {
             <p className="about-page__section-label about-page__label-pulse about-page__label-pulse--one">01 // ORIGIN OF TRANSMISSION</p>
             <div className="about-section__copy">
               <p id="about-origin-title">
-                Somewhere between distant stations, scattered psytrance playlists, and late-night searches through the outer reaches of the internet, a signal began to form.
+                <span className="about-associated-gradient-text">
+                  Somewhere between distant stations, scattered psytrance playlists, and late-night searches through the outer reaches of the internet, a signal began to form.
+                </span>
               </p>
             </div>
           </section>
@@ -69,7 +73,9 @@ function AboutPage() {
             <p className="about-page__section-label about-page__label-pulse about-page__label-pulse--two">02 // MISSION VECTOR</p>
             <div className="about-section__copy about-section__copy--wide">
               <h2 className="about-section__statement" id="about-mission-title">
-                TRANSMITTING PSYTRANCE BEYOND THE STARS...
+                <span className="about-associated-gradient-text">
+                  TRANSMITTING PSYTRANCE BEYOND THE STARS...
+                </span>
               </h2>
             </div>
           </section>
