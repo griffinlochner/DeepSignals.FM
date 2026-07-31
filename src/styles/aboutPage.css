@@ -1,6 +1,6 @@
 .about-page-shell {
-  --about-frame-max: 1080px;
-  --about-frame-gutter: clamp(16px, 3.4vw, 40px);
+  --about-frame-max: 76rem;
+  --about-frame-gutter: clamp(1rem, 4vw, 3rem);
   --about-gradient-major: linear-gradient(138deg, rgba(158, 255, 112, 0.98) 0%, rgba(95, 245, 255, 0.96) 47%, rgba(246, 221, 255, 0.92) 100%);
   --about-gradient-copy: linear-gradient(138deg, rgba(230, 249, 255, 0.96) 0%, rgba(217, 236, 255, 0.94) 58%, rgba(235, 224, 255, 0.92) 100%);
   --about-gradient-label: linear-gradient(118deg, rgba(120, 244, 255, 0.95) 0%, rgba(211, 202, 255, 0.9) 100%);
@@ -123,9 +123,9 @@
 .about-content-frame {
   box-sizing: border-box;
   width: 100%;
-  max-width: 64rem;
+  max-width: var(--about-frame-max);
   margin-inline: auto;
-  padding-inline: clamp(1.25rem, 5vw, 4rem);
+  padding-inline: var(--about-frame-gutter);
 }
 
 .about-associated-gradient-text {
@@ -147,15 +147,15 @@
 
 .about-page-shell .public-site-nav {
   box-sizing: border-box;
-  width: calc(100% - 2rem);
-  max-width: 72rem;
+  width: 100%;
+  max-width: var(--about-frame-max);
   margin-inline: auto;
-  padding: clamp(14px, 1.8vw, 22px) 0 0;
+  padding: clamp(14px, 1.8vw, 22px) var(--about-frame-gutter) 0;
 }
 
 .about-page-shell .public-site-nav__bar {
   box-sizing: border-box;
-  width: fit-content;
+  width: 100%;
   max-width: 100%;
   margin-inline: auto;
   padding: clamp(12px, 1.7vw, 18px) clamp(14px, 2.3vw, 26px);
@@ -164,6 +164,8 @@
 }
 
 .about-page-shell .public-site-nav__brand {
+  box-sizing: border-box;
+  width: 100%;
   max-width: 100%;
   min-width: 0;
 }
@@ -175,9 +177,19 @@
 }
 
 .about-page-shell .public-brand-ident {
-  font-size: clamp(1.02rem, 0.4rem + 4.2vw, 5.75rem);
-  letter-spacing: clamp(0.04em, 0.03em + 0.08vw, 0.078em);
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  font-size: clamp(2rem, 4.5vw, 4.35rem);
+  letter-spacing: clamp(0.08em, 0.45vw, 0.13em);
   line-height: 0.98;
+  white-space: nowrap;
+}
+
+.about-page-shell .public-brand-ident__cell {
+  width: 0.9em;
+  min-width: 0.9em;
 }
 
 .about-page__eyebrow,
@@ -188,9 +200,9 @@
   background-clip: text;
   color: transparent;
   font-family: var(--display);
-  font-size: clamp(0.86rem, 0.8rem + 0.16vw, 0.98rem);
+  font-size: clamp(0.95rem, 0.84rem + 0.35vw, 1.3rem);
   letter-spacing: 0.22em;
-  line-height: 1.4;
+  line-height: 1.3;
   text-transform: uppercase;
 }
 
@@ -250,10 +262,23 @@
 
 .about-hero__intro {
   margin: 24px 0 0;
+}
+
+.about-transmission-copy {
   width: 100%;
   max-width: 100%;
+  min-width: 0;
+  margin-inline: 0;
+  font-family: inherit;
   font-size: clamp(1.05rem, 1.03rem + 0.25vw, 1.24rem);
+  font-weight: 400;
   line-height: 1.72;
+  letter-spacing: 0;
+}
+
+.about-section__statement.about-transmission-copy {
+  font-family: inherit;
+  text-transform: none;
 }
 
 .about-hero__visual {
@@ -302,15 +327,6 @@
   min-width: 0;
 }
 
-.about-section__copy p {
-  width: 100%;
-  max-width: 100%;
-  min-width: 0;
-  margin-inline: 0;
-  font-size: 1.01rem;
-  line-height: 1.84;
-}
-
 .about-section__title,
 .about-section__statement,
 .about-section__closing-title {
@@ -334,10 +350,7 @@
   max-width: 100%;
   min-width: 0;
   margin-inline: 0;
-  font-size: clamp(1.35rem, 1.15rem + 0.9vw, 2rem);
-  line-height: 1.16;
-  letter-spacing: 0.035em;
-  text-wrap: balance;
+  text-wrap: wrap;
 }
 
 .about-section__copy--wide {
@@ -453,17 +466,15 @@
   }
 
   .about-page-shell .public-site-nav__bar {
-    width: fit-content;
     padding: 12px 13px;
     border-radius: 16px;
   }
 
   .about-page-shell .public-brand-ident {
-    letter-spacing: clamp(0.036em, 0.026em + 0.08vw, 0.056em);
+    letter-spacing: clamp(0.075em, 0.35vw, 0.12em);
   }
 
-  .about-hero__intro,
-  .about-section__copy p {
+  .about-transmission-copy {
     font-size: 0.98rem;
     line-height: 1.75;
   }

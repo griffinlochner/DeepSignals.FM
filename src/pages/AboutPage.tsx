@@ -46,7 +46,7 @@ function AboutPage() {
                 <span className="about-hero__fm">FM</span>
               </h1>
 
-              <p className="about-hero__intro">
+              <p className="about-hero__intro about-transmission-copy">
                 <span className="about-associated-gradient-text">
                   DeepSignals.FM is an independent, ad-free psychedelic trance transmission, broadcasting from the outer reaches of the internet to the farthest corners of the galaxy. We are a community of psytrance enthusiasts, dedicated to sharing the music we love and connecting with listeners around the world.
                 </span>
@@ -61,7 +61,7 @@ function AboutPage() {
           <section className="about-section about-section--origin" aria-labelledby="about-origin-title">
             <p className="about-page__section-label about-page__label-pulse about-page__label-pulse--one">01 // ORIGIN OF TRANSMISSION</p>
             <div className="about-section__copy">
-              <p id="about-origin-title">
+              <p className="about-transmission-copy" id="about-origin-title">
                 <span className="about-associated-gradient-text">
                   Somewhere between distant stations, scattered psytrance playlists, and late-night searches through the outer reaches of the internet, a signal began to form.
                 </span>
@@ -72,7 +72,7 @@ function AboutPage() {
           <section className="about-section about-section--mission" aria-labelledby="about-mission-title">
             <p className="about-page__section-label about-page__label-pulse about-page__label-pulse--two">02 // MISSION VECTOR</p>
             <div className="about-section__copy about-section__copy--wide">
-              <h2 className="about-section__statement" id="about-mission-title">
+              <h2 className="about-section__statement about-transmission-copy" id="about-mission-title">
                 <span className="about-associated-gradient-text">
                   TRANSMITTING PSYTRANCE BEYOND THE STARS...
                 </span>
