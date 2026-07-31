@@ -1,0 +1,85 @@
+.public-brand-ident {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  color: #e9f8ff;
+  font-family: 'Consolas', 'SFMono-Regular', 'Menlo', 'Monaco', 'Liberation Mono', 'Courier New', monospace;
+  font-size: clamp(2.75rem, 1.18rem + 2.4vw, 4.85rem);
+  font-weight: 700;
+  letter-spacing: 0.082em;
+  line-height: 1;
+  text-transform: uppercase;
+  text-shadow:
+    0 0 8px rgba(70, 247, 255, 0.26),
+    0 0 14px rgba(255, 82, 184, 0.14);
+  white-space: nowrap;
+}
+
+.public-brand-ident__cell {
+  display: inline-flex;
+  width: 0.96em;
+  min-width: 0.96em;
+  justify-content: center;
+  align-items: center;
+  transition: color 140ms linear;
+}
+
+.public-brand-ident__cell--resolved {
+  font-family: var(--display);
+  font-weight: 600;
+}
+
+.public-brand-ident__cell--resolved.public-brand-ident__cell--deep {
+  color: #9cff57;
+}
+
+.public-brand-ident__cell--resolved.public-brand-ident__cell--signals {
+  color: #47f7ff;
+}
+
+.public-brand-ident__cell--resolved.public-brand-ident__cell--dot {
+  color: #ff57b7;
+}
+
+.public-brand-ident__cell--resolved.public-brand-ident__cell--fm {
+  color: #ff7fa1;
+}
+
+.public-brand-ident__cell--scrambling {
+  color: rgba(107, 247, 255, 0.82);
+}
+
+.public-brand-ident__cell--scrambling:nth-child(3n) {
+  color: rgba(255, 101, 195, 0.82);
+}
+
+.public-brand-ident__cell--scrambling:nth-child(4n) {
+  color: rgba(157, 255, 87, 0.72);
+}
+
+@media (max-width: 1140px) {
+  .public-brand-ident {
+    font-size: clamp(2.28rem, 1.18rem + 1.54vw, 3.2rem);
+  }
+}
+
+@media (max-width: 760px) {
+  .public-brand-ident {
+    font-size: clamp(1.52rem, 1.14rem + 1.46vw, 2.08rem);
+    letter-spacing: 0.074em;
+  }
+}
+
+@media (max-width: 420px) {
+  .public-brand-ident {
+    font-size: clamp(1.28rem, 1.04rem + 1.2vw, 1.62rem);
+    letter-spacing: 0.068em;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .public-brand-ident__cell {
+    transition: none;
+  }
+}
