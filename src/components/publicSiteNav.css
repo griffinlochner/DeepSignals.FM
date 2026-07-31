@@ -1,0 +1,118 @@
+.public-site-nav {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  padding: clamp(16px, 2vw, 24px) clamp(20px, 3.4vw, 44px) 0;
+}
+
+.public-site-nav__bar {
+  width: min(1180px, 100%);
+  margin: 0 auto;
+  padding: 14px 20px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  flex-direction: column;
+  gap: 20px;
+  border: 1px solid rgba(114, 95, 201, 0.28);
+  border-radius: 999px;
+  background: rgba(5, 6, 14, 0.72);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    0 18px 54px rgba(0, 0, 0, 0.44);
+  backdrop-filter: blur(18px);
+}
+
+.public-site-nav__brand,
+.public-site-nav__link {
+  color: inherit;
+}
+
+.public-site-nav__brand {
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
+}
+
+.public-site-nav__links {
+  display: inline-flex;
+  align-items: center;
+  gap: clamp(18px, 1.7vw, 26px);
+}
+
+.public-site-nav__link {
+  position: relative;
+  padding: 8px 2px;
+  color: rgba(216, 230, 255, 0.8);
+  font-family: var(--display);
+  font-size: 0.8rem;
+  letter-spacing: 0.18em;
+  line-height: 1;
+  text-decoration: none;
+  text-transform: uppercase;
+  transition: color 180ms ease;
+}
+
+.public-site-nav__link::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 1px;
+  background: linear-gradient(90deg, #46f7ff 0%, #8f4dff 55%, #9cff57 100%);
+  opacity: 0;
+  transform: scaleX(0.45);
+  transform-origin: center;
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease;
+}
+
+.public-site-nav__link:hover,
+.public-site-nav__link:focus-visible {
+  color: #f8fbff;
+}
+
+.public-site-nav__link:hover::after,
+.public-site-nav__link:focus-visible::after,
+.public-site-nav__link--active::after {
+  opacity: 1;
+  transform: scaleX(1);
+}
+
+.public-site-nav__link--active {
+  color: #f4faff;
+}
+
+.public-site-nav__link:focus-visible {
+  outline: 2px solid rgba(155, 255, 87, 0.92);
+  outline-offset: 5px;
+  border-radius: 4px;
+}
+
+@media (max-width: 640px) {
+  .public-site-nav {
+    padding-inline: 16px;
+  }
+
+  .public-site-nav__bar {
+    padding: 14px 16px;
+    border-radius: 20px;
+  }
+
+  .public-site-nav__brand {
+    margin-bottom: 2px;
+  }
+
+  .public-site-nav__links {
+    gap: 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .public-site-nav__link,
+  .public-site-nav__link::after {
+    transition: none;
+  }
+}

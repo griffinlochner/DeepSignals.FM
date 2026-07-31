@@ -1,4 +1,16 @@
 :root {
+  --display: 'DeepSignals Ident', 'Segoe UI', sans-serif;
+}
+
+@font-face {
+  font-family: 'DeepSignals Ident';
+  src: url('./assets/fonts/chakra-petch/ChakraPetch-SemiBold.ttf') format('truetype');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
   --text: #9ca3af;
   --text-h: #f3f4f6;
   --bg: #16171d;
@@ -47,6 +59,7 @@ body {
 }
 
 html.reactivity-lab-page,
+html.about-page,
 body.reactivity-lab-page {
   height: auto;
   min-height: 100%;
@@ -54,7 +67,20 @@ body.reactivity-lab-page {
   overflow-x: hidden;
 }
 
+body.about-page {
+  height: auto;
+  min-height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
 #root.reactivity-lab-page {
+  height: auto;
+  min-height: 100vh;
+  overflow: visible;
+}
+
+#root.about-page {
   height: auto;
   min-height: 100vh;
   overflow: visible;

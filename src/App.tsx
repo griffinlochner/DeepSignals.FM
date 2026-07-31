@@ -1,4 +1,5 @@
 import ReactivityLabPage from "./experiments/reactivity-lab/ReactivityLabPage";
+import AboutPage from "./pages/AboutPage";
 import LandingPage from "./pages/LandingPage";
 import PlayerPage from "./pages/PlayerPage";
 
@@ -23,6 +24,10 @@ function App() {
 
   if (pathname === "/player") {
     return <PlayerPage />;
+  }
+
+  if (pathname === "/about") {
+    return <AboutPage />;
   }
 
   return <LandingPage />;
