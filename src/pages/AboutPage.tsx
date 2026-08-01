@@ -88,14 +88,6 @@ function AboutPage() {
               </h2>
             </div>
           </section>
-
-          <section className="about-section about-section--closing" aria-labelledby="about-closing-title">
-            <div className="about-section__copy about-section__copy--closing">
-              <h2 className="about-section__closing-title" id="about-closing-title">
-                THE SIGNAL IS STILL FORMING...
-              </h2>
-            </div>
-          </section>
         </div>
       </main>
     </div>

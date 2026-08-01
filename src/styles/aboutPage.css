@@ -199,6 +199,7 @@
   box-sizing: border-box;
   width: 100%;
   max-width: 100%;
+  min-width: 0;
   margin-inline: auto;
   padding: clamp(12px, 1.7vw, 18px) clamp(14px, 2.3vw, 26px);
   gap: clamp(12px, 1.6vw, 18px);
@@ -224,14 +225,7 @@
   max-width: 100%;
   min-width: 0;
   font-size: clamp(2rem, 4.5vw, 4.35rem);
-  letter-spacing: clamp(0.08em, 0.45vw, 0.13em);
   line-height: 0.98;
-  white-space: nowrap;
-}
-
-.about-page-shell .public-brand-ident__cell {
-  width: 0.9em;
-  min-width: 0.9em;
 }
 
 .about-page__eyebrow,
@@ -370,8 +364,7 @@
 }
 
 .about-section__title,
-.about-section__statement,
-.about-section__closing-title {
+.about-section__statement {
   margin: 0;
   font-family: var(--display);
   text-transform: uppercase;
@@ -399,24 +392,6 @@
   width: 100%;
   max-width: 100%;
   min-width: 0;
-}
-
-.about-section--closing {
-  padding-top: clamp(70px, 8vw, 116px);
-  grid-template-columns: minmax(0, 1fr);
-}
-
-.about-section__copy--closing {
-  justify-items: start;
-}
-
-.about-section__closing-title {
-  font-size: clamp(1.5rem, 2.4vw, 2.34rem);
-  line-height: 1.08;
-  letter-spacing: 0.12em;
-  color: #edf4ff;
-  opacity: 0.9;
-  animation: about-closing-pulse 8.8s ease-in-out infinite;
 }
 
 .about-page__label-pulse {
@@ -470,23 +445,6 @@
   }
 }
 
-@keyframes about-closing-pulse {
-  0% {
-    opacity: 0.62;
-    text-shadow: 0 0 4px rgba(130, 226, 255, 0.1);
-  }
-
-  52% {
-    opacity: 0.95;
-    text-shadow: 0 0 14px rgba(130, 226, 255, 0.22);
-  }
-
-  100% {
-    opacity: 0.62;
-    text-shadow: 0 0 4px rgba(130, 226, 255, 0.1);
-  }
-}
-
 @media (max-width: 960px) {
   .about-page-main {
     padding-bottom: 86px;
@@ -509,7 +467,7 @@
   }
 
   .about-page-shell .public-brand-ident {
-    letter-spacing: clamp(0.075em, 0.35vw, 0.12em);
+    font-size: clamp(1.45rem, 6.5vw, 2.15rem);
   }
 
   .about-transmission-copy {
@@ -581,8 +539,7 @@
     transform: translate(-50%, -50%) scale(16);
   }
 
-  .about-page__label-pulse,
-  .about-section__closing-title {
+  .about-page__label-pulse {
     animation: none;
     opacity: 1;
     filter: none;
