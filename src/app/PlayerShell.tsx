@@ -56,7 +56,8 @@ const SIGNAL_TELEMETRY_COLLAPSED_STORAGE_KEY_V1 =
 
 const SIGNAL_TELEMETRY_MAX_WIDTH = 820;
 const SIGNAL_TELEMETRY_MIN_HEIGHT_FOR_COLLAPSED = 620;
-const SIGNAL_TELEMETRY_MIN_HEIGHT_FOR_EXPANDED = 760;
+const SIGNAL_TELEMETRY_MIN_HEIGHT_FOR_EXPANDED = 705;
+const SIGNAL_TELEMETRY_MIN_HEIGHT_FOR_EXPANDED_TABLET = 760;
 
 const FULLON_STOP_SETTLE_DEPTH = 0.5;
 const FULLON_STOP_SETTLE_HUE_DEGREES = 0;
@@ -254,10 +255,12 @@ function isSignalTelemetryUiAvailable(
     return false;
   }
 
-  if (
-    !collapsed &&
-    viewportHeight <= SIGNAL_TELEMETRY_MIN_HEIGHT_FOR_EXPANDED
-  ) {
+  const expandedMinimumHeight =
+    viewportWidth <= 1024
+      ? SIGNAL_TELEMETRY_MIN_HEIGHT_FOR_EXPANDED_TABLET
+      : SIGNAL_TELEMETRY_MIN_HEIGHT_FOR_EXPANDED;
+
+  if (!collapsed && viewportHeight <= expandedMinimumHeight) {
     return false;
   }
 

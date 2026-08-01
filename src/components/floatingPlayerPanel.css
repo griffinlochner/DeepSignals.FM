@@ -482,3 +482,48 @@
     min-width: 0;
   }
 }
+
+@media (min-width: 1025px) and (max-height: 800px) {
+  .floating-player-panel {
+    --floating-panel-edge-gap: 14px;
+  }
+
+  .floating-player-panel__header {
+    padding: 8px 9px 6px;
+  }
+
+  .floating-player-panel__body,
+  .floating-player-panel__collapsed-body {
+    padding: 8px 9px;
+    gap: 7px;
+  }
+
+  .floating-player-panel__field {
+    gap: 4px;
+  }
+
+  .floating-player-panel .signal-source-selector__select,
+  .floating-player-panel .theme-selector__select,
+  .floating-player-panel .track-marquee,
+  .floating-player-panel .volume-control__range {
+    height: 36px;
+    min-height: 36px;
+  }
+
+  .floating-player-panel__controls {
+    gap: 7px;
+  }
+
+  .floating-player-panel__controls .play-stop-button {
+    height: 44px;
+    min-height: 44px;
+  }
+
+  .floating-player-panel__toggle-row {
+    gap: 8px;
+  }
+
+  .floating-player-panel__switch {
+    min-height: 38px;
+  }
+}

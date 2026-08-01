@@ -6,19 +6,21 @@
   position: fixed;
   inset: 0;
   width: 100%;
-  height: 100%;
+  height: 100dvh;
   overflow: hidden;
   display: flex;
   flex-direction: column;
   background: var(--theme-background, #010104);
   color: var(--theme-text, #d8fff7);
-  font-family: 'Avenir Next', 'Segoe UI', sans-serif;
+  font-family: "Avenir Next", "Segoe UI", sans-serif;
   z-index: 1000;
   --transport-label-height: 20px;
   --transport-control-height: 44px;
   --transport-row-gap: 6px;
   --transport-dock-padding-y: 14px;
-  --transport-dock-padding-bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+  --transport-dock-padding-bottom: calc(
+    18px + env(safe-area-inset-bottom, 0px)
+  );
 }
 
 /* ============================================================
@@ -111,7 +113,8 @@
   z-index: 3;
   display: flex;
   justify-content: center;
-  padding: var(--transport-dock-padding-y) clamp(12px, 2vw, 16px) var(--transport-dock-padding-bottom);
+  padding: var(--transport-dock-padding-y) clamp(12px, 2vw, 16px)
+    var(--transport-dock-padding-bottom);
   background: var(--theme-panel-strong, rgba(1, 1, 4, 0.95));
   border-top: 1px solid var(--theme-border, rgba(121, 255, 242, 0.2));
   height: var(--transport-dock-height, auto);
@@ -121,9 +124,11 @@
 .transport-dock__inner {
   width: min(100%, 1440px);
   display: grid;
-  grid-template-columns: minmax(170px, 1.05fr) minmax(170px, 1.05fr) minmax(260px, 1.7fr) minmax(96px, 0.75fr) minmax(140px, 0.85fr);
-  grid-template-areas:
-    'theme signal marquee play volume';
+  grid-template-columns: minmax(170px, 1.05fr) minmax(170px, 1.05fr) minmax(
+      260px,
+      1.7fr
+    ) minmax(96px, 0.75fr) minmax(140px, 0.85fr);
+  grid-template-areas: "theme signal marquee play volume";
   column-gap: 12px;
   row-gap: 6px;
   align-items: start;
@@ -138,11 +143,21 @@
   box-sizing: border-box;
 }
 
-.transport-dock__item--theme { grid-area: theme; }
-.transport-dock__item--signal { grid-area: signal; }
-.transport-dock__item--marquee { grid-area: marquee; }
-.transport-dock__item--play { grid-area: play; }
-.transport-dock__item--volume { grid-area: volume; }
+.transport-dock__item--theme {
+  grid-area: theme;
+}
+.transport-dock__item--signal {
+  grid-area: signal;
+}
+.transport-dock__item--marquee {
+  grid-area: marquee;
+}
+.transport-dock__item--play {
+  grid-area: play;
+}
+.transport-dock__item--volume {
+  grid-area: volume;
+}
 
 .transport-dock__item-label {
   display: flex;
@@ -166,14 +181,14 @@
   box-shadow: 0 0 0 1px rgba(216, 255, 247, 0.16);
 }
 
-.transport-dock__status-indicator[data-marquee-state='ready'] {
+.transport-dock__status-indicator[data-marquee-state="ready"] {
   background: rgba(216, 255, 247, 0.72);
   box-shadow:
     0 0 0 1px rgba(216, 255, 247, 0.24),
     0 0 6px rgba(216, 255, 247, 0.2);
 }
 
-.transport-dock__status-indicator[data-marquee-state='playing'] {
+.transport-dock__status-indicator[data-marquee-state="playing"] {
   background: rgba(57, 255, 20, 0.9);
   box-shadow:
     0 0 0 1px rgba(57, 255, 20, 0.3),
@@ -272,11 +287,11 @@
   box-sizing: border-box;
 }
 
-.track-marquee[data-marquee-state='ready'] {
+.track-marquee[data-marquee-state="ready"] {
   --marquee-duration: 16s;
 }
 
-.track-marquee[data-marquee-state='playing'] {
+.track-marquee[data-marquee-state="playing"] {
   --marquee-duration: 11s;
 }
 
@@ -354,7 +369,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .transport-dock__status-indicator[data-marquee-state='playing'] {
+  .transport-dock__status-indicator[data-marquee-state="playing"] {
     animation: none;
   }
 
@@ -456,9 +471,9 @@
   .transport-dock__inner {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     grid-template-areas:
-      'theme signal'
-      'marquee marquee'
-      'play volume';
+      "theme signal"
+      "marquee marquee"
+      "play volume";
     column-gap: 10px;
     row-gap: 8px;
     max-width: 720px;
@@ -483,11 +498,11 @@
   .transport-dock__inner {
     grid-template-columns: 1fr;
     grid-template-areas:
-      'theme'
-      'signal'
-      'marquee'
-      'play'
-      'volume';
+      "theme"
+      "signal"
+      "marquee"
+      "play"
+      "volume";
     gap: 8px;
     width: min(100%, 520px);
   }

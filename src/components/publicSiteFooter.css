@@ -70,3 +70,10 @@
 .public-site-footer__socials {
   margin-top: clamp(1rem, 2.4vw, 1.5rem);
 }
+
+@media (min-width: 1025px) and (max-height: 800px) {
+  .public-site-footer {
+    margin-top: 3rem;
+    padding-bottom: 2.5rem;
+  }
+}

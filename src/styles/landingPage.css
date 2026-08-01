@@ -17,13 +17,15 @@
     system-ui,
     -apple-system,
     BlinkMacSystemFont,
-    'Segoe UI',
+    "Segoe UI",
     Roboto,
     Helvetica,
     Arial,
     sans-serif;
   pointer-events: none;
-  text-shadow: 0 0 8px rgba(57, 255, 20, 0.2), 0 0 24px rgba(139, 53, 255, 0.2);
+  text-shadow:
+    0 0 8px rgba(57, 255, 20, 0.2),
+    0 0 24px rgba(139, 53, 255, 0.2);
 }
 
 .transmission-overlay__acquired {
@@ -144,7 +146,9 @@
 
   50% {
     opacity: 1;
-    text-shadow: 0 0 8px rgba(156, 255, 87, 0.8), 0 0 22px rgba(156, 255, 87, 0.42);
+    text-shadow:
+      0 0 8px rgba(156, 255, 87, 0.8),
+      0 0 22px rgba(156, 255, 87, 0.42);
   }
 }
 
@@ -213,5 +217,36 @@
 
   .transmission-overlay__socials {
     margin-top: 18px;
+  }
+}
+
+@media (min-width: 1025px) and (max-height: 800px) {
+  .transmission-overlay__acquired {
+    margin-bottom: 18px;
+    font-size: 1rem;
+  }
+
+  .transmission-overlay__title {
+    gap: 0.5rem;
+  }
+
+  .transmission-overlay__brand-ident {
+    font-size: 2.85rem;
+  }
+
+  .transmission-overlay__status {
+    margin-top: 24px;
+    font-size: 0.95rem;
+    line-height: 1.65;
+  }
+
+  .transmission-overlay__message {
+    margin-top: 22px;
+    font-size: 1.1rem;
+    line-height: 1.5;
+  }
+
+  .transmission-overlay__socials {
+    margin-top: 16px;
   }
 }

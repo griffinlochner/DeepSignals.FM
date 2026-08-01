@@ -1,18 +1,55 @@
 .about-page-shell {
   --about-frame-max: 76rem;
   --about-frame-gutter: clamp(1rem, 4vw, 3rem);
-  --about-gradient-major: linear-gradient(138deg, rgba(158, 255, 112, 0.98) 0%, rgba(95, 245, 255, 0.96) 47%, rgba(246, 221, 255, 0.92) 100%);
-  --about-gradient-copy: linear-gradient(138deg, rgba(230, 249, 255, 0.96) 0%, rgba(217, 236, 255, 0.94) 58%, rgba(235, 224, 255, 0.92) 100%);
-  --about-gradient-label: linear-gradient(118deg, rgba(120, 244, 255, 0.95) 0%, rgba(211, 202, 255, 0.9) 100%);
+  --about-gradient-major: linear-gradient(
+    138deg,
+    rgba(158, 255, 112, 0.98) 0%,
+    rgba(95, 245, 255, 0.96) 47%,
+    rgba(246, 221, 255, 0.92) 100%
+  );
+  --about-gradient-copy: linear-gradient(
+    138deg,
+    rgba(230, 249, 255, 0.96) 0%,
+    rgba(217, 236, 255, 0.94) 58%,
+    rgba(235, 224, 255, 0.92) 100%
+  );
+  --about-gradient-label: linear-gradient(
+    118deg,
+    rgba(120, 244, 255, 0.95) 0%,
+    rgba(211, 202, 255, 0.9) 100%
+  );
   position: relative;
   min-height: 100vh;
   color: #ecf0ff;
   background:
-    radial-gradient(circle at 18% 20%, rgba(76, 89, 216, 0.09) 0%, transparent 22%),
-    radial-gradient(circle at 78% 22%, rgba(176, 74, 213, 0.07) 0%, transparent 18%),
-    radial-gradient(circle at 63% 72%, rgba(255, 88, 182, 0.05) 0%, transparent 16%),
-    radial-gradient(circle at 32% 80%, rgba(74, 245, 255, 0.045) 0%, transparent 14%),
-    linear-gradient(180deg, #010104 0%, #010106 36%, #020207 62%, #020209 78%, #010104 100%);
+    radial-gradient(
+      circle at 18% 20%,
+      rgba(76, 89, 216, 0.09) 0%,
+      transparent 22%
+    ),
+    radial-gradient(
+      circle at 78% 22%,
+      rgba(176, 74, 213, 0.07) 0%,
+      transparent 18%
+    ),
+    radial-gradient(
+      circle at 63% 72%,
+      rgba(255, 88, 182, 0.05) 0%,
+      transparent 16%
+    ),
+    radial-gradient(
+      circle at 32% 80%,
+      rgba(74, 245, 255, 0.045) 0%,
+      transparent 14%
+    ),
+    linear-gradient(
+      180deg,
+      #010104 0%,
+      #010106 36%,
+      #020207 62%,
+      #020209 78%,
+      #010104 100%
+    );
   overflow-x: clip;
 }
 
@@ -142,16 +179,30 @@
   background-image:
     linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-  background-size: 5px 5px, 5px 5px;
+  background-size:
+    5px 5px,
+    5px 5px;
   mix-blend-mode: soft-light;
 }
 
 .about-page-shell__aura {
   z-index: 0;
   background:
-    radial-gradient(circle at 51% 25%, rgba(109, 76, 210, 0.08) 0%, transparent 20%),
-    radial-gradient(circle at 23% 78%, rgba(156, 255, 87, 0.03) 0%, transparent 13%),
-    radial-gradient(circle at 76% 46%, rgba(87, 236, 255, 0.03) 0%, transparent 14%);
+    radial-gradient(
+      circle at 51% 25%,
+      rgba(109, 76, 210, 0.08) 0%,
+      transparent 20%
+    ),
+    radial-gradient(
+      circle at 23% 78%,
+      rgba(156, 255, 87, 0.03) 0%,
+      transparent 13%
+    ),
+    radial-gradient(
+      circle at 76% 46%,
+      rgba(87, 236, 255, 0.03) 0%,
+      transparent 14%
+    );
 }
 
 .about-page-main {
@@ -294,8 +345,17 @@
   aspect-ratio: 1 / 1;
   border-radius: 50%;
   background:
-    radial-gradient(circle at 35% 34%, rgba(255, 255, 255, 0.1) 0%, transparent 26%),
-    radial-gradient(circle at 46% 54%, rgba(121, 84, 219, 0.22) 0%, rgba(16, 9, 30, 0.06) 48%, transparent 68%);
+    radial-gradient(
+      circle at 35% 34%,
+      rgba(255, 255, 255, 0.1) 0%,
+      transparent 26%
+    ),
+    radial-gradient(
+      circle at 46% 54%,
+      rgba(121, 84, 219, 0.22) 0%,
+      rgba(16, 9, 30, 0.06) 48%,
+      transparent 68%
+    );
   filter: blur(8px);
   opacity: 0.34;
 }
@@ -413,7 +473,6 @@
   .about-hero__visual {
     min-height: 112px;
   }
-
 }
 
 @media (max-width: 640px) {
@@ -447,6 +506,42 @@
 @media (max-width: 360px) {
   .about-page-shell .public-site-nav__bar {
     border-radius: 14px;
+  }
+}
+
+@media (min-width: 1025px) and (max-height: 800px) {
+  .about-page-shell .public-site-nav {
+    padding-top: 14px;
+  }
+
+  .about-page-shell .public-site-nav__bar {
+    padding-block: 12px;
+    gap: 14px;
+  }
+
+  .about-page-shell .public-brand-ident {
+    font-size: 3.6rem;
+  }
+
+  .about-page-main {
+    padding-top: 32px;
+    padding-bottom: 64px;
+  }
+
+  .about-hero {
+    padding-bottom: 2rem;
+  }
+
+  .about-hero__intro {
+    margin-top: 18px;
+  }
+
+  .about-transmission-copy {
+    line-height: 1.58;
+  }
+
+  .about-section + .about-section {
+    margin-top: 2rem;
   }
 }
 

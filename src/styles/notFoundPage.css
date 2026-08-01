@@ -88,6 +88,29 @@
   }
 }
 
+@media (min-width: 1025px) and (max-height: 800px) {
+  .not-found-frame {
+    padding-top: 2rem;
+  }
+
+  .not-found-ident {
+    font-size: 3.6rem;
+  }
+
+  .not-found-content {
+    padding-block: 2.75rem;
+  }
+
+  .not-found-statement {
+    margin-top: 1.25rem;
+    font-size: 3.2rem;
+  }
+
+  .not-found-home-link {
+    margin-top: 2rem;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .not-found-home-link {
     transition: none;
