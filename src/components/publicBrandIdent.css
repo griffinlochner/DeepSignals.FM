@@ -10,7 +10,9 @@
   min-width: 0;
   box-sizing: border-box;
   color: #e9f8ff;
-  font-family: 'Consolas', 'SFMono-Regular', 'Menlo', 'Monaco', 'Liberation Mono', 'Courier New', monospace;
+  font-family:
+    "Consolas", "SFMono-Regular", "Menlo", "Monaco", "Liberation Mono",
+    "Courier New", monospace;
   font-size: clamp(2.75rem, 1.18rem + 2.4vw, 4.85rem);
   font-weight: 700;
   line-height: 1;
@@ -27,6 +29,18 @@
   justify-content: center;
   align-items: center;
   transition: color 140ms linear;
+}
+
+.public-brand-ident__accessible {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .public-brand-ident__cell--resolved {
