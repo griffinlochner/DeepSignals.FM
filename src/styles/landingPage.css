@@ -28,7 +28,7 @@
 
 .transmission-overlay__acquired {
   margin: 0 0 24px;
-  color: #39ff14;
+  color: #9cff57;
   font-size: clamp(0.85rem, 1.2vw, 1.1rem);
   font-weight: 700;
   letter-spacing: 0.12em;
@@ -38,19 +38,40 @@
 .transmission-overlay__title {
   margin: 0;
   max-width: 610px;
-  font-size: clamp(1.6rem, 3.3vw, 3.15rem);
-  font-weight: 600;
-  line-height: 1.14;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-  color: #ff4d7a;
-  text-wrap: balance;
+  display: grid;
+  justify-items: start;
+  gap: clamp(0.42rem, 1vw, 0.78rem);
 }
 
-.transmission-overlay__title span {
+.transmission-overlay__title-prefix,
+.transmission-overlay__title-suffix,
+.transmission-overlay__title-initializing {
   color: #79fff2;
-  font-size: 0.55em;
+  text-transform: uppercase;
+}
+
+.transmission-overlay__title-prefix,
+.transmission-overlay__title-suffix {
+  font-size: clamp(1rem, 1.8vw, 1.42rem);
+  font-weight: 600;
   letter-spacing: 0.05em;
+  line-height: 1;
+}
+
+.transmission-overlay__title-initializing {
+  font-size: 0.55em;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  line-height: 1.14;
+}
+
+.transmission-overlay__brand-ident {
+  width: min(100%, 590px);
+  max-width: 100%;
+  min-width: 0;
+  font-size: clamp(1.62rem, 3.35vw, 3.1rem);
+  column-gap: clamp(0.06rem, 0.34vw, 0.21rem);
+  line-height: 1;
 }
 
 .transmission-overlay__status {
@@ -107,50 +128,7 @@
 }
 
 .transmission-overlay__social-links {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.transmission-overlay__social-link {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 42px;
-  height: 42px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.16);
-  color: #d8fff7;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
-  transition: transform 180ms ease, background-color 180ms ease, box-shadow 180ms ease;
-}
-
-.transmission-overlay__social-link:hover,
-.transmission-overlay__social-link:focus-visible {
-  transform: translateY(-2px);
-  box-shadow: 0 0 16px rgba(255, 255, 255, 0.12);
-}
-
-.transmission-overlay__social-link svg {
-  width: 18px;
-  height: 18px;
-  fill: currentColor;
-}
-
-.transmission-overlay__social-link--facebook:hover,
-.transmission-overlay__social-link--facebook:focus-visible {
-  background-color: #ff7a00;
-}
-
-.transmission-overlay__social-link--instagram:hover,
-.transmission-overlay__social-link--instagram:focus-visible {
-  background-color: #79fff2;
-  color: #02161d;
-}
-
-.transmission-overlay__social-link--x:hover,
-.transmission-overlay__social-link--x:focus-visible {
-  background-color: #ff4d7a;
+  justify-content: flex-start;
 }
 
 .transmission-overlay a {
@@ -161,12 +139,12 @@
   0%,
   100% {
     opacity: 0.65;
-    text-shadow: 0 0 5px rgba(57, 255, 20, 0.3);
+    text-shadow: 0 0 5px rgba(156, 255, 87, 0.3);
   }
 
   50% {
     opacity: 1;
-    text-shadow: 0 0 8px rgba(57, 255, 20, 0.8), 0 0 22px rgba(57, 255, 20, 0.42);
+    text-shadow: 0 0 8px rgba(156, 255, 87, 0.8), 0 0 22px rgba(156, 255, 87, 0.42);
   }
 }
 
@@ -205,7 +183,22 @@
 
   .transmission-overlay__title {
     max-width: 520px;
-    font-size: clamp(1.25rem, 7vw, 2rem);
+    gap: clamp(0.36rem, 1.8vw, 0.58rem);
+  }
+
+  .transmission-overlay__title-prefix,
+  .transmission-overlay__title-suffix {
+    font-size: clamp(0.9rem, 3.8vw, 1.16rem);
+  }
+
+  .transmission-overlay__title-initializing {
+    font-size: clamp(0.74rem, 3.1vw, 0.96rem);
+  }
+
+  .transmission-overlay__brand-ident {
+    width: min(100%, 500px);
+    font-size: clamp(1.3rem, 6.35vw, 2rem);
+    column-gap: clamp(0.05rem, 0.42vw, 0.16rem);
   }
 
   .transmission-overlay__status {

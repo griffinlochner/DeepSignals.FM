@@ -1,6 +1,6 @@
 import LandingNexusScene from '../scenes/landing-nexus/LandingNexusScene'
-import PublicSocialIcon from '../components/PublicSocialIcon'
-import { PUBLIC_SOCIAL_LINKS } from '../components/publicSocialLinks'
+import PublicBrandIdent from '../components/PublicBrandIdent'
+import PublicSocialLinks from '../components/PublicSocialLinks'
 import '../styles/landingPage.css'
 
 function LandingPage() {
@@ -17,7 +17,10 @@ function LandingPage() {
         <p className="transmission-overlay__acquired">░▒▓ SIGNAL ACQUIRED ▓▒░</p>
 
         <h1 className="transmission-overlay__title">
-          <span>::</span> DeepSignals.FM <span>TRANSMISSION INITIALIZING</span> <span>::</span>
+          <span className="transmission-overlay__title-prefix">::</span>
+          <PublicBrandIdent as="span" className="transmission-overlay__brand-ident" />
+          <span className="transmission-overlay__title-initializing">TRANSMISSION INITIALIZING</span>
+          <span className="transmission-overlay__title-suffix">::</span>
         </h1>
 
         <div className="transmission-overlay__status">
@@ -32,20 +35,7 @@ function LandingPage() {
 
         <div className="transmission-overlay__socials" aria-label="social links">
           <p className="transmission-overlay__social-label">Stay connected:</p>
-          <div className="transmission-overlay__social-links">
-            {PUBLIC_SOCIAL_LINKS.map((socialLink) => (
-              <a
-                key={socialLink.network}
-                className={`transmission-overlay__social-link transmission-overlay__social-link--${socialLink.network}`}
-                href={socialLink.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label={socialLink.ariaLabel}
-              >
-                <PublicSocialIcon network={socialLink.network} />
-              </a>
-            ))}
-          </div>
+          <PublicSocialLinks className="transmission-overlay__social-links" ariaLabel="social links" />
         </div>
       </main>
     </div>

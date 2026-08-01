@@ -1,4 +1,4 @@
-import type { PublicSocialNetwork } from './publicSocialLinks'
+import type { PublicSocialNetwork } from './publicSocialData'
 
 type PublicSocialIconProps = {
   network: PublicSocialNetwork

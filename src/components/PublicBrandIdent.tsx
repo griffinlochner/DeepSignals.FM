@@ -3,6 +3,7 @@ import './publicBrandIdent.css'
 
 type PublicBrandIdentProps = {
   className?: string
+  as?: 'p' | 'span'
 }
 
 type CellState = {
@@ -113,7 +114,7 @@ function getReducedMotionPreferred() {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches
 }
 
-function PublicBrandIdent({ className = '' }: PublicBrandIdentProps) {
+function PublicBrandIdent({ className = '', as: Tag = 'p' }: PublicBrandIdentProps) {
   const [reducedMotion, setReducedMotion] = useState(() => getReducedMotionPreferred())
   const [cells, setCells] = useState<CellState[]>(() => buildScrambledCells())
 
@@ -237,13 +238,14 @@ function PublicBrandIdent({ className = '' }: PublicBrandIdentProps) {
   }, [reducedMotion])
 
   return (
-    <p className={resolvedClassName} aria-label="DeepSignals.FM">
+    <Tag className={resolvedClassName} aria-label="DeepSignals.FM" role="text">
       {(reducedMotion
         ? TARGET_CHARS.map((char) => ({ glyph: char, resolved: true }))
         : cells
       ).map((cell, index) => (
         <span
           key={index}
+          aria-hidden="true"
           className={[
             'public-brand-ident__cell',
             cell.resolved ? 'public-brand-ident__cell--resolved' : 'public-brand-ident__cell--scrambling',
@@ -255,7 +257,7 @@ function PublicBrandIdent({ className = '' }: PublicBrandIdentProps) {
           {cell.glyph}
         </span>
       ))}
-    </p>
+    </Tag>
   )
 }
 

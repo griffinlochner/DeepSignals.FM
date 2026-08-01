@@ -1,5 +1,4 @@
-import PublicSocialIcon from './PublicSocialIcon'
-import { PUBLIC_SOCIAL_LINKS } from './publicSocialLinks'
+import PublicSocialLinks from './PublicSocialLinks'
 import './publicSiteFooter.css'
 
 function PublicSiteFooter() {
@@ -21,20 +20,7 @@ function PublicSiteFooter() {
         </span>
       </p>
 
-      <div className="public-site-footer__socials" aria-label="social links">
-        {PUBLIC_SOCIAL_LINKS.map((socialLink) => (
-          <a
-            key={socialLink.network}
-            className={`public-site-footer__social-link public-site-footer__social-link--${socialLink.network}`}
-            href={socialLink.href}
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label={socialLink.ariaLabel}
-          >
-            <PublicSocialIcon network={socialLink.network} />
-          </a>
-        ))}
-      </div>
+      <PublicSocialLinks className="public-site-footer__socials" ariaLabel="social links" />
     </footer>
   )
 }
