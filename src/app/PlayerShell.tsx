@@ -39,6 +39,7 @@ type PlayerPreferencesV1 = {
 }
 
 type PlayerPreferencesV2 = PlayerPreferencesV1 & {
+  colorEnabled?: boolean
   selectedBehavior?: 'chill' | 'fullon'
   signalTelemetryVisible?: boolean
 }
@@ -92,6 +93,7 @@ function readStoredPlayerPreferences(): PlayerPreferencesV2 {
     selectedAudioSourceId: AUDIO_SOURCES[0]?.id ?? '',
     volume: 1,
     motionEnabled: true,
+    colorEnabled: true,
     visualFeedOpen: false,
   }
 
@@ -110,6 +112,7 @@ function readStoredPlayerPreferences(): PlayerPreferencesV2 {
         selectedAudioSourceId: sanitizeAudioSourceId(parsed.selectedAudioSourceId),
         volume: 1,
         motionEnabled: sanitizeBoolean(parsed.motionEnabled, true),
+        colorEnabled: sanitizeBoolean(parsed.colorEnabled, true),
         visualFeedOpen: sanitizeBoolean(parsed.visualFeedOpen, false),
       }
     }
@@ -127,6 +130,7 @@ function readStoredPlayerPreferences(): PlayerPreferencesV2 {
       selectedAudioSourceId: sanitizeAudioSourceId(parsed.selectedAudioSourceId),
       volume: 1,
       motionEnabled: sanitizeBoolean(parsed.motionEnabled, true),
+      colorEnabled: true,
       visualFeedOpen: sanitizeBoolean(parsed.visualFeedOpen, false),
     }
   } catch {
@@ -309,6 +313,8 @@ function PlayerShell({ className }: PlayerShellProps) {
   const [selectedThemeId, setSelectedThemeId] = useState<ThemeId>(storedPreferences.selectedThemeId)
   const [selectedSignalId, setSelectedSignalId] = useState<string | null>(storedPreferences.selectedAudioSourceId)
   const [motionEnabled, setMotionEnabled] = useState(storedPreferences.motionEnabled)
+  // Reserved for future environment color-effect wiring; currently UI preference only.
+  const [colorEnabled, setColorEnabled] = useState(sanitizeBoolean(storedPreferences.colorEnabled, true))
   const [signalTelemetryVisible, setSignalTelemetryVisible] = useState(() => readStoredSignalTelemetryVisiblePreference())
   const [signalTelemetryCollapsed, setSignalTelemetryCollapsed] = useState(() =>
     readStoredSignalTelemetryCollapsedPreference(),
@@ -607,6 +613,7 @@ function PlayerShell({ className }: PlayerShellProps) {
         selectedAudioSourceId: sanitizeAudioSourceId(selectedSignalId),
         volume: sanitizeVolume(audioController.volume),
         motionEnabled,
+        colorEnabled,
         visualFeedOpen: visualFeedOpen && supportsVisualFeed,
       }
 
@@ -614,7 +621,7 @@ function PlayerShell({ className }: PlayerShellProps) {
     } catch {
       // Gracefully ignore localStorage write failures.
     }
-  }, [audioController.volume, motionEnabled, selectedSignalId, selectedThemeId, supportsVisualFeed, visualFeedOpen])
+  }, [audioController.volume, colorEnabled, motionEnabled, selectedSignalId, selectedThemeId, supportsVisualFeed, visualFeedOpen])
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -736,6 +743,8 @@ function PlayerShell({ className }: PlayerShellProps) {
         motionEnabled={motionEnabled}
         supportsMotion={supportsMotion}
         onMotionToggle={setMotionEnabled}
+        colorEnabled={colorEnabled}
+        onColorToggle={setColorEnabled}
         showSignalTelemetryControl={signalTelemetryUiAvailable}
         signalTelemetryVisible={signalTelemetryVisible}
         onSignalTelemetryChange={setSignalTelemetryVisible}
