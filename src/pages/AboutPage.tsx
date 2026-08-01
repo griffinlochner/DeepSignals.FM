@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import PublicSiteFooter from '../components/PublicSiteFooter'
 import PublicSiteNav from '../components/PublicSiteNav'
 import '../styles/aboutPage.css'
 
@@ -43,17 +44,9 @@ function AboutPage() {
 
       <main className="about-page-main">
         <div className="about-content-frame">
-          <section className="about-hero" aria-labelledby="about-hero-title">
+          <section className="about-hero">
             <div className="about-hero__content">
               <p className="about-page__eyebrow about-page__label-pulse about-page__label-pulse--zero">00 // INCOMING TRANSMISSION:</p>
-
-              <h1 className="about-hero__title" id="about-hero-title">
-                <span className="about-hero__about">ABOUT</span>
-                <span className="about-hero__deep">DEEP</span>
-                <span className="about-hero__signals">SIGNALS</span>
-                <span className="about-hero__dot">.</span>
-                <span className="about-hero__fm">FM</span>
-              </h1>
 
               <p className="about-hero__intro about-transmission-copy">
                 <span className="about-associated-gradient-text">
@@ -88,6 +81,8 @@ function AboutPage() {
               </h2>
             </div>
           </section>
+
+          <PublicSiteFooter />
         </div>
       </main>
     </div>
