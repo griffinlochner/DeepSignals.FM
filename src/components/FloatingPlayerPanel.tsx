@@ -1,52 +1,53 @@
-import { useId, useMemo } from 'react'
-import type { AudioPlaybackStatus, SignalSource } from '../app/playerTypes'
-import type { ThemeId } from '../themes/themeTypes'
-import PanelChevronIcon from './PanelChevronIcon'
-import PlayStopButton from './PlayStopButton'
-import SignalSourceSelector from './SignalSourceSelector'
-import ThemeSelector from './ThemeSelector'
-import TrackMarquee from './TrackMarquee'
-import VolumeControl from './VolumeControl'
-import './floatingPlayerPanel.css'
+import { useId, useMemo } from "react";
+import type { AudioPlaybackStatus, SignalSource } from "../app/playerTypes";
+import type { ThemeId } from "../themes/themeTypes";
+import PanelChevronIcon from "./PanelChevronIcon";
+import PlayStopButton from "./PlayStopButton";
+import SignalSourceSelector from "./SignalSourceSelector";
+import ThemeSelector from "./ThemeSelector";
+import TrackMarquee from "./TrackMarquee";
+import VolumeControl from "./VolumeControl";
+import "./floatingPlayerPanel.css";
 
 type FloatingPlayerPanelProps = {
-  brandLabel?: string
-  environmentName: string
-  environmentOptions: Array<{ id: ThemeId; name: string }>
-  selectedEnvironmentId: ThemeId
-  onEnvironmentChange: (id: ThemeId) => void
-  audioPlaybackStatus: AudioPlaybackStatus
-  audioCurrentTime: number
-  audioDuration: number
-  audioSeekable: boolean
-  audioMetadataLoaded: boolean
-  audioErrorMessage: string | null
-  audioIsSeeking: boolean
-  onAudioTogglePlay: () => Promise<void>
-  onAudioSeek: (value: number) => void
-  signalOptions: SignalSource[]
-  selectedSignalId: string | null
-  onSignalChange: (id: string) => void
-  signalLabel: string | null
-  isPlaying: boolean
-  volume: number
-  onVolumeChange: (volume: number) => void
-  motionEnabled: boolean
-  supportsMotion: boolean
-  onMotionToggle: (enabled: boolean) => void
-  colorEnabled: boolean
-  onColorToggle: (enabled: boolean) => void
-  showSignalTelemetryControl: boolean
-  signalTelemetryVisible: boolean
-  onSignalTelemetryChange: (enabled: boolean) => void
-  visualFeedOpen: boolean
-  onVisualFeedChange: (enabled: boolean) => void
-  collapsed: boolean
-  onCollapsedChange: (collapsed: boolean) => void
-}
+  brandLabel?: string;
+  environmentName: string;
+  environmentOptions: Array<{ id: ThemeId; name: string }>;
+  selectedEnvironmentId: ThemeId;
+  onEnvironmentChange: (id: ThemeId) => void;
+  audioPlaybackStatus: AudioPlaybackStatus;
+  audioCurrentTime: number;
+  audioDuration: number;
+  audioSeekable: boolean;
+  audioMetadataLoaded: boolean;
+  audioErrorMessage: string | null;
+  audioIsSeeking: boolean;
+  onAudioTogglePlay: () => Promise<void>;
+  onAudioSeek: (value: number) => void;
+  signalOptions: SignalSource[];
+  selectedSignalId: string | null;
+  onSignalChange: (id: string) => void;
+  signalLabel: string | null;
+  isPlaying: boolean;
+  volume: number;
+  onVolumeChange: (volume: number) => void;
+  motionEnabled: boolean;
+  supportsMotion: boolean;
+  onMotionToggle: (enabled: boolean) => void;
+  chromaEnabled: boolean;
+  supportsChroma: boolean;
+  onChromaToggle: (enabled: boolean) => void;
+  showSignalTelemetryControl: boolean;
+  signalTelemetryVisible: boolean;
+  onSignalTelemetryChange: (enabled: boolean) => void;
+  visualFeedOpen: boolean;
+  onVisualFeedChange: (enabled: boolean) => void;
+  collapsed: boolean;
+  onCollapsedChange: (collapsed: boolean) => void;
+};
 
 function FloatingPlayerPanel({
-  brandLabel = 'DEEPSIGNALS.FM',
+  brandLabel = "DEEPSIGNALS.FM",
   environmentName,
   environmentOptions,
   selectedEnvironmentId,
@@ -70,8 +71,9 @@ function FloatingPlayerPanel({
   motionEnabled,
   supportsMotion,
   onMotionToggle,
-  colorEnabled,
-  onColorToggle,
+  chromaEnabled,
+  supportsChroma,
+  onChromaToggle,
   showSignalTelemetryControl,
   signalTelemetryVisible,
   onSignalTelemetryChange,
@@ -80,23 +82,29 @@ function FloatingPlayerPanel({
   collapsed,
   onCollapsedChange,
 }: FloatingPlayerPanelProps) {
-  const contentId = useId()
+  const contentId = useId();
 
-  const marqueeState: 'no-signal' | 'ready' | 'playing' = !selectedSignalId
-    ? 'no-signal'
+  const marqueeState: "no-signal" | "ready" | "playing" = !selectedSignalId
+    ? "no-signal"
     : isPlaying
-      ? 'playing'
-      : 'ready'
+      ? "playing"
+      : "ready";
 
   const identity = useMemo(
     () => `${brandLabel} · ${environmentName.toUpperCase()}`,
     [brandLabel, environmentName],
-  )
+  );
 
-  const toggleLabel = collapsed ? 'Expand player panel' : 'Collapse player panel'
+  const toggleLabel = collapsed
+    ? "Expand player panel"
+    : "Collapse player panel";
 
   return (
-    <aside className="floating-player-panel" data-collapsed={collapsed} aria-label={`${environmentName} controls`}>
+    <aside
+      className="floating-player-panel"
+      data-collapsed={collapsed}
+      aria-label={`${environmentName} controls`}
+    >
       <header className="floating-player-panel__header">
         <p
           className="floating-player-panel__identity"
@@ -123,14 +131,18 @@ function FloatingPlayerPanel({
         <div className="floating-player-panel__collapsed-body" id={contentId}>
           <div className="floating-player-panel__field">
             <p className="floating-player-panel__label">Signal Source</p>
-            <SignalSourceSelector value={selectedSignalId || ''} signals={signalOptions} onChange={onSignalChange} />
+            <SignalSourceSelector
+              value={selectedSignalId || ""}
+              signals={signalOptions}
+              onChange={onSignalChange}
+            />
           </div>
 
           <TrackMarquee signalLabel={signalLabel} marqueeState={marqueeState} />
 
           <PlayStopButton
-            isPlaying={audioPlaybackStatus === 'playing'}
-            isLoading={audioPlaybackStatus === 'loading'}
+            isPlaying={audioPlaybackStatus === "playing"}
+            isLoading={audioPlaybackStatus === "loading"}
             isDisabled={!selectedSignalId}
             onToggle={() => void onAudioTogglePlay()}
           />
@@ -139,12 +151,19 @@ function FloatingPlayerPanel({
         <div className="floating-player-panel__body" id={contentId}>
           <div className="floating-player-panel__field">
             <p className="floating-player-panel__label">Signal Source</p>
-            <SignalSourceSelector value={selectedSignalId || ''} signals={signalOptions} onChange={onSignalChange} />
+            <SignalSourceSelector
+              value={selectedSignalId || ""}
+              signals={signalOptions}
+              onChange={onSignalChange}
+            />
           </div>
 
           <div className="floating-player-panel__field">
             <p className="floating-player-panel__label">Transmission</p>
-            <TrackMarquee signalLabel={signalLabel} marqueeState={marqueeState} />
+            <TrackMarquee
+              signalLabel={signalLabel}
+              marqueeState={marqueeState}
+            />
             {audioErrorMessage ? (
               <p className="floating-player-panel__audio-error" role="status">
                 {audioErrorMessage}
@@ -152,21 +171,33 @@ function FloatingPlayerPanel({
             ) : null}
           </div>
 
-          <section className="floating-player-panel__controls" aria-label="Main controls">
+          <section
+            className="floating-player-panel__controls"
+            aria-label="Main controls"
+          >
             <PlayStopButton
-              isPlaying={audioPlaybackStatus === 'playing'}
-              isLoading={audioPlaybackStatus === 'loading'}
+              isPlaying={audioPlaybackStatus === "playing"}
+              isLoading={audioPlaybackStatus === "loading"}
               isDisabled={!selectedSignalId}
               onToggle={() => void onAudioTogglePlay()}
             />
 
-            <section className="floating-player-panel__volume-row" aria-label="Volume control">
+            <section
+              className="floating-player-panel__volume-row"
+              aria-label="Volume control"
+            >
               <p className="floating-player-panel__label">Volume</p>
               <VolumeControl value={volume} onChange={onVolumeChange} />
             </section>
 
-            {audioSeekable && audioMetadataLoaded && Number.isFinite(audioDuration) && audioDuration > 0 ? (
-              <section className="floating-player-panel__seek-row" aria-label="Playback progress">
+            {audioSeekable &&
+            audioMetadataLoaded &&
+            Number.isFinite(audioDuration) &&
+            audioDuration > 0 ? (
+              <section
+                className="floating-player-panel__seek-row"
+                aria-label="Playback progress"
+              >
                 <p className="floating-player-panel__label">Progress</p>
                 <input
                   className="floating-player-panel__seek-slider"
@@ -174,9 +205,14 @@ function FloatingPlayerPanel({
                   min={0}
                   max={Math.max(audioDuration, 1)}
                   step="0.01"
-                  value={Math.min(audioCurrentTime, audioDuration || audioCurrentTime)}
+                  value={Math.min(
+                    audioCurrentTime,
+                    audioDuration || audioCurrentTime,
+                  )}
                   onChange={(event) => onAudioSeek(Number(event.target.value))}
-                  disabled={audioIsSeeking || !audioMetadataLoaded || audioDuration <= 0}
+                  disabled={
+                    audioIsSeeking || !audioMetadataLoaded || audioDuration <= 0
+                  }
                   aria-label="Seek playback"
                 />
                 <p className="floating-player-panel__seek-time">
@@ -194,30 +230,61 @@ function FloatingPlayerPanel({
               />
             </div>
 
-            <div className="floating-player-panel__toggle-row" role="group" aria-label="Environment controls">
-              <label className="floating-player-panel__switch floating-player-panel__color-switch">
+            <div
+              className="floating-player-panel__toggle-row"
+              role="group"
+              aria-label="Environment controls"
+            >
+              <label
+                className={[
+                  "floating-player-panel__switch",
+                  "floating-player-panel__chroma-switch",
+                  !supportsChroma
+                    ? "floating-player-panel__switch--disabled"
+                    : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+                title={
+                  !supportsChroma
+                    ? "Chroma is not available for this environment."
+                    : undefined
+                }
+              >
                 <input
                   className="floating-player-panel__switch-checkbox"
                   type="checkbox"
-                  checked={colorEnabled}
-                  onChange={(event) => onColorToggle(event.target.checked)}
-                  aria-label="Toggle environment color effects"
+                  checked={chromaEnabled}
+                  disabled={!supportsChroma}
+                  onChange={(event) => onChromaToggle(event.target.checked)}
+                  aria-label="Toggle environment chroma effects"
                 />
-                <span className="floating-player-panel__switch-label">Color</span>
-                <span className="floating-player-panel__switch-track" aria-hidden="true">
+                <span className="floating-player-panel__switch-label">
+                  Chroma
+                </span>
+                <span
+                  className="floating-player-panel__switch-track"
+                  aria-hidden="true"
+                >
                   <span className="floating-player-panel__switch-thumb" />
                 </span>
               </label>
 
               <label
                 className={[
-                  'floating-player-panel__switch',
-                  'floating-player-panel__motion-switch',
-                  !supportsMotion ? 'floating-player-panel__motion-switch--disabled' : '',
+                  "floating-player-panel__switch",
+                  "floating-player-panel__motion-switch",
+                  !supportsMotion
+                    ? "floating-player-panel__switch--disabled"
+                    : "",
                 ]
                   .filter(Boolean)
-                  .join(' ')}
-                title={!supportsMotion ? 'Motion is not available for this environment.' : undefined}
+                  .join(" ")}
+                title={
+                  !supportsMotion
+                    ? "Motion is not available for this environment."
+                    : undefined
+                }
               >
                 <input
                   className="floating-player-panel__switch-checkbox"
@@ -227,14 +294,23 @@ function FloatingPlayerPanel({
                   onChange={(event) => onMotionToggle(event.target.checked)}
                   aria-label="Motion"
                 />
-                <span className="floating-player-panel__switch-label">Motion</span>
-                <span className="floating-player-panel__switch-track" aria-hidden="true">
+                <span className="floating-player-panel__switch-label">
+                  Motion
+                </span>
+                <span
+                  className="floating-player-panel__switch-track"
+                  aria-hidden="true"
+                >
                   <span className="floating-player-panel__switch-thumb" />
                 </span>
               </label>
             </div>
 
-            <div className="floating-player-panel__toggle-row" role="group" aria-label="Display controls">
+            <div
+              className="floating-player-panel__toggle-row"
+              role="group"
+              aria-label="Display controls"
+            >
               <label className="floating-player-panel__switch floating-player-panel__visual-switch">
                 <input
                   className="floating-player-panel__switch-checkbox"
@@ -243,8 +319,13 @@ function FloatingPlayerPanel({
                   onChange={(event) => onVisualFeedChange(event.target.checked)}
                   aria-label="Visual Feed"
                 />
-                <span className="floating-player-panel__switch-label">Visual Feed</span>
-                <span className="floating-player-panel__switch-track" aria-hidden="true">
+                <span className="floating-player-panel__switch-label">
+                  Visual Feed
+                </span>
+                <span
+                  className="floating-player-panel__switch-track"
+                  aria-hidden="true"
+                >
                   <span className="floating-player-panel__switch-thumb" />
                 </span>
               </label>
@@ -255,11 +336,18 @@ function FloatingPlayerPanel({
                     className="floating-player-panel__switch-checkbox"
                     type="checkbox"
                     checked={signalTelemetryVisible}
-                    onChange={(event) => onSignalTelemetryChange(event.target.checked)}
+                    onChange={(event) =>
+                      onSignalTelemetryChange(event.target.checked)
+                    }
                     aria-label="Telemetry"
                   />
-                  <span className="floating-player-panel__switch-label">Telemetry</span>
-                  <span className="floating-player-panel__switch-track" aria-hidden="true">
+                  <span className="floating-player-panel__switch-label">
+                    Telemetry
+                  </span>
+                  <span
+                    className="floating-player-panel__switch-track"
+                    aria-hidden="true"
+                  >
                     <span className="floating-player-panel__switch-thumb" />
                   </span>
                 </label>
@@ -269,19 +357,19 @@ function FloatingPlayerPanel({
         </div>
       )}
     </aside>
-  )
+  );
 }
 
 function formatTime(seconds: number) {
   if (!Number.isFinite(seconds) || seconds < 0) {
-    return '0:00'
+    return "0:00";
   }
 
-  const wholeSeconds = Math.floor(seconds)
-  const minutes = Math.floor(wholeSeconds / 60)
-  const remainingSeconds = wholeSeconds % 60
+  const wholeSeconds = Math.floor(seconds);
+  const minutes = Math.floor(wholeSeconds / 60);
+  const remainingSeconds = wholeSeconds % 60;
 
-  return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`
+  return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
 }
 
-export default FloatingPlayerPanel
+export default FloatingPlayerPanel;

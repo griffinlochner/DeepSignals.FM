@@ -1,18 +1,20 @@
-import type { ThemeDefinition } from '../themeTypes'
-import CosmicNexusVisualFeedFrame from './CosmicNexusVisualFeedFrame'
-import CosmicNexusTheme from './CosmicNexusTheme'
+import type { ThemeDefinition } from "../themeTypes";
+import CosmicNexusVisualFeedFrame from "./CosmicNexusVisualFeedFrame";
+import CosmicNexusTheme from "./CosmicNexusTheme";
 
 const CosmicNexusDefinition: ThemeDefinition = {
-  id: 'cosmic-nexus',
-  name: 'Cosmic Signal Nexus',
-  description: 'A reactive orbital signal-analysis array suspended in deep space.',
-  className: 'theme-cosmic-nexus',
-  performanceTier: 'enhanced',
+  id: "cosmic-nexus",
+  name: "Cosmic Signal Nexus",
+  description:
+    "A reactive orbital signal-analysis array suspended in deep space.",
+  className: "theme-cosmic-nexus",
+  performanceTier: "enhanced",
   Scene: CosmicNexusTheme,
   VisualFeedFrame: CosmicNexusVisualFeedFrame,
+  supportsChroma: true,
   supportsMotion: true,
   supportsVisualFeed: true,
   supportsAudioReactiveBehavior: false,
-}
+};
 
-export default CosmicNexusDefinition
+export default CosmicNexusDefinition;

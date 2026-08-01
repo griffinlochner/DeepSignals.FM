@@ -12,7 +12,9 @@ function createImageDepthScene(
   );
 
   if (!registration) {
-    throw new Error(`Missing image-depth registration for environment ${environmentId}.`);
+    throw new Error(
+      `Missing image-depth registration for environment ${environmentId}.`,
+    );
   }
 
   const sceneId = registration.id;
@@ -36,16 +38,16 @@ function createImageDepthScene(
   return CatalogBackedImageDepthScene;
 }
 
-export const imageDepthThemeDefinitions: ThemeDefinition[] = imageDepthEnvironmentCatalog.map(
-  (environment) => ({
+export const imageDepthThemeDefinitions: ThemeDefinition[] =
+  imageDepthEnvironmentCatalog.map((environment) => ({
     id: environment.id,
     name: environment.displayName,
     description: environment.description,
     className: `theme-${environment.id} image-depth-theme skin-${environment.uiSkin}`,
     performanceTier: "enhanced",
     Scene: createImageDepthScene(environment.id),
+    supportsChroma: true,
     supportsMotion: true,
     supportsVisualFeed: true,
     supportsAudioReactiveBehavior: true,
-  }),
-);
+  }));

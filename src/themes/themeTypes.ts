@@ -1,47 +1,48 @@
-import type { ReactNode } from 'react'
+import type { ReactNode } from "react";
 import type {
   AudioReactiveSnapshot,
   ImageDepthSceneCounters,
   ReactiveBehaviorId,
   ReactivePreviewTelemetry,
-} from '../app/playerTypes'
+} from "../app/playerTypes";
 
-export type ThemeId = string
+export type ThemeId = string;
 
-export type PerformanceTier = 'minimal' | 'standard' | 'enhanced'
+export type PerformanceTier = "minimal" | "standard" | "enhanced";
 
 export type ThemeSceneProps = {
-  isPlaying: boolean
-  volume: number
-  signalId: string | null
-  audioLevel: number
-  reducedMotion: boolean
-  sourceBpm?: number | null
-  motionEnabled?: boolean
-  getLatestAudioSnapshot?: (() => AudioReactiveSnapshot) | null
-  reactivePreviewEnabled?: boolean
-  reactiveBehavior?: ReactiveBehaviorId
-  reactiveDepthMode?: 'default' | 'stabilized-depth' | 'lighting-only'
-  onReactivePreviewTelemetry?: (telemetry: ReactivePreviewTelemetry) => void
-  onDevSceneCountersChange?: (counters: ImageDepthSceneCounters) => void
-  manualDepthOverride?: number
-  manualHueShiftOverrideDegrees?: number | null
-  manualSaturationOverrideMultiplier?: number | null
-}
+  isPlaying: boolean;
+  volume: number;
+  signalId: string | null;
+  audioLevel: number;
+  reducedMotion: boolean;
+  sourceBpm?: number | null;
+  motionEnabled?: boolean;
+  getLatestAudioSnapshot?: (() => AudioReactiveSnapshot) | null;
+  reactivePreviewEnabled?: boolean;
+  reactiveBehavior?: ReactiveBehaviorId;
+  reactiveDepthMode?: "default" | "stabilized-depth" | "lighting-only";
+  onReactivePreviewTelemetry?: (telemetry: ReactivePreviewTelemetry) => void;
+  onDevSceneCountersChange?: (counters: ImageDepthSceneCounters) => void;
+  manualDepthOverride?: number;
+  manualHueShiftOverrideDegrees?: number | null;
+  manualSaturationOverrideMultiplier?: number | null;
+};
 
 export type ThemeVisualFeedFrameProps = {
-  children: ReactNode
-}
+  children: ReactNode;
+};
 
 export type ThemeDefinition = {
-  id: ThemeId
-  name: string
-  description: string
-  className: string
-  performanceTier: PerformanceTier
-  Scene: React.ComponentType<ThemeSceneProps>
-  VisualFeedFrame?: React.ComponentType<ThemeVisualFeedFrameProps>
-  supportsMotion: boolean
-  supportsVisualFeed: boolean
-  supportsAudioReactiveBehavior: boolean
-}
+  id: ThemeId;
+  name: string;
+  description: string;
+  className: string;
+  performanceTier: PerformanceTier;
+  Scene: React.ComponentType<ThemeSceneProps>;
+  VisualFeedFrame?: React.ComponentType<ThemeVisualFeedFrameProps>;
+  supportsChroma: boolean;
+  supportsMotion: boolean;
+  supportsVisualFeed: boolean;
+  supportsAudioReactiveBehavior: boolean;
+};

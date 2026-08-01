@@ -1,6 +1,6 @@
 .floating-player-panel {
   --floating-panel-edge-gap: clamp(12px, 2.2vw, 22px);
-  --player-font-family: 'Avenir Next', 'Segoe UI', sans-serif;
+  --player-font-family: "Avenir Next", "Segoe UI", sans-serif;
   --player-font-size-label: 0.64rem;
   --player-font-size-control: 0.82rem;
   --player-font-size-status: 0.74rem;
@@ -15,11 +15,18 @@
   top: var(--floating-panel-edge-gap);
   left: var(--floating-panel-edge-gap);
   z-index: 4;
-  width: min(var(--floating-panel-max-width, 430px), calc(100vw - (var(--floating-panel-edge-gap) * 2)));
+  width: min(
+    var(--floating-panel-max-width, 430px),
+    calc(100vw - (var(--floating-panel-edge-gap) * 2))
+  );
   max-height: calc(100dvh - (var(--floating-panel-edge-gap) * 2));
   border: 1px solid var(--theme-border, rgba(165, 243, 234, 0.22));
   border-radius: 14px;
-  background: linear-gradient(180deg, rgba(8, 22, 28, 0.74), rgba(5, 14, 18, 0.62));
+  background: linear-gradient(
+    180deg,
+    rgba(8, 22, 28, 0.74),
+    rgba(5, 14, 18, 0.62)
+  );
   box-shadow:
     0 14px 42px rgba(0, 0, 0, 0.3),
     inset 0 0 0 1px rgba(255, 255, 255, 0.03);
@@ -323,12 +330,17 @@
   transition: transform 140ms ease;
 }
 
-.floating-player-panel__switch-checkbox:checked + .floating-player-panel__switch-label + .floating-player-panel__switch-track {
+.floating-player-panel__switch-checkbox:checked
+  + .floating-player-panel__switch-label
+  + .floating-player-panel__switch-track {
   background: rgba(78, 226, 196, 0.65);
   border-color: rgba(123, 242, 217, 0.68);
 }
 
-.floating-player-panel__switch-checkbox:checked + .floating-player-panel__switch-label + .floating-player-panel__switch-track .floating-player-panel__switch-thumb {
+.floating-player-panel__switch-checkbox:checked
+  + .floating-player-panel__switch-label
+  + .floating-player-panel__switch-track
+  .floating-player-panel__switch-thumb {
   transform: translateX(14px);
 }
 
@@ -341,41 +353,41 @@
   border-color: rgba(123, 242, 217, 0.54);
 }
 
-.floating-player-panel__motion-switch--disabled,
-.floating-player-panel__motion-switch--disabled .floating-player-panel__switch-label,
-.floating-player-panel__motion-switch--disabled .floating-player-panel__switch-track,
-.floating-player-panel__motion-switch--disabled .floating-player-panel__switch-thumb {
+.floating-player-panel__switch--disabled,
+.floating-player-panel__switch--disabled .floating-player-panel__switch-label,
+.floating-player-panel__switch--disabled .floating-player-panel__switch-track,
+.floating-player-panel__switch--disabled .floating-player-panel__switch-thumb {
   cursor: not-allowed;
 }
 
-.floating-player-panel__motion-switch--disabled {
+.floating-player-panel__switch--disabled {
   border-color: rgba(165, 243, 234, 0.12);
   background: rgba(8, 21, 26, 0.44);
 }
 
-.floating-player-panel__motion-switch--disabled:hover {
+.floating-player-panel__switch--disabled:hover {
   border-color: rgba(165, 243, 234, 0.12);
 }
 
-.floating-player-panel__motion-switch--disabled:focus-within {
+.floating-player-panel__switch--disabled:focus-within {
   outline: none;
 }
 
-.floating-player-panel__motion-switch--disabled .floating-player-panel__switch-label {
+.floating-player-panel__switch--disabled .floating-player-panel__switch-label {
   color: rgba(189, 229, 223, 0.44);
 }
 
-.floating-player-panel__motion-switch--disabled .floating-player-panel__switch-track {
+.floating-player-panel__switch--disabled .floating-player-panel__switch-track {
   background: rgba(112, 145, 141, 0.26);
   border-color: rgba(140, 188, 180, 0.24);
 }
 
-.floating-player-panel__motion-switch--disabled .floating-player-panel__switch-thumb {
+.floating-player-panel__switch--disabled .floating-player-panel__switch-thumb {
   background: rgba(233, 248, 244, 0.48);
   transform: translateX(0);
 }
 
-.floating-player-panel__motion-switch--disabled
+.floating-player-panel__switch--disabled
   .floating-player-panel__switch-checkbox:checked
   + .floating-player-panel__switch-label
   + .floating-player-panel__switch-track {
@@ -383,7 +395,7 @@
   border-color: rgba(140, 188, 180, 0.24);
 }
 
-.floating-player-panel__motion-switch--disabled
+.floating-player-panel__switch--disabled
   .floating-player-panel__switch-checkbox:checked
   + .floating-player-panel__switch-label
   + .floating-player-panel__switch-track

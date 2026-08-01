@@ -1,234 +1,274 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { AUDIO_SOURCES, formatAudioSourceLabel } from './audioSources'
-import AudioAnalysisDiagnostics from '../components/AudioAnalysisDiagnostics'
-import FloatingPlayerPanel from '../components/FloatingPlayerPanel'
-import SignalTelemetryPanel from '../components/SignalTelemetryPanel'
-import StationIdentOverlay from '../components/StationIdentOverlay'
-import VisualFeedWindow from '../components/VisualFeedWindow'
-import { themeRegistry } from '../themes/themeRegistry'
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { AUDIO_SOURCES, formatAudioSourceLabel } from "./audioSources";
+import AudioAnalysisDiagnostics from "../components/AudioAnalysisDiagnostics";
+import FloatingPlayerPanel from "../components/FloatingPlayerPanel";
+import SignalTelemetryPanel from "../components/SignalTelemetryPanel";
+import StationIdentOverlay from "../components/StationIdentOverlay";
+import VisualFeedWindow from "../components/VisualFeedWindow";
+import { themeRegistry } from "../themes/themeRegistry";
 import type {
   ImageDepthSceneCounters,
   ReactivePreviewTelemetry,
   SignalSource,
-} from './playerTypes'
-import type { ThemeId, ThemeSceneProps } from '../themes/themeTypes'
-import { preloadImageDepthTextures } from '../themes/image-depth/imageDepthTextureCache'
-import { imageDepthEnvironmentCatalog } from '../themes/image-depth/environmentCatalog'
-import { useAudioAnalysis } from './useAudioAnalysis'
-import { usePersistentAudioController } from './usePersistentAudioController'
-import { defaultThemeId } from '../themes/themeRegistry'
+} from "./playerTypes";
+import type { ThemeId, ThemeSceneProps } from "../themes/themeTypes";
+import { preloadImageDepthTextures } from "../themes/image-depth/imageDepthTextureCache";
+import { imageDepthEnvironmentCatalog } from "../themes/image-depth/environmentCatalog";
+import { useAudioAnalysis } from "./useAudioAnalysis";
+import { usePersistentAudioController } from "./usePersistentAudioController";
+import { defaultThemeId } from "../themes/themeRegistry";
 import {
   mapSignalTarget,
   resolveShortestHueDeltaDegrees,
   stepSmoothedValue,
   wrapSignedDegrees,
-} from './reactiveBehaviorMapping'
-import { FULLON_BUILT_IN_PRESET, resolveSnapshotSignal } from './reactiveBehaviorPresetSchema'
-import '../styles/player.css'
+} from "./reactiveBehaviorMapping";
+import {
+  FULLON_BUILT_IN_PRESET,
+  resolveSnapshotSignal,
+} from "./reactiveBehaviorPresetSchema";
+import "../styles/player.css";
 
 type PlayerShellProps = {
-  className?: string
-}
+  className?: string;
+};
 
 type PlayerPreferencesV1 = {
-  selectedThemeId: ThemeId
-  selectedAudioSourceId: string
-  volume: number
-  motionEnabled: boolean
-  visualFeedOpen: boolean
-}
+  selectedThemeId: ThemeId;
+  selectedAudioSourceId: string;
+  volume: number;
+  motionEnabled: boolean;
+  visualFeedOpen: boolean;
+};
 
 type PlayerPreferencesV2 = PlayerPreferencesV1 & {
-  colorEnabled?: boolean
-  selectedBehavior?: 'chill' | 'fullon'
-  signalTelemetryVisible?: boolean
-}
+  colorEnabled?: boolean;
+  selectedBehavior?: "chill" | "fullon";
+  signalTelemetryVisible?: boolean;
+};
 
-const PLAYER_PREFERENCES_STORAGE_KEY_V1 = 'deepsignals.player.preferences.v1'
-const PLAYER_PREFERENCES_STORAGE_KEY_V2 = 'deepsignals.player.preferences.v2'
-const SIGNAL_TELEMETRY_VISIBLE_STORAGE_KEY_V1 = 'deepsignals.player.signal-telemetry.visible.v1'
-const SIGNAL_TELEMETRY_COLLAPSED_STORAGE_KEY_V1 = 'deepsignals.player.signal-telemetry.collapsed.v1'
+const PLAYER_PREFERENCES_STORAGE_KEY_V1 = "deepsignals.player.preferences.v1";
+const PLAYER_PREFERENCES_STORAGE_KEY_V2 = "deepsignals.player.preferences.v2";
+const SIGNAL_TELEMETRY_VISIBLE_STORAGE_KEY_V1 =
+  "deepsignals.player.signal-telemetry.visible.v1";
+const SIGNAL_TELEMETRY_COLLAPSED_STORAGE_KEY_V1 =
+  "deepsignals.player.signal-telemetry.collapsed.v1";
 
-const SIGNAL_TELEMETRY_MAX_WIDTH = 820
-const SIGNAL_TELEMETRY_MIN_HEIGHT_FOR_COLLAPSED = 620
-const SIGNAL_TELEMETRY_MIN_HEIGHT_FOR_EXPANDED = 760
+const SIGNAL_TELEMETRY_MAX_WIDTH = 820;
+const SIGNAL_TELEMETRY_MIN_HEIGHT_FOR_COLLAPSED = 620;
+const SIGNAL_TELEMETRY_MIN_HEIGHT_FOR_EXPANDED = 760;
 
-const FULLON_STOP_SETTLE_DEPTH = 0.5
-const FULLON_STOP_SETTLE_HUE_DEGREES = 0
-const FULLON_STOP_SETTLE_SATURATION = 1
+const FULLON_STOP_SETTLE_DEPTH = 0.5;
+const FULLON_STOP_SETTLE_HUE_DEGREES = 0;
+const FULLON_STOP_SETTLE_SATURATION = 1;
 
-const availableAudioSourceIds = new Set(AUDIO_SOURCES.map((source) => source.id))
+const availableAudioSourceIds = new Set(
+  AUDIO_SOURCES.map((source) => source.id),
+);
 
 function sanitizeThemeId(value: unknown): ThemeId {
-  if (typeof value !== 'string') {
-    return defaultThemeId
+  if (typeof value !== "string") {
+    return defaultThemeId;
   }
 
-  return themeRegistry.some((theme) => theme.id === value) ? value : defaultThemeId
+  return themeRegistry.some((theme) => theme.id === value)
+    ? value
+    : defaultThemeId;
 }
 
 function sanitizeAudioSourceId(value: unknown): string {
-  if (typeof value !== 'string') {
-    return AUDIO_SOURCES[0]?.id ?? ''
+  if (typeof value !== "string") {
+    return AUDIO_SOURCES[0]?.id ?? "";
   }
 
-  return availableAudioSourceIds.has(value) ? value : (AUDIO_SOURCES[0]?.id ?? '')
+  return availableAudioSourceIds.has(value)
+    ? value
+    : (AUDIO_SOURCES[0]?.id ?? "");
 }
 
 function sanitizeBoolean(value: unknown, fallback: boolean) {
-  return typeof value === 'boolean' ? value : fallback
+  return typeof value === "boolean" ? value : fallback;
 }
 
 function sanitizeVolume(value: unknown) {
-  if (typeof value !== 'number' || !Number.isFinite(value)) {
-    return 1
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return 1;
   }
 
-  return Math.min(1, Math.max(0, value))
+  return Math.min(1, Math.max(0, value));
 }
 
 function readStoredPlayerPreferences(): PlayerPreferencesV2 {
   const fallback: PlayerPreferencesV2 = {
     selectedThemeId: defaultThemeId,
-    selectedAudioSourceId: AUDIO_SOURCES[0]?.id ?? '',
+    selectedAudioSourceId: AUDIO_SOURCES[0]?.id ?? "",
     volume: 1,
     motionEnabled: true,
     colorEnabled: true,
     visualFeedOpen: false,
-  }
+  };
 
-  if (typeof window === 'undefined') {
-    return fallback
+  if (typeof window === "undefined") {
+    return fallback;
   }
 
   try {
-    const rawV2 = window.localStorage.getItem(PLAYER_PREFERENCES_STORAGE_KEY_V2)
+    const rawV2 = window.localStorage.getItem(
+      PLAYER_PREFERENCES_STORAGE_KEY_V2,
+    );
 
     if (rawV2) {
-      const parsed = JSON.parse(rawV2) as Partial<PlayerPreferencesV2>
+      const parsed = JSON.parse(rawV2) as Partial<PlayerPreferencesV2>;
 
       return {
         selectedThemeId: sanitizeThemeId(parsed.selectedThemeId),
-        selectedAudioSourceId: sanitizeAudioSourceId(parsed.selectedAudioSourceId),
+        selectedAudioSourceId: sanitizeAudioSourceId(
+          parsed.selectedAudioSourceId,
+        ),
         volume: 1,
         motionEnabled: sanitizeBoolean(parsed.motionEnabled, true),
         colorEnabled: sanitizeBoolean(parsed.colorEnabled, true),
         visualFeedOpen: sanitizeBoolean(parsed.visualFeedOpen, false),
-      }
+      };
     }
 
-    const rawV1 = window.localStorage.getItem(PLAYER_PREFERENCES_STORAGE_KEY_V1)
+    const rawV1 = window.localStorage.getItem(
+      PLAYER_PREFERENCES_STORAGE_KEY_V1,
+    );
 
     if (!rawV1) {
-      return fallback
+      return fallback;
     }
 
-    const parsed = JSON.parse(rawV1) as Partial<PlayerPreferencesV1>
+    const parsed = JSON.parse(rawV1) as Partial<PlayerPreferencesV1>;
 
     return {
       selectedThemeId: sanitizeThemeId(parsed.selectedThemeId),
-      selectedAudioSourceId: sanitizeAudioSourceId(parsed.selectedAudioSourceId),
+      selectedAudioSourceId: sanitizeAudioSourceId(
+        parsed.selectedAudioSourceId,
+      ),
       volume: 1,
       motionEnabled: sanitizeBoolean(parsed.motionEnabled, true),
       colorEnabled: true,
       visualFeedOpen: sanitizeBoolean(parsed.visualFeedOpen, false),
-    }
+    };
   } catch {
-    return fallback
+    return fallback;
   }
 }
 
 function readStoredSignalTelemetryVisiblePreference() {
-  const fallback = true
+  const fallback = true;
 
-  if (typeof window === 'undefined') {
-    return fallback
+  if (typeof window === "undefined") {
+    return fallback;
   }
 
   try {
-    const raw = window.localStorage.getItem(SIGNAL_TELEMETRY_VISIBLE_STORAGE_KEY_V1)
+    const raw = window.localStorage.getItem(
+      SIGNAL_TELEMETRY_VISIBLE_STORAGE_KEY_V1,
+    );
 
     if (!raw) {
-      return fallback
+      return fallback;
     }
 
-    const parsed = JSON.parse(raw) as { visible?: unknown } | unknown
+    const parsed = JSON.parse(raw) as { visible?: unknown } | unknown;
 
-    if (typeof parsed === 'object' && parsed !== null && 'visible' in parsed) {
-      return sanitizeBoolean((parsed as { visible?: unknown }).visible, fallback)
+    if (typeof parsed === "object" && parsed !== null && "visible" in parsed) {
+      return sanitizeBoolean(
+        (parsed as { visible?: unknown }).visible,
+        fallback,
+      );
     }
 
-    return fallback
+    return fallback;
   } catch {
-    return fallback
+    return fallback;
   }
 }
 
 function readStoredSignalTelemetryCollapsedPreference() {
-  const fallback = false
+  const fallback = false;
 
-  if (typeof window === 'undefined') {
-    return fallback
+  if (typeof window === "undefined") {
+    return fallback;
   }
 
   try {
-    const raw = window.localStorage.getItem(SIGNAL_TELEMETRY_COLLAPSED_STORAGE_KEY_V1)
+    const raw = window.localStorage.getItem(
+      SIGNAL_TELEMETRY_COLLAPSED_STORAGE_KEY_V1,
+    );
 
     if (!raw) {
-      return fallback
+      return fallback;
     }
 
-    const parsed = JSON.parse(raw) as { collapsed?: unknown } | unknown
+    const parsed = JSON.parse(raw) as { collapsed?: unknown } | unknown;
 
-    if (typeof parsed === 'object' && parsed !== null && 'collapsed' in parsed) {
-      return sanitizeBoolean((parsed as { collapsed?: unknown }).collapsed, fallback)
+    if (
+      typeof parsed === "object" &&
+      parsed !== null &&
+      "collapsed" in parsed
+    ) {
+      return sanitizeBoolean(
+        (parsed as { collapsed?: unknown }).collapsed,
+        fallback,
+      );
     }
 
-    return fallback
+    return fallback;
   } catch {
-    return fallback
+    return fallback;
   }
 }
 
 function isAudioDebugEnabled() {
-  if (!import.meta.env.DEV || typeof window === 'undefined') {
-    return false
+  if (!import.meta.env.DEV || typeof window === "undefined") {
+    return false;
   }
 
-  const searchParams = new URLSearchParams(window.location.search)
-  return searchParams.get('audioDebug') === '1'
+  const searchParams = new URLSearchParams(window.location.search);
+  return searchParams.get("audioDebug") === "1";
 }
 
 function isIgnoreSourceBpmEnabled() {
-  if (!import.meta.env.DEV || typeof window === 'undefined') {
-    return false
+  if (!import.meta.env.DEV || typeof window === "undefined") {
+    return false;
   }
 
-  const searchParams = new URLSearchParams(window.location.search)
-  return searchParams.get('ignoreSourceBpm') === '1'
+  const searchParams = new URLSearchParams(window.location.search);
+  return searchParams.get("ignoreSourceBpm") === "1";
 }
 
-function isSignalTelemetryUiAvailable(viewportWidth: number, viewportHeight: number, collapsed: boolean) {
+function isSignalTelemetryUiAvailable(
+  viewportWidth: number,
+  viewportHeight: number,
+  collapsed: boolean,
+) {
   if (viewportWidth <= SIGNAL_TELEMETRY_MAX_WIDTH) {
-    return false
+    return false;
   }
 
   if (viewportHeight <= SIGNAL_TELEMETRY_MIN_HEIGHT_FOR_COLLAPSED) {
-    return false
+    return false;
   }
 
-  if (!collapsed && viewportHeight <= SIGNAL_TELEMETRY_MIN_HEIGHT_FOR_EXPANDED) {
-    return false
+  if (
+    !collapsed &&
+    viewportHeight <= SIGNAL_TELEMETRY_MIN_HEIGHT_FOR_EXPANDED
+  ) {
+    return false;
   }
 
-  return true
+  return true;
 }
 
 const ZERO_REACTIVE_PREVIEW_TELEMETRY: ReactivePreviewTelemetry = {
-  selectedReactiveBehavior: 'Chill',
-  selectedDepthSignalField: 'n/a',
-  selectedHueSignalField: 'n/a',
-  selectedSaturationSignalField: 'n/a',
+  selectedReactiveBehavior: "Chill",
+  selectedDepthSignalField: "n/a",
+  selectedHueSignalField: "n/a",
+  selectedSaturationSignalField: "n/a",
   reactivePreviewEnabled: false,
   reactiveIsolationEnabled: false,
   reactiveTimingAuthorityActive: false,
@@ -258,7 +298,7 @@ const ZERO_REACTIVE_PREVIEW_TELEMETRY: ReactivePreviewTelemetry = {
   acceptedEventRatePerSecondRecent: 0,
   smoothedEnergy: 0,
   sectionIntensity: 0,
-  fullOnPhase: 'n/a',
+  fullOnPhase: "n/a",
   fullOnTargetDepth: 0,
   fullOnCurrentDepth: 0,
   fullOnTargetSaturation: 1,
@@ -294,7 +334,7 @@ const ZERO_REACTIVE_PREVIEW_TELEMETRY: ReactivePreviewTelemetry = {
   authoredGlobalGlowCycleSuppressed: false,
   transientAccent: 0,
   geometryMotionActive: false,
-}
+};
 
 const ZERO_IMAGE_DEPTH_SCENE_COUNTERS: ImageDepthSceneCounters = {
   sceneComponentMountCount: 0,
@@ -304,38 +344,67 @@ const ZERO_IMAGE_DEPTH_SCENE_COUNTERS: ImageDepthSceneCounters = {
   materialGeometryInitializationCount: 0,
   environmentChangeCount: 0,
   depthUpdateCount: 0,
-}
+};
 
 function PlayerShell({ className }: PlayerShellProps) {
-  const [audioDebugEnabled] = useState(() => isAudioDebugEnabled())
-  const [ignoreSourceBpmEnabled] = useState(() => isIgnoreSourceBpmEnabled())
-  const [storedPreferences] = useState<PlayerPreferencesV2>(() => readStoredPlayerPreferences())
-  const [selectedThemeId, setSelectedThemeId] = useState<ThemeId>(storedPreferences.selectedThemeId)
-  const [selectedSignalId, setSelectedSignalId] = useState<string | null>(storedPreferences.selectedAudioSourceId)
-  const [motionEnabled, setMotionEnabled] = useState(storedPreferences.motionEnabled)
-  // Reserved for future environment color-effect wiring; currently UI preference only.
-  const [colorEnabled, setColorEnabled] = useState(sanitizeBoolean(storedPreferences.colorEnabled, true))
-  const [signalTelemetryVisible, setSignalTelemetryVisible] = useState(() => readStoredSignalTelemetryVisiblePreference())
+  const [audioDebugEnabled] = useState(() => isAudioDebugEnabled());
+  const [ignoreSourceBpmEnabled] = useState(() => isIgnoreSourceBpmEnabled());
+  const [storedPreferences] = useState<PlayerPreferencesV2>(() =>
+    readStoredPlayerPreferences(),
+  );
+  const [selectedThemeId, setSelectedThemeId] = useState<ThemeId>(
+    storedPreferences.selectedThemeId,
+  );
+  const [selectedSignalId, setSelectedSignalId] = useState<string | null>(
+    storedPreferences.selectedAudioSourceId,
+  );
+  const [motionEnabled, setMotionEnabled] = useState(
+    storedPreferences.motionEnabled,
+  );
+  // Reserved for future environment chroma-effect wiring; currently UI preference only.
+  const [chromaEnabled, setChromaEnabled] = useState(
+    sanitizeBoolean(storedPreferences.colorEnabled, true),
+  );
+  const [signalTelemetryVisible, setSignalTelemetryVisible] = useState(() =>
+    readStoredSignalTelemetryVisiblePreference(),
+  );
   const [signalTelemetryCollapsed, setSignalTelemetryCollapsed] = useState(() =>
     readStoredSignalTelemetryCollapsedPreference(),
-  )
+  );
   const [viewportSize, setViewportSize] = useState(() => ({
-    width: typeof window === 'undefined' ? 1024 : window.innerWidth,
-    height: typeof window === 'undefined' ? 768 : window.innerHeight,
-  }))
-  const [panelCollapsed, setPanelCollapsed] = useState(false)
-  const [visualFeedOpen, setVisualFeedOpen] = useState(storedPreferences.visualFeedOpen)
-  const reactivePreviewTelemetryRef = useRef<ReactivePreviewTelemetry>(ZERO_REACTIVE_PREVIEW_TELEMETRY)
-  const [sceneCounters, setSceneCounters] = useState<ImageDepthSceneCounters>(ZERO_IMAGE_DEPTH_SCENE_COUNTERS)
-  const [fullOnDepthOverride, setFullOnDepthOverride] = useState(FULLON_STOP_SETTLE_DEPTH)
-  const [fullOnHueShiftOverrideDegrees, setFullOnHueShiftOverrideDegrees] = useState(FULLON_STOP_SETTLE_HUE_DEGREES)
-  const [fullOnSaturationOverrideMultiplier, setFullOnSaturationOverrideMultiplier] = useState(FULLON_STOP_SETTLE_SATURATION)
-  const fullOnDepthCurrentRef = useRef(FULLON_STOP_SETTLE_DEPTH)
-  const fullOnHueCurrentRef = useRef(FULLON_STOP_SETTLE_HUE_DEGREES)
-  const fullOnSaturationCurrentRef = useRef(FULLON_STOP_SETTLE_SATURATION)
-  const audioController = usePersistentAudioController(storedPreferences.volume, selectedSignalId ?? undefined)
-  const registrySourceBpm = audioController.audioSource.bpm ?? null
-  const effectiveReactiveBpm = ignoreSourceBpmEnabled ? null : registrySourceBpm
+    width: typeof window === "undefined" ? 1024 : window.innerWidth,
+    height: typeof window === "undefined" ? 768 : window.innerHeight,
+  }));
+  const [panelCollapsed, setPanelCollapsed] = useState(false);
+  const [visualFeedOpen, setVisualFeedOpen] = useState(
+    storedPreferences.visualFeedOpen,
+  );
+  const reactivePreviewTelemetryRef = useRef<ReactivePreviewTelemetry>(
+    ZERO_REACTIVE_PREVIEW_TELEMETRY,
+  );
+  const [sceneCounters, setSceneCounters] = useState<ImageDepthSceneCounters>(
+    ZERO_IMAGE_DEPTH_SCENE_COUNTERS,
+  );
+  const [fullOnDepthOverride, setFullOnDepthOverride] = useState(
+    FULLON_STOP_SETTLE_DEPTH,
+  );
+  const [fullOnHueShiftOverrideDegrees, setFullOnHueShiftOverrideDegrees] =
+    useState(FULLON_STOP_SETTLE_HUE_DEGREES);
+  const [
+    fullOnSaturationOverrideMultiplier,
+    setFullOnSaturationOverrideMultiplier,
+  ] = useState(FULLON_STOP_SETTLE_SATURATION);
+  const fullOnDepthCurrentRef = useRef(FULLON_STOP_SETTLE_DEPTH);
+  const fullOnHueCurrentRef = useRef(FULLON_STOP_SETTLE_HUE_DEGREES);
+  const fullOnSaturationCurrentRef = useRef(FULLON_STOP_SETTLE_SATURATION);
+  const audioController = usePersistentAudioController(
+    storedPreferences.volume,
+    selectedSignalId ?? undefined,
+  );
+  const registrySourceBpm = audioController.audioSource.bpm ?? null;
+  const effectiveReactiveBpm = ignoreSourceBpmEnabled
+    ? null
+    : registrySourceBpm;
   const audioAnalysis = useAudioAnalysis({
     audioElement: audioController.audioElement,
     playbackStatus: audioController.playbackStatus,
@@ -343,84 +412,96 @@ function PlayerShell({ className }: PlayerShellProps) {
     audioSourceId: selectedSignalId,
     sourceBpm: effectiveReactiveBpm,
     publishDiagnostics: audioDebugEnabled,
-  })
+  });
 
   const imageDepthAssetsByThemeId = useMemo(
     () =>
-      new Map(imageDepthEnvironmentCatalog.map((environment) => [environment.id as ThemeId, environment.asset])),
+      new Map(
+        imageDepthEnvironmentCatalog.map((environment) => [
+          environment.id as ThemeId,
+          environment.asset,
+        ]),
+      ),
     [],
-  )
+  );
 
   useEffect(() => {
-    const selectedAsset = imageDepthAssetsByThemeId.get(selectedThemeId)
+    const selectedAsset = imageDepthAssetsByThemeId.get(selectedThemeId);
 
     if (!selectedAsset) {
-      return
+      return;
     }
 
-    void preloadImageDepthTextures(selectedAsset)
-  }, [selectedThemeId, imageDepthAssetsByThemeId])
+    void preloadImageDepthTextures(selectedAsset);
+  }, [selectedThemeId, imageDepthAssetsByThemeId]);
 
   const signals: SignalSource[] = useMemo(
-    () => AUDIO_SOURCES.map((source) => ({ id: source.id, label: formatAudioSourceLabel(source) })),
+    () =>
+      AUDIO_SOURCES.map((source) => ({
+        id: source.id,
+        label: formatAudioSourceLabel(source),
+      })),
     [],
-  )
+  );
 
   const activeTheme = useMemo(() => {
-    return themeRegistry.find((theme) => theme.id === selectedThemeId)
-  }, [selectedThemeId])
+    return themeRegistry.find((theme) => theme.id === selectedThemeId);
+  }, [selectedThemeId]);
 
   const themeOptions = useMemo(
     () => themeRegistry.map((theme) => ({ id: theme.id, name: theme.name })),
     [],
-  )
+  );
 
   const selectedSignal = useMemo(
     () => signals.find((signal) => signal.id === selectedSignalId),
     [selectedSignalId, signals],
-  )
+  );
 
-  const supportsMotion = activeTheme?.supportsMotion ?? true
-  const supportsVisualFeed = activeTheme?.supportsVisualFeed ?? true
-  const supportsAudioReactiveBehavior = activeTheme?.supportsAudioReactiveBehavior ?? false
-  const productionFullOnActive = supportsAudioReactiveBehavior
-  const productionDepthMotionSuppressed = supportsAudioReactiveBehavior && !motionEnabled
+  const supportsChroma = activeTheme?.supportsChroma ?? true;
+  const supportsMotion = activeTheme?.supportsMotion ?? true;
+  const supportsVisualFeed = activeTheme?.supportsVisualFeed ?? true;
+  const supportsAudioReactiveBehavior =
+    activeTheme?.supportsAudioReactiveBehavior ?? false;
+  const productionFullOnActive = supportsAudioReactiveBehavior;
+  const productionDepthMotionSuppressed =
+    supportsAudioReactiveBehavior && !motionEnabled;
   const signalTelemetryUiAvailable = isSignalTelemetryUiAvailable(
     viewportSize.width,
     viewportSize.height,
     signalTelemetryCollapsed,
-  )
+  );
 
   useEffect(() => {
-    if (typeof window === 'undefined') {
-      return
+    if (typeof window === "undefined") {
+      return;
     }
 
     const handleViewportChange = () => {
-      setViewportSize({ width: window.innerWidth, height: window.innerHeight })
-    }
+      setViewportSize({ width: window.innerWidth, height: window.innerHeight });
+    };
 
-    handleViewportChange()
-    window.addEventListener('resize', handleViewportChange)
+    handleViewportChange();
+    window.addEventListener("resize", handleViewportChange);
 
     return () => {
-      window.removeEventListener('resize', handleViewportChange)
-    }
-  }, [])
+      window.removeEventListener("resize", handleViewportChange);
+    };
+  }, []);
 
   const handleSignalChange = (id: string) => {
-    setSelectedSignalId(sanitizeAudioSourceId(id) || null)
-  }
+    setSelectedSignalId(sanitizeAudioSourceId(id) || null);
+  };
 
   const handleThemeChange = (themeId: ThemeId) => {
-    setSelectedThemeId(themeId)
+    setSelectedThemeId(themeId);
 
-    const nextTheme = themeRegistry.find((theme) => theme.id === themeId)
+    const nextTheme = themeRegistry.find((theme) => theme.id === themeId);
 
     if (!nextTheme?.supportsVisualFeed) {
-      setVisualFeedOpen(false)
+      setVisualFeedOpen(false);
     }
-  }
+  };
 
   useEffect(() => {
     const resetFullOnOverrides = () => {
@@ -429,55 +510,76 @@ function PlayerShell({ className }: PlayerShellProps) {
         fullOnHueCurrentRef.current === FULLON_STOP_SETTLE_HUE_DEGREES &&
         fullOnSaturationCurrentRef.current === FULLON_STOP_SETTLE_SATURATION
       ) {
-        return
+        return;
       }
 
-      fullOnDepthCurrentRef.current = FULLON_STOP_SETTLE_DEPTH
-      fullOnHueCurrentRef.current = FULLON_STOP_SETTLE_HUE_DEGREES
-      fullOnSaturationCurrentRef.current = FULLON_STOP_SETTLE_SATURATION
-      setFullOnDepthOverride(FULLON_STOP_SETTLE_DEPTH)
-      setFullOnHueShiftOverrideDegrees(FULLON_STOP_SETTLE_HUE_DEGREES)
-      setFullOnSaturationOverrideMultiplier(FULLON_STOP_SETTLE_SATURATION)
-    }
+      fullOnDepthCurrentRef.current = FULLON_STOP_SETTLE_DEPTH;
+      fullOnHueCurrentRef.current = FULLON_STOP_SETTLE_HUE_DEGREES;
+      fullOnSaturationCurrentRef.current = FULLON_STOP_SETTLE_SATURATION;
+      setFullOnDepthOverride(FULLON_STOP_SETTLE_DEPTH);
+      setFullOnHueShiftOverrideDegrees(FULLON_STOP_SETTLE_HUE_DEGREES);
+      setFullOnSaturationOverrideMultiplier(FULLON_STOP_SETTLE_SATURATION);
+    };
 
     if (!productionFullOnActive) {
-      resetFullOnOverrides()
-      return
+      resetFullOnOverrides();
+      return;
     }
 
-    let rafId: number | null = null
-    const getLatestSnapshot = audioAnalysis.getLatestSnapshot
+    let rafId: number | null = null;
+    const getLatestSnapshot = audioAnalysis.getLatestSnapshot;
 
     const tick = () => {
-      const snapshot = getLatestSnapshot()
-      const isPlayingNow = audioController.playbackStatus === 'playing'
+      const snapshot = getLatestSnapshot();
+      const isPlayingNow = audioController.playbackStatus === "playing";
 
-      const energySignal = resolveSnapshotSignal(snapshot, FULLON_BUILT_IN_PRESET.depth.signal)
-      const bassSignal = resolveSnapshotSignal(snapshot, FULLON_BUILT_IN_PRESET.saturation.signal)
+      const energySignal = resolveSnapshotSignal(
+        snapshot,
+        FULLON_BUILT_IN_PRESET.depth.signal,
+      );
+      const bassSignal = resolveSnapshotSignal(
+        snapshot,
+        FULLON_BUILT_IN_PRESET.saturation.signal,
+      );
 
       const depthTarget = isPlayingNow
-        ? mapSignalTarget(energySignal, FULLON_BUILT_IN_PRESET.depth.min, FULLON_BUILT_IN_PRESET.depth.max)
-        : FULLON_STOP_SETTLE_DEPTH
+        ? mapSignalTarget(
+            energySignal,
+            FULLON_BUILT_IN_PRESET.depth.min,
+            FULLON_BUILT_IN_PRESET.depth.max,
+          )
+        : FULLON_STOP_SETTLE_DEPTH;
       const hueTarget = isPlayingNow
-        ? mapSignalTarget(energySignal, FULLON_BUILT_IN_PRESET.hue.minDegrees, FULLON_BUILT_IN_PRESET.hue.maxDegrees)
-        : FULLON_STOP_SETTLE_HUE_DEGREES
+        ? mapSignalTarget(
+            energySignal,
+            FULLON_BUILT_IN_PRESET.hue.minDegrees,
+            FULLON_BUILT_IN_PRESET.hue.maxDegrees,
+          )
+        : FULLON_STOP_SETTLE_HUE_DEGREES;
       const saturationTarget = isPlayingNow
-        ? mapSignalTarget(bassSignal, FULLON_BUILT_IN_PRESET.saturation.min, FULLON_BUILT_IN_PRESET.saturation.max)
-        : FULLON_STOP_SETTLE_SATURATION
+        ? mapSignalTarget(
+            bassSignal,
+            FULLON_BUILT_IN_PRESET.saturation.min,
+            FULLON_BUILT_IN_PRESET.saturation.max,
+          )
+        : FULLON_STOP_SETTLE_SATURATION;
 
       const nextDepth = stepSmoothedValue(
         fullOnDepthCurrentRef.current,
         depthTarget,
         FULLON_BUILT_IN_PRESET.depth.smoothing,
-      )
-      const shortestHueDelta = resolveShortestHueDeltaDegrees(fullOnHueCurrentRef.current, hueTarget)
+      );
+      const shortestHueDelta = resolveShortestHueDeltaDegrees(
+        fullOnHueCurrentRef.current,
+        hueTarget,
+      );
       const nextHue = wrapSignedDegrees(
         stepSmoothedValue(
           fullOnHueCurrentRef.current,
           fullOnHueCurrentRef.current + shortestHueDelta,
           FULLON_BUILT_IN_PRESET.hue.smoothing,
         ),
-      )
+      );
       const nextSaturation = Math.max(
         0,
         stepSmoothedValue(
@@ -485,24 +587,30 @@ function PlayerShell({ className }: PlayerShellProps) {
           saturationTarget,
           FULLON_BUILT_IN_PRESET.saturation.smoothing,
         ),
-      )
+      );
 
-      fullOnDepthCurrentRef.current = Math.abs(nextDepth - depthTarget) < 0.0005 ? depthTarget : nextDepth
-      fullOnHueCurrentRef.current = Math.abs(shortestHueDelta) < 0.05 ? wrapSignedDegrees(hueTarget) : nextHue
+      fullOnDepthCurrentRef.current =
+        Math.abs(nextDepth - depthTarget) < 0.0005 ? depthTarget : nextDepth;
+      fullOnHueCurrentRef.current =
+        Math.abs(shortestHueDelta) < 0.05
+          ? wrapSignedDegrees(hueTarget)
+          : nextHue;
       fullOnSaturationCurrentRef.current =
-        Math.abs(nextSaturation - saturationTarget) < 0.0005 ? saturationTarget : nextSaturation
+        Math.abs(nextSaturation - saturationTarget) < 0.0005
+          ? saturationTarget
+          : nextSaturation;
 
       const effectiveRenderedDepth = productionDepthMotionSuppressed
         ? FULLON_STOP_SETTLE_DEPTH
-        : fullOnDepthCurrentRef.current
+        : fullOnDepthCurrentRef.current;
 
-      setFullOnDepthOverride(effectiveRenderedDepth)
-      setFullOnHueShiftOverrideDegrees(fullOnHueCurrentRef.current)
-      setFullOnSaturationOverrideMultiplier(fullOnSaturationCurrentRef.current)
+      setFullOnDepthOverride(effectiveRenderedDepth);
+      setFullOnHueShiftOverrideDegrees(fullOnHueCurrentRef.current);
+      setFullOnSaturationOverrideMultiplier(fullOnSaturationCurrentRef.current);
 
       reactivePreviewTelemetryRef.current = {
         ...reactivePreviewTelemetryRef.current,
-        selectedReactiveBehavior: 'Full On',
+        selectedReactiveBehavior: "Full On",
         selectedDepthSignalField: FULLON_BUILT_IN_PRESET.depth.signal,
         selectedHueSignalField: FULLON_BUILT_IN_PRESET.hue.signal,
         selectedSaturationSignalField: FULLON_BUILT_IN_PRESET.saturation.signal,
@@ -515,96 +623,118 @@ function PlayerShell({ className }: PlayerShellProps) {
         fullOnTargetSaturation: saturationTarget,
         fullOnCurrentSaturation: fullOnSaturationCurrentRef.current,
         finalSaturation: fullOnSaturationCurrentRef.current,
-      }
+      };
 
-      rafId = window.requestAnimationFrame(tick)
-    }
+      rafId = window.requestAnimationFrame(tick);
+    };
 
-    rafId = window.requestAnimationFrame(tick)
+    rafId = window.requestAnimationFrame(tick);
 
     return () => {
       if (rafId !== null) {
-        window.cancelAnimationFrame(rafId)
+        window.cancelAnimationFrame(rafId);
       }
-    }
+    };
   }, [
     audioAnalysis.getLatestSnapshot,
     audioController.playbackStatus,
     productionDepthMotionSuppressed,
     productionFullOnActive,
-  ])
+  ]);
 
   const effectiveProductionDepthOverride = productionDepthMotionSuppressed
     ? FULLON_STOP_SETTLE_DEPTH
     : productionFullOnActive
       ? fullOnDepthOverride
-      : undefined
+      : undefined;
 
-  const handleSceneCountersChange = useCallback((nextCounters: ImageDepthSceneCounters) => {
-    setSceneCounters((current) => {
-      if (
-        current.sceneComponentMountCount === nextCounters.sceneComponentMountCount &&
-        current.sceneComponentUnmountCount === nextCounters.sceneComponentUnmountCount &&
-        current.rendererCreationCount === nextCounters.rendererCreationCount &&
-        current.textureLoadCount === nextCounters.textureLoadCount &&
-        current.materialGeometryInitializationCount === nextCounters.materialGeometryInitializationCount &&
-        current.environmentChangeCount === nextCounters.environmentChangeCount &&
-        current.depthUpdateCount === nextCounters.depthUpdateCount
-      ) {
-        return current
-      }
+  const handleSceneCountersChange = useCallback(
+    (nextCounters: ImageDepthSceneCounters) => {
+      setSceneCounters((current) => {
+        if (
+          current.sceneComponentMountCount ===
+            nextCounters.sceneComponentMountCount &&
+          current.sceneComponentUnmountCount ===
+            nextCounters.sceneComponentUnmountCount &&
+          current.rendererCreationCount ===
+            nextCounters.rendererCreationCount &&
+          current.textureLoadCount === nextCounters.textureLoadCount &&
+          current.materialGeometryInitializationCount ===
+            nextCounters.materialGeometryInitializationCount &&
+          current.environmentChangeCount ===
+            nextCounters.environmentChangeCount &&
+          current.depthUpdateCount === nextCounters.depthUpdateCount
+        ) {
+          return current;
+        }
 
-      return nextCounters
-    })
-  }, [])
+        return nextCounters;
+      });
+    },
+    [],
+  );
 
   const sceneProps: ThemeSceneProps = {
-    isPlaying: audioController.playbackStatus === 'playing',
+    isPlaying: audioController.playbackStatus === "playing",
     volume: audioController.volume,
     signalId: selectedSignalId,
     audioLevel: 0,
     sourceBpm: effectiveReactiveBpm,
-    reducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+    reducedMotion: window.matchMedia("(prefers-reduced-motion: reduce)")
+      .matches,
     motionEnabled,
     getLatestAudioSnapshot: audioAnalysis.getLatestSnapshot,
-    reactivePreviewEnabled: supportsAudioReactiveBehavior && !productionFullOnActive,
-    reactiveBehavior: 'chill',
+    reactivePreviewEnabled:
+      supportsAudioReactiveBehavior && !productionFullOnActive,
+    reactiveBehavior: "chill",
     manualDepthOverride: effectiveProductionDepthOverride,
-    manualHueShiftOverrideDegrees: productionFullOnActive ? fullOnHueShiftOverrideDegrees : null,
-    manualSaturationOverrideMultiplier: productionFullOnActive ? fullOnSaturationOverrideMultiplier : null,
+    manualHueShiftOverrideDegrees: productionFullOnActive
+      ? fullOnHueShiftOverrideDegrees
+      : null,
+    manualSaturationOverrideMultiplier: productionFullOnActive
+      ? fullOnSaturationOverrideMultiplier
+      : null,
     onDevSceneCountersChange: handleSceneCountersChange,
     onReactivePreviewTelemetry: (telemetry) => {
       reactivePreviewTelemetryRef.current = productionFullOnActive
         ? {
             ...telemetry,
-            selectedReactiveBehavior: 'Full On',
+            selectedReactiveBehavior: "Full On",
             selectedDepthSignalField: FULLON_BUILT_IN_PRESET.depth.signal,
             selectedHueSignalField: FULLON_BUILT_IN_PRESET.hue.signal,
-            selectedSaturationSignalField: FULLON_BUILT_IN_PRESET.saturation.signal,
-            fullOnTargetDepth: reactivePreviewTelemetryRef.current.fullOnTargetDepth,
+            selectedSaturationSignalField:
+              FULLON_BUILT_IN_PRESET.saturation.signal,
+            fullOnTargetDepth:
+              reactivePreviewTelemetryRef.current.fullOnTargetDepth,
             fullOnCurrentDepth: productionDepthMotionSuppressed
               ? FULLON_STOP_SETTLE_DEPTH
               : reactivePreviewTelemetryRef.current.fullOnCurrentDepth,
-            reactiveHueTargetDegrees: reactivePreviewTelemetryRef.current.reactiveHueTargetDegrees,
-            reactiveHueOffsetDegrees: reactivePreviewTelemetryRef.current.reactiveHueOffsetDegrees,
-            finalHueShiftDegrees: reactivePreviewTelemetryRef.current.finalHueShiftDegrees,
-            fullOnTargetSaturation: reactivePreviewTelemetryRef.current.fullOnTargetSaturation,
-            fullOnCurrentSaturation: reactivePreviewTelemetryRef.current.fullOnCurrentSaturation,
-            finalSaturation: reactivePreviewTelemetryRef.current.fullOnCurrentSaturation,
+            reactiveHueTargetDegrees:
+              reactivePreviewTelemetryRef.current.reactiveHueTargetDegrees,
+            reactiveHueOffsetDegrees:
+              reactivePreviewTelemetryRef.current.reactiveHueOffsetDegrees,
+            finalHueShiftDegrees:
+              reactivePreviewTelemetryRef.current.finalHueShiftDegrees,
+            fullOnTargetSaturation:
+              reactivePreviewTelemetryRef.current.fullOnTargetSaturation,
+            fullOnCurrentSaturation:
+              reactivePreviewTelemetryRef.current.fullOnCurrentSaturation,
+            finalSaturation:
+              reactivePreviewTelemetryRef.current.fullOnCurrentSaturation,
           }
-        : telemetry
+        : telemetry;
     },
-  }
+  };
 
-  const reactiveDiagnosticsEnabled = audioDebugEnabled
+  const reactiveDiagnosticsEnabled = audioDebugEnabled;
 
   const getReactivePreviewTelemetry = useCallback(() => {
-    return reactivePreviewTelemetryRef.current
-  }, [])
+    return reactivePreviewTelemetryRef.current;
+  }, []);
 
   useEffect(() => {
-    if (typeof window === 'undefined') {
-      return
+    if (typeof window === "undefined") {
+      return;
     }
 
     try {
@@ -613,72 +743,85 @@ function PlayerShell({ className }: PlayerShellProps) {
         selectedAudioSourceId: sanitizeAudioSourceId(selectedSignalId),
         volume: sanitizeVolume(audioController.volume),
         motionEnabled,
-        colorEnabled,
+        colorEnabled: chromaEnabled,
         visualFeedOpen: visualFeedOpen && supportsVisualFeed,
-      }
+      };
 
-      window.localStorage.setItem(PLAYER_PREFERENCES_STORAGE_KEY_V2, JSON.stringify(payload))
+      window.localStorage.setItem(
+        PLAYER_PREFERENCES_STORAGE_KEY_V2,
+        JSON.stringify(payload),
+      );
     } catch {
       // Gracefully ignore localStorage write failures.
     }
-  }, [audioController.volume, colorEnabled, motionEnabled, selectedSignalId, selectedThemeId, supportsVisualFeed, visualFeedOpen])
+  }, [
+    audioController.volume,
+    chromaEnabled,
+    motionEnabled,
+    selectedSignalId,
+    selectedThemeId,
+    supportsVisualFeed,
+    visualFeedOpen,
+  ]);
 
   useEffect(() => {
-    if (typeof window === 'undefined') {
-      return
+    if (typeof window === "undefined") {
+      return;
     }
 
     try {
       window.localStorage.setItem(
         SIGNAL_TELEMETRY_VISIBLE_STORAGE_KEY_V1,
         JSON.stringify({ visible: signalTelemetryVisible }),
-      )
+      );
     } catch {
       // Gracefully ignore localStorage write failures.
     }
-  }, [signalTelemetryVisible])
+  }, [signalTelemetryVisible]);
 
   useEffect(() => {
-    if (typeof window === 'undefined') {
-      return
+    if (typeof window === "undefined") {
+      return;
     }
 
     try {
       window.localStorage.setItem(
         SIGNAL_TELEMETRY_COLLAPSED_STORAGE_KEY_V1,
         JSON.stringify({ collapsed: signalTelemetryCollapsed }),
-      )
+      );
     } catch {
       // Gracefully ignore localStorage write failures.
     }
-  }, [signalTelemetryCollapsed])
+  }, [signalTelemetryCollapsed]);
 
   const transmissionLabel = useMemo(() => {
-    return formatAudioSourceLabel(audioController.audioSource)
-  }, [audioController.audioSource])
+    return formatAudioSourceLabel(audioController.audioSource);
+  }, [audioController.audioSource]);
 
   const handleAudioTogglePlay = async () => {
-    if (audioController.playbackStatus !== 'playing') {
-      await audioAnalysis.requestInitializationFromUserGesture()
+    if (audioController.playbackStatus !== "playing") {
+      await audioAnalysis.requestInitializationFromUserGesture();
     }
 
-    await audioController.togglePlay()
-  }
+    await audioController.togglePlay();
+  };
 
   if (!activeTheme) {
-    return null
+    return null;
   }
 
-  const SceneComponent = activeTheme.Scene
+  const SceneComponent = activeTheme.Scene;
   const signalState = !selectedSignalId
-    ? 'dormant'
-    : audioController.playbackStatus === 'playing'
-      ? 'playing'
-      : 'armed'
+    ? "dormant"
+    : audioController.playbackStatus === "playing"
+      ? "playing"
+      : "armed";
 
   return (
     <div
-      className={['player-shell', activeTheme.className, className].filter(Boolean).join(' ')}
+      className={["player-shell", activeTheme.className, className]
+        .filter(Boolean)
+        .join(" ")}
       data-theme={activeTheme.id}
       data-signal-state={signalState}
     >
@@ -686,7 +829,9 @@ function PlayerShell({ className }: PlayerShellProps) {
         <SceneComponent {...sceneProps} />
       </div>
 
-      <StationIdentOverlay isAudioPlaying={audioController.playbackStatus === 'playing'} />
+      <StationIdentOverlay
+        isAudioPlaying={audioController.playbackStatus === "playing"}
+      />
 
       {audioDebugEnabled ? (
         <AudioAnalysisDiagnostics
@@ -708,7 +853,9 @@ function PlayerShell({ className }: PlayerShellProps) {
         />
       ) : null}
 
-      {!audioDebugEnabled && signalTelemetryVisible && signalTelemetryUiAvailable ? (
+      {!audioDebugEnabled &&
+      signalTelemetryVisible &&
+      signalTelemetryUiAvailable ? (
         <SignalTelemetryPanel
           analysisStatus={audioAnalysis.status}
           playbackStatus={audioController.playbackStatus}
@@ -737,14 +884,15 @@ function PlayerShell({ className }: PlayerShellProps) {
         selectedSignalId={selectedSignalId}
         onSignalChange={handleSignalChange}
         signalLabel={selectedSignal ? transmissionLabel : null}
-        isPlaying={audioController.playbackStatus === 'playing'}
+        isPlaying={audioController.playbackStatus === "playing"}
         volume={audioController.volume}
         onVolumeChange={audioController.setVolume}
         motionEnabled={motionEnabled}
         supportsMotion={supportsMotion}
         onMotionToggle={setMotionEnabled}
-        colorEnabled={colorEnabled}
-        onColorToggle={setColorEnabled}
+        chromaEnabled={chromaEnabled}
+        supportsChroma={supportsChroma}
+        onChromaToggle={setChromaEnabled}
         showSignalTelemetryControl={signalTelemetryUiAvailable}
         signalTelemetryVisible={signalTelemetryVisible}
         onSignalTelemetryChange={setSignalTelemetryVisible}
@@ -760,7 +908,7 @@ function PlayerShell({ className }: PlayerShellProps) {
         Frame={activeTheme.VisualFeedFrame}
       />
     </div>
-  )
+  );
 }
 
-export default PlayerShell
+export default PlayerShell;
