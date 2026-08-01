@@ -3,9 +3,16 @@ import type { CSSProperties } from "react";
 import * as THREE from "three";
 import type { AudioReactiveSnapshot } from "../../app/playerTypes";
 import type { ThemeSceneProps } from "../themeTypes";
-import { formatImageDepthPlaybackFilter, stepImageDepthPlaybackVisualMix } from "./imageDepthPlaybackVisuals";
+import {
+  formatImageDepthPlaybackFilter,
+  resolveImageDepthChromaValues,
+  stepImageDepthPlaybackVisualMix,
+} from "./imageDepthPlaybackVisuals";
 import { resolveAutonomousParallaxTarget } from "./autonomousParallaxTarget";
-import { computeImageDepthFraming, IMAGE_DEPTH_PARITY_FRAMING } from "./framing";
+import {
+  computeImageDepthFraming,
+  IMAGE_DEPTH_PARITY_FRAMING,
+} from "./framing";
 import { getImageDepthTexturePair } from "./imageDepthTextureCache";
 import { AmbientParticleField } from "./ambientParticleField";
 import { REACTIVE_BEHAVIOR_PROFILES } from "./reactivePreviewProfile";
@@ -30,7 +37,9 @@ type ImageDepthThemeSceneProps = ThemeSceneProps & {
   manualSaturationOverrideMultiplier?: number | null;
   preserveColorWhenStopped?: boolean;
   onDevSceneCountersChange?: (counters: ImageDepthSceneDevCounters) => void;
-  onDevColorDiagnosticsChange?: (diagnostics: ImageDepthSceneColorDiagnostics) => void;
+  onDevColorDiagnosticsChange?: (
+    diagnostics: ImageDepthSceneColorDiagnostics,
+  ) => void;
 };
 
 export type ImageDepthSceneColorDiagnostics = {
@@ -42,7 +51,10 @@ export type ImageDepthSceneColorDiagnostics = {
   finalGrayscaleAmount: number;
   finalBrightnessMultiplier: number;
   finalContrastMultiplier: number;
-  playbackVisualState: 'playing-color' | 'stopped-color-preserved' | 'stopped-grayscale';
+  playbackVisualState:
+    | "playing-color"
+    | "stopped-color-preserved"
+    | "stopped-grayscale";
 };
 
 export type ImageDepthSceneDevCounters = {
@@ -66,7 +78,7 @@ const imageDepthSceneDevCounters: ImageDepthSceneDevCounters = {
 };
 
 function publishImageDepthSceneDevCounters(
-  callback: ImageDepthThemeSceneProps['onDevSceneCountersChange'],
+  callback: ImageDepthThemeSceneProps["onDevSceneCountersChange"],
 ) {
   callback?.({ ...imageDepthSceneDevCounters });
 }
@@ -138,7 +150,11 @@ function wrapDegrees(value: number) {
 }
 
 function smoothstep(edge0: number, edge1: number, value: number) {
-  const x = clamp((value - edge0) / Math.max(edge1 - edge0, SATURATION_EPSILON), 0, 1);
+  const x = clamp(
+    (value - edge0) / Math.max(edge1 - edge0, SATURATION_EPSILON),
+    0,
+    1,
+  );
   return x * x * (3 - 2 * x);
 }
 
@@ -157,13 +173,21 @@ function resolveAcceptedEventMinimumIntervalMs(sourceBpm: number | null) {
     return FALLBACK_ACCEPTED_EVENT_MIN_INTERVAL_MS;
   }
 
-  return clamp(beatIntervalMs * 0.78, beatIntervalMs * 0.72, beatIntervalMs * 0.82);
+  return clamp(
+    beatIntervalMs * 0.78,
+    beatIntervalMs * 0.72,
+    beatIntervalMs * 0.82,
+  );
 }
 
 function normalizeWithFloor(value: number, floor: number) {
   const safeValue = Number.isFinite(value) ? value : 0;
   const safeFloor = clamp(floor, 0, 0.99);
-  return clamp((safeValue - safeFloor) / Math.max(1 - safeFloor, SATURATION_EPSILON), 0, 1);
+  return clamp(
+    (safeValue - safeFloor) / Math.max(1 - safeFloor, SATURATION_EPSILON),
+    0,
+    1,
+  );
 }
 
 function shapeCurve(value: number, exponent: number) {
@@ -187,11 +211,12 @@ export function ImageDepthThemeScene({
   signalId,
   reducedMotion,
   motionEnabled,
+  chromaEnabled,
   sourceBpm,
   getLatestAudioSnapshot,
   reactivePreviewEnabled,
-  reactiveBehavior = 'chill',
-  reactiveDepthMode = 'default',
+  reactiveBehavior = "chill",
+  reactiveDepthMode = "default",
   onReactivePreviewTelemetry,
   sceneId,
   sceneBackdrop,
@@ -215,6 +240,7 @@ export function ImageDepthThemeScene({
     signalId,
     reducedMotion,
     motionEnabled,
+    chromaEnabled,
     sourceBpm,
     getLatestAudioSnapshot,
     reactivePreviewEnabled,
@@ -227,22 +253,27 @@ export function ImageDepthThemeScene({
     onDevColorDiagnosticsChange,
   });
   const depthOverrideRef = useRef<number | null>(
-    typeof manualDepthOverride === "number" && Number.isFinite(manualDepthOverride)
+    typeof manualDepthOverride === "number" &&
+      Number.isFinite(manualDepthOverride)
       ? clamp(manualDepthOverride, 0, 1)
       : null,
   );
-  const devCountersCallbackRef = useRef<ImageDepthThemeSceneProps['onDevSceneCountersChange']>(
-    onDevSceneCountersChange,
-  );
+  const devCountersCallbackRef = useRef<
+    ImageDepthThemeSceneProps["onDevSceneCountersChange"]
+  >(onDevSceneCountersChange);
   const lastEnvironmentKeyRef = useRef<string | null>(null);
   const lastDepthValueRef = useRef<number | null>(
-    typeof manualDepthOverride === "number" && Number.isFinite(manualDepthOverride)
+    typeof manualDepthOverride === "number" &&
+      Number.isFinite(manualDepthOverride)
       ? clamp(manualDepthOverride, 0, 1)
       : null,
   );
 
   const behavior = scenePreset.behavior;
-  const reactiveBehaviorProfile = reactiveBehavior === 'fullon' ? REACTIVE_BEHAVIOR_PROFILES.fullon : REACTIVE_BEHAVIOR_PROFILES.chill;
+  const reactiveBehaviorProfile =
+    reactiveBehavior === "fullon"
+      ? REACTIVE_BEHAVIOR_PROFILES.fullon
+      : REACTIVE_BEHAVIOR_PROFILES.chill;
 
   const profile = useMemo(
     () => ({
@@ -280,13 +311,15 @@ export function ImageDepthThemeScene({
 
   useEffect(() => {
     const reducedMotionMatches =
-      typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     visualStateRef.current = {
       isPlaying,
       signalId,
       reducedMotion: reducedMotion || reducedMotionMatches,
       motionEnabled,
+      chromaEnabled,
       sourceBpm,
       getLatestAudioSnapshot,
       reactivePreviewEnabled,
@@ -303,6 +336,7 @@ export function ImageDepthThemeScene({
     isPlaying,
     signalId,
     motionEnabled,
+    chromaEnabled,
     onReactivePreviewTelemetry,
     reactivePreviewEnabled,
     reactiveBehavior,
@@ -344,7 +378,8 @@ export function ImageDepthThemeScene({
 
   useEffect(() => {
     const nextDepthValue =
-      typeof manualDepthOverride === "number" && Number.isFinite(manualDepthOverride)
+      typeof manualDepthOverride === "number" &&
+      Number.isFinite(manualDepthOverride)
         ? clamp(manualDepthOverride, 0, 1)
         : null;
 
@@ -370,11 +405,20 @@ export function ImageDepthThemeScene({
     scene.background = new THREE.Color(0x08110d);
     scene.fog = new THREE.FogExp2(0x08110d, 0.045);
 
-    const camera = new THREE.PerspectiveCamera(IMAGE_DEPTH_PARITY_FRAMING.cameraFovDegrees, 1, 0.1, 80);
+    const camera = new THREE.PerspectiveCamera(
+      IMAGE_DEPTH_PARITY_FRAMING.cameraFovDegrees,
+      1,
+      0.1,
+      80,
+    );
     camera.position.set(0, 0, IMAGE_DEPTH_PARITY_FRAMING.cameraZ);
     scene.add(camera);
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: "high-performance" });
+    const renderer = new THREE.WebGLRenderer({
+      antialias: true,
+      alpha: false,
+      powerPreference: "high-performance",
+    });
     incrementImageDepthRendererInstance();
     imageDepthSceneDevCounters.rendererCreationCount += 1;
     publishImageDepthSceneDevCounters(devCountersCallbackRef.current);
@@ -448,7 +492,7 @@ export function ImageDepthThemeScene({
     let reactiveGlobalLightBoost = 0;
     let reactiveTransientAccent = 0;
     let fullOnCurrentDepth = 0;
-    let fullOnCurrentPhase: 'low' | 'high' = 'low';
+    let fullOnCurrentPhase: "low" | "high" = "low";
     let fullOnLowTargetDepth = reactiveBehaviorProfile.fullOnLowDepthTarget;
     let fullOnHighTargetDepth = reactiveBehaviorProfile.fullOnHighDepthTarget;
     let fullOnLastAcceptedKickAtMs = 0;
@@ -514,11 +558,18 @@ export function ImageDepthThemeScene({
       });
 
       plane.scale.set(framedScale.width, framedScale.height, 1);
-      glowPlane.scale.set(framedScale.width * 1.14, framedScale.height * 1.08, 1);
+      glowPlane.scale.set(
+        framedScale.width * 1.14,
+        framedScale.height * 1.08,
+        1,
+      );
       lastFramedScaleWidth = framedScale.width;
       lastFramedScaleHeight = framedScale.height;
 
-      ambientParticleField?.setPlaneScale(framedScale.width, framedScale.height);
+      ambientParticleField?.setPlaneScale(
+        framedScale.width,
+        framedScale.height,
+      );
       ambientParticleField?.setViewport(width, height);
     };
 
@@ -561,11 +612,20 @@ export function ImageDepthThemeScene({
               colorTexture,
               depthTexture,
             );
-            ambientParticleField.setPlaneScale(lastFramedScaleWidth, lastFramedScaleHeight);
-            ambientParticleField.setViewport(viewportWidth || container.clientWidth, viewportHeight || container.clientHeight);
+            ambientParticleField.setPlaneScale(
+              lastFramedScaleWidth,
+              lastFramedScaleHeight,
+            );
+            ambientParticleField.setViewport(
+              viewportWidth || container.clientWidth,
+              viewportHeight || container.clientHeight,
+            );
             planeGroup.add(ambientParticleField.points);
           } catch (error) {
-            console.warn("Image-depth ambient particle initialization failed", error);
+            console.warn(
+              "Image-depth ambient particle initialization failed",
+              error,
+            );
             ambientParticleField = null;
           }
         }
@@ -585,24 +645,36 @@ export function ImageDepthThemeScene({
       }
 
       try {
-        elapsedSeconds = resolveImageDepthElapsedSeconds(timestamp, animationStartedAt);
+        elapsedSeconds = resolveImageDepthElapsedSeconds(
+          timestamp,
+          animationStartedAt,
+        );
         const renderTimestampSeconds = timestamp / 1000;
-        const deltaSeconds = clamp(renderTimestampSeconds - lastRenderTimestampSeconds, 1 / 240, 0.2);
+        const deltaSeconds = clamp(
+          renderTimestampSeconds - lastRenderTimestampSeconds,
+          1 / 240,
+          0.2,
+        );
         lastRenderTimestampSeconds = renderTimestampSeconds;
 
         const visualState = visualStateRef.current;
         const isPlayingNow = visualState.isPlaying;
-        const preserveColorWhileStopped = visualState.preserveColorWhenStopped === true;
-        const colorPresentationActive = isPlayingNow || preserveColorWhileStopped;
+        const preserveColorWhileStopped =
+          visualState.preserveColorWhenStopped === true;
+        const colorPresentationActive =
+          isPlayingNow || preserveColorWhileStopped;
         const reducedMotionActive = visualState.reducedMotion;
         const geometryMotionEnabled = visualState.motionEnabled !== false;
-        const spatialMotionActive = geometryMotionEnabled && !reducedMotionActive;
+        const spatialMotionActive =
+          geometryMotionEnabled && !reducedMotionActive;
         const geometryMotionActive = spatialMotionActive && isPlayingNow;
-        const automaticMotionActive = geometryMotionActive && profile.depth.ambientMotionEnabled;
+        const automaticMotionActive =
+          geometryMotionActive && profile.depth.ambientMotionEnabled;
         const reactiveBehaviorEnabled =
           visualState.reactivePreviewEnabled === true &&
           typeof visualState.getLatestAudioSnapshot === "function";
-        const reactiveIsolationEnabled = reactiveBehaviorEnabled && isReactiveIsolationEnabled();
+        const reactiveIsolationEnabled =
+          reactiveBehaviorEnabled && isReactiveIsolationEnabled();
 
         const currentSignalId = visualState.signalId ?? null;
         if (currentSignalId !== lastSignalId) {
@@ -613,7 +685,7 @@ export function ImageDepthThemeScene({
           reactiveGlobalLightBoost = 0;
           reactiveTransientAccent = 0;
           fullOnCurrentDepth = reactiveBehaviorProfile.fullOnRestDepthTarget;
-          fullOnCurrentPhase = 'low';
+          fullOnCurrentPhase = "low";
           fullOnLastAcceptedKickAtMs = 0;
           fullOnPreviousAcceptedKickAtMs = 0;
           fullOnAcceptedKickTimestampsMs.length = 0;
@@ -638,30 +710,54 @@ export function ImageDepthThemeScene({
         }
 
         const analysisSignalAvailable = latestSnapshot?.isActive === true;
-        const allowReactiveLighting = reactiveBehaviorEnabled && isPlayingNow && analysisSignalAvailable;
-        const depthMode = visualState.reactiveDepthMode ?? 'default';
-        const allowReactiveGeometry = allowReactiveLighting && geometryMotionActive && depthMode !== 'lighting-only';
+        const allowReactiveLighting =
+          reactiveBehaviorEnabled && isPlayingNow && analysisSignalAvailable;
+        const depthMode = visualState.reactiveDepthMode ?? "default";
+        const allowReactiveGeometry =
+          allowReactiveLighting &&
+          geometryMotionActive &&
+          depthMode !== "lighting-only";
         const reactiveTimingAuthorityActive = allowReactiveGeometry;
-        const fullOnBehaviorActive = reactiveBehaviorEnabled && visualState.reactiveBehavior === 'fullon';
-        const autonomousBehavior = visualState.reactiveBehavior === 'fullon' ? 'fullon' : 'chill';
-        const autonomousParallaxProfile = resolveAutonomousParallaxTarget(elapsedSeconds, autonomousBehavior).profile;
-        const fullOnAuthoringSuppressionActive = fullOnBehaviorActive && (reactiveTimingAuthorityActive || reactiveIsolationEnabled);
-        const sourceBpm = Number.isFinite(visualState.sourceBpm) ? visualState.sourceBpm ?? null : null;
+        const fullOnBehaviorActive =
+          reactiveBehaviorEnabled && visualState.reactiveBehavior === "fullon";
+        const autonomousBehavior =
+          visualState.reactiveBehavior === "fullon" ? "fullon" : "chill";
+        const autonomousParallaxProfile = resolveAutonomousParallaxTarget(
+          elapsedSeconds,
+          autonomousBehavior,
+        ).profile;
+        const fullOnAuthoringSuppressionActive =
+          fullOnBehaviorActive &&
+          (reactiveTimingAuthorityActive || reactiveIsolationEnabled);
+        const sourceBpm = Number.isFinite(visualState.sourceBpm)
+          ? (visualState.sourceBpm ?? null)
+          : null;
         const beatIntervalMs = resolveBeatIntervalMs(sourceBpm);
-        const acceptedEventMinimumIntervalMs = resolveAcceptedEventMinimumIntervalMs(sourceBpm);
+        const acceptedEventMinimumIntervalMs =
+          resolveAcceptedEventMinimumIntervalMs(sourceBpm);
         const currentKickPulse = latestSnapshot?.kickPulse ?? 0;
-        const acceptedKickEventCount = latestSnapshot?.kickPulseAcceptedEventCount ?? 0;
-        const acceptedKickEventSequence = latestSnapshot?.kickPulseAcceptedEventSequence;
-        const hasAcceptedKickEventSequence = typeof acceptedKickEventSequence === 'number' && Number.isFinite(acceptedKickEventSequence);
-        const acceptedKickEventCountDelta = Math.max(0, acceptedKickEventCount - fullOnLastSeenKickEventCount);
-        const acceptedKickEventSequenceDelta = hasAcceptedKickEventSequence
-          ? Math.max(0, acceptedKickEventSequence - fullOnLastSeenKickEventSequence)
-          : 0;
-        const acceptedKickEventEdge = allowReactiveLighting && (
-          hasAcceptedKickEventSequence
-            ? acceptedKickEventSequenceDelta > 0
-            : acceptedKickEventCountDelta > 0
+        const acceptedKickEventCount =
+          latestSnapshot?.kickPulseAcceptedEventCount ?? 0;
+        const acceptedKickEventSequence =
+          latestSnapshot?.kickPulseAcceptedEventSequence;
+        const hasAcceptedKickEventSequence =
+          typeof acceptedKickEventSequence === "number" &&
+          Number.isFinite(acceptedKickEventSequence);
+        const acceptedKickEventCountDelta = Math.max(
+          0,
+          acceptedKickEventCount - fullOnLastSeenKickEventCount,
         );
+        const acceptedKickEventSequenceDelta = hasAcceptedKickEventSequence
+          ? Math.max(
+              0,
+              acceptedKickEventSequence - fullOnLastSeenKickEventSequence,
+            )
+          : 0;
+        const acceptedKickEventEdge =
+          allowReactiveLighting &&
+          (hasAcceptedKickEventSequence
+            ? acceptedKickEventSequenceDelta > 0
+            : acceptedKickEventCountDelta > 0);
         const smoothedEnergyRaw = latestSnapshot?.smoothedEnergy ?? 0;
         const sectionIntensity = allowReactiveLighting
           ? smoothstep(
@@ -672,8 +768,8 @@ export function ImageDepthThemeScene({
           : 0;
 
         const hasExternalStabilizedDepth =
-          depthMode === 'stabilized-depth' &&
-          typeof latestSnapshot?.stabilizedDepth === 'number' &&
+          depthMode === "stabilized-depth" &&
+          typeof latestSnapshot?.stabilizedDepth === "number" &&
           Number.isFinite(latestSnapshot.stabilizedDepth);
         const externalStabilizedDepth = hasExternalStabilizedDepth
           ? clamp(latestSnapshot?.stabilizedDepth ?? 0, 0, 1)
@@ -683,13 +779,19 @@ export function ImageDepthThemeScene({
           ? externalStabilizedDepth !== null
             ? externalStabilizedDepth
             : shapeCurve(
-                normalizeWithFloor(latestSnapshot?.bass ?? 0, reactiveBehaviorProfile.bassFloor),
+                normalizeWithFloor(
+                  latestSnapshot?.bass ?? 0,
+                  reactiveBehaviorProfile.bassFloor,
+                ),
                 reactiveBehaviorProfile.bassCurve,
               )
           : 0;
         const kickPulseNormalized = allowReactiveLighting
           ? shapeCurve(
-              normalizeWithFloor(currentKickPulse, reactiveBehaviorProfile.kickPulseFloor),
+              normalizeWithFloor(
+                currentKickPulse,
+                reactiveBehaviorProfile.kickPulseFloor,
+              ),
               reactiveBehaviorProfile.kickPulseCurve,
             )
           : 0;
@@ -701,17 +803,22 @@ export function ImageDepthThemeScene({
           : 0;
 
         const depthSustainedTarget =
-          bassNormalized * reactiveBehaviorProfile.sustainedDepthMaxContribution;
+          bassNormalized *
+          reactiveBehaviorProfile.sustainedDepthMaxContribution;
         const depthPulseTarget =
           externalStabilizedDepth !== null
             ? 0
             : fullOnBehaviorActive
-            ? kickPulseNormalized * reactiveBehaviorProfile.kickDepthMaxContribution
-            : chillKickTargetDepth;
-        const saturationBoostTarget = smoothedEnergyNormalized * reactiveBehaviorProfile.saturationMaxBoost;
-        const transientAccentTarget = transientNormalized * reactiveBehaviorProfile.transientGlowMaxBoost;
+              ? kickPulseNormalized *
+                reactiveBehaviorProfile.kickDepthMaxContribution
+              : chillKickTargetDepth;
+        const saturationBoostTarget =
+          smoothedEnergyNormalized * reactiveBehaviorProfile.saturationMaxBoost;
+        const transientAccentTarget =
+          transientNormalized * reactiveBehaviorProfile.transientGlowMaxBoost;
         const globalLightBoostTarget =
-          Math.max(smoothedEnergyNormalized, kickPulseNormalized) * reactiveBehaviorProfile.globalLightMaxBoost;
+          Math.max(smoothedEnergyNormalized, kickPulseNormalized) *
+          reactiveBehaviorProfile.globalLightMaxBoost;
 
         if (acceptedKickEventEdge) {
           fullOnLastSeenKickEventCount = acceptedKickEventCount;
@@ -725,7 +832,8 @@ export function ImageDepthThemeScene({
           fullOnAcceptedKickTimestampsMs.push(timestamp);
           while (
             fullOnAcceptedKickTimestampsMs.length > 0 &&
-            timestamp - (fullOnAcceptedKickTimestampsMs[0] ?? timestamp) > eventWindowMs
+            timestamp - (fullOnAcceptedKickTimestampsMs[0] ?? timestamp) >
+              eventWindowMs
           ) {
             fullOnAcceptedKickTimestampsMs.shift();
           }
@@ -742,44 +850,62 @@ export function ImageDepthThemeScene({
           }
 
           if (fullOnBehaviorActive) {
-            fullOnCurrentPhase = 'high';
+            fullOnCurrentPhase = "high";
             fullOnKickBreathTriggerAtMs = timestamp;
             fullOnHueEventStepAppliedDegrees = 0;
 
-            const beatForEnvelopeMs = beatIntervalMs ?? FALLBACK_BEAT_INTERVAL_MS;
+            const beatForEnvelopeMs =
+              beatIntervalMs ?? FALLBACK_BEAT_INTERVAL_MS;
             fullOnAttackDurationMs = clamp(beatForEnvelopeMs * 0.08, 20, 50);
             fullOnReleaseDurationMs = clamp(beatForEnvelopeMs * 0.72, 260, 320);
 
-            const hueStride = Math.max(1, reactiveBehaviorProfile.hueEventStride);
+            const hueStride = Math.max(
+              1,
+              reactiveBehaviorProfile.hueEventStride,
+            );
             const hueStepEventOrdinal = hasAcceptedKickEventSequence
               ? acceptedKickEventSequence
               : acceptedKickEventCount;
             const shouldApplyHueStep = hueStepEventOrdinal % hueStride === 0;
             if (shouldApplyHueStep) {
-              const baseHueStep = reactiveBehaviorProfile.kickHueStepDegrees * (0.2 + sectionIntensity * 0.8);
+              const baseHueStep =
+                reactiveBehaviorProfile.kickHueStepDegrees *
+                (0.2 + sectionIntensity * 0.8);
               const hueVariance =
                 Math.sin(hueStepEventOrdinal * 1.61803398875) *
                 reactiveBehaviorProfile.kickHueVariationDegrees *
                 sectionIntensity;
               fullOnHueEventStepAppliedDegrees = baseHueStep + hueVariance;
               reactiveHueTargetDegreesRef.current = wrapDegrees(
-                reactiveHueTargetDegreesRef.current + fullOnHueEventStepAppliedDegrees,
+                reactiveHueTargetDegreesRef.current +
+                  fullOnHueEventStepAppliedDegrees,
               );
             }
 
             fullOnKickBloomStrength = clamp(
               (0.2 + sectionIntensity * 0.8) *
-                (1 - reactiveBehaviorProfile.fullOnKickAmplitudeDepthInfluence +
-                  reactiveBehaviorProfile.fullOnKickAmplitudeDepthInfluence * kickPulseNormalized),
+                (1 -
+                  reactiveBehaviorProfile.fullOnKickAmplitudeDepthInfluence +
+                  reactiveBehaviorProfile.fullOnKickAmplitudeDepthInfluence *
+                    kickPulseNormalized),
               0,
               1,
             );
           } else {
             chillKickBreathTriggerAtMs = timestamp;
-            const beatForEnvelopeMs = beatIntervalMs ?? FALLBACK_BEAT_INTERVAL_MS;
+            const beatForEnvelopeMs =
+              beatIntervalMs ?? FALLBACK_BEAT_INTERVAL_MS;
             chillKickAttackDurationMs = clamp(beatForEnvelopeMs * 0.14, 42, 95);
-            chillKickReleaseDurationMs = clamp(beatForEnvelopeMs * 0.95, 380, 640);
-            chillKickBreathStrength = clamp(0.56 + kickPulseNormalized * 0.44, 0.56, 1);
+            chillKickReleaseDurationMs = clamp(
+              beatForEnvelopeMs * 0.95,
+              380,
+              640,
+            );
+            chillKickBreathStrength = clamp(
+              0.56 + kickPulseNormalized * 0.44,
+              0.56,
+              1,
+            );
           }
         }
 
@@ -793,7 +919,8 @@ export function ImageDepthThemeScene({
         const eventWindowMs = 8000;
         while (
           fullOnAcceptedKickTimestampsMs.length > 0 &&
-          timestamp - (fullOnAcceptedKickTimestampsMs[0] ?? timestamp) > eventWindowMs
+          timestamp - (fullOnAcceptedKickTimestampsMs[0] ?? timestamp) >
+            eventWindowMs
         ) {
           fullOnAcceptedKickTimestampsMs.shift();
         }
@@ -802,11 +929,22 @@ export function ImageDepthThemeScene({
             ? fullOnAcceptedKickTimestampsMs.length / (eventWindowMs / 1000)
             : 0;
 
-        const millisecondsSinceKickBreathTrigger = Math.max(0, timestamp - fullOnKickBreathTriggerAtMs);
-        const kickBreathAttackActive = millisecondsSinceKickBreathTrigger <= fullOnAttackDurationMs;
-        const kickBreathTarget = fullOnBehaviorActive && allowReactiveGeometry && kickBreathAttackActive ? 1 : 0;
-        const fullOnKickBreathAttackRate = 3 / Math.max(fullOnAttackDurationMs / 1000, 0.001);
-        const fullOnKickBreathReleaseRate = 3 / Math.max(fullOnReleaseDurationMs / 1000, 0.001);
+        const millisecondsSinceKickBreathTrigger = Math.max(
+          0,
+          timestamp - fullOnKickBreathTriggerAtMs,
+        );
+        const kickBreathAttackActive =
+          millisecondsSinceKickBreathTrigger <= fullOnAttackDurationMs;
+        const kickBreathTarget =
+          fullOnBehaviorActive &&
+          allowReactiveGeometry &&
+          kickBreathAttackActive
+            ? 1
+            : 0;
+        const fullOnKickBreathAttackRate =
+          3 / Math.max(fullOnAttackDurationMs / 1000, 0.001);
+        const fullOnKickBreathReleaseRate =
+          3 / Math.max(fullOnReleaseDurationMs / 1000, 0.001);
         fullOnKickBreathEnvelope = stepSmoothedValue(
           fullOnKickBreathEnvelope,
           kickBreathTarget,
@@ -827,12 +965,22 @@ export function ImageDepthThemeScene({
           reactiveBehaviorProfile.kickBloomReleasePerSecond,
         );
 
-        const millisecondsSinceChillKickTrigger = Math.max(0, timestamp - chillKickBreathTriggerAtMs);
-        const chillKickAttackActive = millisecondsSinceChillKickTrigger <= chillKickAttackDurationMs;
+        const millisecondsSinceChillKickTrigger = Math.max(
+          0,
+          timestamp - chillKickBreathTriggerAtMs,
+        );
+        const chillKickAttackActive =
+          millisecondsSinceChillKickTrigger <= chillKickAttackDurationMs;
         const chillKickTargetEnvelope =
-          !fullOnBehaviorActive && allowReactiveGeometry && chillKickAttackActive ? 1 : 0;
-        const chillKickAttackRate = 3 / Math.max(chillKickAttackDurationMs / 1000, 0.001);
-        const chillKickReleaseRate = 3 / Math.max(chillKickReleaseDurationMs / 1000, 0.001);
+          !fullOnBehaviorActive &&
+          allowReactiveGeometry &&
+          chillKickAttackActive
+            ? 1
+            : 0;
+        const chillKickAttackRate =
+          3 / Math.max(chillKickAttackDurationMs / 1000, 0.001);
+        const chillKickReleaseRate =
+          3 / Math.max(chillKickReleaseDurationMs / 1000, 0.001);
         chillKickBreathEnvelope = stepSmoothedValue(
           chillKickBreathEnvelope,
           chillKickTargetEnvelope,
@@ -841,39 +989,57 @@ export function ImageDepthThemeScene({
           chillKickReleaseRate,
         );
         chillKickTargetDepth =
-          chillKickBreathEnvelope * chillKickBreathStrength * reactiveBehaviorProfile.kickDepthMaxContribution;
+          chillKickBreathEnvelope *
+          chillKickBreathStrength *
+          reactiveBehaviorProfile.kickDepthMaxContribution;
 
         const millisecondsSinceAcceptedKickEvent =
-          fullOnLastAcceptedKickAtMs > 0 ? Math.max(0, timestamp - fullOnLastAcceptedKickAtMs) : Number.POSITIVE_INFINITY;
+          fullOnLastAcceptedKickAtMs > 0
+            ? Math.max(0, timestamp - fullOnLastAcceptedKickAtMs)
+            : Number.POSITIVE_INFINITY;
         const inactivityReturnActive =
-          fullOnBehaviorActive && millisecondsSinceAcceptedKickEvent > reactiveBehaviorProfile.fullOnInactivityTimeoutMs;
+          fullOnBehaviorActive &&
+          millisecondsSinceAcceptedKickEvent >
+            reactiveBehaviorProfile.fullOnInactivityTimeoutMs;
 
-        if (fullOnBehaviorActive && (inactivityReturnActive || !allowReactiveGeometry)) {
-          fullOnCurrentPhase = 'low';
+        if (
+          fullOnBehaviorActive &&
+          (inactivityReturnActive || !allowReactiveGeometry)
+        ) {
+          fullOnCurrentPhase = "low";
         }
 
         const fullOnDepthTravelReleasePerSecond = inactivityReturnActive
           ? reactiveBehaviorProfile.fullOnInactivityReturnPerSecond
           : reactiveBehaviorProfile.fullOnDepthTravelReleasePerSecond;
 
-        const fullOnDynamicRangeScale = clamp(0.15 + sectionIntensity * 0.85, 0.1, 1);
+        const fullOnDynamicRangeScale = clamp(
+          0.15 + sectionIntensity * 0.85,
+          0.1,
+          1,
+        );
         const fullOnKickAmplitudeScale = clamp(
-          1 - reactiveBehaviorProfile.fullOnKickAmplitudeDepthInfluence +
-            reactiveBehaviorProfile.fullOnKickAmplitudeDepthInfluence * kickPulseNormalized,
+          1 -
+            reactiveBehaviorProfile.fullOnKickAmplitudeDepthInfluence +
+            reactiveBehaviorProfile.fullOnKickAmplitudeDepthInfluence *
+              kickPulseNormalized,
           0.68,
           1,
         );
-        const fullOnBreathScale = fullOnDynamicRangeScale * fullOnKickAmplitudeScale;
+        const fullOnBreathScale =
+          fullOnDynamicRangeScale * fullOnKickAmplitudeScale;
         fullOnLowTargetDepth = reactiveBehaviorProfile.fullOnLowDepthTarget;
         fullOnHighTargetDepth = reactiveBehaviorProfile.fullOnHighDepthTarget;
         const fullOnBreathTargetDepth =
           fullOnLowTargetDepth +
-          (fullOnHighTargetDepth - fullOnLowTargetDepth) * fullOnKickBreathEnvelope * fullOnBreathScale;
+          (fullOnHighTargetDepth - fullOnLowTargetDepth) *
+            fullOnKickBreathEnvelope *
+            fullOnBreathScale;
         const fullOnAppliedTargetDepth =
           fullOnBehaviorActive && allowReactiveGeometry
             ? fullOnBreathTargetDepth
             : reactiveBehaviorProfile.fullOnRestDepthTarget;
-        fullOnCurrentPhase = fullOnKickBreathEnvelope >= 0.45 ? 'high' : 'low';
+        fullOnCurrentPhase = fullOnKickBreathEnvelope >= 0.45 ? "high" : "low";
 
         fullOnCurrentDepth = stepSmoothedValue(
           fullOnCurrentDepth,
@@ -929,7 +1095,11 @@ export function ImageDepthThemeScene({
 
         const depthReactiveContribution = allowReactiveGeometry
           ? fullOnBehaviorActive
-            ? clamp(fullOnCurrentDepth, 0, reactiveBehaviorProfile.finalDepthCapContribution)
+            ? clamp(
+                fullOnCurrentDepth,
+                0,
+                reactiveBehaviorProfile.finalDepthCapContribution,
+              )
             : clamp(
                 reactiveDepthSustained + reactiveDepthPulse,
                 0,
@@ -939,12 +1109,19 @@ export function ImageDepthThemeScene({
         const scenePulseDepthContributionNormalized = fullOnBehaviorActive
           ? clamp(
               (fullOnCurrentDepth - fullOnLowTargetDepth) /
-                Math.max(fullOnHighTargetDepth - fullOnLowTargetDepth, SATURATION_EPSILON),
+                Math.max(
+                  fullOnHighTargetDepth - fullOnLowTargetDepth,
+                  SATURATION_EPSILON,
+                ),
               0,
               1,
             )
           : clamp(
-              reactiveDepthPulse / Math.max(reactiveBehaviorProfile.kickDepthMaxContribution, SATURATION_EPSILON),
+              reactiveDepthPulse /
+                Math.max(
+                  reactiveBehaviorProfile.kickDepthMaxContribution,
+                  SATURATION_EPSILON,
+                ),
               0,
               1,
             );
@@ -953,15 +1130,26 @@ export function ImageDepthThemeScene({
           : clamp(chillKickBreathEnvelope, 0, 1);
 
         const motionAmount = spatialMotionActive
-          ? profile.depth.motionIntensity * profile.depth.pointerParallaxStrength
+          ? profile.depth.motionIntensity *
+            profile.depth.pointerParallaxStrength
           : 0;
-        const autonomousParallaxEnabled = spatialMotionActive && profile.depth.pointerParallaxEnabled && !reactiveIsolationEnabled;
+        const autonomousParallaxEnabled =
+          spatialMotionActive &&
+          profile.depth.pointerParallaxEnabled &&
+          !reactiveIsolationEnabled;
         const autoAmountBase = autonomousParallaxEnabled
           ? clamp(0.18 + motionAmount * 0.32, 0.18, 0.52)
           : 0;
-        const autonomousTarget = resolveAutonomousParallaxTarget(elapsedSeconds, autonomousBehavior);
-        autonomousPointer.x = autonomousParallaxEnabled ? autonomousTarget.targetX : 0;
-        autonomousPointer.y = autonomousParallaxEnabled ? autonomousTarget.targetY : 0;
+        const autonomousTarget = resolveAutonomousParallaxTarget(
+          elapsedSeconds,
+          autonomousBehavior,
+        );
+        autonomousPointer.x = autonomousParallaxEnabled
+          ? autonomousTarget.targetX
+          : 0;
+        autonomousPointer.y = autonomousParallaxEnabled
+          ? autonomousTarget.targetY
+          : 0;
 
         autonomousSmoothedPointer.x = stepSmoothedValue(
           autonomousSmoothedPointer.x,
@@ -983,18 +1171,34 @@ export function ImageDepthThemeScene({
 
         const manualDepth = depthOverrideRef.current;
         let breathingMix = 0.5;
-        let authoredDepthContribution = manualDepth ?? profile.depth.staticDepth;
-        const minBreathingDepth = Math.min(profile.depth.breathingMin, profile.depth.breathingMax);
-        const maxBreathingDepth = Math.max(profile.depth.breathingMin, profile.depth.breathingMax);
+        let authoredDepthContribution =
+          manualDepth ?? profile.depth.staticDepth;
+        const minBreathingDepth = Math.min(
+          profile.depth.breathingMin,
+          profile.depth.breathingMax,
+        );
+        const maxBreathingDepth = Math.max(
+          profile.depth.breathingMin,
+          profile.depth.breathingMax,
+        );
         const authoredCyclicBreathingEnabled =
-          manualDepth === null && automaticMotionActive && !reactiveTimingAuthorityActive && !reactiveBehaviorEnabled;
+          manualDepth === null &&
+          automaticMotionActive &&
+          !reactiveTimingAuthorityActive &&
+          !reactiveBehaviorEnabled;
 
         if (authoredCyclicBreathingEnabled) {
           const breathingRange = maxBreathingDepth - minBreathingDepth;
-          const safeCycleSeconds = Math.max(profile.depth.breathingCycleSeconds, SATURATION_EPSILON);
-          const cycle = Math.sin((elapsedSeconds / safeCycleSeconds) * Math.PI * 2);
+          const safeCycleSeconds = Math.max(
+            profile.depth.breathingCycleSeconds,
+            SATURATION_EPSILON,
+          );
+          const cycle = Math.sin(
+            (elapsedSeconds / safeCycleSeconds) * Math.PI * 2,
+          );
           breathingMix = (cycle + 1) * 0.5;
-          authoredDepthContribution = minBreathingDepth + breathingRange * breathingMix;
+          authoredDepthContribution =
+            minBreathingDepth + breathingRange * breathingMix;
         } else {
           authoredDepthContribution = manualDepth ?? profile.depth.staticDepth;
         }
@@ -1002,10 +1206,15 @@ export function ImageDepthThemeScene({
         const combinedDepthBeforeClamp = reactiveTimingAuthorityActive
           ? fullOnBehaviorActive
             ? depthReactiveContribution
-            : (manualDepth ?? profile.depth.staticDepth) + depthReactiveContribution
+            : (manualDepth ?? profile.depth.staticDepth) +
+              depthReactiveContribution
           : authoredDepthContribution + depthReactiveContribution;
-        const configuredDepthMinimum = reactiveTimingAuthorityActive ? REACTIVE_DEPTH_MIN : AUTHORED_DEPTH_MIN;
-        const configuredDepthMaximum = reactiveTimingAuthorityActive ? REACTIVE_DEPTH_MAX : AUTHORED_DEPTH_MAX;
+        const configuredDepthMinimum = reactiveTimingAuthorityActive
+          ? REACTIVE_DEPTH_MIN
+          : AUTHORED_DEPTH_MIN;
+        const configuredDepthMaximum = reactiveTimingAuthorityActive
+          ? REACTIVE_DEPTH_MAX
+          : AUTHORED_DEPTH_MAX;
         const depthFinalAfterClamp = clamp(
           combinedDepthBeforeClamp,
           configuredDepthMinimum,
@@ -1019,14 +1228,22 @@ export function ImageDepthThemeScene({
         material.displacementScale = finalDisplacementScale;
         material.bumpScale = depthFinalAfterClamp * 0.04;
 
-        const manualHueOverrideDegrees = visualState.manualHueShiftOverrideDegrees;
+        const manualHueOverrideDegrees =
+          visualState.manualHueShiftOverrideDegrees;
         const sharedChillHueOffsetDegrees =
-          reactiveBehaviorEnabled && !fullOnBehaviorActive && isPlayingNow && !reducedMotionActive
+          reactiveBehaviorEnabled &&
+          !fullOnBehaviorActive &&
+          isPlayingNow &&
+          !reducedMotionActive
             ? Math.sin(
-                (elapsedSeconds / Math.max(reactiveBehaviorProfile.chillHueDriftCycleSeconds, 1)) *
-                  Math.PI * 2,
-              ) *
-              reactiveBehaviorProfile.chillHueDriftRangeDegrees
+                (elapsedSeconds /
+                  Math.max(
+                    reactiveBehaviorProfile.chillHueDriftCycleSeconds,
+                    1,
+                  )) *
+                  Math.PI *
+                  2,
+              ) * reactiveBehaviorProfile.chillHueDriftRangeDegrees
             : 0;
         const authoredSaturationCycleSuppressed = allowReactiveLighting;
         const authoredOrReactiveHueOffsetDegrees =
@@ -1034,38 +1251,60 @@ export function ImageDepthThemeScene({
             ? reactiveHueOffsetDegreesRef.current
             : reactiveBehaviorEnabled && !fullOnBehaviorActive
               ? sharedChillHueOffsetDegrees
-              : profile.color.driftEnabled && isPlayingNow && !reducedMotionActive
-              ? Math.sin((elapsedSeconds / Math.max(profile.color.cycleSeconds, 1)) * Math.PI * 2) *
-                profile.color.hueRangeDegrees
-              : 0;
+              : profile.color.driftEnabled &&
+                  isPlayingNow &&
+                  !reducedMotionActive
+                ? Math.sin(
+                    (elapsedSeconds / Math.max(profile.color.cycleSeconds, 1)) *
+                      Math.PI *
+                      2,
+                  ) * profile.color.hueRangeDegrees
+                : 0;
         const hueOffsetDegrees =
-          typeof manualHueOverrideDegrees === "number" && Number.isFinite(manualHueOverrideDegrees)
+          typeof manualHueOverrideDegrees === "number" &&
+          Number.isFinite(manualHueOverrideDegrees)
             ? manualHueOverrideDegrees
             : authoredOrReactiveHueOffsetDegrees;
-        const manualSaturationOverrideMultiplier = visualState.manualSaturationOverrideMultiplier;
+        const manualSaturationOverrideMultiplier =
+          visualState.manualSaturationOverrideMultiplier;
 
         const authoredBaseSaturation = profile.saturationPulse.enabled
-          ? Math.max(profile.color.saturation, (profile.saturationPulse.minimumSaturation + profile.saturationPulse.maximumSaturation) * 0.5)
+          ? Math.max(
+              profile.color.saturation,
+              (profile.saturationPulse.minimumSaturation +
+                profile.saturationPulse.maximumSaturation) *
+                0.5,
+            )
           : Math.max(profile.color.saturation, 1);
         let authoredPeriodicSaturationContribution = 0;
         let currentSaturation = authoredBaseSaturation;
-        if (profile.saturationPulse.enabled && isPlayingNow && !reducedMotionActive) {
+        if (
+          profile.saturationPulse.enabled &&
+          isPlayingNow &&
+          !reducedMotionActive
+        ) {
           const saturationCycleScale = authoredSaturationCycleSuppressed
             ? 0
             : 1;
 
           if (profile.saturationPulse.syncToDepthBreathing) {
-            const syncAngle = breathingMix * Math.PI * 2 + profile.saturationPulse.phaseOffset;
+            const syncAngle =
+              breathingMix * Math.PI * 2 + profile.saturationPulse.phaseOffset;
             const pulseProgress = (Math.sin(syncAngle) + 1) * 0.5;
             const authoredPulseSaturation = lerp(
               profile.saturationPulse.minimumSaturation,
               profile.saturationPulse.maximumSaturation,
               pulseProgress,
             );
-            authoredPeriodicSaturationContribution = (authoredPulseSaturation - authoredBaseSaturation) * saturationCycleScale;
+            authoredPeriodicSaturationContribution =
+              (authoredPulseSaturation - authoredBaseSaturation) *
+              saturationCycleScale;
           } else {
             const pulsePhase =
-              (elapsedSeconds / Math.max(profile.saturationPulse.cycleSeconds, 0.2)) * Math.PI * 2 +
+              (elapsedSeconds /
+                Math.max(profile.saturationPulse.cycleSeconds, 0.2)) *
+                Math.PI *
+                2 +
               profile.saturationPulse.phaseOffset;
             const pulseProgress = (Math.sin(pulsePhase) + 1) * 0.5;
             const authoredPulseSaturation = lerp(
@@ -1073,39 +1312,66 @@ export function ImageDepthThemeScene({
               profile.saturationPulse.maximumSaturation,
               pulseProgress,
             );
-            authoredPeriodicSaturationContribution = (authoredPulseSaturation - authoredBaseSaturation) * saturationCycleScale;
+            authoredPeriodicSaturationContribution =
+              (authoredPulseSaturation - authoredBaseSaturation) *
+              saturationCycleScale;
           }
         }
 
-        currentSaturation = authoredBaseSaturation + authoredPeriodicSaturationContribution;
+        currentSaturation =
+          authoredBaseSaturation + authoredPeriodicSaturationContribution;
 
         const reactiveSaturationMultiplier = 1 + reactiveSaturationBoost;
         const saturationBloomMultiplier =
-          1 + (fullOnBehaviorActive ? fullOnKickBloomEnvelope * reactiveBehaviorProfile.kickSaturationBloomMaxBoost : 0);
-        const rawFinalSaturation = currentSaturation * reactiveSaturationMultiplier * saturationBloomMultiplier;
-        const computedFinalSaturation = clamp(rawFinalSaturation, 0, reactiveBehaviorProfile.saturationCap);
+          1 +
+          (fullOnBehaviorActive
+            ? fullOnKickBloomEnvelope *
+              reactiveBehaviorProfile.kickSaturationBloomMaxBoost
+            : 0);
+        const rawFinalSaturation =
+          currentSaturation *
+          reactiveSaturationMultiplier *
+          saturationBloomMultiplier;
+        const computedFinalSaturation = clamp(
+          rawFinalSaturation,
+          0,
+          reactiveBehaviorProfile.saturationCap,
+        );
         const finalSaturation =
-          typeof manualSaturationOverrideMultiplier === "number" && Number.isFinite(manualSaturationOverrideMultiplier)
+          typeof manualSaturationOverrideMultiplier === "number" &&
+          Number.isFinite(manualSaturationOverrideMultiplier)
             ? Math.max(0, manualSaturationOverrideMultiplier)
             : computedFinalSaturation;
         currentSaturation = finalSaturation;
 
         const authoredGlowPulseAmountBase =
           profile.color.glowPulseEnabled && isPlayingNow && !reducedMotionActive
-            ? (Math.sin((elapsedSeconds / Math.max(profile.color.glowPulseCycleSeconds, 1)) * Math.PI * 2) *
+            ? (Math.sin(
+                (elapsedSeconds /
+                  Math.max(profile.color.glowPulseCycleSeconds, 1)) *
+                  Math.PI *
+                  2,
+              ) *
                 0.5 +
                 0.5) *
               profile.color.glowPulseAmount
             : 0;
         const authoredGlowPulseAmount = Math.max(
-          profile.color.glowPulseAmount * (fullOnAuthoringSuppressionActive ? 0.36 : 0.22),
+          profile.color.glowPulseAmount *
+            (fullOnAuthoringSuppressionActive ? 0.36 : 0.22),
           authoredGlowPulseAmountBase *
-            (fullOnAuthoringSuppressionActive ? reactiveBehaviorProfile.authoredGlobalGlowCycleScale : 1),
+            (fullOnAuthoringSuppressionActive
+              ? reactiveBehaviorProfile.authoredGlobalGlowCycleScale
+              : 1),
         );
         const reactiveGlowPulseAmount = allowReactiveLighting
           ? clamp(reactiveTransientAccent, 0, 1)
           : 0;
-        const glowPulseAmount = clamp(authoredGlowPulseAmount + reactiveGlowPulseAmount, 0, 1.2);
+        const glowPulseAmount = clamp(
+          authoredGlowPulseAmount + reactiveGlowPulseAmount,
+          0,
+          1.2,
+        );
 
         playbackVisualMixRef.current = stepImageDepthPlaybackVisualMix(
           playbackVisualMixRef.current,
@@ -1117,25 +1383,37 @@ export function ImageDepthThemeScene({
           reactiveTimingAuthorityActive && reactiveIsolationEnabled
             ? 0
             : reactiveTimingAuthorityActive
-              ? autoAmountBase * reactiveBehaviorProfile.ambientSwayScaleWhenReactive
+              ? autoAmountBase *
+                reactiveBehaviorProfile.ambientSwayScaleWhenReactive
               : autoAmountBase;
 
         planeGroup.position.x =
-          Math.sin(elapsedSeconds * 0.16) * 0.06 * authoredAmbientGeometryContribution +
+          Math.sin(elapsedSeconds * 0.16) *
+            0.06 *
+            authoredAmbientGeometryContribution +
           blendedPointer.x * 0.14;
         planeGroup.position.y =
-          Math.cos(elapsedSeconds * 0.12) * 0.04 * authoredAmbientGeometryContribution -
+          Math.cos(elapsedSeconds * 0.12) *
+            0.04 *
+            authoredAmbientGeometryContribution -
           blendedPointer.y * 0.11;
         planeGroup.rotation.y =
-          Math.sin(elapsedSeconds * 0.1) * 0.022 * authoredAmbientGeometryContribution +
+          Math.sin(elapsedSeconds * 0.1) *
+            0.022 *
+            authoredAmbientGeometryContribution +
           blendedPointer.x * 0.13;
         planeGroup.rotation.x =
-          Math.cos(elapsedSeconds * 0.085) * 0.016 * authoredAmbientGeometryContribution -
+          Math.cos(elapsedSeconds * 0.085) *
+            0.016 *
+            authoredAmbientGeometryContribution -
           blendedPointer.y * 0.1;
         plane.position.z =
           IMAGE_DEPTH_PARITY_FRAMING.planeZ +
-          Math.sin(elapsedSeconds * 0.22) * 0.06 * authoredAmbientGeometryContribution;
-        glowPlane.material.opacity = 0.05 + material.displacementScale * 0.18 + glowPulseAmount * 0.8;
+          Math.sin(elapsedSeconds * 0.22) *
+            0.06 *
+            authoredAmbientGeometryContribution;
+        glowPlane.material.opacity =
+          0.05 + material.displacementScale * 0.18 + glowPulseAmount * 0.8;
 
         camera.position.x = blendedPointer.x * 0.06;
         camera.position.y = -blendedPointer.y * 0.045;
@@ -1143,55 +1421,80 @@ export function ImageDepthThemeScene({
 
         const defaultGrayscaleAmount = 1 - playbackVisualMixRef.current;
         const defaultSaturationMultiplier =
-          playbackVisualMixRef.current * currentSaturation * (1 + glowPulseAmount * 0.7);
+          playbackVisualMixRef.current *
+          currentSaturation *
+          (1 + glowPulseAmount * 0.7);
         const defaultBrightnessMultiplier = 1 + glowPulseAmount;
-        const finalGrayscaleAmount = preserveColorWhileStopped && !isPlayingNow
-          ? 0
-          : defaultGrayscaleAmount;
-        const finalSaturationMultiplier = preserveColorWhileStopped && !isPlayingNow
-          ? Math.max(currentSaturation, 0)
-          : defaultSaturationMultiplier;
-        const finalBrightnessMultiplier = preserveColorWhileStopped && !isPlayingNow
-          ? 1
-          : defaultBrightnessMultiplier;
+        const finalGrayscaleAmount =
+          preserveColorWhileStopped && !isPlayingNow
+            ? 0
+            : defaultGrayscaleAmount;
+        const finalSaturationMultiplier =
+          preserveColorWhileStopped && !isPlayingNow
+            ? Math.max(currentSaturation, 0)
+            : defaultSaturationMultiplier;
+        const finalBrightnessMultiplier =
+          preserveColorWhileStopped && !isPlayingNow
+            ? 1
+            : defaultBrightnessMultiplier;
         const finalContrastMultiplier = 1;
-        const filter = preserveColorWhileStopped && !isPlayingNow
-          ? [
-              `grayscale(${finalGrayscaleAmount.toFixed(3)})`,
-              `hue-rotate(${hueOffsetDegrees.toFixed(3)}deg)`,
-              `saturate(${Math.max(finalSaturationMultiplier, 0).toFixed(3)})`,
-              `brightness(${Math.max(finalBrightnessMultiplier, 0).toFixed(3)})`,
-              `contrast(${finalContrastMultiplier.toFixed(3)})`,
-            ].join(" ")
-          : formatImageDepthPlaybackFilter({
-              playbackVisualMix: playbackVisualMixRef.current,
-              hueOffsetDegrees,
-              currentSaturation,
-              glowPulseAmount,
-            });
+        const chromaValues = resolveImageDepthChromaValues({
+          chromaEnabled: visualState.chromaEnabled,
+          isPlaying: isPlayingNow,
+          hueOffsetDegrees,
+          saturationMultiplier: currentSaturation,
+        });
+        const finalHueOffsetDegrees = chromaValues.hueOffsetDegrees;
+        const finalChromaSaturationMultiplier =
+          chromaValues.saturationMultiplier;
+        const filter =
+          preserveColorWhileStopped && !isPlayingNow
+            ? [
+                `grayscale(${finalGrayscaleAmount.toFixed(3)})`,
+                `hue-rotate(${finalHueOffsetDegrees.toFixed(3)}deg)`,
+                `saturate(${Math.max(finalChromaSaturationMultiplier, 0).toFixed(3)})`,
+                `brightness(${Math.max(finalBrightnessMultiplier, 0).toFixed(3)})`,
+                `contrast(${finalContrastMultiplier.toFixed(3)})`,
+              ].join(" ")
+            : formatImageDepthPlaybackFilter({
+                playbackVisualMix: playbackVisualMixRef.current,
+                hueOffsetDegrees: finalHueOffsetDegrees,
+                currentSaturation: finalChromaSaturationMultiplier,
+                glowPulseAmount,
+                saturationGlowPulseAmount: chromaValues.reactiveChromaActive
+                  ? glowPulseAmount
+                  : 0,
+              });
         const grayscaleFilterActive = playbackVisualMixRef.current < 0.995;
 
         visualState.onDevColorDiagnosticsChange?.({
           colorTextureUrl: asset.colorImageUrl,
           depthTextureUrl: asset.depthMapUrl,
           finalFilterString: filter,
-          finalHueDegrees: hueOffsetDegrees,
-          finalSaturationMultiplier,
+          finalHueDegrees: finalHueOffsetDegrees,
+          finalSaturationMultiplier: chromaValues.reactiveChromaActive
+            ? finalSaturationMultiplier
+            : playbackVisualMixRef.current * finalChromaSaturationMultiplier,
           finalGrayscaleAmount,
           finalBrightnessMultiplier,
           finalContrastMultiplier,
           playbackVisualState: isPlayingNow
-            ? 'playing-color'
+            ? "playing-color"
             : preserveColorWhileStopped
-              ? 'stopped-color-preserved'
-              : 'stopped-grayscale',
+              ? "stopped-color-preserved"
+              : "stopped-grayscale",
         });
-        const reactiveKickBloom =
-          fullOnBehaviorActive ? fullOnKickBloomEnvelope * reactiveBehaviorProfile.kickGlobalGlowBloomMaxBoost : 0;
-        const globalGlowMultiplier = 1 + reactiveGlobalLightBoost + reactiveKickBloom;
+        const reactiveKickBloom = fullOnBehaviorActive
+          ? fullOnKickBloomEnvelope *
+            reactiveBehaviorProfile.kickGlobalGlowBloomMaxBoost
+          : 0;
+        const globalGlowMultiplier =
+          1 + reactiveGlobalLightBoost + reactiveKickBloom;
         ambientLight.intensity = 1.85 * globalGlowMultiplier;
-        keyLight.intensity = 1.3 * (globalGlowMultiplier + reactiveTransientAccent * 0.1);
-        rimLight.intensity = 0.6 * (globalGlowMultiplier + reactiveTransientAccent * 0.22);
+        keyLight.intensity =
+          1.3 * (globalGlowMultiplier + reactiveTransientAccent * 0.1);
+        rimLight.intensity =
+          0.6 * (globalGlowMultiplier + reactiveTransientAccent * 0.22);
 
         if (ambientParticleField) {
           ambientParticleField.update({
@@ -1207,7 +1510,10 @@ export function ImageDepthThemeScene({
           });
 
           if (particleDebugEnabled) {
-            writeImageDepthParityStats("production-particles", ambientParticleField.getDiagnostics());
+            writeImageDepthParityStats(
+              "production-particles",
+              ambientParticleField.getDiagnostics(),
+            );
           }
         } else if (particleDebugEnabled) {
           writeImageDepthParityStats("production-particles", {
@@ -1240,21 +1546,27 @@ export function ImageDepthThemeScene({
           });
         }
 
-        const frameRenderStartedAtMs = typeof performance !== "undefined" ? performance.now() : Date.now();
+        const frameRenderStartedAtMs =
+          typeof performance !== "undefined" ? performance.now() : Date.now();
 
         if (
           visualState.onReactivePreviewTelemetry &&
-          (elapsedSeconds - lastReactiveTelemetryPublishAt >= 0.05 || lastReactiveTelemetryPublishAt === 0)
+          (elapsedSeconds - lastReactiveTelemetryPublishAt >= 0.05 ||
+            lastReactiveTelemetryPublishAt === 0)
         ) {
-          const fullOnPhase: 'low' | 'high' | 'n/a' = fullOnBehaviorActive
+          const fullOnPhase: "low" | "high" | "n/a" = fullOnBehaviorActive
             ? fullOnCurrentPhase
-            : 'n/a';
+            : "n/a";
 
           visualState.onReactivePreviewTelemetry({
             selectedReactiveBehavior: reactiveBehaviorProfile.label,
-            selectedDepthSignalField: fullOnBehaviorActive ? 'energy' : 'bass',
-            selectedHueSignalField: fullOnBehaviorActive ? 'energy' : 'kickPulse',
-            selectedSaturationSignalField: fullOnBehaviorActive ? 'bass' : 'smoothedEnergy',
+            selectedDepthSignalField: fullOnBehaviorActive ? "energy" : "bass",
+            selectedHueSignalField: fullOnBehaviorActive
+              ? "energy"
+              : "kickPulse",
+            selectedSaturationSignalField: fullOnBehaviorActive
+              ? "bass"
+              : "smoothedEnergy",
             reactivePreviewEnabled: reactiveBehaviorEnabled,
             reactiveIsolationEnabled,
             reactiveTimingAuthorityActive,
@@ -1264,7 +1576,9 @@ export function ImageDepthThemeScene({
             authoredDepthContribution,
             authoredAmbientGeometryContribution,
             depthSustainedContribution: reactiveDepthSustained,
-            kickDrivenDepthContribution: fullOnBehaviorActive ? fullOnCurrentDepth : reactiveDepthPulse,
+            kickDrivenDepthContribution: fullOnBehaviorActive
+              ? fullOnCurrentDepth
+              : reactiveDepthPulse,
             depthPulseContribution: reactiveDepthPulse,
             depthCombinedBeforeClamp: combinedDepthBeforeClamp,
             configuredDepthMinimum,
@@ -1274,22 +1588,31 @@ export function ImageDepthThemeScene({
             kickPulse: currentKickPulse,
             kickPulseAcceptedEvent: acceptedKickEventEdge,
             kickPulseAcceptedEventCount: acceptedKickEventCount,
-            kickPulseAcceptedEventSequence: hasAcceptedKickEventSequence ? acceptedKickEventSequence : 0,
+            kickPulseAcceptedEventSequence: hasAcceptedKickEventSequence
+              ? acceptedKickEventSequence
+              : 0,
             rendererKickEventCountLastSeen: fullOnLastSeenKickEventCount,
             rendererKickEventSequenceLastSeen: fullOnLastSeenKickEventSequence,
             sourceBpm,
             beatIntervalMs,
             acceptedEventMinimumIntervalMs,
-            millisecondsSincePreviousAcceptedEvent: fullOnMillisecondsSincePreviousAcceptedEvent,
+            millisecondsSincePreviousAcceptedEvent:
+              fullOnMillisecondsSincePreviousAcceptedEvent,
             acceptedEventRatePerSecondRecent: fullOnRecentAcceptedEventRate,
             smoothedEnergy: smoothedEnergyRaw,
             sectionIntensity,
             fullOnPhase,
-            fullOnTargetDepth: fullOnBehaviorActive ? fullOnAppliedTargetDepth : depthFinalAfterClamp,
-            fullOnCurrentDepth: fullOnBehaviorActive ? fullOnCurrentDepth : depthFinalAfterClamp,
+            fullOnTargetDepth: fullOnBehaviorActive
+              ? fullOnAppliedTargetDepth
+              : depthFinalAfterClamp,
+            fullOnCurrentDepth: fullOnBehaviorActive
+              ? fullOnCurrentDepth
+              : depthFinalAfterClamp,
             fullOnTargetSaturation: computedFinalSaturation,
             fullOnCurrentSaturation: finalSaturation,
-            millisecondsSinceAcceptedKickEvent: Number.isFinite(millisecondsSinceAcceptedKickEvent)
+            millisecondsSinceAcceptedKickEvent: Number.isFinite(
+              millisecondsSinceAcceptedKickEvent,
+            )
               ? millisecondsSinceAcceptedKickEvent
               : 0,
             inactivityReturnActive,
@@ -1328,7 +1651,8 @@ export function ImageDepthThemeScene({
 
         renderer.domElement.style.filter = filter;
 
-        const frameRenderEndedAtMs = typeof performance !== "undefined" ? performance.now() : Date.now();
+        const frameRenderEndedAtMs =
+          typeof performance !== "undefined" ? performance.now() : Date.now();
         const renderCpuMs = frameRenderEndedAtMs - frameRenderStartedAtMs;
         const frameIntervalMs = deltaSeconds * 1000;
         particleFrameCount += 1;
@@ -1342,22 +1666,23 @@ export function ImageDepthThemeScene({
             : particleRenderCpuMsAverage * 0.88 + renderCpuMs * 0.12;
 
         if (particlePerfEnabled) {
-          const particlePerfDiagnostics = ambientParticleField?.getPerfDiagnostics() ?? {
-            active: false,
-            initMs: 0,
-            updateCpuMsLast: 0,
-            updateCpuMsAverage: 0,
-            allocationCount: 0,
-            drawCallCount: 0,
-            particleCount: 0,
-            sampledArtworkCacheHit: false,
-            sampledArtworkCacheKey: "",
-            sampledColorWidth: 0,
-            sampledColorHeight: 0,
-            sampledDepthWidth: 0,
-            sampledDepthHeight: 0,
-            sampleCacheEntries: 0,
-          };
+          const particlePerfDiagnostics =
+            ambientParticleField?.getPerfDiagnostics() ?? {
+              active: false,
+              initMs: 0,
+              updateCpuMsLast: 0,
+              updateCpuMsAverage: 0,
+              allocationCount: 0,
+              drawCallCount: 0,
+              particleCount: 0,
+              sampledArtworkCacheHit: false,
+              sampledArtworkCacheKey: "",
+              sampledColorWidth: 0,
+              sampledColorHeight: 0,
+              sampledDepthWidth: 0,
+              sampledDepthHeight: 0,
+              sampleCacheEntries: 0,
+            };
 
           writeImageDepthParityStats("production-particle-perf", {
             active: particlePerfDiagnostics.active,
@@ -1372,8 +1697,10 @@ export function ImageDepthThemeScene({
             frameIntervalMsAverage: particleFrameIntervalMsAverage,
             renderCpuMsLast: renderCpuMs,
             renderCpuMsAverage: particleRenderCpuMsAverage,
-            sampledArtworkCacheHit: particlePerfDiagnostics.sampledArtworkCacheHit,
-            sampledArtworkCacheKey: particlePerfDiagnostics.sampledArtworkCacheKey,
+            sampledArtworkCacheHit:
+              particlePerfDiagnostics.sampledArtworkCacheHit,
+            sampledArtworkCacheKey:
+              particlePerfDiagnostics.sampledArtworkCacheKey,
             sampledColorWidth: particlePerfDiagnostics.sampledColorWidth,
             sampledColorHeight: particlePerfDiagnostics.sampledColorHeight,
             sampledDepthWidth: particlePerfDiagnostics.sampledDepthWidth,
@@ -1391,7 +1718,9 @@ export function ImageDepthThemeScene({
             hueOffsetDegrees,
             currentSaturation,
             effectiveSaturation:
-              playbackVisualMixRef.current * currentSaturation * (1 + glowPulseAmount * 0.7),
+              playbackVisualMixRef.current *
+              currentSaturation *
+              (1 + glowPulseAmount * 0.7),
             glowPulseAmount,
             reactivePreviewEnabled: reactiveBehaviorEnabled,
             analysisSignalAvailable,
@@ -1442,7 +1771,8 @@ export function ImageDepthThemeScene({
             finalDisplacementScale,
             parallaxEnabled: autonomousParallaxEnabled,
             parallaxCapabilityEnabled: profile.depth.pointerParallaxEnabled,
-            parallaxAmplitudeScale: autonomousParallaxProfile.horizontalExcursion,
+            parallaxAmplitudeScale:
+              autonomousParallaxProfile.horizontalExcursion,
             autonomousTargetX: autonomousPointer.x,
             autonomousTargetY: autonomousPointer.y,
             autonomousPointerX: autonomousSmoothedPointer.x,
@@ -1515,13 +1845,20 @@ export function ImageDepthThemeScene({
     }
 
     const effectiveStaticDepth =
-      typeof manualDepthOverride === "number" && Number.isFinite(manualDepthOverride)
+      typeof manualDepthOverride === "number" &&
+      Number.isFinite(manualDepthOverride)
         ? clamp(manualDepthOverride, 0, 1)
         : profile.depth.staticDepth;
 
     material.displacementScale =
-      effectiveStaticDepth * profile.depth.depthStrength * DISPLACEMENT_SCALE_MULTIPLIER;
-  }, [manualDepthOverride, profile.depth.staticDepth, profile.depth.depthStrength]);
+      effectiveStaticDepth *
+      profile.depth.depthStrength *
+      DISPLACEMENT_SCALE_MULTIPLIER;
+  }, [
+    manualDepthOverride,
+    profile.depth.staticDepth,
+    profile.depth.depthStrength,
+  ]);
 
   const containerStyle = useMemo<CSSProperties | undefined>(() => {
     if (!sceneBackdrop) {

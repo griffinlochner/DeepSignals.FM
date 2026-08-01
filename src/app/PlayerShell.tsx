@@ -683,6 +683,7 @@ function PlayerShell({ className }: PlayerShellProps) {
     reducedMotion: window.matchMedia("(prefers-reduced-motion: reduce)")
       .matches,
     motionEnabled,
+    chromaEnabled,
     getLatestAudioSnapshot: audioAnalysis.getLatestSnapshot,
     reactivePreviewEnabled:
       supportsAudioReactiveBehavior && !productionFullOnActive,

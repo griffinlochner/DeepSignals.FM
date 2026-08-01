@@ -18,6 +18,7 @@ export type ThemeSceneProps = {
   reducedMotion: boolean;
   sourceBpm?: number | null;
   motionEnabled?: boolean;
+  chromaEnabled?: boolean;
   getLatestAudioSnapshot?: (() => AudioReactiveSnapshot) | null;
   reactivePreviewEnabled?: boolean;
   reactiveBehavior?: ReactiveBehaviorId;
