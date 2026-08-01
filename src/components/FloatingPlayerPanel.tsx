@@ -1,8 +1,9 @@
-import { useId, useMemo } from "react";
+import { useId } from "react";
 import type { AudioPlaybackStatus, SignalSource } from "../app/playerTypes";
 import type { ThemeId } from "../themes/themeTypes";
 import PanelChevronIcon from "./PanelChevronIcon";
 import PlayStopButton from "./PlayStopButton";
+import PublicBrandIdent from "./PublicBrandIdent";
 import SignalSourceSelector from "./SignalSourceSelector";
 import ThemeSelector from "./ThemeSelector";
 import TrackMarquee from "./TrackMarquee";
@@ -10,7 +11,6 @@ import VolumeControl from "./VolumeControl";
 import "./floatingPlayerPanel.css";
 
 type FloatingPlayerPanelProps = {
-  brandLabel?: string;
   environmentName: string;
   environmentOptions: Array<{ id: ThemeId; name: string }>;
   selectedEnvironmentId: ThemeId;
@@ -47,7 +47,6 @@ type FloatingPlayerPanelProps = {
 };
 
 function FloatingPlayerPanel({
-  brandLabel = "DEEPSIGNALS.FM",
   environmentName,
   environmentOptions,
   selectedEnvironmentId,
@@ -90,11 +89,6 @@ function FloatingPlayerPanel({
       ? "playing"
       : "ready";
 
-  const identity = useMemo(
-    () => `${brandLabel} · ${environmentName.toUpperCase()}`,
-    [brandLabel, environmentName],
-  );
-
   const toggleLabel = collapsed
     ? "Expand player panel"
     : "Collapse player panel";
@@ -106,13 +100,10 @@ function FloatingPlayerPanel({
       aria-label={`${environmentName} controls`}
     >
       <header className="floating-player-panel__header">
-        <p
-          className="floating-player-panel__identity"
-          title={identity}
-          aria-label={identity}
-        >
-          {identity}
-        </p>
+        <PublicBrandIdent
+          as="span"
+          className="floating-player-panel__brand-ident"
+        />
 
         <button
           type="button"

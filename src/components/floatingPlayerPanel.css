@@ -40,28 +40,26 @@
 }
 
 .floating-player-panel__header {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 30px;
   align-items: center;
-  justify-content: space-between;
   gap: 8px;
   padding: 10px 11px 8px;
   border-bottom: 1px solid rgba(165, 243, 234, 0.14);
 }
 
-.floating-player-panel__identity,
 .floating-player-panel__label {
   margin: 0;
 }
 
-.floating-player-panel__identity {
+.floating-player-panel__brand-ident {
+  width: 100%;
+  max-width: 100%;
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 0.62rem;
-  letter-spacing: 0.14em;
-  font-weight: var(--player-font-weight-label);
-  color: rgba(123, 242, 217, 0.94);
+  box-sizing: border-box;
+  column-gap: 0.03rem;
+  font-size: clamp(0.88rem, 2.3vw, 1.05rem);
+  line-height: 1;
 }
 
 .floating-player-panel__toggle {
