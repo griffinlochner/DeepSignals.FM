@@ -74,12 +74,10 @@ function registerCacheCleanup() {
 
 async function parseTrackSignalMetadata(
   source: AudioSource,
-  signal: AbortSignal,
 ): Promise<MetadataCacheEntry> {
   const configuredMetadata = createConfiguredTrackSignalMetadata(source)
 
   const response = await fetch(source.audioUrl, {
-    signal,
     cache: 'force-cache',
   })
 
@@ -141,7 +139,6 @@ async function parseTrackSignalMetadata(
 
 async function loadTrackSignalMetadata(
   source: AudioSource,
-  signal: AbortSignal,
 ): Promise<MetadataCacheEntry> {
   const cached = metadataCache.get(source.audioUrl)
 
@@ -155,7 +152,7 @@ async function loadTrackSignalMetadata(
     return existingInFlight
   }
 
-  const requestPromise = parseTrackSignalMetadata(source, signal)
+  const requestPromise = parseTrackSignalMetadata(source)
     .then((entry) => {
       registerCacheCleanup()
       const previous = metadataCache.get(source.audioUrl)
@@ -171,10 +168,6 @@ async function loadTrackSignalMetadata(
       return entry
     })
     .catch((error: unknown) => {
-      if (error instanceof DOMException && error.name === 'AbortError') {
-        throw error
-      }
-
       const fallbackEntry: MetadataCacheEntry = {
         metadata: createConfiguredTrackSignalMetadata(source),
         errorMessage: 'Embedded track data unavailable',
@@ -211,65 +204,64 @@ export function useTrackSignalMetadata(
     return createConfiguredTrackSignalMetadata(source)
   }, [source])
 
+  const sourceUrl = source?.audioUrl
+  const sourceKind = source?.kind
+
   useEffect(() => {
-    if (!source || source.kind !== 'demo-track') {
+    if (!source || sourceKind !== 'demo-track' || !sourceUrl) {
       return
     }
 
-    if (metadataCache.has(source.audioUrl) || resolvedByUrl.has(source.audioUrl)) {
+    if (metadataCache.has(sourceUrl) || resolvedByUrl.has(sourceUrl)) {
       return
     }
 
     const requestId = requestIdRef.current + 1
     requestIdRef.current = requestId
-    const controller = new AbortController()
+    let disposed = false
 
-    loadTrackSignalMetadata(source, controller.signal)
+    loadTrackSignalMetadata(source)
       .then((entry) => {
-        if (requestIdRef.current !== requestId) {
+        if (disposed || requestIdRef.current !== requestId) {
           return
         }
 
         setResolvedByUrl((current) => {
-          if (current.get(source.audioUrl)) {
+          if (current.get(sourceUrl)) {
             return current
           }
 
           const next = new Map(current)
-          next.set(source.audioUrl, entry)
+          next.set(sourceUrl, entry)
           return next
         })
       })
-      .catch((error: unknown) => {
-        if (requestIdRef.current !== requestId) {
+      .catch(() => {
+        if (disposed || requestIdRef.current !== requestId) {
           return
         }
 
-        if (error instanceof DOMException && error.name === 'AbortError') {
-          return
-        }
-
-        const fallbackEntry = metadataCache.get(source.audioUrl)
+        const fallbackEntry = metadataCache.get(sourceUrl)
 
         if (!fallbackEntry) {
           return
         }
 
         setResolvedByUrl((current) => {
-          if (current.get(source.audioUrl)) {
+          if (current.get(sourceUrl)) {
             return current
           }
 
           const next = new Map(current)
-          next.set(source.audioUrl, fallbackEntry)
+          next.set(sourceUrl, fallbackEntry)
           return next
         })
       })
 
     return () => {
-      controller.abort()
+      disposed = true
     }
-  }, [resolvedByUrl, source])
+  }, [resolvedByUrl, source, sourceKind, sourceUrl])
 
   if (!source) {
     return {

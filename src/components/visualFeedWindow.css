@@ -1,12 +1,16 @@
 .visual-feed-window {
+  --signal-feed-art-size: clamp(13.25rem, 16vw, 17rem);
+  --signal-feed-art-size-mobile: clamp(10.75rem, 54vw, 14.5rem);
+  --signal-feed-body-padding: 12px;
+  --signal-feed-header-min-inline: 13.25rem;
   --visual-feed-border-radius: 12px;
   --visual-feed-transition-duration: 220ms;
   --visual-feed-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
   position: relative;
   z-index: 4;
-  width: 100%;
+  width: auto;
   min-width: 0;
-  min-height: 0;
+  min-height: auto;
   display: flex;
   flex-direction: column;
   border: 1px solid var(--visual-feed-border, rgba(165, 243, 234, 0.2));
@@ -36,29 +40,29 @@
 }
 
 .visual-feed-window--dock-right {
-  width: 100%;
-  min-height: 0;
+  width: min(100%, max(var(--signal-feed-header-min-inline), calc(var(--signal-feed-art-size) + (var(--signal-feed-body-padding) * 2))));
+  min-height: auto;
   justify-self: start;
   align-self: start;
   transform: translate3d(12px, 0, 0);
 }
 
 .visual-feed-window--dock-right .visual-feed-window__body {
-  flex: 1 1 auto;
-  min-height: 0;
+  flex: 0 0 auto;
+  min-height: auto;
 }
 
 .visual-feed-window--dock-bottom {
-  width: 100%;
-  height: clamp(15rem, 34dvh, 19rem);
+  width: min(var(--player-panel-width, 100%), max(var(--signal-feed-header-min-inline), calc(var(--signal-feed-art-size-mobile) + (var(--signal-feed-body-padding) * 2))));
+  height: auto;
   justify-self: start;
   align-self: start;
   transform: translate3d(0, 12px, 0);
 }
 
 .visual-feed-window--dock-bottom .visual-feed-window__body {
-  flex: 1 1 auto;
-  min-height: 0;
+  flex: 0 0 auto;
+  min-height: auto;
 }
 
 @keyframes visual-feed-enter-right {
@@ -190,8 +194,9 @@
 .visual-feed-window__body {
   padding: 0;
   display: flex;
-  flex: 1 1 auto;
-  min-height: 0;
+  flex: 0 0 auto;
+  min-height: auto;
+  overflow: hidden;
 }
 
 .visual-feed-window__body > * {
@@ -202,30 +207,26 @@
 .visual-feed-window__viewport {
   box-sizing: border-box;
   width: 100%;
-  min-height: 0;
-  flex: 1 1 auto;
+  min-height: auto;
+  flex: 0 0 auto;
   display: flex;
-  align-items: stretch;
-  justify-content: stretch;
-  padding: 14px;
+  align-items: center;
+  justify-content: center;
+  padding: var(--signal-feed-body-padding);
   color: var(--theme-text-secondary, rgba(233, 248, 244, 0.76));
   background:
     linear-gradient(135deg, rgba(19, 53, 62, 0.45), rgba(7, 15, 20, 0.82)),
     repeating-linear-gradient(90deg, transparent 0 13px, rgba(132, 243, 225, 0.04) 14px 15px);
-  overflow: auto;
-}
-
-.visual-feed-window__track-card {
-  width: 100%;
-  min-height: 0;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 12px;
-  align-content: start;
+  overflow: hidden;
 }
 
 .visual-feed-window__artwork-shell {
-  width: 100%;
+  width: var(--signal-feed-art-size);
+  height: var(--signal-feed-art-size);
+  max-width: 100%;
+  max-height: 100%;
+  align-self: center;
+  flex: 0 0 auto;
   border: 1px solid rgba(165, 243, 234, 0.2);
   border-radius: 10px;
   background: linear-gradient(160deg, rgba(8, 21, 27, 0.82), rgba(6, 14, 19, 0.68));
@@ -237,7 +238,8 @@
   width: 100%;
   height: 100%;
   display: block;
-  object-fit: cover;
+  object-fit: contain;
+  background: rgba(4, 10, 14, 0.82);
 }
 
 .visual-feed-window__artwork-fallback {
@@ -264,115 +266,23 @@
     );
 }
 
-.visual-feed-window__metadata-stack {
-  min-width: 0;
-  display: grid;
-  gap: 4px;
-}
-
-.visual-feed-window__kicker,
-.visual-feed-window__artist,
-.visual-feed-window__track-title,
-.visual-feed-window__meta-row,
-.visual-feed-window__loading,
-.visual-feed-window__unavailable,
-.visual-feed-window__neutral-placeholder p,
-.visual-feed-window__neutral-placeholder span {
-  margin: 0;
-}
-
-.visual-feed-window__kicker {
-  font-size: 0.63rem;
-  letter-spacing: 0.14em;
-  color: rgba(171, 243, 229, 0.82);
-  text-transform: uppercase;
-}
-
-.visual-feed-window__loading {
-  font-size: 0.61rem;
-  letter-spacing: 0.12em;
-  color: rgba(188, 235, 250, 0.86);
-  text-transform: uppercase;
-}
-
-.visual-feed-window__artist {
-  font-size: 0.8rem;
-  letter-spacing: 0.04em;
-  color: var(--theme-text, #e9f8f4);
-}
-
-.visual-feed-window__track-title {
-  font-size: 0.92rem;
-  line-height: 1.25;
-  letter-spacing: 0.03em;
-  color: var(--theme-text, #e9f8f4);
-  font-weight: 600;
-}
-
-.visual-feed-window__meta-row {
-  display: flex;
-  align-items: baseline;
-  gap: 7px;
-}
-
-.visual-feed-window__meta-label {
-  font-size: 0.58rem;
-  letter-spacing: 0.11em;
-  text-transform: uppercase;
-  color: rgba(183, 230, 223, 0.74);
-}
-
-.visual-feed-window__meta-value {
-  min-width: 0;
-  font-size: 0.72rem;
-  letter-spacing: 0.04em;
-  color: rgba(227, 247, 244, 0.94);
-}
-
-.visual-feed-window__unavailable {
-  margin-top: 2px;
-  font-size: 0.58rem;
-  letter-spacing: 0.11em;
-  text-transform: uppercase;
-  color: rgba(255, 185, 159, 0.86);
-}
-
-.visual-feed-window__neutral-placeholder {
-  width: 100%;
-  min-height: 0;
-  border: 1px solid rgba(165, 243, 234, 0.2);
-  border-radius: 10px;
-  padding: 14px;
-  box-sizing: border-box;
-  background: linear-gradient(160deg, rgba(8, 21, 27, 0.82), rgba(6, 14, 19, 0.68));
-  display: grid;
-  gap: 6px;
-  align-content: center;
-  text-align: center;
-}
-
-.visual-feed-window__neutral-placeholder p {
-  font-size: 0.8rem;
-  color: var(--theme-text, #e9f8f4);
-}
-
-.visual-feed-window__neutral-placeholder span {
-  font-size: 0.68rem;
-  color: var(--theme-muted, rgba(189, 229, 223, 0.62));
-}
-
-.visual-feed-window--dock-bottom .visual-feed-window__track-card {
-  grid-template-columns: minmax(108px, 0.5fr) minmax(0, 1fr);
-  gap: 10px;
-}
-
 .visual-feed-window--dock-bottom .visual-feed-window__artwork-shell {
-  align-self: start;
+  width: var(--signal-feed-art-size-mobile);
+  height: var(--signal-feed-art-size-mobile);
+  max-width: 100%;
+  max-height: 100%;
 }
 
 @media (max-width: 560px) {
-  .visual-feed-window--dock-bottom .visual-feed-window__track-card {
-    grid-template-columns: minmax(0, 1fr);
+  .visual-feed-window--dock-bottom {
+    width: min(var(--player-panel-width, 100%), 100%);
+  }
+
+  .visual-feed-window--dock-bottom .visual-feed-window__artwork-shell {
+    width: clamp(9.5rem, 66vw, 13.5rem);
+    height: clamp(9.5rem, 66vw, 13.5rem);
+    max-width: 100%;
+    max-height: 100%;
   }
 }
 

@@ -60,11 +60,19 @@
   pointer-events: auto;
 }
 
+.player-shell__primary-column {
+  display: flex;
+  flex-direction: column;
+  width: var(--player-panel-width, min(var(--floating-panel-max-width, 430px), calc(100vw - (var(--player-edge-gap) * 2))));
+  min-width: 0;
+  align-items: stretch;
+}
+
 .player-shell__dock--right {
   grid-template-columns:
-    var(--player-panel-width, min(var(--floating-panel-max-width, 430px), calc(100vw - (var(--player-edge-gap) * 2))))
-    minmax(18rem, clamp(18rem, 33vw, 33rem));
-  grid-template-rows: auto auto;
+    minmax(0, var(--player-panel-width, min(var(--floating-panel-max-width, 430px), calc(100vw - (var(--player-edge-gap) * 2)))))
+    max-content;
+  grid-template-rows: auto;
   align-items: start;
 }
 
@@ -82,7 +90,7 @@
   align-self: start;
 }
 
-.player-shell__dock--right .floating-player-panel {
+.player-shell__dock--right .player-shell__primary-column {
   grid-column: 1;
   grid-row: 1;
 }
@@ -95,9 +103,9 @@
 .player-shell__dock--right .visual-feed-window {
   grid-column: 2;
   grid-row: 1;
-  width: 100%;
-  height: var(--player-panel-height, auto);
-  min-height: 0;
+  width: auto;
+  height: auto;
+  min-height: auto;
   align-self: start;
   border-top-left-radius: 0;
   border-bottom-left-radius: 0;
@@ -106,33 +114,26 @@
 .player-shell__dock--bottom .visual-feed-window {
   grid-column: 1;
   grid-row: 2;
-  width: var(--player-panel-width, 100%);
-  height: clamp(15rem, 34dvh, 19rem);
+  width: auto;
+  height: auto;
   border-top-left-radius: 0;
   border-top-right-radius: 0;
 }
 
-.player-shell__dock--bottom .floating-player-panel {
+.player-shell__dock--bottom .player-shell__primary-column {
   grid-column: 1;
   grid-row: 1;
+}
+
+.player-shell__dock--bottom .floating-player-panel {
   border-bottom-left-radius: 0;
   border-bottom-right-radius: 0;
 }
 
-.player-shell__dock .signal-telemetry-panel {
-  width: var(--player-panel-width, 100%);
+.player-shell__primary-column .signal-telemetry-panel {
+  width: 100%;
   min-width: 0;
   align-self: start;
-}
-
-.player-shell__dock--right .signal-telemetry-panel {
-  grid-column: 1;
-  grid-row: 2;
-}
-
-.player-shell__dock--bottom .signal-telemetry-panel {
-  grid-column: 1;
-  grid-row: 2;
 }
 
 .player-shell__dock--telemetry-open .floating-player-panel {

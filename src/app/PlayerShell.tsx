@@ -1051,7 +1051,6 @@ function PlayerShell({ className }: PlayerShellProps) {
       : "armed";
   const dockStyle = {
     "--player-panel-width": `${playerPanelSize.width}px`,
-    "--player-panel-height": `${playerPanelSize.height}px`,
   } as CSSProperties;
 
   return (
@@ -1102,45 +1101,57 @@ function PlayerShell({ className }: PlayerShellProps) {
           .join(" ")}
         style={dockStyle}
       >
-        <FloatingPlayerPanel
-          ref={playerPanelRef}
-          environmentName={activeTheme.name}
-          environmentOptions={themeOptions}
-          selectedEnvironmentId={selectedThemeId}
-          onEnvironmentChange={handleThemeChange}
-          audioPlaybackStatus={audioController.playbackStatus}
-          audioCurrentTime={audioController.currentTime}
-          audioDuration={audioController.duration}
-          audioSeekable={audioController.seekable}
-          audioMetadataLoaded={audioController.metadataLoaded}
-          audioErrorMessage={audioController.errorMessage}
-          audioIsSeeking={audioController.isSeeking}
-          onAudioTogglePlay={handleAudioTogglePlay}
-          onAudioSeek={audioController.seekTo}
-          signalOptions={signals}
-          selectedSignalId={selectedSignalId}
-          onSignalChange={handleSignalChange}
-          signalLabel={selectedSignal ? transmissionLabel : null}
-          isPlaying={audioController.playbackStatus === "playing"}
-          volume={audioController.volume}
-          onVolumeChange={audioController.setVolume}
-          motionEnabled={motionEnabled}
-          supportsMotion={supportsMotion}
-          onMotionToggle={setMotionEnabled}
-          chromaEnabled={chromaEnabled}
-          supportsChroma={supportsChroma}
-          onChromaToggle={setChromaEnabled}
-          showSignalTelemetryControl={showSignalTelemetryControl}
-          signalTelemetryVisible={signalTelemetryVisible}
-          onSignalTelemetryChange={setSignalTelemetryVisibleFromToggle}
-          signalTelemetryToggleRef={signalTelemetryToggleRef}
-          showVisualFeedControl={showVisualFeedControl}
-          visualFeedOpen={supportsVisualFeed ? visualFeedOpen : false}
-          onVisualFeedChange={setVisualFeedOpenFromToggle}
-          visualFeedToggleRef={visualFeedToggleRef}
-          collapsed={panelCollapsed}
-          onCollapsedChange={setPanelCollapsed}
-        />
+        <div className="player-shell__primary-column">
+          <FloatingPlayerPanel
+            ref={playerPanelRef}
+            environmentName={activeTheme.name}
+            environmentOptions={themeOptions}
+            selectedEnvironmentId={selectedThemeId}
+            onEnvironmentChange={handleThemeChange}
+            audioPlaybackStatus={audioController.playbackStatus}
+            audioCurrentTime={audioController.currentTime}
+            audioDuration={audioController.duration}
+            audioSeekable={audioController.seekable}
+            audioMetadataLoaded={audioController.metadataLoaded}
+            audioErrorMessage={audioController.errorMessage}
+            audioIsSeeking={audioController.isSeeking}
+            onAudioTogglePlay={handleAudioTogglePlay}
+            onAudioSeek={audioController.seekTo}
+            signalOptions={signals}
+            selectedSignalId={selectedSignalId}
+            onSignalChange={handleSignalChange}
+            signalLabel={selectedSignal ? transmissionLabel : null}
+            isPlaying={audioController.playbackStatus === "playing"}
+            volume={audioController.volume}
+            onVolumeChange={audioController.setVolume}
+            motionEnabled={motionEnabled}
+            supportsMotion={supportsMotion}
+            onMotionToggle={setMotionEnabled}
+            chromaEnabled={chromaEnabled}
+            supportsChroma={supportsChroma}
+            onChromaToggle={setChromaEnabled}
+            showSignalTelemetryControl={showSignalTelemetryControl}
+            signalTelemetryVisible={signalTelemetryVisible}
+            onSignalTelemetryChange={setSignalTelemetryVisibleFromToggle}
+            signalTelemetryToggleRef={signalTelemetryToggleRef}
+            showVisualFeedControl={showVisualFeedControl}
+            visualFeedOpen={supportsVisualFeed ? visualFeedOpen : false}
+            onVisualFeedChange={setVisualFeedOpenFromToggle}
+            visualFeedToggleRef={visualFeedToggleRef}
+            collapsed={panelCollapsed}
+            onCollapsedChange={setPanelCollapsed}
+          />
+
+          {!audioDebugEnabled && effectiveSignalTelemetryVisible ? (
+            <SignalTelemetryPanel
+              analysisStatus={audioAnalysis.status}
+              playbackStatus={audioController.playbackStatus}
+              getLatestSnapshot={audioAnalysis.getLatestSnapshot}
+              getLatestReactiveTelemetry={getReactivePreviewTelemetry}
+              onClose={handleSignalTelemetryClose}
+            />
+          ) : null}
+        </div>
 
         <VisualFeedWindow
           open={effectiveVisualFeedOpen && visualFeedDockMode !== null}
@@ -1150,15 +1161,6 @@ function PlayerShell({ className }: PlayerShellProps) {
           Frame={activeTheme.VisualFeedFrame}
         />
 
-        {!audioDebugEnabled && effectiveSignalTelemetryVisible ? (
-          <SignalTelemetryPanel
-            analysisStatus={audioAnalysis.status}
-            playbackStatus={audioController.playbackStatus}
-            getLatestSnapshot={audioAnalysis.getLatestSnapshot}
-            getLatestReactiveTelemetry={getReactivePreviewTelemetry}
-            onClose={handleSignalTelemetryClose}
-          />
-        ) : null}
       </div>
     </div>
   );
