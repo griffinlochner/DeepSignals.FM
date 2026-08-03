@@ -1146,6 +1146,7 @@ function PlayerShell({ className }: PlayerShellProps) {
           open={effectiveVisualFeedOpen && visualFeedDockMode !== null}
           dockMode={visualFeedDockMode ?? "right"}
           onClose={handleVisualFeedClose}
+          selectedTrackSource={selectedSignalId ? audioController.audioSource : null}
           Frame={activeTheme.VisualFeedFrame}
         />
 

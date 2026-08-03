@@ -11,6 +11,7 @@
     "validate:environments": "tsx scripts/validate-environments.ts"
   },
   "dependencies": {
+    "music-metadata": "^11.14.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "three": "^0.185.1"
