@@ -1,4 +1,4 @@
-import { useId } from "react";
+import { forwardRef, useId, type RefObject } from "react";
 import type { AudioPlaybackStatus, SignalSource } from "../app/playerTypes";
 import type { ThemeId } from "../themes/themeTypes";
 import PanelChevronIcon from "./PanelChevronIcon";
@@ -40,47 +40,56 @@ type FloatingPlayerPanelProps = {
   showSignalTelemetryControl: boolean;
   signalTelemetryVisible: boolean;
   onSignalTelemetryChange: (enabled: boolean) => void;
+  signalTelemetryToggleRef?: RefObject<HTMLInputElement | null>;
+  showVisualFeedControl: boolean;
   visualFeedOpen: boolean;
   onVisualFeedChange: (enabled: boolean) => void;
+  visualFeedToggleRef?: RefObject<HTMLInputElement | null>;
   collapsed: boolean;
   onCollapsedChange: (collapsed: boolean) => void;
 };
 
-function FloatingPlayerPanel({
-  environmentName,
-  environmentOptions,
-  selectedEnvironmentId,
-  onEnvironmentChange,
-  audioPlaybackStatus,
-  audioCurrentTime,
-  audioDuration,
-  audioSeekable,
-  audioMetadataLoaded,
-  audioErrorMessage,
-  audioIsSeeking,
-  onAudioTogglePlay,
-  onAudioSeek,
-  signalOptions,
-  selectedSignalId,
-  onSignalChange,
-  signalLabel,
-  isPlaying,
-  volume,
-  onVolumeChange,
-  motionEnabled,
-  supportsMotion,
-  onMotionToggle,
-  chromaEnabled,
-  supportsChroma,
-  onChromaToggle,
-  showSignalTelemetryControl,
-  signalTelemetryVisible,
-  onSignalTelemetryChange,
-  visualFeedOpen,
-  onVisualFeedChange,
-  collapsed,
-  onCollapsedChange,
-}: FloatingPlayerPanelProps) {
+const FloatingPlayerPanel = forwardRef<HTMLElement, FloatingPlayerPanelProps>(function FloatingPlayerPanel(
+  {
+    environmentName,
+    environmentOptions,
+    selectedEnvironmentId,
+    onEnvironmentChange,
+    audioPlaybackStatus,
+    audioCurrentTime,
+    audioDuration,
+    audioSeekable,
+    audioMetadataLoaded,
+    audioErrorMessage,
+    audioIsSeeking,
+    onAudioTogglePlay,
+    onAudioSeek,
+    signalOptions,
+    selectedSignalId,
+    onSignalChange,
+    signalLabel,
+    isPlaying,
+    volume,
+    onVolumeChange,
+    motionEnabled,
+    supportsMotion,
+    onMotionToggle,
+    chromaEnabled,
+    supportsChroma,
+    onChromaToggle,
+    showSignalTelemetryControl,
+    signalTelemetryVisible,
+    onSignalTelemetryChange,
+    signalTelemetryToggleRef,
+    showVisualFeedControl,
+    visualFeedOpen,
+    onVisualFeedChange,
+    visualFeedToggleRef,
+    collapsed,
+    onCollapsedChange,
+  }: FloatingPlayerPanelProps,
+  ref,
+) {
   const contentId = useId();
 
   const marqueeState: "no-signal" | "ready" | "playing" = !selectedSignalId
@@ -95,6 +104,7 @@ function FloatingPlayerPanel({
 
   return (
     <aside
+      ref={ref}
       className="floating-player-panel"
       data-collapsed={collapsed}
       aria-label={`${environmentName} controls`}
@@ -297,59 +307,65 @@ function FloatingPlayerPanel({
               </label>
             </div>
 
-            <div
-              className="floating-player-panel__toggle-row"
-              role="group"
-              aria-label="Display controls"
-            >
-              <label className="floating-player-panel__switch floating-player-panel__visual-switch">
-                <input
-                  className="floating-player-panel__switch-checkbox"
-                  type="checkbox"
-                  checked={visualFeedOpen}
-                  onChange={(event) => onVisualFeedChange(event.target.checked)}
-                  aria-label="Visual Feed"
-                />
-                <span className="floating-player-panel__switch-label">
-                  Visual Feed
-                </span>
-                <span
-                  className="floating-player-panel__switch-track"
-                  aria-hidden="true"
-                >
-                  <span className="floating-player-panel__switch-thumb" />
-                </span>
-              </label>
+            {showVisualFeedControl || showSignalTelemetryControl ? (
+              <div
+                className="floating-player-panel__toggle-row"
+                role="group"
+                aria-label="Display controls"
+              >
+                {showVisualFeedControl ? (
+                  <label className="floating-player-panel__switch floating-player-panel__visual-switch">
+                    <input
+                      ref={visualFeedToggleRef}
+                      className="floating-player-panel__switch-checkbox"
+                      type="checkbox"
+                      checked={visualFeedOpen}
+                      onChange={(event) => onVisualFeedChange(event.target.checked)}
+                      aria-label="Toggle signal feed"
+                    />
+                    <span className="floating-player-panel__switch-label">
+                      Signal Feed
+                    </span>
+                    <span
+                      className="floating-player-panel__switch-track"
+                      aria-hidden="true"
+                    >
+                      <span className="floating-player-panel__switch-thumb" />
+                    </span>
+                  </label>
+                ) : null}
 
-              {showSignalTelemetryControl ? (
-                <label className="floating-player-panel__switch floating-player-panel__telemetry-switch">
-                  <input
-                    className="floating-player-panel__switch-checkbox"
-                    type="checkbox"
-                    checked={signalTelemetryVisible}
-                    onChange={(event) =>
-                      onSignalTelemetryChange(event.target.checked)
-                    }
-                    aria-label="Telemetry"
-                  />
-                  <span className="floating-player-panel__switch-label">
-                    Telemetry
-                  </span>
-                  <span
-                    className="floating-player-panel__switch-track"
-                    aria-hidden="true"
-                  >
-                    <span className="floating-player-panel__switch-thumb" />
-                  </span>
-                </label>
-              ) : null}
-            </div>
+                {showSignalTelemetryControl ? (
+                  <label className="floating-player-panel__switch floating-player-panel__telemetry-switch">
+                    <input
+                      ref={signalTelemetryToggleRef}
+                      className="floating-player-panel__switch-checkbox"
+                      type="checkbox"
+                      checked={signalTelemetryVisible}
+                      onChange={(event) =>
+                        onSignalTelemetryChange(event.target.checked)
+                      }
+                      aria-label="Telemetry"
+                    />
+                    <span className="floating-player-panel__switch-label">
+                      Telemetry
+                    </span>
+                    <span
+                      className="floating-player-panel__switch-track"
+                      aria-hidden="true"
+                    >
+                      <span className="floating-player-panel__switch-thumb" />
+                    </span>
+                  </label>
+                ) : null}
+              </div>
+            ) : null}
           </section>
         </div>
       )}
     </aside>
   );
-}
+});
 
 function formatTime(seconds: number) {
   if (!Number.isFinite(seconds) || seconds < 0) {

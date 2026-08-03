@@ -4,6 +4,7 @@ import type { ThemeVisualFeedFrameProps } from '../themes/themeTypes'
 
 type VisualFeedWindowProps = {
   open: boolean
+  dockMode: 'right' | 'bottom'
   onClose: () => void
   Frame?: ComponentType<ThemeVisualFeedFrameProps>
   className?: string
@@ -22,7 +23,7 @@ function DefaultFrame({ children }: ThemeVisualFeedFrameProps) {
   return <>{children}</>
 }
 
-function VisualFeedWindow({ open, onClose, Frame, className }: VisualFeedWindowProps) {
+function VisualFeedWindow({ open, dockMode, onClose, Frame, className }: VisualFeedWindowProps) {
   const contentId = useId()
   const FrameComponent = Frame ?? DefaultFrame
 
@@ -38,7 +39,9 @@ function VisualFeedWindow({ open, onClose, Frame, className }: VisualFeedWindowP
     }
 
     window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+    }
   }, [open, onClose])
 
   if (!open) {
@@ -46,15 +49,30 @@ function VisualFeedWindow({ open, onClose, Frame, className }: VisualFeedWindowP
   }
 
   return (
-    <section className={['visual-feed-window', className].filter(Boolean).join(' ')} aria-label="Visual feed panel">
+    <section
+      className={['visual-feed-window', `visual-feed-window--dock-${dockMode}`, className].filter(Boolean).join(' ')}
+      aria-label="Signal feed panel"
+      data-stage="open"
+      aria-hidden="false"
+    >
       <header className="visual-feed-window__header">
-        <p className="visual-feed-window__title">Visual Feed</p>
+        <p className="visual-feed-window__title">Signal Feed</p>
+        <a
+          className="visual-feed-window__about-link"
+          href="/about/"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="About DeepSignals.FM - opens in a new tab"
+        >
+          <span>About</span>
+          <span aria-hidden="true">↗</span>
+        </a>
         <button
           type="button"
           className="visual-feed-window__close"
           onClick={onClose}
-          aria-label="Close visual feed"
-          title="Close visual feed"
+          aria-label="Close signal feed"
+          title="Close signal feed"
         >
           <CloseIcon />
         </button>

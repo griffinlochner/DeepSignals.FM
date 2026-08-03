@@ -5,7 +5,6 @@ import type {
   AudioReactiveSnapshot,
   ReactivePreviewTelemetry,
 } from '../app/playerTypes'
-import PanelChevronIcon from './PanelChevronIcon'
 import './signalTelemetryPanel.css'
 
 type SignalTelemetryPanelProps = {
@@ -13,8 +12,7 @@ type SignalTelemetryPanelProps = {
   playbackStatus: AudioPlaybackStatus
   getLatestSnapshot: () => AudioReactiveSnapshot
   getLatestReactiveTelemetry?: () => ReactivePreviewTelemetry
-  collapsed: boolean
-  onCollapsedChange: (collapsed: boolean) => void
+  onClose: () => void
 }
 
 type MeterRowProps = {
@@ -71,6 +69,15 @@ function formatBpm(value: number | null) {
 
 function formatDepthPair(current: number, target: number) {
   return `${formatCompactNumber(current)} / ${formatCompactNumber(target)}`
+}
+
+function CloseIcon() {
+  return (
+    <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+      <path d="M3.25 3.25L12.75 12.75" />
+      <path d="M12.75 3.25L3.25 12.75" />
+    </svg>
+  )
 }
 
 const ZERO_REACTIVE_TELEMETRY: ReactivePreviewTelemetry = {
@@ -164,12 +171,10 @@ function SignalTelemetryPanel({
   playbackStatus,
   getLatestSnapshot,
   getLatestReactiveTelemetry = () => ZERO_REACTIVE_TELEMETRY,
-  collapsed,
-  onCollapsedChange,
+  onClose,
 }: SignalTelemetryPanelProps) {
   const [snapshot, setSnapshot] = useState<AudioReactiveSnapshot>(ZERO_SNAPSHOT)
   const [reactiveTelemetry, setReactiveTelemetry] = useState<ReactivePreviewTelemetry>(ZERO_REACTIVE_TELEMETRY)
-  const [layout, setLayout] = useState<{ left: number; width: number } | null>(null)
 
   useEffect(() => {
     const publish = () => {
@@ -185,37 +190,6 @@ function SignalTelemetryPanel({
       window.clearInterval(intervalHandle)
     }
   }, [getLatestReactiveTelemetry, getLatestSnapshot])
-
-  useEffect(() => {
-    const updateLayout = () => {
-      const playerPanel = document.querySelector('.floating-player-panel') as HTMLElement | null
-
-      if (!playerPanel) {
-        setLayout(null)
-        return
-      }
-
-      const rect = playerPanel.getBoundingClientRect()
-      setLayout({
-        left: rect.left,
-        width: rect.width,
-      })
-    }
-
-    updateLayout()
-    window.addEventListener('resize', updateLayout)
-
-    const playerPanel = document.querySelector('.floating-player-panel') as HTMLElement | null
-    const observer = playerPanel ? new ResizeObserver(updateLayout) : null
-    if (observer && playerPanel) {
-      observer.observe(playerPanel)
-    }
-
-    return () => {
-      window.removeEventListener('resize', updateLayout)
-      observer?.disconnect()
-    }
-  }, [])
 
   let statusLabel = 'Paused'
 
@@ -263,8 +237,6 @@ function SignalTelemetryPanel({
     <aside
       className="signal-telemetry-panel"
       aria-label="Signal telemetry"
-      data-collapsed={collapsed ? 'true' : 'false'}
-      style={layout ? { left: `${layout.left}px`, width: `${layout.width}px` } : undefined}
     >
       <div className="signal-telemetry-panel__surface">
         <header className="signal-telemetry-panel__header">
@@ -273,43 +245,41 @@ function SignalTelemetryPanel({
             <p className="signal-telemetry-panel__status">{statusLabel}</p>
             <button
               type="button"
-              className="signal-telemetry-panel__toggle"
-              aria-label={collapsed ? 'Expand Signal Telemetry' : 'Collapse Signal Telemetry'}
-              aria-expanded={!collapsed}
-              onClick={() => onCollapsedChange(!collapsed)}
+              className="signal-telemetry-panel__close"
+              aria-label="Close signal telemetry"
+              title="Close signal telemetry"
+              onClick={onClose}
             >
-              <PanelChevronIcon collapsed={collapsed} expandDirection="up" />
+              <CloseIcon />
             </button>
           </div>
         </header>
 
-        {!collapsed ? (
-          <div className="signal-telemetry-panel__body">
-            <section className="signal-telemetry-panel__meters" aria-label="Signal levels">
-              <MeterRow label="Energy" value={snapshot.energy} />
-              <MeterRow label="Bass" value={snapshot.bass} />
-              <MeterRow label="Kick" value={snapshot.kickPulse} />
-              <MeterRow label="Mids" value={snapshot.mids} />
-              <MeterRow label="Highs" value={snapshot.highs} />
-            </section>
+        <div className="signal-telemetry-panel__body">
+          <section className="signal-telemetry-panel__meters" aria-label="Signal levels">
+            <MeterRow label="Energy" value={snapshot.energy} />
+            <MeterRow label="Bass" value={snapshot.bass} />
+            <MeterRow label="Kick" value={snapshot.kickPulse} />
+            <MeterRow label="Mids" value={snapshot.mids} />
+            <MeterRow label="Highs" value={snapshot.highs} />
+          </section>
 
-            <section className="signal-telemetry-panel__tech" aria-label="Technical telemetry">
-              {technicalRows.map((row) => (
-                <div key={row.label} className="signal-telemetry-panel__tech-row">
-                  <p className="signal-telemetry-panel__tech-label">{row.label}</p>
-                  <p
-                    className={[
-                      'signal-telemetry-panel__tech-value',
-                      row.numeric ? 'signal-telemetry-panel__tech-value--numeric' : '',
-                    ].join(' ').trim()}
-                  >
-                    {row.value}
-                  </p>
-                </div>
-              ))}
-            </section>
-          </div>
-        ) : null}
+          <section className="signal-telemetry-panel__tech" aria-label="Technical telemetry">
+            {technicalRows.map((row) => (
+              <div key={row.label} className="signal-telemetry-panel__tech-row">
+                <p className="signal-telemetry-panel__tech-label">{row.label}</p>
+                <p
+                  className={[
+                    'signal-telemetry-panel__tech-value',
+                    row.numeric ? 'signal-telemetry-panel__tech-value--numeric' : '',
+                  ].join(' ').trim()}
+                >
+                  {row.value}
+                </p>
+              </div>
+            ))}
+          </section>
+        </div>
       </div>
     </aside>
   )

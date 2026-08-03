@@ -1,14 +1,9 @@
 .signal-telemetry-panel {
-  position: fixed;
-  left: clamp(12px, 2.2vw, 22px);
-  bottom: clamp(12px, 2.2vh, 18px);
+  position: relative;
   z-index: 1;
-  width: min(
-    var(--floating-panel-max-width, 430px),
-    calc(100vw - (clamp(12px, 2.2vw, 22px) * 2))
-  );
-  max-width: calc(100vw - (clamp(12px, 2.2vw, 22px) * 2));
-  pointer-events: none;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   box-sizing: border-box;
 }
 
@@ -64,7 +59,7 @@
   color: rgba(215, 248, 244, 0.86);
 }
 
-.signal-telemetry-panel__toggle {
+.signal-telemetry-panel__close {
   width: 30px;
   height: 30px;
   display: inline-flex;
@@ -78,16 +73,16 @@
   flex-shrink: 0;
 }
 
-.signal-telemetry-panel__toggle:hover {
+.signal-telemetry-panel__close:hover {
   border-color: rgba(123, 242, 217, 0.54);
 }
 
-.signal-telemetry-panel__toggle:focus-visible {
+.signal-telemetry-panel__close:focus-visible {
   outline: 2px solid rgba(123, 242, 217, 0.82);
   outline-offset: 2px;
 }
 
-.signal-telemetry-panel__toggle svg {
+.signal-telemetry-panel__close svg {
   width: 16px;
   height: 16px;
   fill: none;
@@ -208,28 +203,4 @@
     "DeepSignals Ident", "Consolas", "SFMono-Regular", "Menlo", "Monaco",
     "Liberation Mono", "Courier New", monospace;
   letter-spacing: 0.05em;
-}
-
-@media (max-width: 820px) {
-  .signal-telemetry-panel {
-    display: none;
-  }
-}
-
-@media (min-width: 1025px) and (max-height: 705px) {
-  .signal-telemetry-panel[data-collapsed="false"] {
-    display: none;
-  }
-}
-
-@media (max-width: 1024px) and (max-height: 760px) {
-  .signal-telemetry-panel[data-collapsed="false"] {
-    display: none;
-  }
-}
-
-@media (max-height: 620px) {
-  .signal-telemetry-panel {
-    display: none;
-  }
 }

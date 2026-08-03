@@ -21,6 +21,7 @@
   --transport-dock-padding-bottom: calc(
     18px + env(safe-area-inset-bottom, 0px)
   );
+  --player-edge-gap: clamp(12px, 2.2vw, 22px);
 }
 
 /* ============================================================
@@ -41,6 +42,107 @@
   width: 100%;
   height: 100%;
   display: block;
+}
+
+.player-shell__dock {
+  position: absolute;
+  left: var(--player-edge-gap);
+  top: var(--player-edge-gap);
+  z-index: 4;
+  display: inline-grid;
+  align-items: start;
+  justify-content: start;
+  gap: 0;
+  pointer-events: none;
+}
+
+.player-shell__dock > * {
+  pointer-events: auto;
+}
+
+.player-shell__dock--right {
+  grid-template-columns:
+    var(--player-panel-width, min(var(--floating-panel-max-width, 430px), calc(100vw - (var(--player-edge-gap) * 2))))
+    minmax(18rem, clamp(18rem, 33vw, 33rem));
+  grid-template-rows: auto auto;
+  align-items: start;
+}
+
+.player-shell__dock--bottom {
+  grid-template-columns: minmax(0, max-content);
+  grid-template-rows: auto auto;
+  width: max-content;
+}
+
+.player-shell__dock .floating-player-panel {
+  position: relative;
+  top: auto;
+  left: auto;
+  flex-shrink: 0;
+  align-self: start;
+}
+
+.player-shell__dock--right .floating-player-panel {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.player-shell__dock--right .floating-player-panel {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.player-shell__dock--right .visual-feed-window {
+  grid-column: 2;
+  grid-row: 1;
+  width: 100%;
+  height: var(--player-panel-height, auto);
+  min-height: 0;
+  align-self: start;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+.player-shell__dock--bottom .visual-feed-window {
+  grid-column: 1;
+  grid-row: 2;
+  width: var(--player-panel-width, 100%);
+  height: clamp(15rem, 34dvh, 19rem);
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+
+.player-shell__dock--bottom .floating-player-panel {
+  grid-column: 1;
+  grid-row: 1;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.player-shell__dock .signal-telemetry-panel {
+  width: var(--player-panel-width, 100%);
+  min-width: 0;
+  align-self: start;
+}
+
+.player-shell__dock--right .signal-telemetry-panel {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.player-shell__dock--bottom .signal-telemetry-panel {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.player-shell__dock--telemetry-open .floating-player-panel {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.player-shell__dock--telemetry-open .signal-telemetry-panel__surface {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
 }
 
 /* ============================================================
