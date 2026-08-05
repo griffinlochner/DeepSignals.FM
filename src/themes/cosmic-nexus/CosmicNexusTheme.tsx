@@ -8,6 +8,7 @@ type NexusShell = {
   material: THREE.MeshBasicMaterial
   spin: THREE.Vector3
   wobble: number
+  baseRotation: THREE.Euler
 }
 
 type NexusRing = {
@@ -15,6 +16,7 @@ type NexusRing = {
   material: THREE.MeshBasicMaterial
   spin: number
   pulsePhase: number
+  baseRotation: THREE.Euler
 }
 
 type Satellite = {
@@ -26,6 +28,8 @@ type Satellite = {
   orbitSpeed: number
   orbitPhase: number
   yDrift: number
+  basePosition: THREE.Vector3
+  baseShellRotation: THREE.Euler
 }
 
 type InboundLane = {
@@ -45,6 +49,7 @@ type TravelingPulse = {
   glowMaterial: THREE.MeshBasicMaterial
   lane: InboundLane
   offset: number
+  baseProgress: number
 }
 
 type RailShot = {
@@ -79,13 +84,18 @@ type SweepBeam = {
   baseY: number
   phase: number
   speed: number
+  baseRotationZ: number
 }
 
 type FloatingGlyph = {
   mesh: THREE.LineLoop
   basePosition: THREE.Vector3
   phase: number
+  baseRotationZ: number
 }
+
+const COSMIC_NEXUS_NEUTRAL_HUE_OFFSET_DEGREES = 0
+const COSMIC_NEXUS_NEUTRAL_SATURATION_MULTIPLIER = 1
 
 const COLORS = {
   cyan: 0x79fff2,
@@ -132,6 +142,7 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
     renderer.setSize(mount.clientWidth, mount.clientHeight)
     renderer.domElement.style.display = 'block'
+    renderer.domElement.style.willChange = 'filter'
     mount.appendChild(renderer.domElement)
 
     const geometries = new Set<THREE.BufferGeometry>()
@@ -278,7 +289,13 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
       )
       const mesh = new THREE.Mesh(spec.geometry, material)
       nexusGroup.add(mesh)
-      nexusShells.push({ mesh, material, spin: spec.spin, wobble: spec.wobble })
+      nexusShells.push({
+        mesh,
+        material,
+        spin: spec.spin,
+        wobble: spec.wobble,
+        baseRotation: mesh.rotation.clone(),
+      })
     })
 
     const ringSpecs = [
@@ -318,7 +335,13 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
       const mesh = new THREE.Mesh(trackGeometry(new THREE.TorusGeometry(spec.radius, spec.tube, 12, 140)), material)
       mesh.rotation.copy(spec.tilt)
       nexusGroup.add(mesh)
-      nexusRings.push({ mesh, material, spin: spec.spin, pulsePhase: Math.random() * Math.PI * 2 })
+      nexusRings.push({
+        mesh,
+        material,
+        spin: spec.spin,
+        pulsePhase: Math.random() * Math.PI * 2,
+        baseRotation: mesh.rotation.clone(),
+      })
     })
 
     const satellitePositions = [
@@ -355,6 +378,13 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
       const glow = new THREE.Mesh(trackGeometry(new THREE.SphereGeometry(0.56, 20, 14)), glowMaterial)
       group.add(shell, glow)
 
+      const basePosition = new THREE.Vector3(
+        nexusCenter.x + Math.cos(phase) * radius,
+        nexusCenter.y + Math.sin(phase * 0.82) * drift,
+        -0.9 + Math.sin(phase * 0.6) * 0.7,
+      )
+      group.position.copy(basePosition)
+
       satellites.push({
         group,
         shell,
@@ -364,6 +394,8 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
         orbitSpeed: speed,
         orbitPhase: phase,
         yDrift: drift,
+        basePosition,
+        baseShellRotation: shell.rotation.clone(),
       })
     })
 
@@ -438,7 +470,15 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
         const core = new THREE.Mesh(pulseCoreGeometry, coreMaterial)
         const glow = new THREE.Mesh(pulseGlowGeometry, glowMaterial)
         world.add(core, glow)
-        travelingPulses.push({ core, glow, coreMaterial, glowMaterial, lane, offset })
+        travelingPulses.push({
+          core,
+          glow,
+          coreMaterial,
+          glowMaterial,
+          lane,
+          offset,
+          baseProgress: ((offset % 1) + 1) % 1,
+        })
       })
     }
 
@@ -758,7 +798,15 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
       core.rotation.z = Math.PI / 2
       group.add(glow, core)
 
-      sweepBeams.push({ group, coreMaterial, glowMaterial, baseY: y, phase, speed })
+      sweepBeams.push({
+        group,
+        coreMaterial,
+        glowMaterial,
+        baseY: y,
+        phase,
+        speed,
+        baseRotationZ: group.rotation.z,
+      })
     })
 
     const glyphGeometry = trackGeometry(
@@ -796,11 +844,21 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
       mesh.scale.setScalar(0.25 + Math.random() * 0.55)
       mesh.rotation.z = Math.random() * Math.PI
       world.add(mesh)
-      floatingGlyphs.push({ mesh, basePosition, phase: Math.random() * Math.PI * 2 })
+      floatingGlyphs.push({
+        mesh,
+        basePosition,
+        phase: Math.random() * Math.PI * 2,
+        baseRotationZ: mesh.rotation.z,
+      })
     }
 
     const pointerTarget = new THREE.Vector2()
     const pointerCurrent = new THREE.Vector2()
+    const pointerRest = new THREE.Vector2(0, 0)
+    const settleUnitScale = new THREE.Vector3(1, 1, 1)
+    const settlePulseCoreScale = new THREE.Vector3(0.92, 0.92, 0.92)
+    const settlePulseGlowScale = new THREE.Vector3(1.22, 1.22, 1.22)
+    const settleActivationScale = new THREE.Vector3(1, 0.62, 1)
 
     const handlePointerMove = (event: PointerEvent) => {
       pointerTarget.x = (event.clientX / window.innerWidth) * 2 - 1
@@ -836,6 +894,7 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
     timer.connect(document)
 
     let elapsed = 0
+    let grayscaleMix = visualStateRef.current.isPlaying ? 0 : 1
     let frameId = 0
     let previousHasSignal = Boolean(visualStateRef.current.signalId)
     let previousPlaying = visualStateRef.current.isPlaying
@@ -849,27 +908,144 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
       const state = visualStateRef.current
       const systemReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
       const reduced = state.reducedMotion || systemReducedMotion
+      const isPlaying = state.isPlaying === true
       const hasSignal = Boolean(state.signalId)
-      const ready = hasSignal && !state.isPlaying
       const motionEnabled = state.motionEnabled ?? true
-      const playingMotionOff = state.isPlaying && !motionEnabled
+      const motionActive = isPlaying && motionEnabled
+      const playingMotionOff = isPlaying && !motionEnabled
       const volumeScale = 0.67 + state.volume * 0.33
+      const grayscaleTarget = isPlaying ? 0 : 1
+      const grayscaleLerp = reduced ? 1 : 0.08
 
-      const kineticScale = reduced ? 0.12 : playingMotionOff ? 0.16 : 1
-      const trafficScale = reduced ? 0.05 : playingMotionOff ? 0.16 : state.isPlaying ? 1 : ready ? 0.34 : 0.08
-      const burstEnabled = state.isPlaying && motionEnabled && !reduced
-      const dampedActiveScale = state.isPlaying ? (playingMotionOff ? 0.42 : 1.2) : ready ? 0.45 : 0.2
+      grayscaleMix += (grayscaleTarget - grayscaleMix) * grayscaleLerp
+      if (Math.abs(grayscaleTarget - grayscaleMix) <= 0.001) {
+        grayscaleMix = grayscaleTarget
+      }
+
+      renderer.domElement.style.filter = [
+        `grayscale(${grayscaleMix.toFixed(3)})`,
+        `hue-rotate(${COSMIC_NEXUS_NEUTRAL_HUE_OFFSET_DEGREES.toFixed(3)}deg)`,
+        `saturate(${COSMIC_NEXUS_NEUTRAL_SATURATION_MULTIPLIER.toFixed(3)})`,
+      ].join(' ')
+
       const delta = Math.min(timer.getDelta(), 0.05)
+      const kineticScale = reduced ? 0.12 : playingMotionOff ? 0.16 : 1
+      const trafficScale = reduced ? 0.05 : playingMotionOff ? 0.16 : 1
+      const burstEnabled = isPlaying && motionEnabled && !reduced
+      const dampedActiveScale = playingMotionOff ? 0.42 : 1.2
 
-      elapsed += delta * kineticScale
+      if (motionActive) {
+        elapsed += delta * kineticScale
+      }
+
+      const settleAlpha = THREE.MathUtils.clamp(delta * (reduced ? 8 : 5.5), 0, 1)
+
+      if (!motionActive) {
+        const stablePlayingOpacityScale = isPlaying ? 1 : 0.55
+
+        previousHasSignal = hasSignal
+        previousPlaying = isPlaying
+        activationProgress = 1
+        activationStrength = 0
+
+        pointerCurrent.lerp(pointerRest, settleAlpha)
+        world.rotation.y = THREE.MathUtils.lerp(world.rotation.y, 0, settleAlpha)
+        world.rotation.x = THREE.MathUtils.lerp(world.rotation.x, 0, settleAlpha)
+
+        coreGlow.scale.lerp(settleUnitScale, settleAlpha)
+        coreGlowMaterial.opacity = (isPlaying ? 0.2 : 0.08) * volumeScale
+
+        nexusShells.forEach(({ mesh, material, baseRotation }, index) => {
+          mesh.rotation.x = THREE.MathUtils.lerp(mesh.rotation.x, baseRotation.x, settleAlpha)
+          mesh.rotation.y = THREE.MathUtils.lerp(mesh.rotation.y, baseRotation.y, settleAlpha)
+          mesh.rotation.z = THREE.MathUtils.lerp(mesh.rotation.z, baseRotation.z, settleAlpha)
+          mesh.scale.lerp(settleUnitScale, settleAlpha)
+          material.opacity = THREE.MathUtils.clamp((0.52 - index * 0.05) * stablePlayingOpacityScale, 0.08, 0.82)
+        })
+
+        nexusRings.forEach(({ mesh, material, baseRotation }, index) => {
+          mesh.rotation.x = THREE.MathUtils.lerp(mesh.rotation.x, baseRotation.x, settleAlpha)
+          mesh.rotation.y = THREE.MathUtils.lerp(mesh.rotation.y, baseRotation.y, settleAlpha)
+          mesh.rotation.z = THREE.MathUtils.lerp(mesh.rotation.z, baseRotation.z, settleAlpha)
+          material.opacity = (0.34 - index * 0.05) * stablePlayingOpacityScale
+        })
+
+        satellites.forEach((satellite) => {
+          satellite.group.position.lerp(satellite.basePosition, settleAlpha)
+          satellite.shell.rotation.x = THREE.MathUtils.lerp(
+            satellite.shell.rotation.x,
+            satellite.baseShellRotation.x,
+            settleAlpha,
+          )
+          satellite.shell.rotation.y = THREE.MathUtils.lerp(
+            satellite.shell.rotation.y,
+            satellite.baseShellRotation.y,
+            settleAlpha,
+          )
+          satellite.shellMaterial.opacity = (isPlaying ? 0.54 : 0.2) * stablePlayingOpacityScale
+          satellite.glowMaterial.opacity = (isPlaying ? 0.1 : 0.03) * volumeScale
+        })
+
+        const lanePower = (isPlaying ? 1.35 : 0.16) * stablePlayingOpacityScale
+        inboundLanes.forEach((lane) => {
+          lane.outerMaterial.opacity = Math.min(1, lane.baseOuterOpacity * lanePower * volumeScale)
+          lane.innerMaterial.opacity = Math.min(1, lane.baseInnerOpacity * lanePower * volumeScale)
+        })
+
+        travelingPulses.forEach(({ core, glow, coreMaterial, glowMaterial, lane, baseProgress }) => {
+          const point = lane.curve.getPointAt(baseProgress)
+          core.position.copy(point)
+          glow.position.copy(point)
+          core.scale.lerp(settlePulseCoreScale, settleAlpha)
+          glow.scale.lerp(settlePulseGlowScale, settleAlpha)
+          coreMaterial.opacity = THREE.MathUtils.clamp(isPlaying ? lane.pulseBoost : 0.2, 0.15, 1)
+          glowMaterial.opacity = (isPlaying ? 0.13 : 0.03) * volumeScale
+        })
+
+        activationWaves.forEach(({ mesh, material }) => {
+          mesh.visible = false
+          material.opacity = 0
+          mesh.scale.lerp(settleActivationScale, settleAlpha)
+        })
+
+        railShots.forEach((shot) => {
+          shot.group.visible = false
+          shot.coreMaterial.opacity = 0
+          shot.glowMaterial.opacity = 0
+          shot.helixMaterial.opacity = 0
+        })
+
+        lightningArcs.forEach((arc) => {
+          arc.material.opacity = 0
+        })
+
+        sweepBeams.forEach((beam) => {
+          beam.group.position.y = THREE.MathUtils.lerp(beam.group.position.y, beam.baseY, settleAlpha)
+          beam.group.rotation.z = THREE.MathUtils.lerp(beam.group.rotation.z, beam.baseRotationZ, settleAlpha)
+          beam.coreMaterial.opacity = 0
+          beam.glowMaterial.opacity = 0
+        })
+
+        floatingGlyphs.forEach(({ mesh, basePosition, baseRotationZ }) => {
+          mesh.position.lerp(basePosition, settleAlpha)
+          mesh.rotation.z = THREE.MathUtils.lerp(mesh.rotation.z, baseRotationZ, settleAlpha)
+        })
+
+        distantStars.rotation.y = THREE.MathUtils.lerp(distantStars.rotation.y, 0, settleAlpha)
+        accentStars.rotation.z = THREE.MathUtils.lerp(accentStars.rotation.z, 0, settleAlpha)
+        brightStars.rotation.y = THREE.MathUtils.lerp(brightStars.rotation.y, 0, settleAlpha)
+
+        renderer.render(scene, camera)
+        return
+      }
 
       if (hasSignal && !previousHasSignal) {
         activationProgress = 0
         activationStrength = 0.86
-      } else if (state.isPlaying && !previousPlaying) {
+      } else if (isPlaying && !previousPlaying) {
         activationProgress = 0
         activationStrength = 1.4
-      } else if (!state.isPlaying && previousPlaying) {
+      } else if (!isPlaying && previousPlaying) {
         activationProgress = 0
         activationStrength = 0.6
       } else if (!hasSignal && previousHasSignal) {
@@ -878,12 +1054,12 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
       }
 
       previousHasSignal = hasSignal
-      previousPlaying = state.isPlaying
+      previousPlaying = isPlaying
 
       if (reduced) {
         activationProgress = 1
       } else {
-        activationProgress = Math.min(1, activationProgress + delta * (state.isPlaying ? 1.48 : 1.1))
+        activationProgress = Math.min(1, activationProgress + delta * (isPlaying ? 1.48 : 1.1))
       }
 
       const transitionBoost = Math.max(0, 1 - activationProgress) * activationStrength
@@ -892,9 +1068,9 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
       world.rotation.y = pointerCurrent.x * 0.02
       world.rotation.x = -pointerCurrent.y * 0.015
 
-      const corePulse = (Math.sin(elapsed * (state.isPlaying ? 2.8 : 1.1)) + 1) * 0.5
-      coreGlow.scale.setScalar(1 + corePulse * (state.isPlaying ? (playingMotionOff ? 0.08 : 0.26) : 0.07))
-      coreGlowMaterial.opacity = (state.isPlaying ? (playingMotionOff ? 0.2 : 0.36) : ready ? 0.16 : 0.07) * volumeScale
+      const corePulse = (Math.sin(elapsed * (isPlaying ? 2.8 : 1.1)) + 1) * 0.5
+      coreGlow.scale.setScalar(1 + corePulse * (isPlaying ? (playingMotionOff ? 0.08 : 0.26) : 0.07))
+      coreGlowMaterial.opacity = (isPlaying ? (playingMotionOff ? 0.2 : 0.36) : 0.07) * volumeScale
 
       nexusShells.forEach(({ mesh, material, spin, wobble }, index) => {
         const spinFactor = reduced ? 0.18 : playingMotionOff ? 0.2 : 1
@@ -904,7 +1080,7 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
         const wobblePulse = 1 + Math.sin(elapsed * (1.2 + index * 0.15) + index) * wobble
         mesh.scale.setScalar(wobblePulse)
         material.opacity = THREE.MathUtils.clamp(
-          (state.isPlaying ? 0.58 : ready ? 0.4 : 0.22) + transitionBoost * 0.14 - index * 0.05,
+          (isPlaying ? 0.58 : 0.22) + transitionBoost * 0.14 - index * 0.05,
           0.08,
           0.86,
         )
@@ -914,11 +1090,11 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
         mesh.rotation.y += spin * delta * kineticScale * (0.7 + dampedActiveScale)
         mesh.rotation.x += spin * delta * kineticScale * 0.28
         const ringPulse = (Math.sin(elapsed * (1.5 + index * 0.25) + pulsePhase) + 1) * 0.5
-        material.opacity = (state.isPlaying ? 0.38 : ready ? 0.23 : 0.12) + ringPulse * (state.isPlaying ? 0.2 : 0.08)
+        material.opacity = (isPlaying ? 0.38 : 0.12) + ringPulse * (isPlaying ? 0.2 : 0.08)
       })
 
       satellites.forEach((satellite, index) => {
-        const orbitAngle = elapsed * satellite.orbitSpeed * (state.isPlaying ? 1.5 : ready ? 0.74 : 0.4) + satellite.orbitPhase
+        const orbitAngle = elapsed * satellite.orbitSpeed * (isPlaying ? 1.5 : 0.4) + satellite.orbitPhase
         const x = nexusCenter.x + Math.cos(orbitAngle) * satellite.orbitRadius
         const y = nexusCenter.y + Math.sin(orbitAngle * 0.82) * satellite.yDrift
         const z = -0.9 + Math.sin(orbitAngle * 0.6) * 0.7
@@ -928,18 +1104,18 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
         satellite.shell.rotation.y += 0.68 * delta * kineticScale
 
         const pulse = (Math.sin(elapsed * (1.4 + index * 0.2) + satellite.orbitPhase) + 1) * 0.5
-        satellite.shellMaterial.opacity = (state.isPlaying ? 0.56 : ready ? 0.38 : 0.2) + pulse * 0.1
-        satellite.glowMaterial.opacity = (state.isPlaying ? 0.12 : ready ? 0.07 : 0.03) * volumeScale
+        satellite.shellMaterial.opacity = (isPlaying ? 0.56 : 0.2) + pulse * 0.1
+        satellite.glowMaterial.opacity = (isPlaying ? 0.12 : 0.03) * volumeScale
       })
 
-      const lanePower = (state.isPlaying ? 1.5 : ready ? 0.7 : 0.14) + transitionBoost * 0.3
+      const lanePower = (isPlaying ? 1.5 : 0.14) + transitionBoost * 0.3
       inboundLanes.forEach((lane) => {
         lane.outerMaterial.opacity = Math.min(1, lane.baseOuterOpacity * lanePower * volumeScale)
         lane.innerMaterial.opacity = Math.min(1, lane.baseInnerOpacity * lanePower * volumeScale)
       })
 
       travelingPulses.forEach(({ core, glow, coreMaterial, glowMaterial, lane, offset }, index) => {
-        const speed = lane.travelRate * (state.isPlaying ? 3.2 : ready ? 1.05 : 0.15) * trafficScale
+        const speed = lane.travelRate * (isPlaying ? 3.2 : 0.15) * trafficScale
         const progress = (elapsed * speed + offset) % 1
         const point = lane.curve.getPointAt(progress)
         core.position.copy(point)
@@ -948,11 +1124,11 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
         const flicker = (Math.sin(elapsed * (3 + index * 0.3) + offset) + 1) * 0.5
         const scale = 0.82 + flicker * 0.26
         core.scale.setScalar(scale)
-        glow.scale.setScalar(scale * (state.isPlaying ? (playingMotionOff ? 1.2 : 1.9) : ready ? 1.1 : 0.7))
+        glow.scale.setScalar(scale * (isPlaying ? (playingMotionOff ? 1.2 : 1.9) : 0.7))
 
-        const boost = state.isPlaying ? lane.pulseBoost : ready ? 0.6 : 0.25
+        const boost = isPlaying ? lane.pulseBoost : 0.25
         coreMaterial.opacity = THREE.MathUtils.clamp(boost, 0.15, 1)
-        glowMaterial.opacity = (state.isPlaying ? (playingMotionOff ? 0.1 : 0.3) : ready ? 0.12 : 0.03) * volumeScale
+        glowMaterial.opacity = (isPlaying ? (playingMotionOff ? 0.1 : 0.3) : 0.03) * volumeScale
       })
 
       activationWaves.forEach(({ mesh, material, delay }) => {
@@ -971,13 +1147,13 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
       })
 
       railShots.forEach((shot) => {
-        if ((!burstEnabled && !ready) || !hasSignal || (!state.isPlaying && !shot.readyEnabled)) {
+        if (!burstEnabled || !hasSignal || (!isPlaying && !shot.readyEnabled)) {
           shot.group.visible = false
           return
         }
 
-        const rate = state.isPlaying ? shot.cycleRate * 2.75 : shot.cycleRate * 0.45
-        const duty = state.isPlaying ? shot.duty : 0.018
+        const rate = isPlaying ? shot.cycleRate * 2.75 : shot.cycleRate * 0.45
+        const duty = isPlaying ? shot.duty : 0.018
         const cycle = (elapsed * rate + shot.cycleOffset) % 1
 
         if (cycle >= duty || playingMotionOff || reduced) {
@@ -987,7 +1163,7 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
 
         const progress = THREE.MathUtils.clamp(cycle / duty, 0, 1)
         const flare = Math.sin(progress * Math.PI)
-        const intensity = flare * (state.isPlaying ? 1.2 : 0.2) * volumeScale
+        const intensity = flare * (isPlaying ? 1.2 : 0.2) * volumeScale
         shot.group.visible = true
         shot.coreMaterial.opacity = 0.95 * intensity
         shot.glowMaterial.opacity = 0.24 * intensity
@@ -1026,12 +1202,10 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
 
       sweepBeams.forEach((beam) => {
         const wave = Math.max(0, Math.sin(elapsed * beam.speed + beam.phase))
-        const flash = Math.pow(wave, state.isPlaying ? 6 : 12)
-        const intensity = state.isPlaying
+        const flash = Math.pow(wave, isPlaying ? 6 : 12)
+        const intensity = isPlaying
           ? flash * volumeScale * (playingMotionOff ? 0.3 : 1.15)
-          : ready
-            ? flash * 0.12
-            : 0
+          : 0
 
         beam.group.position.y = beam.baseY + Math.sin(elapsed * beam.speed * 0.45 + beam.phase) * (playingMotionOff ? 0.05 : 0.25)
         beam.group.rotation.z = Math.sin(elapsed * beam.speed * 0.56 + beam.phase) * (playingMotionOff ? 0.02 : 0.08)
