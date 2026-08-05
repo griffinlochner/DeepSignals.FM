@@ -1,6 +1,12 @@
 import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
 import type { ThemeSceneProps } from '../themeTypes'
+import {
+  SIGNAL_NEXUS_REACTIVITY,
+  createNeutralSignalNexusReactiveState,
+  resolveSignalNexusReactiveTarget,
+  stepSignalNexusReactiveState,
+} from './signalNexusReactivity'
 import './cosmicNexus.css'
 
 type NexusShell = {
@@ -96,6 +102,7 @@ type FloatingGlyph = {
 
 const COSMIC_NEXUS_NEUTRAL_HUE_OFFSET_DEGREES = 0
 const COSMIC_NEXUS_NEUTRAL_SATURATION_MULTIPLIER = 1
+const COSMIC_NEXUS_NEUTRAL_EMISSIVE_MULTIPLIER = 1
 
 const COLORS = {
   cyan: 0x79fff2,
@@ -213,6 +220,14 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
     const distantStars = createStarLayer(1650, 74, 42, 0.02, 0xffffff, 0.56, -42, -9, false)
     const accentStars = createStarLayer(340, 66, 32, 0.045, COLORS.violet, 0.36, -28, -2, true)
     const brightStars = createStarLayer(110, 60, 28, 0.075, COLORS.cyan, 0.56, -18, 0, true)
+    const distantStarsMaterial = distantStars.material as THREE.PointsMaterial
+    const accentStarsMaterial = accentStars.material as THREE.PointsMaterial
+    const brightStarsMaterial = brightStars.material as THREE.PointsMaterial
+    const starBaseOpacity = {
+      distant: distantStarsMaterial.opacity,
+      accent: accentStarsMaterial.opacity,
+      bright: brightStarsMaterial.opacity,
+    }
 
     const nexusCenter = new THREE.Vector3(0.35, 0.05, -0.15)
     const nexusGroup = new THREE.Group()
@@ -898,6 +913,10 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
     let frameId = 0
     let previousHasSignal = Boolean(visualStateRef.current.signalId)
     let previousPlaying = visualStateRef.current.isPlaying
+    let previousReactiveSignalId = visualStateRef.current.signalId
+    let previousKickAcceptedCount = 0
+    let previousKickAcceptedSequence = 0
+    let reactiveState = createNeutralSignalNexusReactiveState()
     let activationProgress = 1
     let activationStrength = 0
 
@@ -909,10 +928,13 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
       const systemReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
       const reduced = state.reducedMotion || systemReducedMotion
       const isPlaying = state.isPlaying === true
+      const chromaEnabled = state.chromaEnabled !== false
       const hasSignal = Boolean(state.signalId)
       const motionEnabled = state.motionEnabled ?? true
       const motionActive = isPlaying && motionEnabled
       const playingMotionOff = isPlaying && !motionEnabled
+      const latestSnapshot = typeof state.getLatestAudioSnapshot === 'function' ? state.getLatestAudioSnapshot() : null
+      const activeSnapshot = latestSnapshot?.isActive === true ? latestSnapshot : null
       const volumeScale = 0.67 + state.volume * 0.33
       const grayscaleTarget = isPlaying ? 0 : 1
       const grayscaleLerp = reduced ? 1 : 0.08
@@ -922,17 +944,59 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
         grayscaleMix = grayscaleTarget
       }
 
-      renderer.domElement.style.filter = [
-        `grayscale(${grayscaleMix.toFixed(3)})`,
-        `hue-rotate(${COSMIC_NEXUS_NEUTRAL_HUE_OFFSET_DEGREES.toFixed(3)}deg)`,
-        `saturate(${COSMIC_NEXUS_NEUTRAL_SATURATION_MULTIPLIER.toFixed(3)})`,
-      ].join(' ')
+      if (state.signalId !== previousReactiveSignalId) {
+        previousReactiveSignalId = state.signalId
+        previousKickAcceptedCount = activeSnapshot?.kickPulseAcceptedEventCount ?? 0
+        previousKickAcceptedSequence = activeSnapshot?.kickPulseAcceptedEventSequence ?? 0
+        reactiveState = createNeutralSignalNexusReactiveState()
+      }
+
+      const playbackJustStarted = isPlaying && !previousPlaying
+      if (playbackJustStarted) {
+        previousKickAcceptedCount = activeSnapshot?.kickPulseAcceptedEventCount ?? previousKickAcceptedCount
+        previousKickAcceptedSequence = activeSnapshot?.kickPulseAcceptedEventSequence ?? previousKickAcceptedSequence
+      }
+
+      const nextKickAcceptedCount = activeSnapshot?.kickPulseAcceptedEventCount ?? previousKickAcceptedCount
+      const nextKickAcceptedSequence = activeSnapshot?.kickPulseAcceptedEventSequence ?? previousKickAcceptedSequence
+      const kickEdge =
+        (!playbackJustStarted && (activeSnapshot?.kickPulseAcceptedEvent ?? false)) ||
+        nextKickAcceptedCount > previousKickAcceptedCount ||
+        nextKickAcceptedSequence > previousKickAcceptedSequence
+      previousKickAcceptedCount = nextKickAcceptedCount
+      previousKickAcceptedSequence = nextKickAcceptedSequence
 
       const delta = Math.min(timer.getDelta(), 0.05)
+      const reactiveTarget = resolveSignalNexusReactiveTarget({
+        isPlaying,
+        chromaEnabled,
+        snapshot: activeSnapshot,
+        kickImpulseSeed: kickEdge ? 1 : activeSnapshot?.kickPulse ?? 0,
+      })
+      reactiveState = stepSignalNexusReactiveState(reactiveState, reactiveTarget, delta)
+
+      const chromaReactiveActive = isPlaying && chromaEnabled
+      const hueOffset = chromaReactiveActive ? reactiveState.hueOffset : COSMIC_NEXUS_NEUTRAL_HUE_OFFSET_DEGREES
+      const saturation = chromaReactiveActive ? reactiveState.saturation : COSMIC_NEXUS_NEUTRAL_SATURATION_MULTIPLIER
+      const emissive = chromaReactiveActive ? reactiveState.emissiveIntensity : COSMIC_NEXUS_NEUTRAL_EMISSIVE_MULTIPLIER
+
+      renderer.domElement.style.filter = [
+        `grayscale(${grayscaleMix.toFixed(3)})`,
+        `hue-rotate(${hueOffset.toFixed(3)}deg)`,
+        `saturate(${saturation.toFixed(3)})`,
+        `brightness(${emissive.toFixed(3)})`,
+      ].join(' ')
+
       const kineticScale = reduced ? 0.12 : playingMotionOff ? 0.16 : 1
       const trafficScale = reduced ? 0.05 : playingMotionOff ? 0.16 : 1
       const burstEnabled = isPlaying && motionEnabled && !reduced
       const dampedActiveScale = playingMotionOff ? 0.42 : 1.2
+      const reactiveGlobal = reactiveState.globalIntensity
+      const reactiveCore = reactiveState.corePulse
+      const reactiveKick = reactiveState.kickImpulse
+      const reactiveOrbit = reactiveState.orbitIntensity
+      const reactiveParticles = reactiveState.particleIntensity
+      const motionTuning = SIGNAL_NEXUS_REACTIVITY.motion
 
       if (motionActive) {
         elapsed += delta * kineticScale
@@ -953,7 +1017,7 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
         world.rotation.x = THREE.MathUtils.lerp(world.rotation.x, 0, settleAlpha)
 
         coreGlow.scale.lerp(settleUnitScale, settleAlpha)
-        coreGlowMaterial.opacity = (isPlaying ? 0.2 : 0.08) * volumeScale
+        coreGlowMaterial.opacity = (isPlaying ? 0.2 + reactiveGlobal * 0.06 : 0.08) * volumeScale
 
         nexusShells.forEach(({ mesh, material, baseRotation }, index) => {
           mesh.rotation.x = THREE.MathUtils.lerp(mesh.rotation.x, baseRotation.x, settleAlpha)
@@ -983,7 +1047,7 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
             settleAlpha,
           )
           satellite.shellMaterial.opacity = (isPlaying ? 0.54 : 0.2) * stablePlayingOpacityScale
-          satellite.glowMaterial.opacity = (isPlaying ? 0.1 : 0.03) * volumeScale
+          satellite.glowMaterial.opacity = (isPlaying ? 0.1 + reactiveGlobal * 0.04 : 0.03) * volumeScale
         })
 
         const lanePower = (isPlaying ? 1.35 : 0.16) * stablePlayingOpacityScale
@@ -999,7 +1063,7 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
           core.scale.lerp(settlePulseCoreScale, settleAlpha)
           glow.scale.lerp(settlePulseGlowScale, settleAlpha)
           coreMaterial.opacity = THREE.MathUtils.clamp(isPlaying ? lane.pulseBoost : 0.2, 0.15, 1)
-          glowMaterial.opacity = (isPlaying ? 0.13 : 0.03) * volumeScale
+          glowMaterial.opacity = (isPlaying ? 0.13 + reactiveGlobal * 0.06 : 0.03) * volumeScale
         })
 
         activationWaves.forEach(({ mesh, material }) => {
@@ -1034,6 +1098,9 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
         distantStars.rotation.y = THREE.MathUtils.lerp(distantStars.rotation.y, 0, settleAlpha)
         accentStars.rotation.z = THREE.MathUtils.lerp(accentStars.rotation.z, 0, settleAlpha)
         brightStars.rotation.y = THREE.MathUtils.lerp(brightStars.rotation.y, 0, settleAlpha)
+        distantStarsMaterial.opacity = starBaseOpacity.distant * (isPlaying ? 1 + reactiveParticles * 0.08 : 1)
+        accentStarsMaterial.opacity = starBaseOpacity.accent * (isPlaying ? 1 + reactiveParticles * 0.14 : 1)
+        brightStarsMaterial.opacity = starBaseOpacity.bright * (isPlaying ? 1 + reactiveParticles * 0.2 : 1)
 
         renderer.render(scene, camera)
         return
@@ -1069,66 +1136,110 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
       world.rotation.x = -pointerCurrent.y * 0.015
 
       const corePulse = (Math.sin(elapsed * (isPlaying ? 2.8 : 1.1)) + 1) * 0.5
-      coreGlow.scale.setScalar(1 + corePulse * (isPlaying ? (playingMotionOff ? 0.08 : 0.26) : 0.07))
-      coreGlowMaterial.opacity = (isPlaying ? (playingMotionOff ? 0.2 : 0.36) : 0.07) * volumeScale
+      const coreReactiveScale =
+        reactiveCore * motionTuning.coreBreathReactiveAmplitude +
+        reactiveKick * motionTuning.coreKickImpulseAmplitude
+      coreGlow.scale.setScalar(
+        1 +
+          corePulse *
+            (isPlaying
+              ? motionTuning.coreBreathBaseAmplitude + coreReactiveScale
+              : 0.07),
+      )
+      coreGlowMaterial.opacity = (isPlaying ? 0.36 + reactiveGlobal * 0.08 + reactiveKick * 0.05 : 0.07) * volumeScale
 
       nexusShells.forEach(({ mesh, material, spin, wobble }, index) => {
-        const spinFactor = reduced ? 0.18 : playingMotionOff ? 0.2 : 1
+        const spinFactor =
+          (reduced ? 0.18 : playingMotionOff ? 0.2 : 1) *
+          (1 + reactiveOrbit * motionTuning.shellSpinReactiveInfluence)
         mesh.rotation.x += spin.x * delta * spinFactor * (0.62 + dampedActiveScale)
         mesh.rotation.y += spin.y * delta * spinFactor * (0.62 + dampedActiveScale)
         mesh.rotation.z += spin.z * delta * spinFactor * (0.62 + dampedActiveScale)
-        const wobblePulse = 1 + Math.sin(elapsed * (1.2 + index * 0.15) + index) * wobble
+        const wobblePulse =
+          1 +
+          Math.sin(elapsed * (1.2 + index * 0.15) + index) *
+            wobble *
+            (1 + reactiveCore * 0.18)
         mesh.scale.setScalar(wobblePulse)
         material.opacity = THREE.MathUtils.clamp(
-          (isPlaying ? 0.58 : 0.22) + transitionBoost * 0.14 - index * 0.05,
+          (isPlaying ? 0.58 + reactiveGlobal * 0.08 : 0.22) + transitionBoost * 0.14 - index * 0.05,
           0.08,
           0.86,
         )
       })
 
       nexusRings.forEach(({ mesh, material, spin, pulsePhase }, index) => {
-        mesh.rotation.y += spin * delta * kineticScale * (0.7 + dampedActiveScale)
-        mesh.rotation.x += spin * delta * kineticScale * 0.28
+        const orbitRate = 1 + reactiveOrbit * motionTuning.ringSpinReactiveInfluence
+        mesh.rotation.y += spin * delta * kineticScale * (0.7 + dampedActiveScale) * orbitRate
+        mesh.rotation.x += spin * delta * kineticScale * 0.28 * orbitRate
         const ringPulse = (Math.sin(elapsed * (1.5 + index * 0.25) + pulsePhase) + 1) * 0.5
-        material.opacity = (isPlaying ? 0.38 : 0.12) + ringPulse * (isPlaying ? 0.2 : 0.08)
+        material.opacity =
+          (isPlaying ? 0.38 + reactiveGlobal * 0.08 : 0.12) +
+          ringPulse * (isPlaying ? 0.2 + reactiveKick * 0.04 : 0.08)
       })
 
       satellites.forEach((satellite, index) => {
-        const orbitAngle = elapsed * satellite.orbitSpeed * (isPlaying ? 1.5 : 0.4) + satellite.orbitPhase
+        const orbitRate =
+          motionTuning.satelliteOrbitBaseScale *
+          (1 +
+            reactiveOrbit * motionTuning.satelliteOrbitReactiveInfluence +
+            reactiveGlobal * motionTuning.satelliteOrbitGlobalInfluence)
+        const orbitAngle =
+          elapsed * satellite.orbitSpeed * (isPlaying ? orbitRate : 0.4) +
+          satellite.orbitPhase
         const x = nexusCenter.x + Math.cos(orbitAngle) * satellite.orbitRadius
         const y = nexusCenter.y + Math.sin(orbitAngle * 0.82) * satellite.yDrift
         const z = -0.9 + Math.sin(orbitAngle * 0.6) * 0.7
 
         satellite.group.position.set(x, y, z)
-        satellite.shell.rotation.x += 0.4 * delta * kineticScale
-        satellite.shell.rotation.y += 0.68 * delta * kineticScale
+        const shellSpinRate =
+          motionTuning.satelliteShellSpinBaseScale *
+          (1 + reactiveOrbit * motionTuning.satelliteShellSpinReactiveInfluence)
+        satellite.shell.rotation.x += 0.4 * delta * kineticScale * shellSpinRate
+        satellite.shell.rotation.y += 0.68 * delta * kineticScale * shellSpinRate
 
         const pulse = (Math.sin(elapsed * (1.4 + index * 0.2) + satellite.orbitPhase) + 1) * 0.5
-        satellite.shellMaterial.opacity = (isPlaying ? 0.56 : 0.2) + pulse * 0.1
-        satellite.glowMaterial.opacity = (isPlaying ? 0.12 : 0.03) * volumeScale
+        satellite.shellMaterial.opacity = (isPlaying ? 0.56 + reactiveGlobal * 0.08 : 0.2) + pulse * 0.1
+        satellite.glowMaterial.opacity = (isPlaying ? 0.12 + reactiveParticles * 0.08 : 0.03) * volumeScale
       })
 
-      const lanePower = (isPlaying ? 1.5 : 0.14) + transitionBoost * 0.3
+      const lanePower = (isPlaying ? 1.5 + reactiveGlobal * 0.7 + reactiveParticles * 0.25 : 0.14) + transitionBoost * 0.3
       inboundLanes.forEach((lane) => {
         lane.outerMaterial.opacity = Math.min(1, lane.baseOuterOpacity * lanePower * volumeScale)
         lane.innerMaterial.opacity = Math.min(1, lane.baseInnerOpacity * lanePower * volumeScale)
       })
 
       travelingPulses.forEach(({ core, glow, coreMaterial, glowMaterial, lane, offset }, index) => {
-        const speed = lane.travelRate * (isPlaying ? 3.2 : 0.15) * trafficScale
+        const speed =
+          lane.travelRate *
+          (isPlaying ? motionTuning.travelerBaseRateScale : 0.15) *
+          trafficScale *
+          (1 +
+            reactiveOrbit * motionTuning.travelerOrbitInfluence +
+            reactiveGlobal * motionTuning.travelerGlobalInfluence)
         const progress = (elapsed * speed + offset) % 1
         const point = lane.curve.getPointAt(progress)
         core.position.copy(point)
         glow.position.copy(point)
 
         const flicker = (Math.sin(elapsed * (3 + index * 0.3) + offset) + 1) * 0.5
-        const scale = 0.82 + flicker * 0.26
+        const scale =
+          0.86 +
+          flicker *
+            (motionTuning.travelerPulseBaseScale +
+              reactiveKick * motionTuning.travelerPulseKickScale)
         core.scale.setScalar(scale)
-        glow.scale.setScalar(scale * (isPlaying ? (playingMotionOff ? 1.2 : 1.9) : 0.7))
+        glow.scale.setScalar(
+          scale *
+            (isPlaying
+              ? motionTuning.travelerGlowBaseScale +
+                reactiveParticles * motionTuning.travelerGlowParticleScale
+              : 0.7),
+        )
 
-        const boost = isPlaying ? lane.pulseBoost : 0.25
+        const boost = isPlaying ? lane.pulseBoost + reactiveGlobal * 0.16 : 0.25
         coreMaterial.opacity = THREE.MathUtils.clamp(boost, 0.15, 1)
-        glowMaterial.opacity = (isPlaying ? (playingMotionOff ? 0.1 : 0.3) : 0.03) * volumeScale
+        glowMaterial.opacity = (isPlaying ? 0.3 + reactiveParticles * 0.1 : 0.03) * volumeScale
       })
 
       activationWaves.forEach(({ mesh, material, delay }) => {
@@ -1143,7 +1254,7 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
 
         const flare = Math.sin(local * Math.PI)
         mesh.scale.set(0.65 + local * 1.65, 0.65 + local * 1.03, 0.65 + local * 1.65)
-        material.opacity = flare * activationStrength * 0.38 * volumeScale
+        material.opacity = flare * activationStrength * (0.38 + reactiveKick * 0.18) * volumeScale
       })
 
       railShots.forEach((shot) => {
@@ -1163,7 +1274,7 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
 
         const progress = THREE.MathUtils.clamp(cycle / duty, 0, 1)
         const flare = Math.sin(progress * Math.PI)
-        const intensity = flare * (isPlaying ? 1.2 : 0.2) * volumeScale
+        const intensity = flare * (isPlaying ? 1.2 + reactiveKick * 0.45 + reactiveGlobal * 0.2 : 0.2) * volumeScale
         shot.group.visible = true
         shot.coreMaterial.opacity = 0.95 * intensity
         shot.glowMaterial.opacity = 0.24 * intensity
@@ -1171,13 +1282,13 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
       })
 
       lightningArcs.forEach((arc, index) => {
-        const enabled = burstEnabled && hasSignal
+        const enabled = burstEnabled && hasSignal && (reactiveParticles > 0.1 || reactiveKick > 0.2)
         if (!enabled) {
           arc.material.opacity = 0
           return
         }
 
-        const arcPulse = Math.max(0, Math.sin(elapsed * (1.9 + index * 0.3) + arc.phase))
+        const arcPulse = Math.max(0, Math.sin(elapsed * (1.9 + index * 0.3 + reactiveOrbit * 0.25) + arc.phase))
         if (arcPulse < 0.65) {
           arc.material.opacity = 0
           return
@@ -1197,14 +1308,14 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
         })
         positions.needsUpdate = true
 
-        arc.material.opacity = Math.min(0.5, (arcPulse - 0.65) * 1.6)
+        arc.material.opacity = Math.min(0.62, (arcPulse - 0.65) * 1.6 * (1 + reactiveParticles * 0.35))
       })
 
       sweepBeams.forEach((beam) => {
         const wave = Math.max(0, Math.sin(elapsed * beam.speed + beam.phase))
         const flash = Math.pow(wave, isPlaying ? 6 : 12)
         const intensity = isPlaying
-          ? flash * volumeScale * (playingMotionOff ? 0.3 : 1.15)
+          ? flash * volumeScale * (1.15 + reactiveParticles * 0.42 + reactiveKick * 0.18)
           : 0
 
         beam.group.position.y = beam.baseY + Math.sin(elapsed * beam.speed * 0.45 + beam.phase) * (playingMotionOff ? 0.05 : 0.25)
@@ -1214,14 +1325,19 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
       })
 
       floatingGlyphs.forEach(({ mesh, basePosition, phase }, index) => {
-        mesh.position.y = basePosition.y + Math.sin(elapsed * 0.32 + phase) * (playingMotionOff ? 0.03 : 0.14)
-        mesh.position.x = basePosition.x + Math.cos(elapsed * 0.18 + phase) * (playingMotionOff ? 0.02 : 0.08)
-        mesh.rotation.z += (index % 2 === 0 ? 1 : -1) * (playingMotionOff ? 0.012 : 0.055) * delta * kineticScale
+        const detailAmplitude = 0.52 + reactiveParticles * 0.95 + reactiveOrbit * 0.18
+        mesh.position.y = basePosition.y + Math.sin(elapsed * 0.32 + phase) * 0.14 * detailAmplitude
+        mesh.position.x = basePosition.x + Math.cos(elapsed * 0.18 + phase) * 0.08 * detailAmplitude
+        mesh.rotation.z += (index % 2 === 0 ? 1 : -1) * 0.055 * (0.6 + reactiveParticles * 0.8) * delta * kineticScale
       })
 
-      distantStars.rotation.y += 0.0012 * delta * kineticScale
-      accentStars.rotation.z -= 0.0018 * delta * kineticScale
-      brightStars.rotation.y -= 0.0024 * delta * kineticScale
+      const starDriftScale = 0.42 + reactiveParticles * 0.95 + reactiveGlobal * 0.16
+      distantStars.rotation.y += 0.0012 * delta * kineticScale * starDriftScale
+      accentStars.rotation.z -= 0.0018 * delta * kineticScale * starDriftScale
+      brightStars.rotation.y -= 0.0024 * delta * kineticScale * starDriftScale
+      distantStarsMaterial.opacity = starBaseOpacity.distant * (1 + reactiveParticles * 0.1)
+      accentStarsMaterial.opacity = starBaseOpacity.accent * (1 + reactiveParticles * 0.16)
+      brightStarsMaterial.opacity = starBaseOpacity.bright * (1 + reactiveParticles * 0.22)
 
       renderer.render(scene, camera)
     }
