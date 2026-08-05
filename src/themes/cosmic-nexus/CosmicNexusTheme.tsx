@@ -15,6 +15,7 @@ type NexusShell = {
   spin: THREE.Vector3
   wobble: number
   baseRotation: THREE.Euler
+  baseColor: THREE.Color
 }
 
 type NexusRing = {
@@ -23,6 +24,7 @@ type NexusRing = {
   spin: number
   pulsePhase: number
   baseRotation: THREE.Euler
+  baseColor: THREE.Color
 }
 
 type Satellite = {
@@ -36,6 +38,8 @@ type Satellite = {
   yDrift: number
   basePosition: THREE.Vector3
   baseShellRotation: THREE.Euler
+  baseShellColor: THREE.Color
+  baseGlowColor: THREE.Color
 }
 
 type InboundLane = {
@@ -46,6 +50,8 @@ type InboundLane = {
   baseOuterOpacity: number
   travelRate: number
   pulseBoost: number
+  baseInnerColor: THREE.Color
+  baseOuterColor: THREE.Color
 }
 
 type TravelingPulse = {
@@ -56,6 +62,8 @@ type TravelingPulse = {
   lane: InboundLane
   offset: number
   baseProgress: number
+  baseCoreColor: THREE.Color
+  baseGlowColor: THREE.Color
 }
 
 type RailShot = {
@@ -67,6 +75,9 @@ type RailShot = {
   cycleOffset: number
   duty: number
   readyEnabled: boolean
+  baseCoreColor: THREE.Color
+  baseGlowColor: THREE.Color
+  baseHelixColor: THREE.Color
 }
 
 type LightningArc = {
@@ -75,6 +86,7 @@ type LightningArc = {
   points: THREE.Vector3[]
   jitter: number
   phase: number
+  baseColor: THREE.Color
 }
 
 type ActivationWave = {
@@ -91,13 +103,17 @@ type SweepBeam = {
   phase: number
   speed: number
   baseRotationZ: number
+  baseCoreColor: THREE.Color
+  baseGlowColor: THREE.Color
 }
 
 type FloatingGlyph = {
   mesh: THREE.LineLoop
+  material: THREE.LineBasicMaterial
   basePosition: THREE.Vector3
   phase: number
   baseRotationZ: number
+  baseColor: THREE.Color
 }
 
 const COSMIC_NEXUS_NEUTRAL_HUE_OFFSET_DEGREES = 0
@@ -112,6 +128,40 @@ const COLORS = {
   violet: 0xa45cff,
   white: 0xe9fffb,
 }
+
+const COSMIC_NEXUS_CHROMA_TUNING = {
+  palette: {
+    neonGreen: COLORS.green,
+    cyan: COLORS.cyan,
+    salmon: COLORS.pink,
+    violet: COLORS.violet,
+    amber: COLORS.orange,
+    authoredWhite: COLORS.white,
+    deepTeal: 0x2dded4,
+  },
+  globalFilter: {
+    hueScale: 0.14,
+    saturationMin: 1,
+    saturationMax: 1.04,
+    brightnessMin: 0.995,
+    brightnessMax: 1.055,
+  },
+  timingPerSecond: {
+    kickAccent: { attack: 16, release: 3.1 },
+    auraBass: { attack: 4.2, release: 1.6 },
+    starHigh: { attack: 10.5, release: 4.2 },
+    ringDriftBaseRate: 0.24,
+    ringDriftMidsRate: 0.45,
+  },
+  familyMix: {
+    shell: { min: 0.3, max: 0.66 },
+    ring: { min: 0.42, max: 0.78 },
+    lane: { min: 0.34, max: 0.76 },
+    pulseKick: { min: 0.45, max: 0.86 },
+    aura: { min: 0.3, max: 0.72 },
+    stars: { min: 0.12, max: 0.38 },
+  },
+} as const
 
 function inQuietZone(x: number, y: number) {
   const upperLeftConsoleZone = x < -2.2 && y > 1.4
@@ -228,6 +278,11 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
       accent: accentStarsMaterial.opacity,
       bright: brightStarsMaterial.opacity,
     }
+    const starBaseColors = {
+      distant: distantStarsMaterial.color.clone(),
+      accent: accentStarsMaterial.color.clone(),
+      bright: brightStarsMaterial.color.clone(),
+    }
 
     const nexusCenter = new THREE.Vector3(0.35, 0.05, -0.15)
     const nexusGroup = new THREE.Group()
@@ -266,6 +321,8 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
     )
     const coreSolid = new THREE.Mesh(trackGeometry(new THREE.IcosahedronGeometry(0.86, 2)), coreSolidMaterial)
     nexusGroup.add(coreSolid)
+    const coreGlowBaseColor = coreGlowMaterial.color.clone()
+    const coreSolidBaseColor = coreSolidMaterial.color.clone()
 
     const shellSpecs = [
       {
@@ -310,6 +367,7 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
         spin: spec.spin,
         wobble: spec.wobble,
         baseRotation: mesh.rotation.clone(),
+        baseColor: material.color.clone(),
       })
     })
 
@@ -356,6 +414,7 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
         spin: spec.spin,
         pulsePhase: Math.random() * Math.PI * 2,
         baseRotation: mesh.rotation.clone(),
+        baseColor: material.color.clone(),
       })
     })
 
@@ -411,6 +470,8 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
         yDrift: drift,
         basePosition,
         baseShellRotation: shell.rotation.clone(),
+        baseShellColor: shellMaterial.color.clone(),
+        baseGlowColor: glowMaterial.color.clone(),
       })
     })
 
@@ -459,6 +520,8 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
         baseOuterOpacity: outerMaterial.opacity,
         travelRate,
         pulseBoost,
+        baseInnerColor: innerMaterial.color.clone(),
+        baseOuterColor: outerMaterial.color.clone(),
       }
       inboundLanes.push(lane)
 
@@ -493,6 +556,8 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
           lane,
           offset,
           baseProgress: ((offset % 1) + 1) % 1,
+          baseCoreColor: coreMaterial.color.clone(),
+          baseGlowColor: glowMaterial.color.clone(),
         })
       })
     }
@@ -734,6 +799,9 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
         cycleOffset: index * 0.21,
         duty: 0.08,
         readyEnabled: index === 0,
+        baseCoreColor: coreMaterial.color.clone(),
+        baseGlowColor: glowMaterial.color.clone(),
+        baseHelixColor: helixMaterial.color.clone(),
       })
     })
 
@@ -775,7 +843,14 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
       )
       const line = new THREE.Line(geometry, material)
       world.add(line)
-      lightningArcs.push({ line, material, points, jitter: 0.24 + index * 0.07, phase: Math.random() * Math.PI * 2 })
+      lightningArcs.push({
+        line,
+        material,
+        points,
+        jitter: 0.24 + index * 0.07,
+        phase: Math.random() * Math.PI * 2,
+        baseColor: material.color.clone(),
+      })
     })
 
     const sweepGeometryCore = trackGeometry(new THREE.CylinderGeometry(0.008, 0.008, 14.5, 6, 1, true))
@@ -821,6 +896,8 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
         phase,
         speed,
         baseRotationZ: group.rotation.z,
+        baseCoreColor: coreMaterial.color.clone(),
+        baseGlowColor: glowMaterial.color.clone(),
       })
     })
 
@@ -861,19 +938,231 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
       world.add(mesh)
       floatingGlyphs.push({
         mesh,
+        material,
         basePosition,
         phase: Math.random() * Math.PI * 2,
         baseRotationZ: mesh.rotation.z,
+        baseColor: material.color.clone(),
       })
     }
 
     const pointerTarget = new THREE.Vector2()
     const pointerCurrent = new THREE.Vector2()
-    const pointerRest = new THREE.Vector2(0, 0)
-    const settleUnitScale = new THREE.Vector3(1, 1, 1)
-    const settlePulseCoreScale = new THREE.Vector3(0.92, 0.92, 0.92)
-    const settlePulseGlowScale = new THREE.Vector3(1.22, 1.22, 1.22)
-    const settleActivationScale = new THREE.Vector3(1, 0.62, 1)
+    const colorScratchA = new THREE.Color()
+    const colorScratchB = new THREE.Color()
+    const colorScratchC = new THREE.Color()
+    const paletteNeonGreen = new THREE.Color(COSMIC_NEXUS_CHROMA_TUNING.palette.neonGreen)
+    const paletteCyan = new THREE.Color(COSMIC_NEXUS_CHROMA_TUNING.palette.cyan)
+    const paletteSalmon = new THREE.Color(COSMIC_NEXUS_CHROMA_TUNING.palette.salmon)
+    const paletteViolet = new THREE.Color(COSMIC_NEXUS_CHROMA_TUNING.palette.violet)
+    const paletteAmber = new THREE.Color(COSMIC_NEXUS_CHROMA_TUNING.palette.amber)
+    const paletteAuthoredWhite = new THREE.Color(COSMIC_NEXUS_CHROMA_TUNING.palette.authoredWhite)
+    const paletteDeepTeal = new THREE.Color(COSMIC_NEXUS_CHROMA_TUNING.palette.deepTeal)
+    const ringCyclePalette = [paletteCyan, paletteViolet, paletteSalmon, paletteNeonGreen] as const
+    const laneCyclePalette = [paletteNeonGreen, paletteCyan, paletteSalmon, paletteAmber] as const
+    const starCyclePalette = [paletteCyan, paletteSalmon, paletteNeonGreen, paletteViolet] as const
+
+    const samplePaletteLoop = (palette: readonly THREE.Color[], t: number, out: THREE.Color) => {
+      const paletteLength = palette.length
+      const wrapped = ((t % 1) + 1) % 1
+      const scaled = wrapped * paletteLength
+      const fromIndex = Math.floor(scaled) % paletteLength
+      const toIndex = (fromIndex + 1) % paletteLength
+      const alpha = scaled - fromIndex
+      return out.copy(palette[fromIndex]).lerpHSL(palette[toIndex], alpha)
+    }
+
+    const applyReactiveChromaFamilies = (
+      chromaReactiveActive: boolean,
+      reactiveGlobal: number,
+      reactiveCore: number,
+      reactiveParticles: number,
+      bassSignal: number,
+      midsSignal: number,
+      highsSignal: number,
+      energySignal: number,
+      kickSignal: number,
+      kickAccent: number,
+      ringDriftPhase: number,
+      auraBass: number,
+      starHigh: number,
+    ) => {
+      if (!chromaReactiveActive) {
+        coreGlowMaterial.color.copy(coreGlowBaseColor)
+        coreSolidMaterial.color.copy(coreSolidBaseColor)
+
+        nexusShells.forEach(({ material, baseColor }) => {
+          material.color.copy(baseColor)
+        })
+
+        nexusRings.forEach(({ material, baseColor }) => {
+          material.color.copy(baseColor)
+        })
+
+        satellites.forEach(({ shellMaterial, glowMaterial, baseShellColor, baseGlowColor }) => {
+          shellMaterial.color.copy(baseShellColor)
+          glowMaterial.color.copy(baseGlowColor)
+        })
+
+        inboundLanes.forEach((lane) => {
+          lane.innerMaterial.color.copy(lane.baseInnerColor)
+          lane.outerMaterial.color.copy(lane.baseOuterColor)
+        })
+
+        travelingPulses.forEach((pulse) => {
+          pulse.coreMaterial.color.copy(pulse.baseCoreColor)
+          pulse.glowMaterial.color.copy(pulse.baseGlowColor)
+        })
+
+        railShots.forEach((shot) => {
+          shot.coreMaterial.color.copy(shot.baseCoreColor)
+          shot.glowMaterial.color.copy(shot.baseGlowColor)
+          shot.helixMaterial.color.copy(shot.baseHelixColor)
+        })
+
+        lightningArcs.forEach((arc) => {
+          arc.material.color.copy(arc.baseColor)
+        })
+
+        sweepBeams.forEach((beam) => {
+          beam.coreMaterial.color.copy(beam.baseCoreColor)
+          beam.glowMaterial.color.copy(beam.baseGlowColor)
+        })
+
+        floatingGlyphs.forEach((glyph) => {
+          glyph.material.color.copy(glyph.baseColor)
+        })
+
+        distantStarsMaterial.color.copy(starBaseColors.distant)
+        accentStarsMaterial.color.copy(starBaseColors.accent)
+        brightStarsMaterial.color.copy(starBaseColors.bright)
+        return
+      }
+
+      const globalLift = THREE.MathUtils.clamp(reactiveGlobal, 0, 1)
+      const bassLift = THREE.MathUtils.clamp(bassSignal, 0, 1)
+      const midsLift = THREE.MathUtils.clamp(midsSignal, 0, 1)
+      const highsLift = THREE.MathUtils.clamp(highsSignal, 0, 1)
+      const energyLift = THREE.MathUtils.clamp(energySignal, 0, 1)
+      const kickSignalLift = THREE.MathUtils.clamp(kickSignal, 0, 1)
+      const kickAccentLift = THREE.MathUtils.clamp(kickAccent, 0, 1)
+      const auraBassLift = THREE.MathUtils.clamp(auraBass, 0, 1)
+      const starHighLift = THREE.MathUtils.clamp(starHigh, 0, 1)
+
+      // Central aura: bass breathes between deep teal/cyan and violet/salmon; brightness remains separate and restrained.
+      const auraMix = THREE.MathUtils.lerp(
+        COSMIC_NEXUS_CHROMA_TUNING.familyMix.aura.min,
+        COSMIC_NEXUS_CHROMA_TUNING.familyMix.aura.max,
+        auraBassLift,
+      )
+      colorScratchA.copy(paletteDeepTeal).lerpHSL(paletteViolet, auraBassLift * 0.92)
+      colorScratchA.lerpHSL(paletteSalmon, kickAccentLift * 0.26)
+      coreGlowMaterial.color.copy(colorScratchB.copy(coreGlowBaseColor).lerpHSL(colorScratchA, auraMix))
+      coreSolidMaterial.color.copy(colorScratchC.copy(coreSolidBaseColor).lerpHSL(paletteViolet, energyLift * 0.12))
+
+      // Ring family: slower mids-driven cycle through cyan, violet, salmon, green.
+      nexusRings.forEach(({ material, baseColor }, index) => {
+        const ringPhase = ringDriftPhase + index * 0.19 + midsLift * 0.18
+        const ringMix = THREE.MathUtils.lerp(
+          COSMIC_NEXUS_CHROMA_TUNING.familyMix.ring.min,
+          COSMIC_NEXUS_CHROMA_TUNING.familyMix.ring.max,
+          midsLift,
+        )
+        samplePaletteLoop(ringCyclePalette, ringPhase, colorScratchA)
+        colorScratchA.lerpHSL(paletteSalmon, kickAccentLift * 0.12)
+        material.color.copy(colorScratchB.copy(baseColor).lerpHSL(colorScratchA, ringMix))
+      })
+
+      // Wireframe shells: separate mids drift path with restrained energy accent to keep readability.
+      nexusShells.forEach(({ material, baseColor }, index) => {
+        const shellPhase = ringDriftPhase * 0.78 + index * 0.27 + reactiveCore * 0.14
+        const shellMix = THREE.MathUtils.lerp(
+          COSMIC_NEXUS_CHROMA_TUNING.familyMix.shell.min,
+          COSMIC_NEXUS_CHROMA_TUNING.familyMix.shell.max,
+          Math.min(1, midsLift * 0.78 + reactiveCore * 0.22),
+        )
+        samplePaletteLoop(ringCyclePalette, shellPhase, colorScratchA)
+        colorScratchA.lerpHSL(paletteNeonGreen, energyLift * 0.15)
+        material.color.copy(colorScratchB.copy(baseColor).lerpHSL(colorScratchA, shellMix))
+      })
+
+      // Satellites/orbs: kick delivers brief unmistakable contrast transitions per-orb.
+      satellites.forEach(({ shellMaterial, glowMaterial, baseShellColor, baseGlowColor }, index) => {
+        const kickTarget = index % 3 === 0 ? paletteSalmon : index % 3 === 1 ? paletteCyan : paletteSalmon
+        const driftTarget = index % 3 === 0 ? paletteViolet : index % 3 === 1 ? paletteNeonGreen : paletteAmber
+        const shellKickMix = THREE.MathUtils.lerp(
+          COSMIC_NEXUS_CHROMA_TUNING.familyMix.pulseKick.min,
+          COSMIC_NEXUS_CHROMA_TUNING.familyMix.pulseKick.max,
+          kickAccentLift,
+        )
+
+        colorScratchA.copy(baseShellColor).lerpHSL(driftTarget, midsLift * 0.24)
+        shellMaterial.color.copy(colorScratchB.copy(colorScratchA).lerpHSL(kickTarget, shellKickMix))
+
+        colorScratchC.copy(baseGlowColor).lerpHSL(kickTarget, 0.3 + kickAccentLift * 0.24)
+        glowMaterial.color.copy(colorScratchC)
+      })
+
+      // Signal lanes and path lines: highs+energy drive palette travel through green/cyan/salmon/amber.
+      inboundLanes.forEach((lane, index) => {
+        const lanePhase = ringDriftPhase * 0.46 + index * 0.11 + highsLift * 0.24 + energyLift * 0.1
+        const laneMix = THREE.MathUtils.lerp(
+          COSMIC_NEXUS_CHROMA_TUNING.familyMix.lane.min,
+          COSMIC_NEXUS_CHROMA_TUNING.familyMix.lane.max,
+          Math.min(1, highsLift * 0.68 + energyLift * 0.32),
+        )
+        samplePaletteLoop(laneCyclePalette, lanePhase, colorScratchA)
+        lane.innerMaterial.color.copy(colorScratchB.copy(lane.baseInnerColor).lerpHSL(colorScratchA, laneMix))
+        lane.outerMaterial.color.copy(colorScratchC.copy(lane.baseOuterColor).lerpHSL(colorScratchA, laneMix * 0.8))
+      })
+
+      // Traveling packets: kick can briefly recolor packet body itself, not only opacity/size.
+      travelingPulses.forEach((pulse, index) => {
+        const packetTarget = index % 3 === 0 ? paletteSalmon : index % 3 === 1 ? paletteAmber : paletteNeonGreen
+        colorScratchA.copy(pulse.baseCoreColor).lerpHSL(packetTarget, 0.26 + kickAccentLift * 0.58)
+        pulse.coreMaterial.color.copy(colorScratchA)
+
+        samplePaletteLoop(laneCyclePalette, ringDriftPhase * 0.5 + index * 0.17 + highsLift * 0.18, colorScratchB)
+        pulse.glowMaterial.color.copy(colorScratchC.copy(pulse.baseGlowColor).lerpHSL(colorScratchB, 0.34 + highsLift * 0.18))
+      })
+
+      // Fine details: restrained authored-white accents on selected cores only.
+      railShots.forEach((shot, index) => {
+        const accent = index % 2 === 0 ? paletteViolet : paletteCyan
+        shot.coreMaterial.color.copy(colorScratchA.copy(shot.baseCoreColor).lerpHSL(paletteAuthoredWhite, 0.08 + kickSignalLift * 0.16))
+        shot.glowMaterial.color.copy(colorScratchB.copy(shot.baseGlowColor).lerpHSL(accent, 0.3 + highsLift * 0.22))
+        shot.helixMaterial.color.copy(colorScratchC.copy(shot.baseHelixColor).lerpHSL(paletteAmber, 0.18 + highsLift * 0.24))
+      })
+
+      lightningArcs.forEach((arc) => {
+        const lightningAccent = highsLift > 0.5 ? paletteSalmon : paletteCyan
+        arc.material.color.copy(colorScratchA.copy(arc.baseColor).lerpHSL(lightningAccent, 0.2 + highsLift * 0.32))
+      })
+
+      sweepBeams.forEach((beam, index) => {
+        const accent = index % 2 === 0 ? paletteCyan : paletteSalmon
+        beam.coreMaterial.color.copy(colorScratchA.copy(beam.baseCoreColor).lerpHSL(paletteAuthoredWhite, 0.06 + kickAccentLift * 0.1))
+        beam.glowMaterial.color.copy(colorScratchB.copy(beam.baseGlowColor).lerpHSL(accent, 0.24 + bassLift * 0.24))
+      })
+
+      floatingGlyphs.forEach((glyph, index) => {
+        const accent = index % 2 === 0 ? paletteViolet : paletteAmber
+        glyph.material.color.copy(colorScratchA.copy(glyph.baseColor).lerpHSL(accent, 0.2 + highsLift * 0.22 + midsLift * 0.1))
+      })
+
+      // Stars: restrained but visible highs-driven hue shimmer.
+      const starMix = THREE.MathUtils.lerp(
+        COSMIC_NEXUS_CHROMA_TUNING.familyMix.stars.min,
+        COSMIC_NEXUS_CHROMA_TUNING.familyMix.stars.max,
+        starHighLift,
+      )
+      samplePaletteLoop(starCyclePalette, ringDriftPhase * 0.34 + starHighLift * 0.2, colorScratchA)
+      distantStarsMaterial.color.copy(colorScratchB.copy(starBaseColors.distant).lerpHSL(colorScratchA, starMix * 0.5))
+      samplePaletteLoop(starCyclePalette, ringDriftPhase * 0.51 + globalLift * 0.14, colorScratchB)
+      accentStarsMaterial.color.copy(colorScratchC.copy(starBaseColors.accent).lerpHSL(colorScratchB, starMix))
+      samplePaletteLoop(starCyclePalette, ringDriftPhase * 0.68 + reactiveParticles * 0.22, colorScratchC)
+      brightStarsMaterial.color.copy(colorScratchA.copy(starBaseColors.bright).lerpHSL(colorScratchC, starMix * 0.9))
+    }
 
     const handlePointerMove = (event: PointerEvent) => {
       pointerTarget.x = (event.clientX / window.innerWidth) * 2 - 1
@@ -919,6 +1208,23 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
     let reactiveState = createNeutralSignalNexusReactiveState()
     let activationProgress = 1
     let activationStrength = 0
+    let chromaKickAccent = 0
+    let chromaAuraBass = 0
+    let chromaStarHigh = 0
+    let chromaRingDriftPhase = 0
+
+    const stepChromaEnvelope = (
+      current: number,
+      target: number,
+      deltaSeconds: number,
+      attackPerSecond: number,
+      releasePerSecond: number,
+    ) => {
+      const safeDelta = Math.max(0, deltaSeconds)
+      const rate = target > current ? attackPerSecond : releasePerSecond
+      const blend = 1 - Math.exp(-Math.max(0, rate) * safeDelta)
+      return current + (target - current) * blend
+    }
 
     const animate = () => {
       frameId = window.requestAnimationFrame(animate)
@@ -976,9 +1282,79 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
       reactiveState = stepSignalNexusReactiveState(reactiveState, reactiveTarget, delta)
 
       const chromaReactiveActive = isPlaying && chromaEnabled
-      const hueOffset = chromaReactiveActive ? reactiveState.hueOffset : COSMIC_NEXUS_NEUTRAL_HUE_OFFSET_DEGREES
-      const saturation = chromaReactiveActive ? reactiveState.saturation : COSMIC_NEXUS_NEUTRAL_SATURATION_MULTIPLIER
-      const emissive = chromaReactiveActive ? reactiveState.emissiveIntensity : COSMIC_NEXUS_NEUTRAL_EMISSIVE_MULTIPLIER
+      const energySignal = THREE.MathUtils.clamp(activeSnapshot?.smoothedEnergy ?? 0, 0, 1)
+      const bassSignal = THREE.MathUtils.clamp(activeSnapshot?.bass ?? 0, 0, 1)
+      const midsSignal = THREE.MathUtils.clamp(activeSnapshot?.mids ?? 0, 0, 1)
+      const highsSignal = THREE.MathUtils.clamp(activeSnapshot?.highs ?? 0, 0, 1)
+      const kickSignal = THREE.MathUtils.clamp(activeSnapshot?.kickPulse ?? 0, 0, 1)
+
+      if (isPlaying) {
+        chromaRingDriftPhase =
+          (chromaRingDriftPhase +
+            delta *
+              (COSMIC_NEXUS_CHROMA_TUNING.timingPerSecond.ringDriftBaseRate +
+                midsSignal * COSMIC_NEXUS_CHROMA_TUNING.timingPerSecond.ringDriftMidsRate)) %
+          1
+      }
+
+      chromaKickAccent = stepChromaEnvelope(
+        chromaKickAccent,
+        Math.max(kickSignal, reactiveState.kickImpulse),
+        delta,
+        COSMIC_NEXUS_CHROMA_TUNING.timingPerSecond.kickAccent.attack,
+        COSMIC_NEXUS_CHROMA_TUNING.timingPerSecond.kickAccent.release,
+      )
+      chromaAuraBass = stepChromaEnvelope(
+        chromaAuraBass,
+        bassSignal,
+        delta,
+        COSMIC_NEXUS_CHROMA_TUNING.timingPerSecond.auraBass.attack,
+        COSMIC_NEXUS_CHROMA_TUNING.timingPerSecond.auraBass.release,
+      )
+      chromaStarHigh = stepChromaEnvelope(
+        chromaStarHigh,
+        highsSignal,
+        delta,
+        COSMIC_NEXUS_CHROMA_TUNING.timingPerSecond.starHigh.attack,
+        COSMIC_NEXUS_CHROMA_TUNING.timingPerSecond.starHigh.release,
+      )
+
+      const saturationSource = THREE.MathUtils.clamp(
+        (reactiveState.saturation - SIGNAL_NEXUS_REACTIVITY.bounds.saturation.min) /
+          Math.max(
+            SIGNAL_NEXUS_REACTIVITY.bounds.saturation.max - SIGNAL_NEXUS_REACTIVITY.bounds.saturation.min,
+            0.0001,
+          ),
+        0,
+        1,
+      )
+      const brightnessSource = THREE.MathUtils.clamp(
+        (reactiveState.emissiveIntensity - SIGNAL_NEXUS_REACTIVITY.bounds.emissiveIntensity.min) /
+          Math.max(
+            SIGNAL_NEXUS_REACTIVITY.bounds.emissiveIntensity.max - SIGNAL_NEXUS_REACTIVITY.bounds.emissiveIntensity.min,
+            0.0001,
+          ),
+        0,
+        1,
+      )
+
+      const hueOffset = chromaReactiveActive
+        ? reactiveState.hueOffset * COSMIC_NEXUS_CHROMA_TUNING.globalFilter.hueScale
+        : COSMIC_NEXUS_NEUTRAL_HUE_OFFSET_DEGREES
+      const saturation = chromaReactiveActive
+        ? THREE.MathUtils.lerp(
+            COSMIC_NEXUS_CHROMA_TUNING.globalFilter.saturationMin,
+            COSMIC_NEXUS_CHROMA_TUNING.globalFilter.saturationMax,
+            saturationSource,
+          )
+        : COSMIC_NEXUS_NEUTRAL_SATURATION_MULTIPLIER
+      const emissive = chromaReactiveActive
+        ? THREE.MathUtils.lerp(
+            COSMIC_NEXUS_CHROMA_TUNING.globalFilter.brightnessMin,
+            COSMIC_NEXUS_CHROMA_TUNING.globalFilter.brightnessMax,
+            brightnessSource,
+          )
+        : COSMIC_NEXUS_NEUTRAL_EMISSIVE_MULTIPLIER
 
       renderer.domElement.style.filter = [
         `grayscale(${grayscaleMix.toFixed(3)})`,
@@ -998,109 +1374,58 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
       const reactiveParticles = reactiveState.particleIntensity
       const motionTuning = SIGNAL_NEXUS_REACTIVITY.motion
 
+      applyReactiveChromaFamilies(
+        chromaReactiveActive,
+        reactiveGlobal,
+        reactiveCore,
+        reactiveParticles,
+        bassSignal,
+        midsSignal,
+        highsSignal,
+        energySignal,
+        kickSignal,
+        chromaKickAccent,
+        chromaRingDriftPhase,
+        chromaAuraBass,
+        chromaStarHigh,
+      )
+
       if (motionActive) {
         elapsed += delta * kineticScale
       }
 
-      const settleAlpha = THREE.MathUtils.clamp(delta * (reduced ? 8 : 5.5), 0, 1)
-
       if (!motionActive) {
-        const stablePlayingOpacityScale = isPlaying ? 1 : 0.55
-
         previousHasSignal = hasSignal
         previousPlaying = isPlaying
         activationProgress = 1
         activationStrength = 0
 
-        pointerCurrent.lerp(pointerRest, settleAlpha)
-        world.rotation.y = THREE.MathUtils.lerp(world.rotation.y, 0, settleAlpha)
-        world.rotation.x = THREE.MathUtils.lerp(world.rotation.x, 0, settleAlpha)
+        // Freeze transforms/phases in-place. Only color/presentation may continue reacting while playing.
+        if (isPlaying) {
+          coreGlowMaterial.opacity = (0.28 + reactiveGlobal * 0.08 + reactiveKick * 0.06) * volumeScale
+        }
 
-        coreGlow.scale.lerp(settleUnitScale, settleAlpha)
-        coreGlowMaterial.opacity = (isPlaying ? 0.2 + reactiveGlobal * 0.06 : 0.08) * volumeScale
+        if (!isPlaying) {
+          activationWaves.forEach(({ material }) => {
+            material.opacity = 0
+          })
+          railShots.forEach((shot) => {
+            shot.coreMaterial.opacity = 0
+            shot.glowMaterial.opacity = 0
+            shot.helixMaterial.opacity = 0
+          })
+          lightningArcs.forEach((arc) => {
+            arc.material.opacity = 0
+          })
+          sweepBeams.forEach((beam) => {
+            beam.coreMaterial.opacity = 0
+            beam.glowMaterial.opacity = 0
+          })
+        }
 
-        nexusShells.forEach(({ mesh, material, baseRotation }, index) => {
-          mesh.rotation.x = THREE.MathUtils.lerp(mesh.rotation.x, baseRotation.x, settleAlpha)
-          mesh.rotation.y = THREE.MathUtils.lerp(mesh.rotation.y, baseRotation.y, settleAlpha)
-          mesh.rotation.z = THREE.MathUtils.lerp(mesh.rotation.z, baseRotation.z, settleAlpha)
-          mesh.scale.lerp(settleUnitScale, settleAlpha)
-          material.opacity = THREE.MathUtils.clamp((0.52 - index * 0.05) * stablePlayingOpacityScale, 0.08, 0.82)
-        })
-
-        nexusRings.forEach(({ mesh, material, baseRotation }, index) => {
-          mesh.rotation.x = THREE.MathUtils.lerp(mesh.rotation.x, baseRotation.x, settleAlpha)
-          mesh.rotation.y = THREE.MathUtils.lerp(mesh.rotation.y, baseRotation.y, settleAlpha)
-          mesh.rotation.z = THREE.MathUtils.lerp(mesh.rotation.z, baseRotation.z, settleAlpha)
-          material.opacity = (0.34 - index * 0.05) * stablePlayingOpacityScale
-        })
-
-        satellites.forEach((satellite) => {
-          satellite.group.position.lerp(satellite.basePosition, settleAlpha)
-          satellite.shell.rotation.x = THREE.MathUtils.lerp(
-            satellite.shell.rotation.x,
-            satellite.baseShellRotation.x,
-            settleAlpha,
-          )
-          satellite.shell.rotation.y = THREE.MathUtils.lerp(
-            satellite.shell.rotation.y,
-            satellite.baseShellRotation.y,
-            settleAlpha,
-          )
-          satellite.shellMaterial.opacity = (isPlaying ? 0.54 : 0.2) * stablePlayingOpacityScale
-          satellite.glowMaterial.opacity = (isPlaying ? 0.1 + reactiveGlobal * 0.04 : 0.03) * volumeScale
-        })
-
-        const lanePower = (isPlaying ? 1.35 : 0.16) * stablePlayingOpacityScale
-        inboundLanes.forEach((lane) => {
-          lane.outerMaterial.opacity = Math.min(1, lane.baseOuterOpacity * lanePower * volumeScale)
-          lane.innerMaterial.opacity = Math.min(1, lane.baseInnerOpacity * lanePower * volumeScale)
-        })
-
-        travelingPulses.forEach(({ core, glow, coreMaterial, glowMaterial, lane, baseProgress }) => {
-          const point = lane.curve.getPointAt(baseProgress)
-          core.position.copy(point)
-          glow.position.copy(point)
-          core.scale.lerp(settlePulseCoreScale, settleAlpha)
-          glow.scale.lerp(settlePulseGlowScale, settleAlpha)
-          coreMaterial.opacity = THREE.MathUtils.clamp(isPlaying ? lane.pulseBoost : 0.2, 0.15, 1)
-          glowMaterial.opacity = (isPlaying ? 0.13 + reactiveGlobal * 0.06 : 0.03) * volumeScale
-        })
-
-        activationWaves.forEach(({ mesh, material }) => {
-          mesh.visible = false
-          material.opacity = 0
-          mesh.scale.lerp(settleActivationScale, settleAlpha)
-        })
-
-        railShots.forEach((shot) => {
-          shot.group.visible = false
-          shot.coreMaterial.opacity = 0
-          shot.glowMaterial.opacity = 0
-          shot.helixMaterial.opacity = 0
-        })
-
-        lightningArcs.forEach((arc) => {
-          arc.material.opacity = 0
-        })
-
-        sweepBeams.forEach((beam) => {
-          beam.group.position.y = THREE.MathUtils.lerp(beam.group.position.y, beam.baseY, settleAlpha)
-          beam.group.rotation.z = THREE.MathUtils.lerp(beam.group.rotation.z, beam.baseRotationZ, settleAlpha)
-          beam.coreMaterial.opacity = 0
-          beam.glowMaterial.opacity = 0
-        })
-
-        floatingGlyphs.forEach(({ mesh, basePosition, baseRotationZ }) => {
-          mesh.position.lerp(basePosition, settleAlpha)
-          mesh.rotation.z = THREE.MathUtils.lerp(mesh.rotation.z, baseRotationZ, settleAlpha)
-        })
-
-        distantStars.rotation.y = THREE.MathUtils.lerp(distantStars.rotation.y, 0, settleAlpha)
-        accentStars.rotation.z = THREE.MathUtils.lerp(accentStars.rotation.z, 0, settleAlpha)
-        brightStars.rotation.y = THREE.MathUtils.lerp(brightStars.rotation.y, 0, settleAlpha)
-        distantStarsMaterial.opacity = starBaseOpacity.distant * (isPlaying ? 1 + reactiveParticles * 0.08 : 1)
-        accentStarsMaterial.opacity = starBaseOpacity.accent * (isPlaying ? 1 + reactiveParticles * 0.14 : 1)
-        brightStarsMaterial.opacity = starBaseOpacity.bright * (isPlaying ? 1 + reactiveParticles * 0.2 : 1)
+        distantStarsMaterial.opacity = starBaseOpacity.distant * (isPlaying ? 1 + reactiveParticles * 0.1 : 1)
+        accentStarsMaterial.opacity = starBaseOpacity.accent * (isPlaying ? 1 + reactiveParticles * 0.16 : 1)
+        brightStarsMaterial.opacity = starBaseOpacity.bright * (isPlaying ? 1 + reactiveParticles * 0.22 : 1)
 
         renderer.render(scene, camera)
         return
