@@ -1,6 +1,9 @@
 import { publicAssetUrl } from './publicAssetUrl'
 import type { AudioSource } from './playerTypes'
 
+const DFECTV_DEMO_RELEASE = 'Artist-permitted demo'
+const DFECTV_DEMO_LICENSE = 'Artist-permitted demo track for DeepSignals.'
+
 export function formatAudioSourceLabel(source: Pick<AudioSource, 'artist' | 'title' | 'displayName'>) {
   if (source.artist && source.title) {
     return `${source.artist} — ${source.title}`
@@ -131,6 +134,76 @@ export const GLOBULAR_KALEIDOSCOPE_TRIBE_AUDIO_SOURCE = createDemoTrackAudioSour
   attribution: 'Globular — Kaleidoscope Tribe, from Entangled Everything.',
 })
 
+export const DEMO_DFECTV_SPCYHT_NO_NAME_AUDIO_SOURCE = createDemoTrackAudioSource({
+  id: 'demo-dfectv-spcyht-no-name',
+  artist: 'Dfectv & Spcyht',
+  title: 'No Name',
+  release: DFECTV_DEMO_RELEASE,
+  audioPath: '/audio/demo/Dfectv & Spcyht - No Name.mp3',
+  license: DFECTV_DEMO_LICENSE,
+  attribution: 'Dfectv & Spcyht — No Name, used with artist permission.',
+})
+
+export const DEMO_DFECTV_THE_MAZE_AUDIO_SOURCE = createDemoTrackAudioSource({
+  id: 'demo-dfectv-the-maze',
+  artist: 'Dfectv',
+  title: 'The Maze',
+  release: DFECTV_DEMO_RELEASE,
+  audioPath: '/audio/demo/Dfectv - The Maze.mp3',
+  license: DFECTV_DEMO_LICENSE,
+  attribution: 'Dfectv — The Maze, used with artist permission.',
+})
+
+export const DEMO_DFECTV_STARFIRE_BEYOND_THE_BOUNDRIES_AUDIO_SOURCE = createDemoTrackAudioSource({
+  id: 'demo-dfectv-starfire-beyond-the-boundries',
+  artist: 'Dfectv & StarFire',
+  title: 'Beyond the Boundries',
+  release: DFECTV_DEMO_RELEASE,
+  audioPath: '/audio/demo/Dfectv & StarFire - Beyond the Boundries.mp3',
+  license: DFECTV_DEMO_LICENSE,
+  attribution: 'Dfectv & StarFire — Beyond the Boundries, used with artist permission.',
+})
+
+export const DEMO_DFECTV_ITS_A_TRAP_AUDIO_SOURCE = createDemoTrackAudioSource({
+  id: 'demo-dfectv-its-a-trap',
+  artist: 'Dfectv',
+  title: "It's A Trap",
+  release: DFECTV_DEMO_RELEASE,
+  audioPath: "/audio/demo/Dfectv - It's A Trap.mp3",
+  license: DFECTV_DEMO_LICENSE,
+  attribution: "Dfectv — It's A Trap, used with artist permission.",
+})
+
+export const DEMO_DFECTV_SIMULATED_ALCHEMY_AUDIO_SOURCE = createDemoTrackAudioSource({
+  id: 'demo-dfectv-simulated-alchemy',
+  artist: 'Dfectv',
+  title: 'Simulated Alchemy',
+  release: DFECTV_DEMO_RELEASE,
+  audioPath: '/audio/demo/Dfectv - Simulated Alchemy.mp3',
+  license: DFECTV_DEMO_LICENSE,
+  attribution: 'Dfectv — Simulated Alchemy, used with artist permission.',
+})
+
+export const DEMO_DFECTV_FINGER_FUCKING_THE_FLOOR_AUDIO_SOURCE = createDemoTrackAudioSource({
+  id: 'demo-dfectv-finger-fucking-the-floor',
+  artist: 'Dfectv',
+  title: 'Finger Fucking The Floor',
+  release: DFECTV_DEMO_RELEASE,
+  audioPath: '/audio/demo/Dfectv - Finger Fucking The Floor.mp3',
+  license: DFECTV_DEMO_LICENSE,
+  attribution: 'Dfectv — Finger Fucking The Floor, used with artist permission.',
+})
+
+export const DEMO_DFECTV_JUSTINS_GHOST_AUDIO_SOURCE = createDemoTrackAudioSource({
+  id: 'demo-dfectv-justins-ghost',
+  artist: 'Dfectv',
+  title: 'Justins Ghost',
+  release: DFECTV_DEMO_RELEASE,
+  audioPath: '/audio/demo/Dfectv - Justins Ghost.mp3',
+  license: DFECTV_DEMO_LICENSE,
+  attribution: 'Dfectv — Justins Ghost, used with artist permission.',
+})
+
 export const AUDIO_SOURCES: AudioSource[] = [
   DEMO_MODULATION_MANIPULATION_AUDIO_SOURCE,
   DEMO_MODULAR_DIMENSIONS_AUDIO_SOURCE,
@@ -139,4 +212,11 @@ export const AUDIO_SOURCES: AudioSource[] = [
   GLOBULAR_FOR_THE_TIME_BEING_AUDIO_SOURCE,
   GLOBULAR_THE_CHALICE_AUDIO_SOURCE,
   GLOBULAR_KALEIDOSCOPE_TRIBE_AUDIO_SOURCE,
+  DEMO_DFECTV_SPCYHT_NO_NAME_AUDIO_SOURCE,
+  DEMO_DFECTV_THE_MAZE_AUDIO_SOURCE,
+  DEMO_DFECTV_STARFIRE_BEYOND_THE_BOUNDRIES_AUDIO_SOURCE,
+  DEMO_DFECTV_ITS_A_TRAP_AUDIO_SOURCE,
+  DEMO_DFECTV_SIMULATED_ALCHEMY_AUDIO_SOURCE,
+  DEMO_DFECTV_FINGER_FUCKING_THE_FLOOR_AUDIO_SOURCE,
+  DEMO_DFECTV_JUSTINS_GHOST_AUDIO_SOURCE,
 ]
