@@ -40,6 +40,8 @@ type EnvironmentCatalogSeed = {
   uiSkin: PlayerSkinId;
   description?: string;
   sceneBackdrop?: string;
+  colorImageUrl?: string;
+  depthMapUrl?: string;
   productionBehaviorOverride?: ImageDepthScenePreset["behavior"];
   ambientParticlesOverride?: ImageDepthAmbientParticlePreset;
 };
@@ -95,6 +97,8 @@ function createEnvironmentDescription(displayName: string) {
 
 function buildCatalogEntry(seed: EnvironmentCatalogSeed): EnvironmentCatalogEntry {
   const derivedUrls = createEnvironmentAssetUrls(seed.id);
+  const colorImageUrl = seed.colorImageUrl ?? derivedUrls.colorImageUrl;
+  const depthMapUrl = seed.depthMapUrl ?? derivedUrls.depthMapUrl;
 
   return {
     id: seed.id,
@@ -105,8 +109,8 @@ function buildCatalogEntry(seed: EnvironmentCatalogSeed): EnvironmentCatalogEntr
     asset: {
       id: seed.id,
       name: seed.displayName,
-      colorImageUrl: derivedUrls.colorImageUrl,
-      depthMapUrl: derivedUrls.depthMapUrl,
+      colorImageUrl,
+      depthMapUrl,
     },
     productionScenePreset: createDerivedProductionScenePreset(seed),
   };
@@ -236,6 +240,55 @@ export const imageDepthEnvironmentRegistrationSeeds: EnvironmentCatalogSeed[] = 
     id: "psychedelic-temple",
     displayName: "Psychedelic Temple",
     uiSkin: "violet-cyan",
+  },
+  {
+    id: "alien-dj-1",
+    displayName: "Alien DJ",
+    uiSkin: "violet-cyan",
+    colorImageUrl: "/environments/alien-dj-1/alien-dj-1.webp",
+    depthMapUrl: "/environments/alien-dj-1/alien-dj-1.png",
+  },
+  {
+    id: "dark-psy-temple",
+    displayName: "Dark Psy Temple",
+    uiSkin: "acid-green",
+    colorImageUrl: "/environments/dark-psy-temple/dark-psy-temple.webp",
+    depthMapUrl: "/environments/dark-psy-temple/dark-psy-temple.png",
+  },
+  {
+    id: "dark-ritual-swamp",
+    displayName: "Dark Ritual Swamp",
+    uiSkin: "deep-ocean",
+    colorImageUrl: "/environments/dark-ritual-swamp/dark-ritual-swamp.webp",
+    depthMapUrl: "/environments/dark-ritual-swamp/dark-ritual-swamp.png",
+  },
+  {
+    id: "energy-rift-swamp",
+    displayName: "Energy Rift Swamp",
+    uiSkin: "neon-pink",
+    colorImageUrl: "/environments/energy-rift-swamp/energy-rift-swamp.webp",
+    depthMapUrl: "/environments/energy-rift-swamp/energy-rift-swamp.png",
+  },
+  {
+    id: "female-meditation-1",
+    displayName: "Female Meditation 1",
+    uiSkin: "violet-cyan",
+    colorImageUrl: "/environments/female-meditation-1/female-meditation-1.webp",
+    depthMapUrl: "/environments/female-meditation-1/female-meditation-1.png",
+  },
+  {
+    id: "lost-relay-tower",
+    displayName: "Lost Relay Tower",
+    uiSkin: "ember-orange",
+    colorImageUrl: "/environments/lost-relay-tower/lost-relay-tower.webp",
+    depthMapUrl: "/environments/lost-relay-tower/lost-relay-tower.png",
+  },
+  {
+    id: "psy-swamp-citadel",
+    displayName: "Psy Swamp Citadel",
+    uiSkin: "acid-green",
+    colorImageUrl: "/environments/psy-swamp-citadel/psy-swamp-citadel.webp",
+    depthMapUrl: "/environments/psy-swamp-citadel/psy-swamp-citadel.png",
   },
 ];
 
