@@ -44,6 +44,8 @@
   grid-template-columns: minmax(0, 1fr) 30px;
   align-items: center;
   gap: 8px;
+  height: var(--attached-panel-header-height);
+  box-sizing: border-box;
   padding: 10px 11px 8px;
   border-bottom: 1px solid rgba(165, 243, 234, 0.14);
 }
@@ -483,47 +485,103 @@
   }
 }
 
-@media (min-width: 1025px) and (max-height: 800px) {
+@media (min-width: 1025px) and (max-height: 800px),
+  (max-height: 800px) and (hover: hover) and (pointer: fine) {
   .floating-player-panel {
     --floating-panel-edge-gap: 14px;
+    --player-font-size-label: 0.6rem;
+    --player-font-size-control: 0.76rem;
+    --player-font-size-status: 0.69rem;
+    border-radius: 12px;
   }
 
   .floating-player-panel__header {
-    padding: 8px 9px 6px;
+    grid-template-columns: minmax(0, 1fr) 28px;
+    gap: 6px;
+    padding: 6px 8px 5px;
+  }
+
+  .floating-player-panel__brand-ident {
+    font-size: 0.94rem;
+  }
+
+  .floating-player-panel__toggle {
+    width: 28px;
+    height: 28px;
+    border-radius: 7px;
   }
 
   .floating-player-panel__body,
   .floating-player-panel__collapsed-body {
-    padding: 8px 9px;
-    gap: 7px;
+    padding: 6px 8px;
+    gap: 5px;
   }
 
   .floating-player-panel__field {
-    gap: 4px;
+    gap: 3px;
   }
 
   .floating-player-panel .signal-source-selector__select,
   .floating-player-panel .theme-selector__select,
   .floating-player-panel .track-marquee,
   .floating-player-panel .volume-control__range {
-    height: 36px;
-    min-height: 36px;
+    height: 34px;
+    min-height: 34px;
+  }
+
+  .floating-player-panel .signal-source-selector__select,
+  .floating-player-panel .theme-selector__select {
+    padding-left: 10px;
+  }
+
+  .floating-player-panel .track-marquee {
+    padding-inline: 10px;
   }
 
   .floating-player-panel__controls {
-    gap: 7px;
+    gap: 4px;
   }
 
   .floating-player-panel__controls .play-stop-button {
-    height: 44px;
-    min-height: 44px;
+    height: 40px;
+    min-height: 40px;
+    border-radius: 8px;
+  }
+
+  .floating-player-panel__controls .floating-player-panel__volume-row {
+    margin-top: 0;
+  }
+
+  .floating-player-panel__volume-row .volume-control {
+    height: 34px;
+  }
+
+  .floating-player-panel__controls .floating-player-panel__seek-row {
+    margin-top: -1px;
+    margin-bottom: 1px;
+  }
+
+  .floating-player-panel__controls .floating-player-panel__environment-field {
+    margin-top: 2px;
   }
 
   .floating-player-panel__toggle-row {
-    gap: 8px;
+    gap: 6px;
   }
 
   .floating-player-panel__switch {
-    min-height: 38px;
+    min-height: 34px;
+    padding-inline: 9px;
+    border-radius: 8px;
+  }
+
+  .floating-player-panel__switch-track {
+    width: 30px;
+    height: 16px;
+  }
+
+  .floating-player-panel__switch-thumb {
+    width: 12px;
+    height: 12px;
   }
 }

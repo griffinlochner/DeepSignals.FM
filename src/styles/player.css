@@ -22,6 +22,14 @@
     18px + env(safe-area-inset-bottom, 0px)
   );
   --player-edge-gap: clamp(12px, 2.2vw, 22px);
+  --attached-panel-header-height: 49px;
+}
+
+@media (min-width: 1025px) and (max-height: 800px),
+  (max-height: 800px) and (hover: hover) and (pointer: fine) {
+  .player-shell {
+    --attached-panel-header-height: 40px;
+  }
 }
 
 /* ============================================================
