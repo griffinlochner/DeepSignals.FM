@@ -1,24 +1,24 @@
-import { useEffect, useState } from 'react'
+import { forwardRef, useEffect, useState } from "react";
 import type {
   AudioAnalysisStatus,
   AudioPlaybackStatus,
   AudioReactiveSnapshot,
   ReactivePreviewTelemetry,
-} from '../app/playerTypes'
-import './signalTelemetryPanel.css'
+} from "../app/playerTypes";
+import "./signalTelemetryPanel.css";
 
 type SignalTelemetryPanelProps = {
-  analysisStatus: AudioAnalysisStatus
-  playbackStatus: AudioPlaybackStatus
-  getLatestSnapshot: () => AudioReactiveSnapshot
-  getLatestReactiveTelemetry?: () => ReactivePreviewTelemetry
-  onClose: () => void
-}
+  analysisStatus: AudioAnalysisStatus;
+  playbackStatus: AudioPlaybackStatus;
+  getLatestSnapshot: () => AudioReactiveSnapshot;
+  getLatestReactiveTelemetry?: () => ReactivePreviewTelemetry;
+  onClose: () => void;
+};
 
 type MeterRowProps = {
-  label: string
-  value: number
-}
+  label: string;
+  value: number;
+};
 
 const ZERO_SNAPSHOT: AudioReactiveSnapshot = {
   energy: 0,
@@ -33,42 +33,42 @@ const ZERO_SNAPSHOT: AudioReactiveSnapshot = {
   highs: 0,
   transient: 0,
   isActive: false,
-}
+};
 
 function formatNumber(value: number) {
   if (!Number.isFinite(value)) {
-    return '0.000'
+    return "0.000";
   }
 
-  return value.toFixed(3)
+  return value.toFixed(3);
 }
 
 function formatCompactNumber(value: number, digits = 2) {
   if (!Number.isFinite(value)) {
-    return '--'
+    return "--";
   }
 
-  return value.toFixed(digits)
+  return value.toFixed(digits);
 }
 
 function formatMilliseconds(value: number | null) {
   if (value === null || !Number.isFinite(value) || value <= 0) {
-    return '--'
+    return "--";
   }
 
-  return `${Math.round(value)} ms`
+  return `${Math.round(value)} ms`;
 }
 
 function formatBpm(value: number | null) {
   if (value === null || !Number.isFinite(value) || value <= 0) {
-    return '--'
+    return "--";
   }
 
-  return `${Math.round(value)}`
+  return `${Math.round(value)}`;
 }
 
 function formatDepthPair(current: number, target: number) {
-  return `${formatCompactNumber(current)} / ${formatCompactNumber(target)}`
+  return `${formatCompactNumber(current)} / ${formatCompactNumber(target)}`;
 }
 
 function CloseIcon() {
@@ -77,14 +77,14 @@ function CloseIcon() {
       <path d="M3.25 3.25L12.75 12.75" />
       <path d="M12.75 3.25L3.25 12.75" />
     </svg>
-  )
+  );
 }
 
 const ZERO_REACTIVE_TELEMETRY: ReactivePreviewTelemetry = {
-  selectedReactiveBehavior: 'Chill',
-  selectedDepthSignalField: 'n/a',
-  selectedHueSignalField: 'n/a',
-  selectedSaturationSignalField: 'n/a',
+  selectedReactiveBehavior: "Chill",
+  selectedDepthSignalField: "n/a",
+  selectedHueSignalField: "n/a",
+  selectedSaturationSignalField: "n/a",
   reactivePreviewEnabled: false,
   reactiveIsolationEnabled: false,
   reactiveTimingAuthorityActive: false,
@@ -114,7 +114,7 @@ const ZERO_REACTIVE_TELEMETRY: ReactivePreviewTelemetry = {
   acceptedEventRatePerSecondRecent: 0,
   smoothedEnergy: 0,
   sectionIntensity: 0,
-  fullOnPhase: 'n/a',
+  fullOnPhase: "n/a",
   fullOnTargetDepth: 0,
   fullOnCurrentDepth: 0,
   fullOnTargetSaturation: 1,
@@ -150,139 +150,187 @@ const ZERO_REACTIVE_TELEMETRY: ReactivePreviewTelemetry = {
   authoredGlobalGlowCycleSuppressed: false,
   transientAccent: 0,
   geometryMotionActive: false,
-}
+};
 
 function MeterRow({ label, value }: MeterRowProps) {
-  const normalized = Math.min(1, Math.max(0, Number.isFinite(value) ? value : 0))
+  const normalized = Math.min(
+    1,
+    Math.max(0, Number.isFinite(value) ? value : 0),
+  );
 
   return (
     <div className="signal-telemetry-panel__meter-row">
       <p className="signal-telemetry-panel__meter-label">{label}</p>
       <div className="signal-telemetry-panel__meter-track" aria-hidden="true">
-        <span className="signal-telemetry-panel__meter-fill" style={{ width: `${normalized * 100}%` }} />
+        <span
+          className="signal-telemetry-panel__meter-fill"
+          style={{ width: `${normalized * 100}%` }}
+        />
       </div>
-      <p className="signal-telemetry-panel__meter-value">{formatNumber(normalized)}</p>
+      <p className="signal-telemetry-panel__meter-value">
+        {formatNumber(normalized)}
+      </p>
     </div>
-  )
+  );
 }
 
-function SignalTelemetryPanel({
-  analysisStatus,
-  playbackStatus,
-  getLatestSnapshot,
-  getLatestReactiveTelemetry = () => ZERO_REACTIVE_TELEMETRY,
-  onClose,
-}: SignalTelemetryPanelProps) {
-  const [snapshot, setSnapshot] = useState<AudioReactiveSnapshot>(ZERO_SNAPSHOT)
-  const [reactiveTelemetry, setReactiveTelemetry] = useState<ReactivePreviewTelemetry>(ZERO_REACTIVE_TELEMETRY)
+const SignalTelemetryPanel = forwardRef<HTMLElement, SignalTelemetryPanelProps>(
+  function SignalTelemetryPanel(
+    {
+      analysisStatus,
+      playbackStatus,
+      getLatestSnapshot,
+      getLatestReactiveTelemetry = () => ZERO_REACTIVE_TELEMETRY,
+      onClose,
+    },
+    ref,
+  ) {
+    const [snapshot, setSnapshot] =
+      useState<AudioReactiveSnapshot>(ZERO_SNAPSHOT);
+    const [reactiveTelemetry, setReactiveTelemetry] =
+      useState<ReactivePreviewTelemetry>(ZERO_REACTIVE_TELEMETRY);
 
-  useEffect(() => {
-    const publish = () => {
-      setSnapshot(getLatestSnapshot())
-      setReactiveTelemetry(getLatestReactiveTelemetry())
+    useEffect(() => {
+      const publish = () => {
+        setSnapshot(getLatestSnapshot());
+        setReactiveTelemetry(getLatestReactiveTelemetry());
+      };
+
+      const initialPublishHandle = window.setTimeout(publish, 0);
+      const intervalHandle = window.setInterval(publish, 100);
+
+      return () => {
+        window.clearTimeout(initialPublishHandle);
+        window.clearInterval(intervalHandle);
+      };
+    }, [getLatestReactiveTelemetry, getLatestSnapshot]);
+
+    let statusLabel = "Paused";
+
+    if (playbackStatus === "playing") {
+      statusLabel =
+        analysisStatus === "running" ? "Listening" : "Signal unavailable";
     }
 
-    const initialPublishHandle = window.setTimeout(publish, 0)
-    const intervalHandle = window.setInterval(publish, 100)
+    const reactiveState = reactiveTelemetry.musicAuthorityActive
+      ? "MUSIC"
+      : "AUTH";
+    const behaviorLabel =
+      reactiveTelemetry.selectedReactiveBehavior === "Full On"
+        ? "FULL"
+        : "CHILL";
+    const analysisAvailabilityLabel = snapshot.isActive ? "LIVE" : "NO-SIG";
+    const kickIntervalLabel = formatMilliseconds(
+      reactiveTelemetry.millisecondsSincePreviousAcceptedEvent > 0
+        ? reactiveTelemetry.millisecondsSincePreviousAcceptedEvent
+        : reactiveTelemetry.beatIntervalMs,
+    );
 
-    return () => {
-      window.clearTimeout(initialPublishHandle)
-      window.clearInterval(intervalHandle)
-    }
-  }, [getLatestReactiveTelemetry, getLatestSnapshot])
+    const technicalRows: Array<{
+      label: string;
+      value: string;
+      numeric?: boolean;
+    }> = [
+      { label: "State", value: `${behaviorLabel} · ${reactiveState}` },
+      { label: "Signal", value: analysisAvailabilityLabel },
+      {
+        label: "BPM",
+        value: formatBpm(reactiveTelemetry.sourceBpm),
+        numeric: true,
+      },
+      { label: "Kick Int", value: kickIntervalLabel },
+      {
+        label: "Evt Rate",
+        value: `${formatCompactNumber(reactiveTelemetry.acceptedEventRatePerSecondRecent, 2)}/s`,
+        numeric: true,
+      },
+      {
+        label: "Depth C/T",
+        value: formatDepthPair(
+          reactiveTelemetry.depthFinalAfterClamp,
+          reactiveTelemetry.fullOnTargetDepth,
+        ),
+        numeric: true,
+      },
+      {
+        label: "Hue Off/Step",
+        value: `${formatCompactNumber(reactiveTelemetry.reactiveHueOffsetDegrees, 1)} / ${formatCompactNumber(reactiveTelemetry.hueEventStepAppliedDegrees, 1)}`,
+        numeric: true,
+      },
+      {
+        label: "Sat/Glow",
+        value: `${formatCompactNumber(reactiveTelemetry.finalSaturation, 2)} / ${formatCompactNumber(reactiveTelemetry.finalGlobalGlowMultiplier, 2)}`,
+        numeric: true,
+      },
+    ];
 
-  let statusLabel = 'Paused'
+    return (
+      <aside
+        ref={ref}
+        className="signal-telemetry-panel"
+        aria-label="Signal telemetry"
+      >
+        <div className="signal-telemetry-panel__surface">
+          <header className="signal-telemetry-panel__header">
+            <p className="signal-telemetry-panel__title">SIGNAL TELEMETRY</p>
+            <div className="signal-telemetry-panel__header-actions">
+              <p className="signal-telemetry-panel__status">{statusLabel}</p>
+              <button
+                type="button"
+                className="signal-telemetry-panel__close"
+                aria-label="Close signal telemetry"
+                title="Close signal telemetry"
+                onClick={onClose}
+              >
+                <CloseIcon />
+              </button>
+            </div>
+          </header>
 
-  if (playbackStatus === 'playing') {
-    statusLabel = analysisStatus === 'running' ? 'Listening' : 'Signal unavailable'
-  }
-
-  const reactiveState = reactiveTelemetry.musicAuthorityActive ? 'MUSIC' : 'AUTH'
-  const behaviorLabel = reactiveTelemetry.selectedReactiveBehavior === 'Full On' ? 'FULL' : 'CHILL'
-  const analysisAvailabilityLabel = snapshot.isActive ? 'LIVE' : 'NO-SIG'
-  const kickIntervalLabel = formatMilliseconds(
-    reactiveTelemetry.millisecondsSincePreviousAcceptedEvent > 0
-      ? reactiveTelemetry.millisecondsSincePreviousAcceptedEvent
-      : reactiveTelemetry.beatIntervalMs,
-  )
-
-  const technicalRows: Array<{ label: string; value: string; numeric?: boolean }> = [
-    { label: 'State', value: `${behaviorLabel} · ${reactiveState}` },
-    { label: 'Signal', value: analysisAvailabilityLabel },
-    { label: 'BPM', value: formatBpm(reactiveTelemetry.sourceBpm), numeric: true },
-    { label: 'Kick Int', value: kickIntervalLabel },
-    {
-      label: 'Evt Rate',
-      value: `${formatCompactNumber(reactiveTelemetry.acceptedEventRatePerSecondRecent, 2)}/s`,
-      numeric: true,
-    },
-    {
-      label: 'Depth C/T',
-      value: formatDepthPair(reactiveTelemetry.depthFinalAfterClamp, reactiveTelemetry.fullOnTargetDepth),
-      numeric: true,
-    },
-    {
-      label: 'Hue Off/Step',
-      value: `${formatCompactNumber(reactiveTelemetry.reactiveHueOffsetDegrees, 1)} / ${formatCompactNumber(reactiveTelemetry.hueEventStepAppliedDegrees, 1)}`,
-      numeric: true,
-    },
-    {
-      label: 'Sat/Glow',
-      value: `${formatCompactNumber(reactiveTelemetry.finalSaturation, 2)} / ${formatCompactNumber(reactiveTelemetry.finalGlobalGlowMultiplier, 2)}`,
-      numeric: true,
-    },
-  ]
-
-  return (
-    <aside
-      className="signal-telemetry-panel"
-      aria-label="Signal telemetry"
-    >
-      <div className="signal-telemetry-panel__surface">
-        <header className="signal-telemetry-panel__header">
-          <p className="signal-telemetry-panel__title">SIGNAL TELEMETRY</p>
-          <div className="signal-telemetry-panel__header-actions">
-            <p className="signal-telemetry-panel__status">{statusLabel}</p>
-            <button
-              type="button"
-              className="signal-telemetry-panel__close"
-              aria-label="Close signal telemetry"
-              title="Close signal telemetry"
-              onClick={onClose}
+          <div className="signal-telemetry-panel__body">
+            <section
+              className="signal-telemetry-panel__meters"
+              aria-label="Signal levels"
             >
-              <CloseIcon />
-            </button>
-          </div>
-        </header>
+              <MeterRow label="Energy" value={snapshot.energy} />
+              <MeterRow label="Bass" value={snapshot.bass} />
+              <MeterRow label="Kick" value={snapshot.kickPulse} />
+              <MeterRow label="Mids" value={snapshot.mids} />
+              <MeterRow label="Highs" value={snapshot.highs} />
+            </section>
 
-        <div className="signal-telemetry-panel__body">
-          <section className="signal-telemetry-panel__meters" aria-label="Signal levels">
-            <MeterRow label="Energy" value={snapshot.energy} />
-            <MeterRow label="Bass" value={snapshot.bass} />
-            <MeterRow label="Kick" value={snapshot.kickPulse} />
-            <MeterRow label="Mids" value={snapshot.mids} />
-            <MeterRow label="Highs" value={snapshot.highs} />
-          </section>
-
-          <section className="signal-telemetry-panel__tech" aria-label="Technical telemetry">
-            {technicalRows.map((row) => (
-              <div key={row.label} className="signal-telemetry-panel__tech-row">
-                <p className="signal-telemetry-panel__tech-label">{row.label}</p>
-                <p
-                  className={[
-                    'signal-telemetry-panel__tech-value',
-                    row.numeric ? 'signal-telemetry-panel__tech-value--numeric' : '',
-                  ].join(' ').trim()}
+            <section
+              className="signal-telemetry-panel__tech"
+              aria-label="Technical telemetry"
+            >
+              {technicalRows.map((row) => (
+                <div
+                  key={row.label}
+                  className="signal-telemetry-panel__tech-row"
                 >
-                  {row.value}
-                </p>
-              </div>
-            ))}
-          </section>
+                  <p className="signal-telemetry-panel__tech-label">
+                    {row.label}
+                  </p>
+                  <p
+                    className={[
+                      "signal-telemetry-panel__tech-value",
+                      row.numeric
+                        ? "signal-telemetry-panel__tech-value--numeric"
+                        : "",
+                    ]
+                      .join(" ")
+                      .trim()}
+                  >
+                    {row.value}
+                  </p>
+                </div>
+              ))}
+            </section>
+          </div>
         </div>
-      </div>
-    </aside>
-  )
-}
+      </aside>
+    );
+  },
+);
 
-export default SignalTelemetryPanel
+export default SignalTelemetryPanel;

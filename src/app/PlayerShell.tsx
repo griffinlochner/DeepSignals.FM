@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+} from "react";
 import { AUDIO_SOURCES, formatAudioSourceLabel } from "./audioSources";
 import AudioAnalysisDiagnostics from "../components/AudioAnalysisDiagnostics";
 import FloatingPlayerPanel from "../components/FloatingPlayerPanel";
@@ -52,6 +59,13 @@ type PlayerPanelSize = {
   height: number;
 };
 
+type TelemetryLayoutMode = "tablet" | "compact-desktop" | "desktop";
+
+type TelemetryPanelMeasurement = {
+  height: number;
+  layoutMode: TelemetryLayoutMode | null;
+};
+
 type AuxPanelKey = "visual-feed" | "telemetry";
 
 const PLAYER_PANEL_SIZE_EPSILON = 0.75;
@@ -70,8 +84,9 @@ const VISUAL_FEED_MIN_WIDTH = 280;
 const VISUAL_FEED_MAX_WIDTH = 540;
 const VISUAL_FEED_ASPECT_RATIO = 9 / 16;
 const VISUAL_FEED_HEADER_HEIGHT = 52;
-const TELEMETRY_BOTTOM_DOCK_HEIGHT = 248;
-const TELEMETRY_BOTTOM_DOCK_HEIGHT_TABLET = 264;
+const TELEMETRY_BOTTOM_DOCK_FALLBACK_HEIGHT = 224;
+const TELEMETRY_BOTTOM_DOCK_FALLBACK_HEIGHT_COMPACT = 210;
+const TELEMETRY_BOTTOM_DOCK_FALLBACK_HEIGHT_TABLET = 264;
 
 const FULLON_STOP_SETTLE_DEPTH = 0.5;
 const FULLON_STOP_SETTLE_HUE_DEGREES = 0;
@@ -230,15 +245,41 @@ function estimateVisualFeedWidth(viewportWidth: number) {
 
 function estimateVisualFeedHeight(viewportWidth: number) {
   return (
-    Math.round(estimateVisualFeedWidth(viewportWidth) * VISUAL_FEED_ASPECT_RATIO) +
-    VISUAL_FEED_HEADER_HEIGHT
+    Math.round(
+      estimateVisualFeedWidth(viewportWidth) * VISUAL_FEED_ASPECT_RATIO,
+    ) + VISUAL_FEED_HEADER_HEIGHT
   );
 }
 
-function getTelemetryBottomDockHeight(viewportWidth: number) {
-  return viewportWidth <= 1024
-    ? TELEMETRY_BOTTOM_DOCK_HEIGHT_TABLET
-    : TELEMETRY_BOTTOM_DOCK_HEIGHT;
+function getTelemetryLayoutMode(
+  viewportWidth: number,
+  viewportHeight: number,
+): TelemetryLayoutMode {
+  if (viewportWidth <= 1024) {
+    return "tablet";
+  }
+
+  return viewportHeight <= 800 ? "compact-desktop" : "desktop";
+}
+
+function getTelemetryBottomDockHeight(
+  viewportWidth: number,
+  viewportHeight: number,
+  measurement: TelemetryPanelMeasurement,
+) {
+  const layoutMode = getTelemetryLayoutMode(viewportWidth, viewportHeight);
+
+  if (measurement.layoutMode === layoutMode && measurement.height > 0) {
+    return Math.ceil(measurement.height);
+  }
+
+  if (layoutMode === "tablet") {
+    return TELEMETRY_BOTTOM_DOCK_FALLBACK_HEIGHT_TABLET;
+  }
+
+  return layoutMode === "compact-desktop"
+    ? TELEMETRY_BOTTOM_DOCK_FALLBACK_HEIGHT_COMPACT
+    : TELEMETRY_BOTTOM_DOCK_FALLBACK_HEIGHT;
 }
 
 function getAvailabilityPlayerDimensions(
@@ -258,17 +299,23 @@ function getAvailabilityPlayerDimensions(
   return { width, height };
 }
 
-function getVisualFeedFit(viewportWidth: number, viewportHeight: number, playerPanelSize: PlayerPanelSize) {
+function getVisualFeedFit(
+  viewportWidth: number,
+  viewportHeight: number,
+  playerPanelSize: PlayerPanelSize,
+) {
   const { width: playerWidth, height: playerHeight } =
     getAvailabilityPlayerDimensions(viewportWidth, playerPanelSize);
   const rightFeedWidth = estimateVisualFeedWidth(viewportWidth);
   const rightFeedHeight = estimateVisualFeedHeight(viewportWidth);
   const bottomFeedHeight =
-    Math.round(playerWidth * VISUAL_FEED_ASPECT_RATIO) + VISUAL_FEED_HEADER_HEIGHT;
+    Math.round(playerWidth * VISUAL_FEED_ASPECT_RATIO) +
+    VISUAL_FEED_HEADER_HEIGHT;
 
   const right =
     viewportWidth >= playerWidth + rightFeedWidth + PLAYER_EDGE_GAP * 2 &&
-    viewportHeight >= Math.max(playerHeight, rightFeedHeight) + PLAYER_EDGE_GAP * 2;
+    viewportHeight >=
+      Math.max(playerHeight, rightFeedHeight) + PLAYER_EDGE_GAP * 2;
   const bottom =
     viewportWidth >= playerWidth + PLAYER_EDGE_GAP * 2 &&
     viewportHeight >= playerHeight + bottomFeedHeight + PLAYER_EDGE_GAP * 2;
@@ -280,14 +327,20 @@ function canFitTelemetryBelowPlayer(
   viewportWidth: number,
   viewportHeight: number,
   playerPanelSize: PlayerPanelSize,
+  telemetryPanelMeasurement: TelemetryPanelMeasurement,
 ) {
   const { width: playerWidth, height: playerHeight } =
     getAvailabilityPlayerDimensions(viewportWidth, playerPanelSize);
-  const telemetryHeight = getTelemetryBottomDockHeight(viewportWidth);
+  const telemetryHeight = getTelemetryBottomDockHeight(
+    viewportWidth,
+    viewportHeight,
+    telemetryPanelMeasurement,
+  );
 
   return (
     viewportWidth >= playerWidth + PLAYER_EDGE_GAP * 2 &&
-    viewportHeight >= playerHeight + telemetryHeight + PLAYER_EDGE_GAP * 2
+    viewportHeight >=
+      Math.ceil(playerHeight) + telemetryHeight + PLAYER_EDGE_GAP * 2
   );
 }
 
@@ -296,18 +349,25 @@ function canFitSharedBottomAuxSlot(
   viewportHeight: number,
   playerPanelSize: PlayerPanelSize,
   supportsVisualFeed: boolean,
+  telemetryPanelMeasurement: TelemetryPanelMeasurement,
 ) {
   const { width: playerWidth, height: playerHeight } =
     getAvailabilityPlayerDimensions(viewportWidth, playerPanelSize);
-  const telemetryHeight = getTelemetryBottomDockHeight(viewportWidth);
+  const telemetryHeight = getTelemetryBottomDockHeight(
+    viewportWidth,
+    viewportHeight,
+    telemetryPanelMeasurement,
+  );
   const feedHeight = supportsVisualFeed
-    ? Math.round(playerWidth * VISUAL_FEED_ASPECT_RATIO) + VISUAL_FEED_HEADER_HEIGHT
+    ? Math.round(playerWidth * VISUAL_FEED_ASPECT_RATIO) +
+      VISUAL_FEED_HEADER_HEIGHT
     : 0;
   const requiredAuxHeight = Math.max(telemetryHeight, feedHeight);
 
   return (
     viewportWidth >= playerWidth + PLAYER_EDGE_GAP * 2 &&
-    viewportHeight >= playerHeight + requiredAuxHeight + PLAYER_EDGE_GAP * 2
+    viewportHeight >=
+      Math.ceil(playerHeight) + requiredAuxHeight + PLAYER_EDGE_GAP * 2
   );
 }
 
@@ -429,10 +489,14 @@ function PlayerShell({ className }: PlayerShellProps) {
     width: PLAYER_PANEL_FALLBACK_WIDTH,
     height: PLAYER_PANEL_FALLBACK_HEIGHT,
   });
+  const [telemetryPanelMeasurement, setTelemetryPanelMeasurement] =
+    useState<TelemetryPanelMeasurement>({ height: 0, layoutMode: null });
   const reactivePreviewTelemetryRef = useRef<ReactivePreviewTelemetry>(
     ZERO_REACTIVE_PREVIEW_TELEMETRY,
   );
   const playerPanelRef = useRef<HTMLElement | null>(null);
+  const playerPanelMeasuredRef = useRef(false);
+  const telemetryPanelRef = useRef<HTMLElement | null>(null);
   const signalTelemetryToggleRef = useRef<HTMLInputElement | null>(null);
   const visualFeedToggleRef = useRef<HTMLInputElement | null>(null);
   const [sceneCounters, setSceneCounters] = useState<ImageDepthSceneCounters>(
@@ -526,12 +590,14 @@ function PlayerShell({ className }: PlayerShellProps) {
     viewportSize.width,
     viewportSize.height,
     playerPanelSize,
+    telemetryPanelMeasurement,
   );
   const canFitSharedBottomSlot = canFitSharedBottomAuxSlot(
     viewportSize.width,
     viewportSize.height,
     playerPanelSize,
     supportsVisualFeed,
+    telemetryPanelMeasurement,
   );
   const auxRightAvailable = supportsVisualFeed && visualFeedFit.right;
   const auxBottomAvailable = canFitSharedBottomSlot;
@@ -558,7 +624,8 @@ function PlayerShell({ className }: PlayerShellProps) {
     ? activeSharedAuxPanel === "telemetry"
     : signalTelemetryVisible && canFitTelemetryBottom;
 
-  const effectiveVisualFeedOpen = renderVisualFeedRight || renderVisualFeedBottom;
+  const effectiveVisualFeedOpen =
+    renderVisualFeedRight || renderVisualFeedBottom;
   const effectiveSignalTelemetryVisible = renderTelemetryBottom;
   const visualFeedDockMode: VisualFeedDockMode | null = renderVisualFeedRight
     ? "right"
@@ -567,7 +634,7 @@ function PlayerShell({ className }: PlayerShellProps) {
       : null;
 
   const showVisualFeedControl = supportsVisualFeed && auxiliaryControlsVisible;
-  const showSignalTelemetryControl = auxiliaryControlsVisible;
+  const showSignalTelemetryControl = canFitTelemetryBottom;
 
   const setVisualFeedOpenFromToggle = useCallback(
     (enabled: boolean) => {
@@ -609,12 +676,25 @@ function PlayerShell({ className }: PlayerShellProps) {
     }
 
     const handleViewportChange = () => {
-      const nextViewport = { width: window.innerWidth, height: window.innerHeight };
+      const nextViewport = {
+        width: window.innerWidth,
+        height: window.innerHeight,
+      };
       setViewportSize(nextViewport);
 
       const nextVisualFeedFit = supportsVisualFeed
-        ? getVisualFeedFit(nextViewport.width, nextViewport.height, playerPanelSize)
+        ? getVisualFeedFit(
+            nextViewport.width,
+            nextViewport.height,
+            playerPanelSize,
+          )
         : { right: false, bottom: false };
+      const nextCanFitTelemetry = canFitTelemetryBelowPlayer(
+        nextViewport.width,
+        nextViewport.height,
+        playerPanelSize,
+        telemetryPanelMeasurement,
+      );
       const nextSharedBottomSlot =
         !nextVisualFeedFit.right &&
         canFitSharedBottomAuxSlot(
@@ -622,9 +702,24 @@ function PlayerShell({ className }: PlayerShellProps) {
           nextViewport.height,
           playerPanelSize,
           supportsVisualFeed,
+          telemetryPanelMeasurement,
         );
+      const nextSignalTelemetryVisible =
+        signalTelemetryVisible &&
+        (!playerPanelMeasuredRef.current || nextCanFitTelemetry);
 
-      if (!nextSharedBottomSlot || !(visualFeedOpen && signalTelemetryVisible)) {
+      if (
+        playerPanelMeasuredRef.current &&
+        signalTelemetryVisible &&
+        !nextCanFitTelemetry
+      ) {
+        setSignalTelemetryVisible(false);
+      }
+
+      if (
+        !nextSharedBottomSlot ||
+        !(visualFeedOpen && nextSignalTelemetryVisible)
+      ) {
         return;
       }
 
@@ -646,6 +741,7 @@ function PlayerShell({ className }: PlayerShellProps) {
     playerPanelSize,
     signalTelemetryVisible,
     supportsVisualFeed,
+    telemetryPanelMeasurement,
     visualFeedOpen,
   ]);
 
@@ -664,6 +760,20 @@ function PlayerShell({ className }: PlayerShellProps) {
       const nextRect = playerPanelElement.getBoundingClientRect();
       const nextWidth = Math.round(nextRect.width * 100) / 100;
       const nextHeight = Math.round(nextRect.height * 100) / 100;
+
+      playerPanelMeasuredRef.current = true;
+
+      if (
+        signalTelemetryVisible &&
+        !canFitTelemetryBelowPlayer(
+          window.innerWidth,
+          window.innerHeight,
+          { width: nextWidth, height: nextHeight },
+          telemetryPanelMeasurement,
+        )
+      ) {
+        setSignalTelemetryVisible(false);
+      }
 
       setPlayerPanelSize((current) => {
         const widthDelta = Math.abs(current.width - nextWidth);
@@ -704,7 +814,66 @@ function PlayerShell({ className }: PlayerShellProps) {
       window.removeEventListener("resize", updatePlayerPanelSize);
       observer.disconnect();
     };
-  }, []);
+  }, [signalTelemetryVisible, telemetryPanelMeasurement]);
+
+  useEffect(() => {
+    const telemetryPanelElement = telemetryPanelRef.current;
+
+    if (!telemetryPanelElement) {
+      return;
+    }
+
+    const updateTelemetryPanelMeasurement = () => {
+      const nextRect = telemetryPanelElement.getBoundingClientRect();
+      const nextHeight = Math.round(nextRect.height * 100) / 100;
+      const layoutMode = getTelemetryLayoutMode(
+        window.innerWidth,
+        window.innerHeight,
+      );
+      const nextMeasurement = { height: nextHeight, layoutMode };
+
+      if (
+        signalTelemetryVisible &&
+        playerPanelRef.current &&
+        !canFitTelemetryBelowPlayer(
+          window.innerWidth,
+          window.innerHeight,
+          playerPanelRef.current.getBoundingClientRect(),
+          nextMeasurement,
+        )
+      ) {
+        setSignalTelemetryVisible(false);
+      }
+
+      setTelemetryPanelMeasurement((current) => {
+        if (
+          current.layoutMode === layoutMode &&
+          Math.abs(current.height - nextHeight) <= PLAYER_PANEL_SIZE_EPSILON
+        ) {
+          return current;
+        }
+
+        return nextMeasurement;
+      });
+    };
+
+    updateTelemetryPanelMeasurement();
+
+    if (typeof ResizeObserver === "undefined") {
+      window.addEventListener("resize", updateTelemetryPanelMeasurement);
+
+      return () => {
+        window.removeEventListener("resize", updateTelemetryPanelMeasurement);
+      };
+    }
+
+    const observer = new ResizeObserver(updateTelemetryPanelMeasurement);
+    observer.observe(telemetryPanelElement);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [effectiveSignalTelemetryVisible, signalTelemetryVisible]);
 
   const handleSignalChange = (id: string) => {
     setSelectedSignalId(sanitizeAudioSourceId(id) || null);
@@ -1144,6 +1313,7 @@ function PlayerShell({ className }: PlayerShellProps) {
 
           {!audioDebugEnabled && effectiveSignalTelemetryVisible ? (
             <SignalTelemetryPanel
+              ref={telemetryPanelRef}
               analysisStatus={audioAnalysis.status}
               playbackStatus={audioController.playbackStatus}
               getLatestSnapshot={audioAnalysis.getLatestSnapshot}
@@ -1157,10 +1327,11 @@ function PlayerShell({ className }: PlayerShellProps) {
           open={effectiveVisualFeedOpen && visualFeedDockMode !== null}
           dockMode={visualFeedDockMode ?? "right"}
           onClose={handleVisualFeedClose}
-          selectedTrackSource={selectedSignalId ? audioController.audioSource : null}
+          selectedTrackSource={
+            selectedSignalId ? audioController.audioSource : null
+          }
           Frame={activeTheme.VisualFeedFrame}
         />
-
       </div>
     </div>
   );
