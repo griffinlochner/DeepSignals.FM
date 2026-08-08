@@ -71,14 +71,29 @@
 .player-shell__primary-column {
   display: flex;
   flex-direction: column;
-  width: var(--player-panel-width, min(var(--floating-panel-max-width, 430px), calc(100vw - (var(--player-edge-gap) * 2))));
+  width: var(
+    --player-panel-width,
+    min(
+      var(--floating-panel-max-width, 430px),
+      calc(100vw - (var(--player-edge-gap) * 2))
+    )
+  );
   min-width: 0;
   align-items: stretch;
 }
 
 .player-shell__dock--right {
   grid-template-columns:
-    minmax(0, var(--player-panel-width, min(var(--floating-panel-max-width, 430px), calc(100vw - (var(--player-edge-gap) * 2)))))
+    minmax(
+      0,
+      var(
+        --player-panel-width,
+        min(
+          var(--floating-panel-max-width, 430px),
+          calc(100vw - (var(--player-edge-gap) * 2))
+        )
+      )
+    )
     max-content;
   grid-template-rows: auto;
   align-items: start;
@@ -235,10 +250,9 @@
 .transport-dock__inner {
   width: min(100%, 1440px);
   display: grid;
-  grid-template-columns: minmax(170px, 1.05fr) minmax(170px, 1.05fr) minmax(
-      260px,
-      1.7fr
-    ) minmax(96px, 0.75fr) minmax(140px, 0.85fr);
+  grid-template-columns:
+    minmax(170px, 1.05fr) minmax(170px, 1.05fr) minmax(260px, 1.7fr)
+    minmax(96px, 0.75fr) minmax(140px, 0.85fr);
   grid-template-areas: "theme signal marquee play volume";
   column-gap: 12px;
   row-gap: 6px;
