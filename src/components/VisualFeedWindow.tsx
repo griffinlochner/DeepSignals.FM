@@ -1,8 +1,11 @@
-import { useEffect, useId, type ComponentType } from 'react'
+import { useEffect, useId, useState, type ComponentType } from 'react'
 import './visualFeedWindow.css'
+import { publicAssetUrl } from '../app/publicAssetUrl'
 import type { AudioSource } from '../app/playerTypes'
 import { useTrackSignalMetadata } from '../app/useTrackSignalMetadata'
 import type { ThemeVisualFeedFrameProps } from '../themes/themeTypes'
+
+const BRAND_FALLBACK_ARTWORK_URL = publicAssetUrl('/branding/deepsignals-logo-square.png')
 
 type VisualFeedWindowProps = {
   open: boolean
@@ -35,6 +38,7 @@ function VisualFeedWindow({
   className,
 }: VisualFeedWindowProps) {
   const contentId = useId()
+  const [failedArtworkUrls, setFailedArtworkUrls] = useState<Set<string>>(() => new Set())
   const FrameComponent = Frame ?? DefaultFrame
   const { status, metadata } = useTrackSignalMetadata(selectedTrackSource)
 
@@ -64,7 +68,14 @@ function VisualFeedWindow({
     selectedTrackSource?.title ||
     selectedTrackSource?.displayName ||
     'Signal source unavailable'
-  const hasArtwork = Boolean(metadata?.artworkUrl)
+  const sourceArtworkUrl = metadata?.artworkUrl
+  const artworkUrl =
+    sourceArtworkUrl && !failedArtworkUrls.has(sourceArtworkUrl)
+      ? sourceArtworkUrl
+      : !failedArtworkUrls.has(BRAND_FALLBACK_ARTWORK_URL)
+        ? BRAND_FALLBACK_ARTWORK_URL
+        : null
+  const isBrandFallback = artworkUrl === BRAND_FALLBACK_ARTWORK_URL
   const isLoading = status === 'loading'
   const fallbackLabel = isLoading
     ? `Loading cover artwork for ${resolvedTitle}`
@@ -104,11 +115,14 @@ function VisualFeedWindow({
         <FrameComponent>
           <div className="visual-feed-window__viewport" aria-label="Signal feed artwork">
             <div className="visual-feed-window__artwork-shell">
-              {hasArtwork ? (
+              {artworkUrl ? (
                 <img
                   className="visual-feed-window__artwork"
-                  src={metadata?.artworkUrl}
-                  alt={`Cover artwork for ${resolvedTitle}`}
+                  src={artworkUrl}
+                  alt={isBrandFallback ? 'DeepSignals.FM' : `Cover artwork for ${resolvedTitle}`}
+                  onError={() => {
+                    setFailedArtworkUrls((current) => new Set(current).add(artworkUrl))
+                  }}
                 />
               ) : (
                 <div
