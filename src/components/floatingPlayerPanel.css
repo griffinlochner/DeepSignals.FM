@@ -305,10 +305,6 @@
   color: var(--theme-text, #e9f8f4);
 }
 
-.floating-player-panel__motion-switch .floating-player-panel__switch-label {
-  color: var(--theme-text-secondary, rgba(233, 248, 244, 0.76));
-}
-
 .floating-player-panel__switch-track {
   flex-shrink: 0;
   width: 32px;
