@@ -414,6 +414,40 @@
   min-width: 0;
 }
 
+.submissions-page .about-hero {
+  padding-bottom: 0;
+}
+
+.submissions-page .about-section + .about-section,
+.submissions-page .about-hero + .about-section {
+  margin-top: clamp(2.25rem, 4vw, 3.75rem);
+}
+
+.submissions-page .about-section__copy {
+  gap: 0.9rem;
+}
+
+.submissions-page .about-hero__content > .about-section__copy {
+  margin-top: 24px;
+}
+
+.submissions-page .about-transmission-copy {
+  margin-block: 0;
+}
+
+.submissions-page__email {
+  color: #9cff70;
+  font-family: var(--display);
+  font-size: clamp(1.05rem, 1rem + 0.35vw, 1.35rem);
+  overflow-wrap: anywhere;
+  text-shadow: 0 0 12px rgba(105, 238, 255, 0.2);
+  user-select: text;
+}
+
+.submissions-page__socials {
+  justify-content: flex-start;
+}
+
 .about-page__label-pulse {
   opacity: 0.9;
   filter: drop-shadow(0 0 0 rgba(105, 238, 255, 0));
@@ -426,6 +460,10 @@
 
 .about-page__label-pulse--two {
   animation-delay: 2.7s;
+}
+
+.about-page__label-pulse--three {
+  animation-delay: 4s;
 }
 
 @keyframes about-signal-ring {

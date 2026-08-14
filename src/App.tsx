@@ -2,6 +2,7 @@ import ReactivityLabPage from "./experiments/reactivity-lab/ReactivityLabPage";
 import AboutPage from "./pages/AboutPage";
 import LandingPage from "./pages/LandingPage";
 import PlayerPage from "./pages/PlayerPage";
+import SubmissionsPage from "./pages/SubmissionsPage";
 
 function normalizePathname(pathname: string) {
   const withoutIndexHtml = pathname.endsWith("/index.html")
@@ -28,6 +29,10 @@ function App() {
 
   if (pathname === "/about") {
     return <AboutPage />;
+  }
+
+  if (pathname === "/submissions") {
+    return <SubmissionsPage />;
   }
 
   return <LandingPage />;
