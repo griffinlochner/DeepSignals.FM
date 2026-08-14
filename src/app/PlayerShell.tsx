@@ -6,7 +6,11 @@ import {
   useState,
   type CSSProperties,
 } from "react";
-import { AUDIO_SOURCES, formatAudioSourceLabel } from "./audioSources";
+import {
+  AUDIO_SOURCES,
+  GLOBULAR_FOR_THE_TIME_BEING_AUDIO_SOURCE,
+  formatAudioSourceLabel,
+} from "./audioSources";
 import AudioAnalysisDiagnostics from "../components/AudioAnalysisDiagnostics";
 import FloatingPlayerPanel from "../components/FloatingPlayerPanel";
 import SignalTelemetryPanel from "../components/SignalTelemetryPanel";
@@ -23,7 +27,6 @@ import { preloadImageDepthTextures } from "../themes/image-depth/imageDepthTextu
 import { imageDepthEnvironmentCatalog } from "../themes/image-depth/environmentCatalog";
 import { useAudioAnalysis } from "./useAudioAnalysis";
 import { usePersistentAudioController } from "./usePersistentAudioController";
-import { defaultThemeId } from "../themes/themeRegistry";
 import {
   mapSignalTarget,
   resolveShortestHueDeltaDegrees,
@@ -40,18 +43,13 @@ type PlayerShellProps = {
   className?: string;
 };
 
-type PlayerPreferencesV1 = {
+type PlayerPreferences = {
   selectedThemeId: ThemeId;
   selectedAudioSourceId: string;
   volume: number;
   motionEnabled: boolean;
   visualFeedOpen: boolean;
-};
-
-type PlayerPreferencesV2 = PlayerPreferencesV1 & {
   colorEnabled?: boolean;
-  selectedBehavior?: "chill" | "fullon";
-  signalTelemetryVisible?: boolean;
 };
 
 type PlayerPanelSize = {
@@ -72,10 +70,26 @@ const PLAYER_PANEL_SIZE_EPSILON = 0.75;
 
 type VisualFeedDockMode = "right" | "bottom";
 
-const PLAYER_PREFERENCES_STORAGE_KEY_V1 = "deepsignals.player.preferences.v1";
-const PLAYER_PREFERENCES_STORAGE_KEY_V2 = "deepsignals.player.preferences.v2";
-const SIGNAL_TELEMETRY_VISIBLE_STORAGE_KEY_V1 =
-  "deepsignals.player.signal-telemetry.visible.v1";
+const PLAYER_PREFERENCES_STORAGE_KEY_V3 = "deepsignals.player.preferences.v3";
+const SIGNAL_TELEMETRY_VISIBLE_STORAGE_KEY_V2 =
+  "deepsignals.player.signal-telemetry.visible.v2";
+
+const DEFAULT_PLAYER_THEME_ID = "dark-psy-temple";
+const DEFAULT_PLAYER_AUDIO_SOURCE_ID =
+  GLOBULAR_FOR_THE_TIME_BEING_AUDIO_SOURCE.id;
+const PUBLIC_PLAYER_ENVIRONMENT_IDS = [
+  "minimal",
+  "cosmic-nexus",
+  "uv-reactive-jungle",
+  "analog-signal-laboratory",
+  "bioluminescent-psy-reef",
+  "crystal-cavern",
+  "slime-cavern",
+  "dark-psy-temple",
+] as const;
+const publicPlayerEnvironmentIds = new Set<string>(
+  PUBLIC_PLAYER_ENVIRONMENT_IDS,
+);
 
 const PLAYER_EDGE_GAP = 22;
 const PLAYER_PANEL_FALLBACK_WIDTH = 430;
@@ -98,22 +112,23 @@ const availableAudioSourceIds = new Set(
 
 function sanitizeThemeId(value: unknown): ThemeId {
   if (typeof value !== "string") {
-    return defaultThemeId;
+    return DEFAULT_PLAYER_THEME_ID;
   }
 
-  return themeRegistry.some((theme) => theme.id === value)
+  return publicPlayerEnvironmentIds.has(value) &&
+    themeRegistry.some((theme) => theme.id === value)
     ? value
-    : defaultThemeId;
+    : DEFAULT_PLAYER_THEME_ID;
 }
 
 function sanitizeAudioSourceId(value: unknown): string {
   if (typeof value !== "string") {
-    return AUDIO_SOURCES[0]?.id ?? "";
+    return DEFAULT_PLAYER_AUDIO_SOURCE_ID;
   }
 
   return availableAudioSourceIds.has(value)
     ? value
-    : (AUDIO_SOURCES[0]?.id ?? "");
+    : DEFAULT_PLAYER_AUDIO_SOURCE_ID;
 }
 
 function sanitizeBoolean(value: unknown, fallback: boolean) {
@@ -128,14 +143,14 @@ function sanitizeVolume(value: unknown) {
   return Math.min(1, Math.max(0, value));
 }
 
-function readStoredPlayerPreferences(): PlayerPreferencesV2 {
-  const fallback: PlayerPreferencesV2 = {
-    selectedThemeId: defaultThemeId,
-    selectedAudioSourceId: AUDIO_SOURCES[0]?.id ?? "",
+function readStoredPlayerPreferences(): PlayerPreferences {
+  const fallback: PlayerPreferences = {
+    selectedThemeId: DEFAULT_PLAYER_THEME_ID,
+    selectedAudioSourceId: DEFAULT_PLAYER_AUDIO_SOURCE_ID,
     volume: 1,
     motionEnabled: true,
     colorEnabled: true,
-    visualFeedOpen: false,
+    visualFeedOpen: true,
   };
 
   if (typeof window === "undefined") {
@@ -143,12 +158,12 @@ function readStoredPlayerPreferences(): PlayerPreferencesV2 {
   }
 
   try {
-    const rawV2 = window.localStorage.getItem(
-      PLAYER_PREFERENCES_STORAGE_KEY_V2,
+    const rawV3 = window.localStorage.getItem(
+      PLAYER_PREFERENCES_STORAGE_KEY_V3,
     );
 
-    if (rawV2) {
-      const parsed = JSON.parse(rawV2) as Partial<PlayerPreferencesV2>;
+    if (rawV3) {
+      const parsed = JSON.parse(rawV3) as Partial<PlayerPreferences>;
 
       return {
         selectedThemeId: sanitizeThemeId(parsed.selectedThemeId),
@@ -158,37 +173,18 @@ function readStoredPlayerPreferences(): PlayerPreferencesV2 {
         volume: 1,
         motionEnabled: sanitizeBoolean(parsed.motionEnabled, true),
         colorEnabled: sanitizeBoolean(parsed.colorEnabled, true),
-        visualFeedOpen: sanitizeBoolean(parsed.visualFeedOpen, false),
+        visualFeedOpen: sanitizeBoolean(parsed.visualFeedOpen, true),
       };
     }
 
-    const rawV1 = window.localStorage.getItem(
-      PLAYER_PREFERENCES_STORAGE_KEY_V1,
-    );
-
-    if (!rawV1) {
-      return fallback;
-    }
-
-    const parsed = JSON.parse(rawV1) as Partial<PlayerPreferencesV1>;
-
-    return {
-      selectedThemeId: sanitizeThemeId(parsed.selectedThemeId),
-      selectedAudioSourceId: sanitizeAudioSourceId(
-        parsed.selectedAudioSourceId,
-      ),
-      volume: 1,
-      motionEnabled: sanitizeBoolean(parsed.motionEnabled, true),
-      colorEnabled: true,
-      visualFeedOpen: sanitizeBoolean(parsed.visualFeedOpen, false),
-    };
+    return fallback;
   } catch {
     return fallback;
   }
 }
 
 function readStoredSignalTelemetryVisiblePreference() {
-  const fallback = true;
+  const fallback = false;
 
   if (typeof window === "undefined") {
     return fallback;
@@ -196,7 +192,7 @@ function readStoredSignalTelemetryVisiblePreference() {
 
   try {
     const raw = window.localStorage.getItem(
-      SIGNAL_TELEMETRY_VISIBLE_STORAGE_KEY_V1,
+      SIGNAL_TELEMETRY_VISIBLE_STORAGE_KEY_V2,
     );
 
     if (!raw) {
@@ -456,7 +452,7 @@ const ZERO_IMAGE_DEPTH_SCENE_COUNTERS: ImageDepthSceneCounters = {
 function PlayerShell({ className }: PlayerShellProps) {
   const [audioDebugEnabled] = useState(() => isAudioDebugEnabled());
   const [ignoreSourceBpmEnabled] = useState(() => isIgnoreSourceBpmEnabled());
-  const [storedPreferences] = useState<PlayerPreferencesV2>(() =>
+  const [storedPreferences] = useState<PlayerPreferences>(() =>
     readStoredPlayerPreferences(),
   );
   const [selectedThemeId, setSelectedThemeId] = useState<ThemeId>(
@@ -566,7 +562,11 @@ function PlayerShell({ className }: PlayerShellProps) {
   }, [selectedThemeId]);
 
   const themeOptions = useMemo(
-    () => themeRegistry.map((theme) => ({ id: theme.id, name: theme.name })),
+    () =>
+      PUBLIC_PLAYER_ENVIRONMENT_IDS.flatMap((themeId) => {
+        const theme = themeRegistry.find((candidate) => candidate.id === themeId);
+        return theme ? [{ id: theme.id, name: theme.name }] : [];
+      }),
     [],
   );
 
@@ -1155,7 +1155,7 @@ function PlayerShell({ className }: PlayerShellProps) {
     }
 
     try {
-      const payload: PlayerPreferencesV2 = {
+      const payload: PlayerPreferences = {
         selectedThemeId: sanitizeThemeId(selectedThemeId),
         selectedAudioSourceId: sanitizeAudioSourceId(selectedSignalId),
         volume: sanitizeVolume(audioController.volume),
@@ -1165,7 +1165,7 @@ function PlayerShell({ className }: PlayerShellProps) {
       };
 
       window.localStorage.setItem(
-        PLAYER_PREFERENCES_STORAGE_KEY_V2,
+        PLAYER_PREFERENCES_STORAGE_KEY_V3,
         JSON.stringify(payload),
       );
     } catch {
@@ -1188,7 +1188,7 @@ function PlayerShell({ className }: PlayerShellProps) {
 
     try {
       window.localStorage.setItem(
-        SIGNAL_TELEMETRY_VISIBLE_STORAGE_KEY_V1,
+        SIGNAL_TELEMETRY_VISIBLE_STORAGE_KEY_V2,
         JSON.stringify({ visible: signalTelemetryVisible }),
       );
     } catch {
