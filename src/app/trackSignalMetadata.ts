@@ -18,6 +18,7 @@ export function createConfiguredTrackSignalMetadata(source: AudioSource): TrackS
     sourceUrl: source.audioUrl,
     title: source.title,
     artist: source.artist,
+    artworkUrl: source.artworkUrl,
     origin: 'configured',
   }
 }

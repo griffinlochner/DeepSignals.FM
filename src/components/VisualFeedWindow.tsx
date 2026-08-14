@@ -84,6 +84,16 @@ function VisualFeedWindow({
     selectedTrackSource?.kind === 'live-stream'
       ? selectedTrackSource.sourceUrl
       : undefined
+  const artworkImage = artworkUrl ? (
+    <img
+      className="visual-feed-window__artwork"
+      src={artworkUrl}
+      alt={isBrandFallback ? 'DeepSignals.FM' : `Cover artwork for ${resolvedTitle}`}
+      onError={() => {
+        setFailedArtworkUrls((current) => new Set(current).add(artworkUrl))
+      }}
+    />
+  ) : null
 
   return (
     <section
@@ -119,15 +129,19 @@ function VisualFeedWindow({
         <FrameComponent>
           <div className="visual-feed-window__viewport" aria-label="Signal feed artwork">
             <div className="visual-feed-window__artwork-shell">
-              {artworkUrl ? (
-                <img
-                  className="visual-feed-window__artwork"
-                  src={artworkUrl}
-                  alt={isBrandFallback ? 'DeepSignals.FM' : `Cover artwork for ${resolvedTitle}`}
-                  onError={() => {
-                    setFailedArtworkUrls((current) => new Set(current).add(artworkUrl))
-                  }}
-                />
+              {artworkImage && externalSourceUrl ? (
+                <a
+                  className="visual-feed-window__artwork-link"
+                  href={externalSourceUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={`Visit ${resolvedTitle}`}
+                  title={`Visit ${resolvedTitle}`}
+                >
+                  {artworkImage}
+                </a>
+              ) : artworkImage ? (
+                artworkImage
               ) : (
                 <div
                   className="visual-feed-window__artwork-fallback"

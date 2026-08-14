@@ -1,3 +1,5 @@
+import { publicAssetUrl } from './publicAssetUrl'
+
 export type ExternalSignalId =
   | 'psyradio-progressive'
   | 'psyradio-chillout'
@@ -12,6 +14,7 @@ export type ExternalSignalDefinition = {
   stationWebsite: string
   sourceAttribution: string
   publicPlayerCompatible: boolean
+  artworkUrl?: string
 }
 
 export const EXTERNAL_SIGNAL_DEFINITIONS: ExternalSignalDefinition[] = [
@@ -38,6 +41,7 @@ export const EXTERNAL_SIGNAL_DEFINITIONS: ExternalSignalDefinition[] = [
     stationWebsite: 'https://www.psyndora.com/trance.html',
     sourceAttribution: 'External signal from Psyndora',
     publicPlayerCompatible: true,
+    artworkUrl: publicAssetUrl('/images/stations/psyndora-logo.png'),
   },
   {
     id: 'psyndora-chillout',
@@ -46,6 +50,7 @@ export const EXTERNAL_SIGNAL_DEFINITIONS: ExternalSignalDefinition[] = [
     stationWebsite: 'https://www.psyndora.com/chill.html',
     sourceAttribution: 'External signal from Psyndora',
     publicPlayerCompatible: true,
+    artworkUrl: publicAssetUrl('/images/stations/psyndora-logo.png'),
   },
   {
     id: 'psystream',

@@ -62,6 +62,7 @@ function createLiveStreamAudioSource(definition: ExternalSignalDefinition): Audi
     sourceUrl: definition.stationWebsite,
     attribution: definition.sourceAttribution,
     isSeekable: false,
+    artworkUrl: definition.artworkUrl,
   }
 }
 
