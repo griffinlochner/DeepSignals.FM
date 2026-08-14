@@ -30,6 +30,7 @@ import { preloadImageDepthTextures } from "../themes/image-depth/imageDepthTextu
 import { imageDepthEnvironmentCatalog } from "../themes/image-depth/environmentCatalog";
 import { useAudioAnalysis } from "./useAudioAnalysis";
 import { usePersistentAudioController } from "./usePersistentAudioController";
+import { usePsyStreamNowPlaying } from "./usePsyStreamNowPlaying";
 import {
   mapSignalTarget,
   resolveShortestHueDeltaDegrees,
@@ -517,6 +518,7 @@ function PlayerShell({ className }: PlayerShellProps) {
     storedPreferences.volume,
     selectedSignalId ?? undefined,
   );
+  const psyStreamNowPlaying = usePsyStreamNowPlaying(selectedSignalId);
   const registrySourceBpm = audioController.audioSource.bpm ?? null;
   const effectiveReactiveBpm = ignoreSourceBpmEnabled
     ? null
@@ -1235,8 +1237,12 @@ function PlayerShell({ className }: PlayerShellProps) {
   }, [signalTelemetryVisible]);
 
   const transmissionLabel = useMemo(() => {
+    if (psyStreamNowPlaying?.artist && psyStreamNowPlaying.title) {
+      return `${psyStreamNowPlaying.artist} — ${psyStreamNowPlaying.title}`;
+    }
+
     return formatAudioSourceLabel(audioController.audioSource);
-  }, [audioController.audioSource]);
+  }, [audioController.audioSource, psyStreamNowPlaying]);
 
   const handleAudioTogglePlay = async () => {
     if (audioController.playbackStatus !== "playing") {
@@ -1368,6 +1374,7 @@ function PlayerShell({ className }: PlayerShellProps) {
           selectedTrackSource={
             selectedSignalId ? audioController.audioSource : null
           }
+          metadataOverride={psyStreamNowPlaying}
           Frame={activeTheme.VisualFeedFrame}
         />
       </div>

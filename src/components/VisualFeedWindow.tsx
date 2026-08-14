@@ -2,6 +2,7 @@ import { useEffect, useId, useState, type ComponentType } from 'react'
 import './visualFeedWindow.css'
 import { publicAssetUrl } from '../app/publicAssetUrl'
 import type { AudioSource } from '../app/playerTypes'
+import type { TrackSignalMetadata } from '../app/trackSignalMetadata'
 import { useTrackSignalMetadata } from '../app/useTrackSignalMetadata'
 import type { ThemeVisualFeedFrameProps } from '../themes/themeTypes'
 
@@ -12,6 +13,7 @@ type VisualFeedWindowProps = {
   dockMode: 'right' | 'bottom'
   onClose: () => void
   selectedTrackSource: AudioSource | null
+  metadataOverride?: TrackSignalMetadata | null
   Frame?: ComponentType<ThemeVisualFeedFrameProps>
   className?: string
 }
@@ -34,6 +36,7 @@ function VisualFeedWindow({
   dockMode,
   onClose,
   selectedTrackSource,
+  metadataOverride,
   Frame,
   className,
 }: VisualFeedWindowProps) {
@@ -64,17 +67,17 @@ function VisualFeedWindow({
   }
 
   const resolvedTitle =
+    metadataOverride?.title ||
     metadata?.title ||
     selectedTrackSource?.title ||
     selectedTrackSource?.displayName ||
     'Signal source unavailable'
-  const sourceArtworkUrl = metadata?.artworkUrl
-  const artworkUrl =
-    sourceArtworkUrl && !failedArtworkUrls.has(sourceArtworkUrl)
-      ? sourceArtworkUrl
-      : !failedArtworkUrls.has(BRAND_FALLBACK_ARTWORK_URL)
-        ? BRAND_FALLBACK_ARTWORK_URL
-        : null
+  const artworkUrl = [
+    metadataOverride?.artworkUrl,
+    metadata?.artworkUrl,
+    selectedTrackSource?.artworkUrl,
+    BRAND_FALLBACK_ARTWORK_URL,
+  ].find((candidate) => candidate && !failedArtworkUrls.has(candidate)) ?? null
   const isBrandFallback = artworkUrl === BRAND_FALLBACK_ARTWORK_URL
   const isLoading = status === 'loading'
   const fallbackLabel = isLoading

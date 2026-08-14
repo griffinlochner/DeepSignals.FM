@@ -56,9 +56,9 @@ export const EXTERNAL_SIGNAL_DEFINITIONS: ExternalSignalDefinition[] = [
     id: 'psystream',
     stationName: 'PsyStream',
     streamUrl: 'https://radio.psymusic.co.uk/listen/psystream/hifi.mp3',
-    stationWebsite: 'https://radio.psymusic.co.uk',
+    stationWebsite: 'https://radio.psymusic.co.uk/public/psystream',
     sourceAttribution: 'External development signal',
-    publicPlayerCompatible: false,
+    publicPlayerCompatible: true,
   },
 ]
 
