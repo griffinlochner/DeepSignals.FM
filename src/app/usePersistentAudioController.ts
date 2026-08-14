@@ -27,6 +27,7 @@ function getSharedAudioElement() {
     const audio = new Audio()
     audio.preload = 'metadata'
     audio.loop = false
+    audio.crossOrigin = 'anonymous'
     sharedAudioElement = audio
   }
 
@@ -243,6 +244,8 @@ export function usePersistentAudioController(initialVolume = 0.7, selectedSource
     sourceUrlRef.current = audioSource.audioUrl
 
     audio.pause()
+    audio.removeAttribute('src')
+    audio.load()
     playbackStatusRef.current = 'paused'
     setPlaybackStatus('paused')
     setCurrentTime(0)
@@ -252,10 +255,10 @@ export function usePersistentAudioController(initialVolume = 0.7, selectedSource
     setMetadataLoaded(false)
     setErrorMessage(null)
 
-    audio.currentTime = 0
+    audio.preload = audioSource.kind === 'live-stream' ? 'none' : 'metadata'
     audio.src = audioSource.audioUrl
     audio.load()
-  }, [audioSource.audioUrl, audioSource.isSeekable])
+  }, [audioSource.audioUrl, audioSource.isSeekable, audioSource.kind])
 
   useEffect(() => {
     const audio = audioElementRef.current

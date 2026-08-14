@@ -1,6 +1,12 @@
 export type SignalSource = {
   id: string
   label: string
+  disabled?: boolean
+}
+
+export type SignalSourceGroup = {
+  label: string
+  signals: SignalSource[]
 }
 
 export type AudioSourceKind = 'demo-track' | 'live-stream'

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { AudioReactiveSnapshot, ReactiveBehaviorId } from '../../app/playerTypes'
+import { EXTERNAL_SIGNAL_DEFINITIONS, type ExternalSignalId } from '../../app/externalSignals'
 
 type SignalState =
   | 'Signal Off'
@@ -117,10 +118,7 @@ type DevRuntimeCounters = {
 }
 
 export type DevSignalSourceId =
-  | 'psyradio-progressive'
-  | 'psyndora-psytrance'
-  | 'psyndora-alternate'
-  | 'psystream'
+  | ExternalSignalId
   | 'custom-dev-url'
 
 export type DevSignalSourceOption = {
@@ -208,38 +206,14 @@ type UseExternalRadioControllerResult = {
 }
 
 const DEV_SIGNAL_SOURCES: DevSignalSourceOption[] = [
-  {
-    id: 'psyradio-progressive',
-    label: 'PsyRadio Progressive (External DEV Signal)',
-    stationName: 'PsyRadio Progressive',
-    streamUrl: 'http://65.109.32.21:8010/stream',
-    stationWebsite: 'http://psyradio.fm',
-    sourceAttribution: 'External development signal',
-  },
-  {
-    id: 'psyndora-psytrance',
-    label: 'Psyndora Psytrance (External DEV Signal)',
-    stationName: 'Psyndora Psytrance',
-    streamUrl: 'https://cast.magicstreams.gr:9111/stream',
-    stationWebsite: 'https://cast.magicstreams.gr',
-    sourceAttribution: 'External development signal',
-  },
-  {
-    id: 'psyndora-alternate',
-    label: 'Psyndora Alternate (External DEV Signal)',
-    stationName: 'Psyndora Alternate',
-    streamUrl: 'https://cast.magicstreams.gr/sc/psyndora/stream',
-    stationWebsite: 'https://cast.magicstreams.gr',
-    sourceAttribution: 'External development signal',
-  },
-  {
-    id: 'psystream',
-    label: 'PsyStream (External DEV Signal)',
-    stationName: 'PsyStream',
-    streamUrl: 'https://radio.psymusic.co.uk/listen/psystream/hifi.mp3',
-    stationWebsite: 'https://radio.psymusic.co.uk',
-    sourceAttribution: 'External development signal',
-  },
+  ...EXTERNAL_SIGNAL_DEFINITIONS.map((definition) => ({
+    id: definition.id,
+    label: `${definition.stationName} (External DEV Signal)`,
+    stationName: definition.stationName,
+    streamUrl: definition.streamUrl,
+    stationWebsite: definition.stationWebsite,
+    sourceAttribution: definition.sourceAttribution,
+  })),
   {
     id: 'custom-dev-url',
     label: 'Custom DEV URL',

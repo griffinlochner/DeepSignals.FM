@@ -80,6 +80,10 @@ function VisualFeedWindow({
   const fallbackLabel = isLoading
     ? `Loading cover artwork for ${resolvedTitle}`
     : `Cover artwork unavailable for ${resolvedTitle}`
+  const externalSourceUrl =
+    selectedTrackSource?.kind === 'live-stream'
+      ? selectedTrackSource.sourceUrl
+      : undefined
 
   return (
     <section
@@ -92,12 +96,12 @@ function VisualFeedWindow({
         <p className="visual-feed-window__title">Signal Feed</p>
         <a
           className="visual-feed-window__about-link"
-          href="/about/"
+          href={externalSourceUrl ?? '/about/'}
           target="_blank"
           rel="noopener noreferrer"
-          aria-label="About DeepSignals.FM - opens in a new tab"
+          aria-label={externalSourceUrl ? 'External signal source - opens in a new tab' : 'About DeepSignals.FM - opens in a new tab'}
         >
-          <span>About</span>
+          <span>{externalSourceUrl ? 'Source' : 'About'}</span>
           <span aria-hidden="true">↗</span>
         </a>
         <button

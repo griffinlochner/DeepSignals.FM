@@ -1,12 +1,23 @@
-import type { SignalSource } from '../app/playerTypes'
+import type { SignalSource, SignalSourceGroup } from '../app/playerTypes'
 
 type SignalSourceSelectorProps = {
   value: string
-  signals: SignalSource[]
+  signals?: SignalSource[]
+  groups?: SignalSourceGroup[]
   onChange: (value: string) => void
 }
 
-function SignalSourceSelector({ value, signals, onChange }: SignalSourceSelectorProps) {
+function SignalOptions({ signals }: { signals: SignalSource[] }) {
+  return signals.map((signal) => (
+    <option key={signal.id} value={signal.id} disabled={signal.disabled}>
+      {signal.label}
+    </option>
+  ))
+}
+
+function SignalSourceSelector({ value, signals = [], groups = [], onChange }: SignalSourceSelectorProps) {
+  const optionCount = signals.length + groups.reduce((count, group) => count + group.signals.length, 0)
+
   return (
     <div className="signal-source-selector">
       <select
@@ -14,13 +25,14 @@ function SignalSourceSelector({ value, signals, onChange }: SignalSourceSelector
         value={value}
         onChange={(event) => onChange(event.target.value)}
         aria-label="Signal source"
-        disabled={signals.length === 0}
+        disabled={optionCount === 0}
       >
-        {signals.map((signal) => (
-          <option key={signal.id} value={signal.id}>
-            {signal.label}
-          </option>
+        {groups.map((group) => (
+          <optgroup key={group.label} label={group.label}>
+            <SignalOptions signals={group.signals} />
+          </optgroup>
         ))}
+        <SignalOptions signals={signals} />
       </select>
     </div>
   )

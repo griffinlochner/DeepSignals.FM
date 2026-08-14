@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { AUDIO_SOURCES, formatAudioSourceLabel } from '../../app/audioSources'
+import { DEMO_AUDIO_SOURCES, formatAudioSourceLabel } from '../../app/audioSources'
+import type { ExternalSignalId } from '../../app/externalSignals'
 import type {
   AudioAnalysisGraphDetails,
   AudioAnalysisStatus,
@@ -13,7 +14,7 @@ import AudioAnalysisDiagnostics from '../../components/AudioAnalysisDiagnostics'
 import PanelChevronIcon from '../../components/PanelChevronIcon'
 import SignalSourceSelector from '../../components/SignalSourceSelector'
 import VolumeControl from '../../components/VolumeControl'
-import { useExternalRadioController, type DevSignalSourceId } from '../radio-player/useExternalRadioController'
+import { useExternalRadioController } from '../radio-player/useExternalRadioController'
 import { defaultThemeId } from '../../themes/themeRegistry'
 import { imageDepthEnvironmentCatalog } from '../../themes/image-depth/environmentCatalog'
 import {
@@ -50,7 +51,7 @@ import {
 import './reactivityLab.css'
 
 type SourceType = 'local-mp3' | 'external-radio'
-type LabRadioPresetId = 'psyradio-progressive' | 'psyradio-chillout' | 'psyndora' | 'psystream'
+type LabRadioPresetId = ExternalSignalId
 
 type MeterDebugReadout = {
   fastBass: number
@@ -142,13 +143,12 @@ const ZERO_KICK_PULSE_DEBUG: KickDebugReadout = {
 const RADIO_PRESET_OPTIONS: Array<{ id: LabRadioPresetId; label: string }> = [
   { id: 'psyradio-progressive', label: 'PsyRadio Progressive' },
   { id: 'psyradio-chillout', label: 'PsyRadio Chillout' },
-  { id: 'psyndora', label: 'Psyndora' },
+  { id: 'psyndora-psytrance', label: 'Psyndora Psytrance' },
+  { id: 'psyndora-chillout', label: 'Psyndora Chillout' },
   { id: 'psystream', label: 'PsyStream' },
 ]
 
-const CHILLOUT_STREAM_URL = 'http://65.109.32.21:8020/stream'
-
-const MP3_SIGNAL_OPTIONS = AUDIO_SOURCES.map((source) => ({
+const MP3_SIGNAL_OPTIONS = DEMO_AUDIO_SOURCES.map((source) => ({
   id: source.id,
   label: formatAudioSourceLabel(source),
 }))
@@ -268,7 +268,7 @@ function normalizeValueWithinRange(value: number, minimum: number, maximum: numb
 
 function ReactivityLabShell() {
   const [sourceType, setSourceType] = useState<SourceType>('local-mp3')
-  const [selectedMp3SourceId, setSelectedMp3SourceId] = useState(AUDIO_SOURCES[0]?.id ?? '')
+  const [selectedMp3SourceId, setSelectedMp3SourceId] = useState(DEMO_AUDIO_SOURCES[0]?.id ?? '')
   const [selectedRadioPresetId, setSelectedRadioPresetId] = useState<LabRadioPresetId>('psyradio-progressive')
   const [mp3ListenerVolume, setMp3ListenerVolume] = useState(0.72)
   const [selectedImageDepthEnvironmentId, setSelectedImageDepthEnvironmentId] = useState(
@@ -348,8 +348,6 @@ function ReactivityLabShell() {
     stopSignal,
     setVolume: setRadioVolume,
     getLatestAudioSnapshot,
-    setCustomStreamUrlInput,
-    applyCustomSignalSource,
   } = radioController
 
   const mp3Analysis = useAudioAnalysis({
@@ -370,15 +368,7 @@ function ReactivityLabShell() {
   }, [audioController])
 
   const applyRadioPreset = async (presetId: LabRadioPresetId) => {
-    if (presetId === 'psyradio-chillout') {
-      setCustomStreamUrlInput(CHILLOUT_STREAM_URL)
-      await selectSignalSource('custom-dev-url')
-      await applyCustomSignalSource()
-      return
-    }
-
-    const mappedPresetId: DevSignalSourceId = presetId === 'psyndora' ? 'psyndora-psytrance' : presetId
-    await selectSignalSource(mappedPresetId)
+    await selectSignalSource(presetId)
   }
 
   useEffect(() => {
@@ -460,7 +450,7 @@ function ReactivityLabShell() {
     RADIO_PRESET_OPTIONS.find((option) => option.id === selectedRadioPresetId)?.label ?? 'n/a'
 
   const selectedMp3 = useMemo<AudioSource | null>(() => {
-    return AUDIO_SOURCES.find((source) => source.id === selectedMp3SourceId) ?? null
+    return DEMO_AUDIO_SOURCES.find((source) => source.id === selectedMp3SourceId) ?? null
   }, [selectedMp3SourceId])
 
   const selectedImageDepthEnvironment = useMemo(() => {

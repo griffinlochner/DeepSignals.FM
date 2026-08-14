@@ -1,5 +1,6 @@
 import { publicAssetUrl } from './publicAssetUrl'
 import type { AudioSource } from './playerTypes'
+import { EXTERNAL_SIGNAL_DEFINITIONS, type ExternalSignalDefinition } from './externalSignals'
 
 const DFECTV_DEMO_RELEASE = 'Artist-permitted demo'
 const DFECTV_DEMO_LICENSE = 'Artist-permitted demo track for DeepSignals.'
@@ -48,6 +49,19 @@ function createDemoTrackAudioSource(definition: DemoTrackSourceDefinition): Audi
     license: definition.license,
     attribution: definition.attribution,
     isSeekable: true,
+  }
+}
+
+function createLiveStreamAudioSource(definition: ExternalSignalDefinition): AudioSource {
+  return {
+    id: definition.id,
+    kind: 'live-stream',
+    displayName: definition.stationName,
+    title: definition.stationName,
+    audioUrl: definition.streamUrl,
+    sourceUrl: definition.stationWebsite,
+    attribution: definition.sourceAttribution,
+    isSeekable: false,
   }
 }
 
@@ -204,7 +218,7 @@ export const DEMO_DFECTV_JUSTINS_GHOST_AUDIO_SOURCE = createDemoTrackAudioSource
   attribution: 'Dfectv — Justins Ghost, used with artist permission.',
 })
 
-export const AUDIO_SOURCES: AudioSource[] = [
+export const DEMO_AUDIO_SOURCES: AudioSource[] = [
   DEMO_MODULATION_MANIPULATION_AUDIO_SOURCE,
   DEMO_MODULAR_DIMENSIONS_AUDIO_SOURCE,
   DEMO_PSYCHEDELIC_EXPERIENCE_AUDIO_SOURCE,
@@ -219,4 +233,14 @@ export const AUDIO_SOURCES: AudioSource[] = [
   DEMO_DFECTV_SIMULATED_ALCHEMY_AUDIO_SOURCE,
   DEMO_DFECTV_FINGER_FUCKING_THE_FLOOR_AUDIO_SOURCE,
   DEMO_DFECTV_JUSTINS_GHOST_AUDIO_SOURCE,
+]
+
+export const PUBLIC_EXTERNAL_AUDIO_SOURCES: AudioSource[] =
+  EXTERNAL_SIGNAL_DEFINITIONS.filter(
+    (definition) => definition.publicPlayerCompatible,
+  ).map(createLiveStreamAudioSource)
+
+export const AUDIO_SOURCES: AudioSource[] = [
+  ...DEMO_AUDIO_SOURCES,
+  ...PUBLIC_EXTERNAL_AUDIO_SOURCES,
 ]

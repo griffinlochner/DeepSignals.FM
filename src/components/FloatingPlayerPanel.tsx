@@ -1,5 +1,5 @@
 import { forwardRef, useId, type RefObject } from "react";
-import type { AudioPlaybackStatus, SignalSource } from "../app/playerTypes";
+import type { AudioPlaybackStatus, SignalSourceGroup } from "../app/playerTypes";
 import type { ThemeId } from "../themes/themeTypes";
 import PanelChevronIcon from "./PanelChevronIcon";
 import PlayStopButton from "./PlayStopButton";
@@ -24,7 +24,7 @@ type FloatingPlayerPanelProps = {
   audioIsSeeking: boolean;
   onAudioTogglePlay: () => Promise<void>;
   onAudioSeek: (value: number) => void;
-  signalOptions: SignalSource[];
+  signalGroups: SignalSourceGroup[];
   selectedSignalId: string | null;
   onSignalChange: (id: string) => void;
   signalLabel: string | null;
@@ -64,7 +64,7 @@ const FloatingPlayerPanel = forwardRef<HTMLElement, FloatingPlayerPanelProps>(fu
     audioIsSeeking,
     onAudioTogglePlay,
     onAudioSeek,
-    signalOptions,
+    signalGroups,
     selectedSignalId,
     onSignalChange,
     signalLabel,
@@ -134,7 +134,7 @@ const FloatingPlayerPanel = forwardRef<HTMLElement, FloatingPlayerPanelProps>(fu
             <p className="floating-player-panel__label">Signal Source</p>
             <SignalSourceSelector
               value={selectedSignalId || ""}
-              signals={signalOptions}
+              groups={signalGroups}
               onChange={onSignalChange}
             />
           </div>
@@ -154,7 +154,7 @@ const FloatingPlayerPanel = forwardRef<HTMLElement, FloatingPlayerPanelProps>(fu
             <p className="floating-player-panel__label">Signal Source</p>
             <SignalSourceSelector
               value={selectedSignalId || ""}
-              signals={signalOptions}
+              groups={signalGroups}
               onChange={onSignalChange}
             />
           </div>

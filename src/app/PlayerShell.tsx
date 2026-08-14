@@ -8,7 +8,9 @@ import {
 } from "react";
 import {
   AUDIO_SOURCES,
+  DEMO_AUDIO_SOURCES,
   GLOBULAR_FOR_THE_TIME_BEING_AUDIO_SOURCE,
+  PUBLIC_EXTERNAL_AUDIO_SOURCES,
   formatAudioSourceLabel,
 } from "./audioSources";
 import AudioAnalysisDiagnostics from "../components/AudioAnalysisDiagnostics";
@@ -21,6 +23,7 @@ import type {
   ImageDepthSceneCounters,
   ReactivePreviewTelemetry,
   SignalSource,
+  SignalSourceGroup,
 } from "./playerTypes";
 import type { ThemeId, ThemeSceneProps } from "../themes/themeTypes";
 import { preloadImageDepthTextures } from "../themes/image-depth/imageDepthTextureCache";
@@ -554,6 +557,41 @@ function PlayerShell({ className }: PlayerShellProps) {
         id: source.id,
         label: formatAudioSourceLabel(source),
       })),
+    [],
+  );
+
+  const signalGroups: SignalSourceGroup[] = useMemo(
+    () => [
+      {
+        label: "DEEPSIGNALS.FM",
+        signals: [
+          {
+            id: "deepsignals-psytrance-coming-soon",
+            label: "DeepSignals.FM Psytrance — COMING SOON",
+            disabled: true,
+          },
+          {
+            id: "deepsignals-chillout-coming-soon",
+            label: "DeepSignals.FM Chillout — COMING SOON",
+            disabled: true,
+          },
+        ],
+      },
+      {
+        label: "DEMO TRANSMISSIONS",
+        signals: DEMO_AUDIO_SOURCES.map((source) => ({
+          id: source.id,
+          label: formatAudioSourceLabel(source),
+        })),
+      },
+      {
+        label: "EXTERNAL SIGNALS",
+        signals: PUBLIC_EXTERNAL_AUDIO_SOURCES.map((source) => ({
+          id: source.id,
+          label: formatAudioSourceLabel(source),
+        })),
+      },
+    ],
     [],
   );
 
@@ -1286,7 +1324,7 @@ function PlayerShell({ className }: PlayerShellProps) {
             audioIsSeeking={audioController.isSeeking}
             onAudioTogglePlay={handleAudioTogglePlay}
             onAudioSeek={audioController.seekTo}
-            signalOptions={signals}
+            signalGroups={signalGroups}
             selectedSignalId={selectedSignalId}
             onSignalChange={handleSignalChange}
             signalLabel={selectedSignal ? transmissionLabel : null}
