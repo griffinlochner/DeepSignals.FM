@@ -146,6 +146,7 @@ const RADIO_PRESET_OPTIONS: Array<{ id: LabRadioPresetId; label: string }> = [
   { id: 'psyndora-psytrance', label: 'Psyndora Psytrance' },
   { id: 'psyndora-chillout', label: 'Psyndora Chillout' },
   { id: 'psystream', label: 'PsyStream' },
+  { id: 'dmt-fm', label: 'DMT-FM' },
 ]
 
 const MP3_SIGNAL_OPTIONS = DEMO_AUDIO_SOURCES.map((source) => ({

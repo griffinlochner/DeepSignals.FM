@@ -6,6 +6,7 @@ export type ExternalSignalId =
   | 'psyndora-psytrance'
   | 'psyndora-chillout'
   | 'psystream'
+  | 'dmt-fm'
 
 export type ExternalSignalDefinition = {
   id: ExternalSignalId
@@ -57,6 +58,14 @@ export const EXTERNAL_SIGNAL_DEFINITIONS: ExternalSignalDefinition[] = [
     stationName: 'PsyStream',
     streamUrl: 'https://radio.psymusic.co.uk/listen/psystream/hifi.mp3',
     stationWebsite: 'https://radio.psymusic.co.uk/public/psystream',
+    sourceAttribution: 'External development signal',
+    publicPlayerCompatible: true,
+  },
+  {
+    id: 'dmt-fm',
+    stationName: 'DMT-FM',
+    streamUrl: 'https://dc1.serverse.com/proxy/ywycfrxn/live',
+    stationWebsite: 'https://dmt-fm.com/',
     sourceAttribution: 'External development signal',
     publicPlayerCompatible: true,
   },
