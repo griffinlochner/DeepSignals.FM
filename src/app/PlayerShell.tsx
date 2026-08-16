@@ -94,6 +94,12 @@ const PUBLIC_PLAYER_ENVIRONMENT_IDS = [
 const publicPlayerEnvironmentIds = new Set<string>(
   PUBLIC_PLAYER_ENVIRONMENT_IDS,
 );
+const PUBLIC_DEMO_SOURCE_EXCLUSIONS = new Set([
+  "demo-dfectv-spcyht-no-name",
+  "demo-dfectv-the-maze",
+  "demo-dfectv-starfire-beyond-the-boundries",
+  "demo-dfectv-its-a-trap",
+]);
 
 const PLAYER_EDGE_GAP = 22;
 const PLAYER_PANEL_FALLBACK_WIDTH = 430;
@@ -580,15 +586,17 @@ function PlayerShell({ className }: PlayerShellProps) {
         ],
       },
       {
-        label: "DEMO TRANSMISSIONS",
-        signals: DEMO_AUDIO_SOURCES.map((source) => ({
+        label: "EXTERNAL SIGNALS",
+        signals: PUBLIC_EXTERNAL_AUDIO_SOURCES.map((source) => ({
           id: source.id,
           label: formatAudioSourceLabel(source),
         })),
       },
       {
-        label: "EXTERNAL SIGNALS",
-        signals: PUBLIC_EXTERNAL_AUDIO_SOURCES.map((source) => ({
+        label: "DEMO TRANSMISSIONS",
+        signals: DEMO_AUDIO_SOURCES.filter(
+          (source) => !PUBLIC_DEMO_SOURCE_EXCLUSIONS.has(source.id),
+        ).map((source) => ({
           id: source.id,
           label: formatAudioSourceLabel(source),
         })),
