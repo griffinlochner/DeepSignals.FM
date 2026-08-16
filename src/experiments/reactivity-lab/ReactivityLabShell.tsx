@@ -150,6 +150,7 @@ const RADIO_PRESET_OPTIONS: Array<{ id: LabRadioPresetId; label: string }> = [
   { id: 'hirschmilch-psytrance', label: 'Hirschmilch Psytrance' },
   { id: 'hirschmilch-chillout', label: 'Hirschmilch Chillout' },
   { id: 'hirschmilch-progressive', label: 'Hirschmilch Progressive' },
+  { id: 'space-unicorn-radio', label: 'Space Unicorn Radio' },
 ]
 
 const MP3_SIGNAL_OPTIONS = DEMO_AUDIO_SOURCES.map((source) => ({

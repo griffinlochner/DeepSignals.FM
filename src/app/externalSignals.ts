@@ -10,6 +10,7 @@ export type ExternalSignalId =
   | 'hirschmilch-psytrance'
   | 'hirschmilch-chillout'
   | 'hirschmilch-progressive'
+  | 'space-unicorn-radio'
 
 export type ExternalSignalDefinition = {
   id: ExternalSignalId
@@ -95,6 +96,14 @@ export const EXTERNAL_SIGNAL_DEFINITIONS: ExternalSignalDefinition[] = [
     streamUrl: 'https://xfer.hirschmilch.de:8001/progressive.mp3',
     stationWebsite: 'https://hirschmilch.de/channel/progressive',
     sourceAttribution: 'External signal from Hirschmilch Radio',
+    publicPlayerCompatible: false,
+  },
+  {
+    id: 'space-unicorn-radio',
+    stationName: 'Space Unicorn Radio',
+    streamUrl: 'https://spaceunicorn.radio/stream',
+    stationWebsite: 'https://spaceunicorn.radio/',
+    sourceAttribution: 'External signal from Space Unicorn Radio',
     publicPlayerCompatible: false,
   },
 ]
