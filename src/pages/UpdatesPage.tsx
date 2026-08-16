@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import PublicRadioWaveField from "../components/PublicRadioWaveField";
 import PublicSiteFooter from "../components/PublicSiteFooter";
 import PublicSiteNav from "../components/PublicSiteNav";
+import TransmissionHeading from "../components/TransmissionHeading";
 import "../styles/aboutPage.css";
 
 function UpdatesPage() {
@@ -30,12 +31,12 @@ function UpdatesPage() {
           <section className="about-hero" aria-labelledby="updates-title">
             <div className="about-hero__content">
               <h1
-                className="updates-page__title about-associated-gradient-text"
+                className="public-page__title about-associated-gradient-text"
                 id="updates-title"
               >
                 UPDATES
               </h1>
-              <p className="about-page__eyebrow about-page__label-pulse about-page__label-pulse--zero">
+              <p className="about-page__eyebrow public-page__subtitle about-page__label-pulse about-page__label-pulse--zero">
                 TRANSMISSION LOG
               </p>
               <p className="about-hero__intro about-transmission-copy">
@@ -50,10 +51,14 @@ function UpdatesPage() {
 
           <section className="about-section" aria-labelledby="update-01-title">
             <h2
-              className="about-page__section-label about-page__label-pulse about-page__label-pulse--one"
+              className="about-page__section-label about-page__transmission-heading about-page__label-pulse about-page__label-pulse--one"
               id="update-01-title"
             >
-              01 // 2026-08-16 // KNOWN SIGNAL LIMITATIONS
+              <TransmissionHeading
+                sequence="01"
+                metadata="2026-08-16"
+                title="KNOWN SIGNAL LIMITATIONS"
+              />
             </h2>
             <div className="about-section__copy updates-page__entry-copy">
               <p className="about-transmission-copy">
@@ -100,10 +105,14 @@ function UpdatesPage() {
 
           <section className="about-section" aria-labelledby="update-00-title">
             <h2
-              className="about-page__section-label about-page__label-pulse about-page__label-pulse--two"
+              className="about-page__section-label about-page__transmission-heading about-page__label-pulse about-page__label-pulse--two"
               id="update-00-title"
             >
-              00 // 2026-08-16 // PLAYER SIGNAL ONLINE
+              <TransmissionHeading
+                sequence="00"
+                metadata="2026-08-16"
+                title="PLAYER SIGNAL ONLINE"
+              />
             </h2>
             <div className="about-section__copy updates-page__entry-copy">
               <p className="about-transmission-copy">

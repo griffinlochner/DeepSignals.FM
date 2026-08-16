@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import PublicRadioWaveField from "../components/PublicRadioWaveField";
 import PublicSiteFooter from "../components/PublicSiteFooter";
 import PublicSiteNav from "../components/PublicSiteNav";
+import TransmissionHeading from "../components/TransmissionHeading";
 import "../styles/aboutPage.css";
 
 function AboutPage() {
@@ -29,8 +30,17 @@ function AboutPage() {
         <div className="about-content-frame">
           <section className="about-hero">
             <div className="about-hero__content">
-              <p className="about-page__eyebrow about-page__label-pulse about-page__label-pulse--zero">
-                00 // INCOMING TRANSMISSION:
+              <h1 className="public-page__title about-associated-gradient-text">
+                ABOUT
+              </h1>
+              <p className="about-page__eyebrow public-page__subtitle about-page__label-pulse about-page__label-pulse--zero">
+                TRANSMISSION PROFILE
+              </p>
+              <p className="about-page__eyebrow about-page__transmission-heading about-page__label-pulse about-page__label-pulse--zero">
+                <TransmissionHeading
+                  sequence="00"
+                  title="INCOMING TRANSMISSION:"
+                />
               </p>
 
               <p className="about-hero__intro about-transmission-copy">
@@ -53,8 +63,11 @@ function AboutPage() {
             className="about-section about-section--origin"
             aria-labelledby="about-origin-title"
           >
-            <p className="about-page__section-label about-page__label-pulse about-page__label-pulse--one">
-              01 // ORIGIN OF TRANSMISSION
+            <p className="about-page__section-label about-page__transmission-heading about-page__label-pulse about-page__label-pulse--one">
+              <TransmissionHeading
+                sequence="01"
+                title="ORIGIN OF TRANSMISSION"
+              />
             </p>
             <div className="about-section__copy">
               <p className="about-transmission-copy" id="about-origin-title">
@@ -71,8 +84,8 @@ function AboutPage() {
             className="about-section about-section--mission"
             aria-labelledby="about-mission-title"
           >
-            <p className="about-page__section-label about-page__label-pulse about-page__label-pulse--two">
-              02 // MISSION VECTOR
+            <p className="about-page__section-label about-page__transmission-heading about-page__label-pulse about-page__label-pulse--two">
+              <TransmissionHeading sequence="02" title="MISSION VECTOR" />
             </p>
             <div className="about-section__copy about-section__copy--wide">
               <h2

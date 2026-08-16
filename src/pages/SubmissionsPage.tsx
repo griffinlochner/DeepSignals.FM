@@ -3,6 +3,7 @@ import PublicRadioWaveField from "../components/PublicRadioWaveField";
 import PublicSiteFooter from "../components/PublicSiteFooter";
 import PublicSiteNav from "../components/PublicSiteNav";
 import PublicSocialLinks from "../components/PublicSocialLinks";
+import TransmissionHeading from "../components/TransmissionHeading";
 import "../styles/aboutPage.css";
 
 function SubmissionsPage() {
@@ -30,8 +31,14 @@ function SubmissionsPage() {
         <div className="about-content-frame">
           <section className="about-hero" aria-labelledby="submissions-open-title">
             <div className="about-hero__content">
-              <p className="about-page__eyebrow about-page__label-pulse about-page__label-pulse--zero">
-                00 // OPEN TRANSMISSION
+              <h1 className="public-page__title about-associated-gradient-text">
+                SUBMISSIONS
+              </h1>
+              <p className="about-page__eyebrow public-page__subtitle about-page__label-pulse about-page__label-pulse--zero">
+                OPEN CHANNEL
+              </p>
+              <p className="about-page__eyebrow about-page__transmission-heading about-page__label-pulse about-page__label-pulse--zero">
+                <TransmissionHeading sequence="00" title="OPEN TRANSMISSION" />
               </p>
               <div className="about-section__copy">
                 <p
@@ -55,8 +62,11 @@ function SubmissionsPage() {
           </section>
 
           <section className="about-section" aria-labelledby="submissions-looking-title">
-            <p className="about-page__section-label about-page__label-pulse about-page__label-pulse--one">
-              01 // WHAT WE&apos;RE LOOKING FOR
+            <p className="about-page__section-label about-page__transmission-heading about-page__label-pulse about-page__label-pulse--one">
+              <TransmissionHeading
+                sequence="01"
+                title="WHAT WE'RE LOOKING FOR"
+              />
             </p>
             <div className="about-section__copy">
               <p className="about-transmission-copy" id="submissions-looking-title">
@@ -83,8 +93,11 @@ function SubmissionsPage() {
           </section>
 
           <section className="about-section" aria-labelledby="submissions-permission-title">
-            <p className="about-page__section-label about-page__label-pulse about-page__label-pulse--two">
-              02 // PERMISSION TO TRANSMIT
+            <p className="about-page__section-label about-page__transmission-heading about-page__label-pulse about-page__label-pulse--two">
+              <TransmissionHeading
+                sequence="02"
+                title="PERMISSION TO TRANSMIT"
+              />
             </p>
             <div className="about-section__copy">
               <p className="about-transmission-copy" id="submissions-permission-title">
@@ -109,8 +122,8 @@ function SubmissionsPage() {
           </section>
 
           <section className="about-section" aria-labelledby="submissions-send-title">
-            <p className="about-page__section-label about-page__label-pulse about-page__label-pulse--three">
-              03 // SEND THE SIGNAL
+            <p className="about-page__section-label about-page__transmission-heading about-page__label-pulse about-page__label-pulse--three">
+              <TransmissionHeading sequence="03" title="SEND THE SIGNAL" />
             </p>
             <div className="about-section__copy">
               <p className="about-transmission-copy" id="submissions-send-title">

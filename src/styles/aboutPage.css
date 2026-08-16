@@ -1,6 +1,9 @@
 .about-page-shell {
   --about-frame-max: 76rem;
   --about-frame-gutter: clamp(1rem, 4vw, 3rem);
+  --deepsignals-neon-green: #9cff57;
+  --deepsignals-neon-cyan: #47f7ff;
+  --deepsignals-neon-salmon: #ff7fa1;
   --about-gradient-major: linear-gradient(
     138deg,
     rgba(158, 255, 112, 0.98) 0%,
@@ -293,6 +296,23 @@
   text-transform: uppercase;
 }
 
+.about-page__transmission-heading {
+  font-size: clamp(1.1rem, 0.97rem + 0.42vw, 1.5rem);
+  font-weight: 600;
+}
+
+.about-page__heading-sequence {
+  color: var(--deepsignals-neon-green);
+}
+
+.about-page__heading-structure {
+  color: var(--deepsignals-neon-cyan);
+}
+
+.about-page__heading-title {
+  color: var(--deepsignals-neon-salmon);
+}
+
 .about-hero {
   position: relative;
   min-height: auto;
@@ -309,6 +329,10 @@
 
 .about-hero__intro {
   margin: 24px 0 0;
+}
+
+.public-page__subtitle + .about-page__transmission-heading {
+  margin-top: clamp(1.5rem, 3vw, 2.25rem);
 }
 
 .about-transmission-copy {
@@ -456,7 +480,7 @@
   margin-top: clamp(2.25rem, 4vw, 3.75rem);
 }
 
-.updates-page__title {
+.public-page__title {
   width: fit-content;
   margin: 0 0 clamp(1rem, 2vw, 1.5rem);
   font-family: var(--display);
@@ -472,6 +496,10 @@
 
 .updates-page__entry-copy .about-transmission-copy {
   margin-block: 0;
+}
+
+.updates-page .about-section + .about-section {
+  margin-top: clamp(2.75rem, 5vw, 4.5rem);
 }
 
 .updates-page__list {
