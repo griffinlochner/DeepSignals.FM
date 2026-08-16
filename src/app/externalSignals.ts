@@ -68,6 +68,7 @@ export const EXTERNAL_SIGNAL_DEFINITIONS: ExternalSignalDefinition[] = [
     stationWebsite: 'https://dmt-fm.com/',
     sourceAttribution: 'External development signal',
     publicPlayerCompatible: true,
+    artworkUrl: publicAssetUrl('/images/stations/dmt-fm-logo.webp'),
   },
 ]
 
