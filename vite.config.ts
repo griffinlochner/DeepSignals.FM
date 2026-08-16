@@ -13,6 +13,7 @@ export default defineConfig({
         about: resolve(__dirname, "about/index.html"),
         player: resolve(__dirname, "player/index.html"),
         submissions: resolve(__dirname, "submissions/index.html"),
+        updates: resolve(__dirname, "updates/index.html"),
       },
     },
   },

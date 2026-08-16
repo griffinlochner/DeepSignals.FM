@@ -3,6 +3,7 @@ import AboutPage from "./pages/AboutPage";
 import LandingPage from "./pages/LandingPage";
 import PlayerPage from "./pages/PlayerPage";
 import SubmissionsPage from "./pages/SubmissionsPage";
+import UpdatesPage from "./pages/UpdatesPage";
 
 function normalizePathname(pathname: string) {
   const withoutIndexHtml = pathname.endsWith("/index.html")
@@ -33,6 +34,10 @@ function App() {
 
   if (pathname === "/submissions") {
     return <SubmissionsPage />;
+  }
+
+  if (pathname === "/updates") {
+    return <UpdatesPage />;
   }
 
   return <LandingPage />;

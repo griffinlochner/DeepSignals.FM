@@ -2,7 +2,7 @@ import PublicBrandIdent from './PublicBrandIdent'
 import './publicSiteNav.css'
 
 type PublicSiteNavProps = {
-  currentPage: 'about' | 'submissions'
+  currentPage: 'about' | 'submissions' | 'updates'
 }
 
 function PublicSiteNav({ currentPage }: PublicSiteNavProps) {
@@ -27,6 +27,13 @@ function PublicSiteNav({ currentPage }: PublicSiteNavProps) {
             aria-current={currentPage === 'submissions' ? 'page' : undefined}
           >
             SUBMISSIONS
+          </a>
+          <a
+            className={`public-site-nav__link${currentPage === 'updates' ? ' public-site-nav__link--active' : ''}`}
+            href="/updates/"
+            aria-current={currentPage === 'updates' ? 'page' : undefined}
+          >
+            UPDATES
           </a>
         </div>
       </nav>

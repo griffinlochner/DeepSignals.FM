@@ -448,6 +448,44 @@
   justify-content: flex-start;
 }
 
+.updates-page .about-hero {
+  padding-bottom: 0;
+}
+
+.updates-page .about-hero + .about-section {
+  margin-top: clamp(2.25rem, 4vw, 3.75rem);
+}
+
+.updates-page__title {
+  width: fit-content;
+  margin: 0 0 clamp(1rem, 2vw, 1.5rem);
+  font-family: var(--display);
+  font-size: clamp(2.2rem, 5vw, 4.5rem);
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0;
+}
+
+.updates-page__entry-copy {
+  gap: 0.9rem;
+}
+
+.updates-page__entry-copy .about-transmission-copy {
+  margin-block: 0;
+}
+
+.updates-page__list {
+  box-sizing: border-box;
+  display: grid;
+  gap: 0.65rem;
+  margin-block: 0;
+  padding-left: 1.4rem;
+}
+
+.updates-page__list li::marker {
+  color: #53f2d6;
+}
+
 .about-page__label-pulse {
   opacity: 0.9;
   filter: drop-shadow(0 0 0 rgba(105, 238, 255, 0));
@@ -525,6 +563,11 @@
 
   .about-page-shell .public-brand-ident {
     font-size: clamp(1.45rem, 6.5vw, 2.15rem);
+  }
+
+  .about-page-shell .public-site-nav__links {
+    flex-wrap: wrap;
+    gap: 8px 14px;
   }
 
   .about-transmission-copy {
