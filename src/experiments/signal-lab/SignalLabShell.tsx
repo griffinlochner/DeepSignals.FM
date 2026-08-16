@@ -7,10 +7,26 @@ import type { AudioReactiveSnapshot } from "../../app/playerTypes";
 import { useAudioAnalysis } from "../../app/useAudioAnalysis";
 import { usePersistentAudioController } from "../../app/usePersistentAudioController";
 import VolumeControl from "../../components/VolumeControl";
+import SignalRunnerExperience from "../signal-runner/SignalRunnerExperience";
+import type {
+  SignalRunnerControlMode,
+  SignalRunnerDriveTelemetry,
+} from "../signal-runner/SignalRunnerScene";
+import CosmicNexusDefinition from "../../themes/cosmic-nexus";
+import type { ThemeSceneProps } from "../../themes/themeTypes";
 import "./signalLab.css";
 
 const INITIAL_VOLUME = 0.7;
 const MONITOR_INTERVAL_MS = 100;
+const CosmicNexusScene = CosmicNexusDefinition.Scene;
+type SignalLabEnvironmentId = "cosmic-nexus" | "signal-runner";
+
+const ZERO_RUNNER_TELEMETRY: SignalRunnerDriveTelemetry = {
+  controlMode: "manual",
+  smoothedEnergy: 0,
+  targetSpeed: 42,
+  actualSpeed: 42,
+};
 
 const ZERO_SNAPSHOT: AudioReactiveSnapshot = {
   energy: 0,
@@ -57,6 +73,15 @@ function SignalLabShell() {
   );
   const [monitorSnapshot, setMonitorSnapshot] =
     useState<AudioReactiveSnapshot>(ZERO_SNAPSHOT);
+  const [chromaEnabled, setChromaEnabled] = useState(true);
+  const [motionEnabled, setMotionEnabled] = useState(true);
+  const [selectedEnvironmentId, setSelectedEnvironmentId] =
+    useState<SignalLabEnvironmentId>("cosmic-nexus");
+  const [runnerControlMode, setRunnerControlMode] =
+    useState<SignalRunnerControlMode>("manual");
+  const [manualFlightSpeed, setManualFlightSpeed] = useState(42);
+  const [runnerTelemetry, setRunnerTelemetry] =
+    useState<SignalRunnerDriveTelemetry>(ZERO_RUNNER_TELEMETRY);
   const controller = usePersistentAudioController(
     INITIAL_VOLUME,
     selectedSourceId,
@@ -70,6 +95,17 @@ function SignalLabShell() {
     publishDiagnostics: false,
   });
   const getLatestSnapshot = analysis.getLatestSnapshot;
+  const sceneProps: ThemeSceneProps = {
+    isPlaying: controller.playbackStatus === "playing",
+    volume: controller.volume,
+    signalId: selectedSourceId,
+    audioLevel: 0,
+    reducedMotion: window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+    sourceBpm: controller.audioSource.bpm ?? null,
+    motionEnabled,
+    chromaEnabled,
+    getLatestAudioSnapshot: getLatestSnapshot,
+  };
 
   useEffect(() => {
     const publishSnapshot = () => {
@@ -96,6 +132,7 @@ function SignalLabShell() {
   };
 
   const isLoading = controller.playbackStatus === "loading";
+  const signalRunnerSelected = selectedEnvironmentId === "signal-runner";
 
   return (
     <main className="signal-lab">
@@ -206,6 +243,112 @@ function SignalLabShell() {
               <span>ACCEPTED KICK SEQUENCE</span>
               <strong>{monitorSnapshot.kickPulseAcceptedEventSequence}</strong>
             </p>
+          </div>
+        </section>
+
+        <section
+          className="signal-lab__environment"
+          aria-labelledby="signal-lab-environment-title"
+        >
+          <div className="signal-lab__environment-heading">
+            <div>
+              <p>NATIVE ENVIRONMENT</p>
+              <h2 id="signal-lab-environment-title">
+                {signalRunnerSelected ? "SIGNAL RUNNER" : "COSMIC SIGNAL NEXUS"}
+              </h2>
+            </div>
+            <label className="signal-lab__environment-select">
+              <span>ENVIRONMENT</span>
+              <select
+                value={selectedEnvironmentId}
+                onChange={(event) =>
+                  setSelectedEnvironmentId(
+                    event.target.value as SignalLabEnvironmentId,
+                  )
+                }
+              >
+                <option value="cosmic-nexus">Cosmic Signal Nexus</option>
+                <option value="signal-runner">Signal Runner</option>
+              </select>
+            </label>
+            <div
+              className="signal-lab__environment-toggles"
+              aria-label="Environment controls"
+            >
+              <label>
+                <input
+                  type="checkbox"
+                  checked={chromaEnabled}
+                  onChange={(event) => setChromaEnabled(event.target.checked)}
+                />
+                <span>CHROMA</span>
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={motionEnabled}
+                  onChange={(event) => setMotionEnabled(event.target.checked)}
+                />
+                <span>MOTION</span>
+              </label>
+            </div>
+          </div>
+
+          {signalRunnerSelected ? (
+            <div className="signal-lab__runner-drive">
+              <label>
+                <span>CONTROL MODE</span>
+                <select
+                  value={runnerControlMode}
+                  onChange={(event) =>
+                    setRunnerControlMode(
+                      event.target.value as SignalRunnerControlMode,
+                    )
+                  }
+                >
+                  <option value="manual">MANUAL</option>
+                  <option value="audio">AUDIO</option>
+                </select>
+              </label>
+              <div>
+                <span>SMOOTH ENERGY</span>
+                <strong>{runnerTelemetry.smoothedEnergy.toFixed(3)}</strong>
+              </div>
+              <div>
+                <span>TARGET SPEED</span>
+                <strong>{Math.round(runnerTelemetry.targetSpeed)}</strong>
+              </div>
+              <div>
+                <span>ACTUAL SPEED</span>
+                <strong>{Math.round(runnerTelemetry.actualSpeed)}</strong>
+              </div>
+            </div>
+          ) : null}
+
+          <div
+            className={[
+              "signal-lab__preview",
+              signalRunnerSelected
+                ? "signal-lab__preview--runner"
+                : CosmicNexusDefinition.className,
+            ].join(" ")}
+          >
+            {signalRunnerSelected ? (
+              <SignalRunnerExperience
+                controlMode={runnerControlMode}
+                manualFlightSpeed={manualFlightSpeed}
+                onManualFlightSpeedChange={setManualFlightSpeed}
+                isPlaying={sceneProps.isPlaying}
+                volume={sceneProps.volume}
+                signalId={sceneProps.signalId}
+                motionEnabled={sceneProps.motionEnabled ?? true}
+                chromaEnabled={sceneProps.chromaEnabled ?? true}
+                getLatestAudioSnapshot={sceneProps.getLatestAudioSnapshot}
+                onDriveTelemetry={setRunnerTelemetry}
+              />
+            ) : (
+              <CosmicNexusScene {...sceneProps} />
+            )}
           </div>
         </section>
       </div>

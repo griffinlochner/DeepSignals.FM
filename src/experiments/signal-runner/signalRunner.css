@@ -12,6 +12,13 @@
   background: #020202;
   font-family: var(--display);
   isolation: isolate;
+  filter: grayscale(0) saturate(1);
+  transition: filter 320ms ease;
+}
+
+.signal-runner[data-playing="false"],
+.signal-runner[data-chroma-enabled="false"] {
+  filter: grayscale(1) saturate(0.12);
 }
 
 .signal-runner__space {
@@ -332,6 +339,11 @@
   margin: 0;
   accent-color: var(--signal-green);
   cursor: pointer;
+}
+
+.signal-runner__controls input:disabled {
+  cursor: not-allowed;
+  opacity: 0.38;
 }
 
 .signal-runner__scale {

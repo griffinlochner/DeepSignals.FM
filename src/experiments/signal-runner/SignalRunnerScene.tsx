@@ -1,21 +1,53 @@
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
+import type { AudioReactiveSnapshot } from "../../app/playerTypes";
+
+export type SignalRunnerControlMode = "manual" | "audio";
+
+export type SignalRunnerDriveTelemetry = {
+  controlMode: SignalRunnerControlMode;
+  smoothedEnergy: number;
+  targetSpeed: number;
+  actualSpeed: number;
+};
 
 type SignalRunnerSceneProps = {
+  controlMode: SignalRunnerControlMode;
   flightSpeed: number;
+  isPlaying: boolean;
+  volume: number;
+  signalId: string | null;
+  motionEnabled: boolean;
+  getLatestAudioSnapshot?: (() => AudioReactiveSnapshot) | null;
+  onDriveTelemetry?: (telemetry: SignalRunnerDriveTelemetry) => void;
 };
 
 const STAR_COUNT = 900;
 const FLIGHT_DEPTH = 110;
 const NEAR_PLANE = 1.5;
+const AUDIO_ENERGY_FLOOR = 0.04;
+const AUDIO_ENERGY_CEILING = 0.72;
+const SPEED_EASING_PER_SECOND = 2.8;
+const TELEMETRY_INTERVAL_MS = 100;
 
-function SignalRunnerScene({ flightSpeed }: SignalRunnerSceneProps) {
+function mapSmoothedEnergyToSpeed(smoothedEnergy: number) {
+  const normalized = THREE.MathUtils.clamp(
+    (smoothedEnergy - AUDIO_ENERGY_FLOOR) /
+      (AUDIO_ENERGY_CEILING - AUDIO_ENERGY_FLOOR),
+    0,
+    1,
+  );
+
+  return normalized * 100;
+}
+
+function SignalRunnerScene(props: SignalRunnerSceneProps) {
   const mountRef = useRef<HTMLDivElement | null>(null);
-  const targetSpeedRef = useRef(flightSpeed);
+  const visualStateRef = useRef(props);
 
   useEffect(() => {
-    targetSpeedRef.current = flightSpeed;
-  }, [flightSpeed]);
+    visualStateRef.current = props;
+  }, [props]);
 
   useEffect(() => {
     const mount = mountRef.current;
@@ -135,16 +167,38 @@ function SignalRunnerScene({ flightSpeed }: SignalRunnerSceneProps) {
 
     let frameId = 0;
     let lastFrameTime = performance.now();
-    let smoothedSpeed = targetSpeedRef.current;
+    const initialState = visualStateRef.current;
+    let smoothedSpeed =
+      initialState.controlMode === "manual" ? initialState.flightSpeed : 0;
+    let previousSignalId = initialState.signalId;
+    let lastTelemetryPublishedAt = 0;
 
     const animate = (frameTime: number) => {
       const delta = Math.min((frameTime - lastFrameTime) / 1000, 0.05);
       lastFrameTime = frameTime;
-      const smoothing = 1 - Math.exp(-delta * 2.8);
-      smoothedSpeed += (targetSpeedRef.current - smoothedSpeed) * smoothing;
+      const state = visualStateRef.current;
+      const snapshot = state.getLatestAudioSnapshot?.() ?? null;
+      const smoothedEnergy = snapshot?.smoothedEnergy ?? 0;
+      const requestedSpeed =
+        state.controlMode === "audio"
+          ? mapSmoothedEnergyToSpeed(smoothedEnergy)
+          : state.flightSpeed;
+      const targetSpeed =
+        state.isPlaying && state.motionEnabled ? requestedSpeed : 0;
+
+      if (state.signalId !== previousSignalId) {
+        previousSignalId = state.signalId;
+        smoothedSpeed = 0;
+      }
+
+      const smoothing = 1 - Math.exp(-delta * SPEED_EASING_PER_SECOND);
+      smoothedSpeed += (targetSpeed - smoothedSpeed) * smoothing;
 
       const normalizedSpeed = smoothedSpeed / 100;
-      const travelVelocity = 2.2 + normalizedSpeed * normalizedSpeed * 86;
+      const travelVelocity =
+        state.isPlaying && state.motionEnabled
+          ? 2.2 + normalizedSpeed * normalizedSpeed * 86
+          : 0;
       const streakMix = THREE.MathUtils.smoothstep(normalizedSpeed, 0.28, 0.82);
       const streakLength = 0.08 + streakMix * streakMix * 9;
 
@@ -175,6 +229,19 @@ function SignalRunnerScene({ flightSpeed }: SignalRunnerSceneProps) {
       streakMaterial.opacity = streakMix * 0.9;
       pointPositionAttribute.needsUpdate = true;
       streakPositionAttribute.needsUpdate = true;
+
+      if (
+        state.onDriveTelemetry &&
+        frameTime - lastTelemetryPublishedAt >= TELEMETRY_INTERVAL_MS
+      ) {
+        lastTelemetryPublishedAt = frameTime;
+        state.onDriveTelemetry({
+          controlMode: state.controlMode,
+          smoothedEnergy,
+          targetSpeed,
+          actualSpeed: smoothedSpeed,
+        });
+      }
 
       renderer.render(scene, camera);
       frameId = window.requestAnimationFrame(animate);

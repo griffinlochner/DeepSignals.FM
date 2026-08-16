@@ -267,6 +267,121 @@
   font-variant-numeric: tabular-nums;
 }
 
+.signal-lab__environment {
+  margin-top: 20px;
+  border: 1px solid rgba(156, 255, 87, 0.28);
+  border-radius: 4px;
+  background: rgba(3, 9, 11, 0.88);
+  overflow: hidden;
+}
+
+.signal-lab__environment-heading {
+  min-height: 66px;
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  border-bottom: 1px solid rgba(156, 255, 87, 0.16);
+}
+
+.signal-lab__environment-select {
+  min-width: 210px;
+  display: grid;
+  gap: 5px;
+}
+
+.signal-lab__environment-select > span,
+.signal-lab__runner-drive span {
+  color: rgba(197, 229, 232, 0.66);
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+}
+
+.signal-lab__environment-select select,
+.signal-lab__runner-drive select {
+  min-height: 34px;
+}
+
+.signal-lab__environment-heading p {
+  margin-bottom: 3px;
+  color: var(--signal-lab-green);
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+}
+
+.signal-lab__environment-toggles {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.signal-lab__environment-toggles label {
+  min-height: 34px;
+  padding: 0 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid rgba(71, 247, 255, 0.24);
+  border-radius: 4px;
+  color: rgba(222, 244, 246, 0.82);
+  background: rgba(4, 13, 16, 0.78);
+  cursor: pointer;
+}
+
+.signal-lab__environment-toggles input {
+  accent-color: var(--signal-lab-green);
+}
+
+.signal-lab__environment-toggles span {
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+}
+
+.signal-lab__preview {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  min-height: 260px;
+  max-height: 560px;
+  overflow: hidden;
+  isolation: isolate;
+  background: #010104;
+}
+
+.signal-lab__preview--runner {
+  aspect-ratio: 16 / 10;
+  max-height: 620px;
+}
+
+.signal-lab__preview--runner .signal-runner {
+  height: 100%;
+  min-height: 0;
+}
+
+.signal-lab__runner-drive {
+  padding: 10px 16px;
+  display: grid;
+  grid-template-columns: minmax(160px, 1.3fr) repeat(3, minmax(110px, 1fr));
+  align-items: end;
+  gap: 10px;
+  border-bottom: 1px solid rgba(255, 127, 161, 0.16);
+  background: rgba(2, 7, 10, 0.72);
+}
+
+.signal-lab__runner-drive label,
+.signal-lab__runner-drive div {
+  display: grid;
+  gap: 5px;
+}
+
+.signal-lab__runner-drive strong {
+  color: var(--signal-lab-salmon);
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+}
+
 @media (max-width: 720px) {
   .signal-lab {
     padding: 18px 14px 28px;
@@ -283,5 +398,40 @@
 
   .signal-lab__events {
     grid-template-columns: 1fr;
+  }
+
+  .signal-lab__environment-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .signal-lab__environment-select {
+    width: 100%;
+  }
+
+  .signal-lab__environment-toggles {
+    width: 100%;
+  }
+
+  .signal-lab__environment-toggles label {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .signal-lab__preview {
+    aspect-ratio: 4 / 3;
+  }
+
+  .signal-lab__preview--runner {
+    aspect-ratio: 4 / 5;
+    min-height: 520px;
+  }
+
+  .signal-lab__runner-drive {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .signal-lab__runner-drive label {
+    grid-column: 1 / -1;
   }
 }
