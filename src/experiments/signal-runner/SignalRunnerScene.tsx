@@ -94,7 +94,10 @@ function SignalRunnerScene(props: SignalRunnerSceneProps) {
     };
 
     for (let index = 0; index < STAR_COUNT; index += 1) {
-      resetStar(index, NEAR_PLANE + Math.random() * (FLIGHT_DEPTH - NEAR_PLANE));
+      const spawnDepth = 28 + Math.random() * (FLIGHT_DEPTH - 28);
+      resetStar(index, spawnDepth);
+      pointPositions[index * 3 + 2] =
+        -(8 + Math.random() * (spawnDepth - 8));
 
       const colorRoll = Math.random();
       const color = brandColors[colorRoll > 0.88 ? 2 : colorRoll > 0.68 ? 1 : 0];

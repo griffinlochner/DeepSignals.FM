@@ -16,7 +16,7 @@ import CosmicNexusDefinition from "../../themes/cosmic-nexus";
 import type { ThemeSceneProps } from "../../themes/themeTypes";
 import "./signalLab.css";
 
-const INITIAL_VOLUME = 0.7;
+const INITIAL_VOLUME = 1;
 const MONITOR_INTERVAL_MS = 100;
 const CosmicNexusScene = CosmicNexusDefinition.Scene;
 type SignalLabEnvironmentId = "cosmic-nexus" | "signal-runner";

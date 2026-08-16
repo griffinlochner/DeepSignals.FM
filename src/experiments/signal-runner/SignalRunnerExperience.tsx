@@ -78,29 +78,42 @@ function SignalRunnerExperience({
           <small>FLIGHT SYSTEM // EXPERIMENTAL</small>
         </div>
         <aside className="signal-runner__controls" aria-label="Signal Runner controls">
-          <div className="signal-runner__control-heading">
-            <label htmlFor="signal-runner-speed">FLIGHT SPEED</label>
-            <output htmlFor="signal-runner-speed">{Math.round(manualFlightSpeed)}%</output>
-          </div>
-          <input
-            id="signal-runner-speed"
-            type="range"
-            min="0"
-            max="100"
-            step="1"
-            value={manualFlightSpeed}
-            disabled={controlMode === "audio"}
-            onChange={(event) => onManualFlightSpeedChange(Number(event.target.value))}
-          />
-          <div className="signal-runner__scale" aria-hidden="true">
-            <span>DRIFT</span>
-            <span>CRUISE</span>
-            <span>HYPER</span>
-          </div>
+          {controlMode === "audio" ? (
+            <div className="signal-runner__audio-drive-active">
+              <span>AUDIO DRIVE ACTIVE</span>
+              <strong>CONTROLLED BY SIGNAL</strong>
+              <small>MANUAL FLIGHT SPEED INACTIVE</small>
+            </div>
+          ) : (
+            <>
+              <div className="signal-runner__control-heading">
+                <label htmlFor="signal-runner-speed">FLIGHT SPEED</label>
+                <output htmlFor="signal-runner-speed">{Math.round(manualFlightSpeed)}%</output>
+              </div>
+              <input
+                id="signal-runner-speed"
+                type="range"
+                min="0"
+                max="100"
+                step="1"
+                value={manualFlightSpeed}
+                onChange={(event) => onManualFlightSpeedChange(Number(event.target.value))}
+              />
+              <div className="signal-runner__scale" aria-hidden="true">
+                <span>DRIFT</span>
+                <span>CRUISE</span>
+                <span>HYPER</span>
+              </div>
+            </>
+          )}
         </aside>
         <div className="signal-runner__drive-status" aria-hidden="true">
           <span>{controlMode === "audio" ? "AUDIO DRIVE" : "MANUAL DRIVE"}</span>
-          <strong>{Math.round(manualFlightSpeed).toString().padStart(3, "0")}</strong>
+          <strong>
+            {controlMode === "audio"
+              ? "SIG"
+              : Math.round(manualFlightSpeed).toString().padStart(3, "0")}
+          </strong>
         </div>
         <div className="signal-runner__console-bank signal-runner__console-bank--salmon" aria-hidden="true">
           <span />

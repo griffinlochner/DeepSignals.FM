@@ -341,16 +341,36 @@
   cursor: pointer;
 }
 
-.signal-runner__controls input:disabled {
-  cursor: not-allowed;
-  opacity: 0.38;
-}
-
 .signal-runner__scale {
   margin-top: 3px;
   color: rgba(233, 248, 255, 0.42);
   font-size: 0.46rem;
   letter-spacing: 0.12em;
+}
+
+.signal-runner__audio-drive-active {
+  min-height: 48px;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 2px;
+  text-align: center;
+  letter-spacing: 0.12em;
+}
+
+.signal-runner__audio-drive-active span {
+  color: var(--signal-green);
+  font-size: 0.62rem;
+}
+
+.signal-runner__audio-drive-active strong {
+  color: var(--signal-cyan);
+  font-size: 0.72rem;
+}
+
+.signal-runner__audio-drive-active small {
+  color: rgba(233, 248, 255, 0.46);
+  font-size: 0.46rem;
 }
 
 @media (max-width: 620px) {
