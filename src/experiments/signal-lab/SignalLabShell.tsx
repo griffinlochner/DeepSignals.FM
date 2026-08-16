@@ -1,0 +1,216 @@
+import { useEffect, useState } from "react";
+import {
+  AUDIO_SOURCES,
+  formatAudioSourceLabel,
+} from "../../app/audioSources";
+import type { AudioReactiveSnapshot } from "../../app/playerTypes";
+import { useAudioAnalysis } from "../../app/useAudioAnalysis";
+import { usePersistentAudioController } from "../../app/usePersistentAudioController";
+import VolumeControl from "../../components/VolumeControl";
+import "./signalLab.css";
+
+const INITIAL_VOLUME = 0.7;
+const MONITOR_INTERVAL_MS = 100;
+
+const ZERO_SNAPSHOT: AudioReactiveSnapshot = {
+  energy: 0,
+  smoothedEnergy: 0,
+  bass: 0,
+  kickPulse: 0,
+  kickPulseAcceptedEvent: false,
+  kickPulseAcceptedEventCount: 0,
+  kickPulseAcceptedEventSequence: 0,
+  bassPulse: 0,
+  mids: 0,
+  highs: 0,
+  transient: 0,
+  isActive: false,
+};
+
+const SIGNAL_ROWS: Array<{
+  label: string;
+  field: keyof Pick<
+    AudioReactiveSnapshot,
+    | "energy"
+    | "smoothedEnergy"
+    | "bass"
+    | "kickPulse"
+    | "bassPulse"
+    | "mids"
+    | "highs"
+    | "transient"
+  >;
+}> = [
+  { label: "ENERGY", field: "energy" },
+  { label: "SMOOTH ENERGY", field: "smoothedEnergy" },
+  { label: "BASS", field: "bass" },
+  { label: "KICK", field: "kickPulse" },
+  { label: "BASS PULSE", field: "bassPulse" },
+  { label: "MIDS", field: "mids" },
+  { label: "HIGHS", field: "highs" },
+  { label: "TRANSIENT", field: "transient" },
+];
+
+function SignalLabShell() {
+  const [selectedSourceId, setSelectedSourceId] = useState(
+    AUDIO_SOURCES[0]?.id ?? "",
+  );
+  const [monitorSnapshot, setMonitorSnapshot] =
+    useState<AudioReactiveSnapshot>(ZERO_SNAPSHOT);
+  const controller = usePersistentAudioController(
+    INITIAL_VOLUME,
+    selectedSourceId,
+  );
+  const analysis = useAudioAnalysis({
+    audioElement: controller.audioElement,
+    playbackStatus: controller.playbackStatus,
+    isSeeking: controller.isSeeking,
+    audioSourceId: selectedSourceId,
+    sourceBpm: controller.audioSource.bpm ?? null,
+    publishDiagnostics: false,
+  });
+  const getLatestSnapshot = analysis.getLatestSnapshot;
+
+  useEffect(() => {
+    const publishSnapshot = () => {
+      setMonitorSnapshot(getLatestSnapshot());
+    };
+
+    publishSnapshot();
+    const intervalHandle = window.setInterval(
+      publishSnapshot,
+      MONITOR_INTERVAL_MS,
+    );
+
+    return () => {
+      window.clearInterval(intervalHandle);
+    };
+  }, [getLatestSnapshot]);
+
+  const handlePlaybackToggle = async () => {
+    if (controller.playbackStatus !== "playing") {
+      await analysis.requestInitializationFromUserGesture();
+    }
+
+    await controller.togglePlay();
+  };
+
+  const isLoading = controller.playbackStatus === "loading";
+
+  return (
+    <main className="signal-lab">
+      <div className="signal-lab__shell">
+        <header className="signal-lab__header">
+          <p className="signal-lab__eyebrow">DEEPSIGNALS DEV</p>
+          <h1>DEEPSIGNALS SIGNAL LAB</h1>
+          <p className="signal-lab__subtitle">Universal production signal monitor</p>
+        </header>
+
+        <section className="signal-lab__controls" aria-label="Audio controls">
+          <label className="signal-lab__field">
+            <span>SOURCE</span>
+            <select
+              value={selectedSourceId}
+              onChange={(event) => setSelectedSourceId(event.target.value)}
+            >
+              {AUDIO_SOURCES.map((source) => (
+                <option key={source.id} value={source.id}>
+                  {formatAudioSourceLabel(source)}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <div className="signal-lab__field">
+            <span>PLAYBACK</span>
+            <button
+              type="button"
+              onClick={() => void handlePlaybackToggle()}
+              disabled={isLoading || !selectedSourceId}
+            >
+              {isLoading
+                ? "LOADING"
+                : controller.playbackStatus === "playing"
+                  ? "PAUSE"
+                  : "PLAY"}
+            </button>
+          </div>
+
+          <div className="signal-lab__field signal-lab__field--volume">
+            <span>VOLUME</span>
+            <div className="signal-lab__volume-control">
+              <VolumeControl
+                value={controller.volume}
+                onChange={controller.setVolume}
+              />
+              <output>{controller.volume.toFixed(2)}</output>
+            </div>
+          </div>
+        </section>
+
+        <section className="signal-lab__status" aria-label="Audio status">
+          <p>
+            <span>PLAYBACK</span>
+            <strong data-state={controller.playbackStatus}>
+              {controller.playbackStatus.toUpperCase()}
+            </strong>
+          </p>
+          <p>
+            <span>ANALYSIS</span>
+            <strong data-state={analysis.status}>
+              {analysis.status.toUpperCase()}
+            </strong>
+          </p>
+          {controller.errorMessage ? (
+            <p className="signal-lab__error" role="status">
+              PLAYBACK ERROR: {controller.errorMessage}
+            </p>
+          ) : null}
+          {analysis.errorMessage ? (
+            <p className="signal-lab__error" role="status">
+              ANALYSIS ERROR: {analysis.errorMessage}
+            </p>
+          ) : null}
+        </section>
+
+        <section className="signal-lab__monitor" aria-labelledby="signal-lab-monitor-title">
+          <div className="signal-lab__monitor-heading">
+            <h2 id="signal-lab-monitor-title">UNIVERSAL SIGNALS</h2>
+            <span className={monitorSnapshot.isActive ? "is-active" : ""}>
+              ACTIVE {monitorSnapshot.isActive ? "YES" : "NO"}
+            </span>
+          </div>
+
+          <div className="signal-lab__meters">
+            {SIGNAL_ROWS.map(({ label, field }) => {
+              const value = monitorSnapshot[field];
+
+              return (
+                <div className="signal-lab__meter" key={field}>
+                  <span className="signal-lab__meter-label">{label}</span>
+                  <div className="signal-lab__meter-track" aria-hidden="true">
+                    <span style={{ width: `${value * 100}%` }} />
+                  </div>
+                  <output>{value.toFixed(3)}</output>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="signal-lab__events" aria-label="Accepted kick events">
+            <p>
+              <span>ACCEPTED KICK COUNT</span>
+              <strong>{monitorSnapshot.kickPulseAcceptedEventCount}</strong>
+            </p>
+            <p>
+              <span>ACCEPTED KICK SEQUENCE</span>
+              <strong>{monitorSnapshot.kickPulseAcceptedEventSequence}</strong>
+            </p>
+          </div>
+        </section>
+      </div>
+    </main>
+  );
+}
+
+export default SignalLabShell;
