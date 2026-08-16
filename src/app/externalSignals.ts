@@ -7,6 +7,9 @@ export type ExternalSignalId =
   | 'psyndora-chillout'
   | 'psystream'
   | 'dmt-fm'
+  | 'hirschmilch-psytrance'
+  | 'hirschmilch-chillout'
+  | 'hirschmilch-progressive'
 
 export type ExternalSignalDefinition = {
   id: ExternalSignalId
@@ -69,6 +72,30 @@ export const EXTERNAL_SIGNAL_DEFINITIONS: ExternalSignalDefinition[] = [
     sourceAttribution: 'External development signal',
     publicPlayerCompatible: true,
     artworkUrl: publicAssetUrl('/images/stations/dmt-fm-logo.webp'),
+  },
+  {
+    id: 'hirschmilch-psytrance',
+    stationName: 'Hirschmilch Psytrance',
+    streamUrl: 'https://xfer.hirschmilch.de:8001/psytrance.mp3',
+    stationWebsite: 'https://hirschmilch.de/channel/psytrance',
+    sourceAttribution: 'External signal from Hirschmilch Radio',
+    publicPlayerCompatible: false,
+  },
+  {
+    id: 'hirschmilch-chillout',
+    stationName: 'Hirschmilch Chillout',
+    streamUrl: 'https://hirschmilch.de:7000/chillout.mp3',
+    stationWebsite: 'https://hirschmilch.de/channel/chillout',
+    sourceAttribution: 'External signal from Hirschmilch Radio',
+    publicPlayerCompatible: false,
+  },
+  {
+    id: 'hirschmilch-progressive',
+    stationName: 'Hirschmilch Progressive',
+    streamUrl: 'https://xfer.hirschmilch.de:8001/progressive.mp3',
+    stationWebsite: 'https://hirschmilch.de/channel/progressive',
+    sourceAttribution: 'External signal from Hirschmilch Radio',
+    publicPlayerCompatible: false,
   },
 ]
 

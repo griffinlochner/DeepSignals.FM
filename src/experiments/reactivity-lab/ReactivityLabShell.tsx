@@ -147,6 +147,9 @@ const RADIO_PRESET_OPTIONS: Array<{ id: LabRadioPresetId; label: string }> = [
   { id: 'psyndora-chillout', label: 'Psyndora Chillout' },
   { id: 'psystream', label: 'PsyStream' },
   { id: 'dmt-fm', label: 'DMT-FM' },
+  { id: 'hirschmilch-psytrance', label: 'Hirschmilch Psytrance' },
+  { id: 'hirschmilch-chillout', label: 'Hirschmilch Chillout' },
+  { id: 'hirschmilch-progressive', label: 'Hirschmilch Progressive' },
 ]
 
 const MP3_SIGNAL_OPTIONS = DEMO_AUDIO_SOURCES.map((source) => ({
