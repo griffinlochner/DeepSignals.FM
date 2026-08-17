@@ -19,7 +19,7 @@ type SignalRunnerExperienceProps = {
   onDriveTelemetry?: (telemetry: SignalRunnerDriveTelemetry) => void;
 };
 
-const DRIVE_SEGMENT_COUNT = 12;
+const DRIVE_SEGMENT_COUNT = 9;
 const BLAST_OFF_ARM_SPEED = 68;
 const BLAST_OFF_ARM_HOLD_MS = 400;
 const BLAST_OFF_TRIGGER_SPEED = 99;
