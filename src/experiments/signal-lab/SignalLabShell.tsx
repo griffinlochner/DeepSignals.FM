@@ -90,7 +90,7 @@ function SignalLabShell() {
   const [chromaEnabled, setChromaEnabled] = useState(true);
   const [motionEnabled, setMotionEnabled] = useState(true);
   const [selectedEnvironmentId, setSelectedEnvironmentId] =
-    useState<SignalLabEnvironmentId>("cosmic-nexus");
+    useState<SignalLabEnvironmentId>("signal-runner");
   const [runnerControlMode, setRunnerControlMode] =
     useState<SignalRunnerControlMode>("audio");
   const [manualFlightSpeed, setManualFlightSpeed] = useState(42);

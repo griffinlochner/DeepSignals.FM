@@ -1,6 +1,5 @@
 import ReactivityLabPage from "./experiments/reactivity-lab/ReactivityLabPage";
 import SignalLabPage from "./experiments/signal-lab/SignalLabPage";
-import SignalRunnerPage from "./experiments/signal-runner/SignalRunnerPage";
 import AboutPage from "./pages/AboutPage";
 import LandingPage from "./pages/LandingPage";
 import PlayerPage from "./pages/PlayerPage";
@@ -28,10 +27,6 @@ function App() {
 
   if (pathname === "/experiments/signal-lab") {
     return import.meta.env.DEV ? <SignalLabPage /> : <LandingPage />;
-  }
-
-  if (pathname === "/experiments/signal-runner") {
-    return import.meta.env.DEV ? <SignalRunnerPage /> : <LandingPage />;
   }
 
   if (pathname === "/player") {

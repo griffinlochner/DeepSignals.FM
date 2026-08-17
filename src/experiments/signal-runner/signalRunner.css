@@ -63,13 +63,21 @@
   bottom: 0;
   width: 100%;
   min-height: 150px;
-  padding: 12px 18px 0;
+  container-type: inline-size;
+  overflow: visible;
+  isolation: isolate;
+}
+
+.signal-runner__hud-content {
+  position: relative;
+  z-index: 1;
+  min-height: 150px;
+  padding: 12px clamp(4rem, 15%, 10rem) 0;
   display: grid;
   grid-template-columns: minmax(150px, 0.9fr) minmax(0, 1fr) minmax(150px, 0.9fr);
   align-items: end;
   gap: 12px;
   overflow: visible;
-  isolation: isolate;
 }
 
 .signal-runner__hud-pod::before {
@@ -89,13 +97,6 @@
   pointer-events: none;
 }
 
-.signal-runner__hud-pod > * {
-  position: relative;
-  z-index: 1;
-}
-
-
-/* Empty bays kept open for future widgets */
 .signal-runner__hud-slot {
   min-width: 0;
   display: grid;
@@ -105,7 +106,118 @@
   border-radius: 10px 10px 0 0;
   background: rgba(1, 7, 10, 0.42);
   box-shadow: inset 0 0 16px rgba(0, 0, 0, 0.44);
-  clip-path: polygon(10% 0, 100% 0, 92% 100%, 0 100%);
+  overflow: visible;
+}
+
+.signal-runner__hud-slot--left {
+  grid-template-rows: minmax(64px, 74%) auto;
+  align-content: center;
+  gap: 7px;
+  padding: 0 0 16px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  overflow: visible;
+}
+
+.signal-runner__hud-slot--right {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.signal-runner__impulse-coil {
+  --signal-runner-coil-energy: 0;
+  --signal-runner-coil-kick: 0;
+  --signal-runner-coil-bass: 0;
+  width: min(100%, 188px);
+  height: 64px;
+  justify-self: start;
+  align-self: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.signal-runner__impulse-coil-chamber {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.signal-runner__coil-shell {
+  fill: rgba(1, 8, 12, 0.62);
+  stroke: rgba(71, 247, 255, calc(0.24 + var(--signal-runner-coil-energy) * 0.55));
+  stroke-width: 1;
+}
+
+.signal-runner__coil-rail {
+  fill: none;
+  stroke: rgba(71, 247, 255, calc(0.38 + var(--signal-runner-coil-energy) * 0.62));
+  stroke-width: calc(1.4px + var(--signal-runner-coil-kick) * 1.1px);
+  filter: url(#signal-runner-coil-glow);
+}
+
+.signal-runner__coil-filament {
+  fill: none;
+  stroke: url(#signal-runner-coil-core);
+  stroke-width: calc(1.1px + var(--signal-runner-coil-energy) * 1.5px);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: url(#signal-runner-coil-glow);
+  stroke-dasharray: 4 4;
+  animation: signal-runner-coil-current 1.6s linear infinite;
+}
+
+.signal-runner__coil-links rect {
+  fill: rgba(71, 247, 255, calc(0.18 + var(--signal-runner-coil-energy) * 0.55));
+  stroke: rgba(233, 248, 255, calc(0.1 + var(--signal-runner-coil-energy) * 0.42));
+  stroke-width: 0.7;
+}
+
+.signal-runner__coil-packets circle {
+  fill: #e9f8ff;
+  opacity: calc(0.3 + var(--signal-runner-coil-energy) * 0.7 + var(--signal-runner-coil-kick) * 0.2);
+  filter: url(#signal-runner-coil-glow);
+  animation: signal-runner-coil-packet 1.2s ease-in-out infinite alternate;
+}
+
+.signal-runner__coil-packets circle:nth-child(2) {
+  animation-delay: -0.42s;
+}
+
+.signal-runner__coil-packets circle:nth-child(3) {
+  animation-delay: -0.76s;
+}
+
+.signal-runner__coil-discharge {
+  fill: none;
+  stroke: var(--signal-salmon);
+  stroke-width: 1.2;
+  opacity: calc(0.08 + var(--signal-runner-coil-bass) * 0.92 + var(--signal-runner-coil-kick) * 0.16);
+  filter: url(#signal-runner-coil-glow);
+}
+
+.signal-runner__impulse-coil[data-kick-active="true"] .signal-runner__coil-rail {
+  stroke: #e9f8ff;
+}
+
+.signal-runner__impulse-coil[data-bass-active="true"] .signal-runner__coil-shell {
+  stroke: var(--signal-salmon);
+}
+
+@keyframes signal-runner-coil-current {
+  to {
+    stroke-dashoffset: -32;
+  }
+}
+
+@keyframes signal-runner-coil-packet {
+  to {
+    transform: translateX(14px);
+    opacity: 1;
+  }
 }
 
 .signal-runner__controls {
@@ -186,10 +298,10 @@
   }
 }
 
-@media (max-width: 980px) {
-  .signal-runner__hud-pod {
+@container (max-width: 980px) {
+  .signal-runner__hud-content {
     min-height: 120px;
-    padding: 10px 12px 0;
+    padding: 10px clamp(4rem, 15%, 10rem) 0;
     gap: 10px;
   }
 
@@ -201,16 +313,6 @@
   .signal-runner__vector-drive-header,
   .signal-runner__vector-drive-values {
     gap: 8px;
-  }
-}
-
-@media (max-width: 640px) {
-  .signal-runner__hud-pod {
-    min-height: 80px;
-  }
-
-  .signal-runner__vector-drive {
-    display: none;
   }
 }
 
@@ -472,20 +574,21 @@
   }
 }
 
-@media (max-width: 720px) {
-  .signal-runner {
-    min-height: 420px;
-  }
-
-  .signal-runner__hud-pod {
-    width: calc(100% - 24px);
+@container (max-width: 760px) {
+  .signal-runner__hud-content {
     min-height: 0;
-    padding: 10px 12px 12px;
+    padding: 10px 15% 12px;
     grid-template-columns: minmax(0, 1fr);
     gap: 10px;
   }
 
+  .signal-runner__hud-slot--left,
   .signal-runner__hud-slot--right {
     display: none;
+  }
+
+  .signal-runner__vector-drive {
+    width: min(100%, 400px);
+    justify-self: center;
   }
 }
