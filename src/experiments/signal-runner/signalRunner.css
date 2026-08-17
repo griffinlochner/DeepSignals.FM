@@ -74,7 +74,7 @@
   min-height: 124px;
   padding: 8px clamp(4rem, 15%, 10rem) 14px;
   display: grid;
-  grid-template-columns: 82px minmax(320px, 400px) 82px;
+  grid-template-columns: 120px minmax(320px, 400px) 150px;
   align-items: end;
   justify-content: center;
   gap: 6px;
@@ -111,7 +111,7 @@
 }
 
 .signal-runner__hud-slot--left {
-  width: min(100%, 82px);
+  width: min(100%, 120px);
   grid-template-rows: minmax(78px, 1fr) auto;
   justify-self: end;
   align-content: center;
@@ -125,8 +125,403 @@
 }
 
 .signal-runner__hud-slot--right {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
   border: 0;
   background: transparent;
+  box-shadow: none;
+  padding: 0;
+  gap: 6px;
+}
+
+/* Hypnotic spiral bay widget */
+
+.signal-runner__spiral {
+  --signal-runner-spiral-glow: 0;
+  --signal-runner-spiral-color-a: #47f7ff;
+  --signal-runner-spiral-color-b: #ff7fa1;
+  width: 46px;
+  height: 46px;
+  justify-self: center;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 50%, rgba(138, 92, 255, 0.16), rgba(1, 7, 10, 0.9) 70%);
+  box-shadow:
+    inset 0 0 10px rgba(0, 0, 0, 0.6),
+    0 0 calc(2px + var(--signal-runner-spiral-glow) * 12px)
+      rgba(71, 247, 255, calc(0.12 + var(--signal-runner-spiral-glow) * 0.45));
+}
+
+.signal-runner__spiral-svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.signal-runner__spiral-rotor {
+  transform-origin: 24px 24px;
+}
+
+.signal-runner__spiral-arm {
+  fill: none;
+  stroke-linecap: round;
+  stroke-width: calc(1.1px + var(--signal-runner-spiral-glow) * 1.1px);
+  opacity: calc(0.3 + var(--signal-runner-spiral-glow) * 0.7);
+}
+
+.signal-runner__spiral-arm--a {
+  stroke: var(--signal-runner-spiral-color-a);
+}
+
+.signal-runner__spiral-arm--b {
+  stroke: var(--signal-runner-spiral-color-b);
+}
+
+.signal-runner__spiral-core {
+  fill: #e9f8ff;
+  opacity: calc(0.28 + var(--signal-runner-spiral-glow) * 0.72);
+}
+
+.signal-runner__spiral-rim {
+  fill: none;
+  stroke: rgba(156, 255, 87, calc(0.16 + var(--signal-runner-spiral-glow) * 0.4));
+  stroke-width: 1;
+}
+
+.signal-runner__spiral[data-active="false"],
+.signal-runner__spiral[data-motion="false"] {
+  filter: saturate(0.2) brightness(0.5);
+}
+
+/* Decoding glyph strip */
+
+.signal-runner__glyph-strip {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  flex: none;
+  width: 14px;
+  height: 86px;
+  box-sizing: border-box;
+  padding: 6px 2px;
+  border: 1px solid rgba(71, 247, 255, 0.16);
+  border-radius: 4px;
+  background: rgba(1, 7, 10, 0.6);
+  box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.6);
+  font-family: var(--display);
+  font-size: 0.5rem;
+  line-height: 1;
+  color: rgba(233, 248, 255, 0.55);
+  overflow: hidden;
+}
+
+.signal-runner__glyph-cell {
+  display: block;
+  opacity: 0.75;
+  text-shadow: 0 0 4px currentColor;
+}
+
+.signal-runner__glyph-strip[data-chroma="false"] {
+  color: rgba(71, 247, 255, 0.4);
+  filter: brightness(0.85);
+}
+
+.signal-runner__glyph-strip[data-motion="false"] .signal-runner__glyph-cell {
+  opacity: 0.35;
+}
+
+/* Micro pulse ladder */
+
+.signal-runner__pulse-ladder {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 3px;
+  flex: none;
+  width: 14px;
+  height: 86px;
+  box-sizing: border-box;
+  padding: 4px;
+  border: 1px solid rgba(156, 255, 87, 0.18);
+  border-radius: 4px;
+  background: rgba(1, 7, 10, 0.6);
+  box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.6);
+  overflow: hidden;
+}
+
+.signal-runner__pulse-rung {
+  --signal-runner-rung-level: 0;
+  flex: 1;
+  border-radius: 1px;
+  background: linear-gradient(180deg, #9cff57, #47f7ff);
+  opacity: calc(0.22 + var(--signal-runner-rung-level) * 0.78);
+  box-shadow: 0 0 calc(1px + var(--signal-runner-rung-level) * 6px)
+    rgba(156, 255, 87, calc(0.2 + var(--signal-runner-rung-level) * 0.6));
+  transform: scaleY(calc(0.35 + var(--signal-runner-rung-level) * 0.65));
+  transform-origin: bottom;
+}
+
+.signal-runner__pulse-ladder[data-active="false"] .signal-runner__pulse-rung,
+.signal-runner__pulse-ladder[data-motion="false"] .signal-runner__pulse-rung {
+  filter: saturate(0.2) brightness(0.5);
+}
+
+/* Decoding slogan readout, docked beside the LED bank as a fixed-height ticker */
+
+.signal-runner__lower-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+}
+
+.signal-runner__slogan-strip {
+  --signal-runner-slogan-gap: 26px;
+  --signal-runner-slogan-duration: 8s;
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  height: 16px;
+  box-sizing: border-box;
+  overflow: hidden;
+  border: 1px solid rgba(71, 247, 255, 0.22);
+  border-radius: 4px;
+  background: rgba(0, 2, 4, 0.72);
+  box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.6);
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 14%, #000 86%, transparent 100%);
+  mask-image: linear-gradient(90deg, transparent 0, #000 14%, #000 86%, transparent 100%);
+}
+
+.signal-runner__slogan-track {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  gap: var(--signal-runner-slogan-gap);
+  width: max-content;
+  padding-left: 6px;
+  animation: signal-runner-slogan-scroll var(--signal-runner-slogan-duration) linear infinite;
+  will-change: transform;
+}
+
+.signal-runner__slogan-text {
+  display: block;
+  white-space: nowrap;
+  font-size: 0.4rem;
+  letter-spacing: 0.05em;
+  color: rgba(233, 248, 255, 0.75);
+}
+
+.signal-runner__slogan-strip[data-chroma="true"] .signal-runner__slogan-text {
+  color: var(--signal-green);
+  text-shadow: 0 0 5px rgba(156, 255, 87, 0.32);
+}
+
+.signal-runner__slogan-strip[data-motion="false"] .signal-runner__slogan-track {
+  animation-play-state: paused;
+}
+
+@keyframes signal-runner-slogan-scroll {
+  0% {
+    transform: translateX(0);
+  }
+
+  100% {
+    transform: translateX(calc(-50% - var(--signal-runner-slogan-gap) / 2));
+  }
+}
+
+/* Kick heat sensor */
+
+.signal-runner__heat-sensor {
+  --signal-runner-heat-level: 0;
+  position: relative;
+  flex: none;
+  width: 16px;
+  height: 86px;
+  border: 1px solid rgba(71, 247, 255, calc(0.28 + var(--signal-runner-heat-level) * 0.4));
+  border-radius: 4px;
+  background: rgba(1, 7, 10, 0.72);
+  box-shadow:
+    inset 0 0 8px rgba(0, 0, 0, 0.65),
+    0 0 calc(2px + var(--signal-runner-heat-level) * 11px)
+      rgba(255, 116, 54, calc(0.06 + var(--signal-runner-heat-level) * 0.5));
+  overflow: hidden;
+}
+
+.signal-runner__heat-sensor-track {
+  position: absolute;
+  inset: 2px;
+  background: repeating-linear-gradient(
+    180deg,
+    rgba(71, 247, 255, 0.12) 0 1px,
+    transparent 1px 6px
+  );
+}
+
+.signal-runner__heat-sensor-fill {
+  position: absolute;
+  inset: 2px;
+  border-radius: 2px;
+  background: linear-gradient(
+    180deg,
+    #ff2f2f 0%,
+    #ff7a1f 16%,
+    #ffd23d 32%,
+    #9cff57 52%,
+    #47f7ff 76%,
+    #8a5cff 100%
+  );
+  clip-path: inset(calc(100% - var(--signal-runner-heat-level) * 100%) 0 0 0);
+  filter: brightness(calc(0.8 + var(--signal-runner-heat-level) * 0.7));
+}
+
+.signal-runner__heat-sensor-cap {
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  height: 2px;
+  bottom: calc(var(--signal-runner-heat-level) * (100% - 4px));
+  background: #fff3ea;
+  opacity: calc(0.12 + var(--signal-runner-heat-level) * 0.88);
+  box-shadow: 0 0 calc(2px + var(--signal-runner-heat-level) * 8px)
+    rgba(255, 138, 61, calc(0.2 + var(--signal-runner-heat-level) * 0.8));
+}
+
+.signal-runner__heat-sensor[data-active="false"],
+.signal-runner__heat-sensor[data-motion="false"] {
+  filter: saturate(0.2) brightness(0.55);
+}
+
+.signal-runner__sensor-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.signal-runner__spiral-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+/* Keeps the right bay stack inside the original HUD pod height. */
+.signal-runner__spiral-row .signal-runner__signal-bar {
+  height: 46px;
+}
+
+/* Secondary psychedelic signal bars */
+
+.signal-runner__signal-bar {
+  --signal-runner-bar-level: 0;
+  position: relative;
+  flex: none;
+  width: 12px;
+  height: 86px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+  background: rgba(1, 7, 10, 0.72);
+  box-shadow:
+    inset 0 0 8px rgba(0, 0, 0, 0.65),
+    0 0 calc(2px + var(--signal-runner-bar-level) * 10px)
+      var(--signal-runner-bar-glow, rgba(255, 54, 200, 0.4));
+  overflow: hidden;
+}
+
+.signal-runner__signal-bar-track {
+  position: absolute;
+  inset: 2px;
+  background: repeating-linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.08) 0 1px,
+    transparent 1px 7px
+  );
+}
+
+.signal-runner__signal-bar-fill {
+  position: absolute;
+  inset: 2px;
+  border-radius: 2px;
+  background: var(--signal-runner-bar-gradient);
+  clip-path: inset(calc(100% - var(--signal-runner-bar-level) * 100%) 0 0 0);
+  filter: brightness(calc(0.82 + var(--signal-runner-bar-level) * 0.6));
+}
+
+.signal-runner__signal-bar-cap {
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  height: 2px;
+  bottom: calc(var(--signal-runner-bar-level) * (100% - 4px));
+  background: #fff;
+  opacity: calc(0.1 + var(--signal-runner-bar-level) * 0.85);
+  box-shadow: 0 0 calc(2px + var(--signal-runner-bar-level) * 7px)
+    var(--signal-runner-bar-glow, rgba(255, 54, 200, 0.6));
+}
+
+.signal-runner__signal-bar--ember {
+  --signal-runner-bar-glow: rgba(255, 92, 214, 0.55);
+  --signal-runner-bar-gradient: linear-gradient(
+    180deg,
+    #ff9a1f 0%,
+    #ff4fd8 34%,
+    #b026ff 68%,
+    #4a1bff 100%
+  );
+}
+
+.signal-runner__signal-bar--ion {
+  --signal-runner-bar-glow: rgba(71, 247, 255, 0.55);
+  --signal-runner-bar-gradient: linear-gradient(
+    180deg,
+    #f4ff3d 0%,
+    #5cffb0 34%,
+    #47f7ff 68%,
+    #3a4dff 100%
+  );
+}
+
+.signal-runner__signal-bar[data-active="false"] {
+  filter: saturate(0.2) brightness(0.55);
+}
+
+/* Chroma LED bank */
+
+.signal-runner__led-bank {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  align-content: center;
+  gap: 5px;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 78px;
+  padding: 7px 6px;
+  border: 1px solid rgba(71, 247, 255, 0.2);
+  border-radius: 6px;
+  background: rgba(1, 7, 10, 0.52);
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
+}
+
+.signal-runner__led {
+  --signal-runner-led-level: 0;
+  --signal-runner-led-color: #47f7ff;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--signal-runner-led-color);
+  opacity: calc(0.1 + var(--signal-runner-led-level) * 0.9);
+  box-shadow: 0 0 calc(1px + var(--signal-runner-led-level) * 7px)
+    var(--signal-runner-led-color);
+}
+
+.signal-runner__led--secondary {
+  transform: scale(0.7);
+}
+
+.signal-runner__led-bank[data-active="false"] .signal-runner__led {
+  filter: saturate(0.22) brightness(0.55);
   box-shadow: none;
 }
 
@@ -134,7 +529,7 @@
   --signal-runner-coil-energy: 0;
   --signal-runner-coil-kick: 0;
   --signal-runner-coil-bass: 0;
-  width: 58px;
+  width: 32px;
   height: 86px;
   justify-self: start;
   align-self: center;
@@ -142,12 +537,27 @@
   overflow: hidden;
 }
 
+.signal-runner__impulse-coil::before {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border-radius: 6px;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(71, 247, 255, calc(0.06 + var(--signal-runner-coil-energy) * 0.24)) 0%,
+    transparent 72%
+  );
+  box-shadow: 0 0 calc(3px + var(--signal-runner-coil-kick) * 12px)
+    rgba(156, 255, 87, calc(0.06 + var(--signal-runner-coil-bass) * 0.32));
+  pointer-events: none;
+}
+
 .signal-runner__impulse-coil-chamber {
   position: absolute;
-  top: 14px;
-  left: -14px;
+  top: 27.5px;
+  left: -27px;
   width: 86px;
-  height: 58px;
+  height: 31px;
   transform: rotate(90deg);
   transform-origin: center;
 }
@@ -309,8 +719,12 @@
   .signal-runner__hud-content {
     min-height: 108px;
     padding: 7px clamp(4rem, 15%, 10rem) 10px;
-    grid-template-columns: 70px minmax(300px, 340px) 70px;
+    grid-template-columns: 112px minmax(300px, 340px) 96px;
     gap: 4px;
+  }
+
+  .signal-runner__slogan-strip {
+    display: none;
   }
 
   .signal-runner__vector-drive {
@@ -322,6 +736,44 @@
   .signal-runner__vector-drive-header,
   .signal-runner__vector-drive-values {
     gap: 8px;
+  }
+
+  .signal-runner__spiral {
+    width: 38px;
+    height: 38px;
+  }
+
+  .signal-runner__heat-sensor {
+    width: 13px;
+  }
+
+  .signal-runner__impulse-coil {
+    width: 28px;
+  }
+
+  .signal-runner__glyph-strip,
+  .signal-runner__pulse-ladder {
+    width: 12px;
+  }
+
+  .signal-runner__signal-bar {
+    width: 10px;
+  }
+
+  .signal-runner__spiral-row .signal-runner__signal-bar {
+    height: 38px;
+  }
+}
+
+@container (max-width: 880px) {
+  .signal-runner__spiral,
+  .signal-runner__signal-bar {
+    display: none;
+  }
+
+  .signal-runner__glyph-strip,
+  .signal-runner__pulse-ladder {
+    display: none;
   }
 }
 

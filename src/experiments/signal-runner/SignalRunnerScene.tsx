@@ -36,7 +36,12 @@ const GATE_RECYCLE_VARIANCE = 180;
 const PHENOMENON_POINT_COUNT = 96;
 const PHENOMENON_NODE_COUNT = 6;
 const PHENOMENON_ARC_COUNT = 3;
-const POST_EVENT_BANK_DURATION = 0.9;
+const STEERING_MIN_DURATION = 6;
+const STEERING_DURATION_VARIANCE = 4;
+const SIGNAL_ORB_SPAWN_DEPTH = 940;
+const SIGNAL_ORB_RECYCLE_VARIANCE = 620;
+const SIGNAL_ORB_MIN_SCALE = 0.55;
+const SIGNAL_ORB_MAX_SCALE = 1.72;
 
 function mapSmoothedEnergyToSpeed(smoothedEnergy: number) {
   const normalized = THREE.MathUtils.clamp(
@@ -70,6 +75,9 @@ function SignalRunnerScene(props: SignalRunnerSceneProps) {
 
     const camera = new THREE.PerspectiveCamera(68, 1, 0.1, 130);
     camera.position.set(0, 0, 0);
+
+    const flightWorld = new THREE.Group();
+    scene.add(flightWorld);
 
     const renderer = new THREE.WebGLRenderer({
       antialias: true,
@@ -140,7 +148,7 @@ function SignalRunnerScene(props: SignalRunnerSceneProps) {
       depthWrite: false,
     });
     const stars = new THREE.Points(pointGeometry, pointMaterial);
-    scene.add(stars);
+    flightWorld.add(stars);
 
     const streakGeometry = new THREE.BufferGeometry();
     const streakPositionAttribute = new THREE.BufferAttribute(streakPositions, 3);
@@ -156,7 +164,7 @@ function SignalRunnerScene(props: SignalRunnerSceneProps) {
       depthWrite: false,
     });
     const streaks = new THREE.LineSegments(streakGeometry, streakMaterial);
-    scene.add(streaks);
+    flightWorld.add(streaks);
 
     const createHelixPositions = (phase: number, radius: number) => {
       const positions = new Float32Array(PHENOMENON_POINT_COUNT * 3);
@@ -255,7 +263,63 @@ function SignalRunnerScene(props: SignalRunnerSceneProps) {
     frequencyGate.add(railGroup, nodes, arcs);
     frequencyGate.name = "signal-phenomena-v1";
     frequencyGate.position.set(0, 0, -GATE_SPAWN_DEPTH);
-    scene.add(frequencyGate);
+    flightWorld.add(frequencyGate);
+
+    const orbCoreGeometry = new THREE.SphereGeometry(2.2, 16, 12);
+    const orbCoreMaterial = new THREE.MeshBasicMaterial({
+      color: 0x47f7ff,
+      transparent: true,
+      opacity: 0.72,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    });
+    const orbCore = new THREE.Mesh(orbCoreGeometry, orbCoreMaterial);
+    const orbShellGeometry = new THREE.SphereGeometry(3.05, 12, 8);
+    const orbShellMaterial = new THREE.MeshBasicMaterial({
+      color: 0x9cff57,
+      transparent: true,
+      opacity: 0.28,
+      wireframe: true,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    });
+    const orbShell = new THREE.Mesh(orbShellGeometry, orbShellMaterial);
+    const signalOrb = new THREE.Group();
+    signalOrb.add(orbCore, orbShell);
+    signalOrb.name = "signal-orb-v1";
+    flightWorld.add(signalOrb);
+
+    const orbCoreBaseColor = new THREE.Color(0x47f7ff);
+    const orbShellBaseColor = new THREE.Color(0x9cff57);
+    let orbSpinY = 0.18;
+    let orbSpinZ = -0.08;
+
+    const resetSignalOrb = () => {
+      const side = Math.random() < 0.5 ? -1 : 1;
+      signalOrb.position.set(
+        side * (14 + Math.random() * 10),
+        (Math.random() - 0.5) * 14,
+        -(SIGNAL_ORB_SPAWN_DEPTH + Math.random() * SIGNAL_ORB_RECYCLE_VARIANCE),
+      );
+      signalOrb.rotation.set(0, 0, 0);
+      signalOrb.scale.setScalar(
+        SIGNAL_ORB_MIN_SCALE +
+          Math.random() * (SIGNAL_ORB_MAX_SCALE - SIGNAL_ORB_MIN_SCALE),
+      );
+
+      const coreIndex = Math.floor(Math.random() * brandColors.length);
+      const shellIndex =
+        (coreIndex + 1 + Math.floor(Math.random() * (brandColors.length - 1))) %
+        brandColors.length;
+      orbCoreBaseColor.copy(brandColors[coreIndex]);
+      orbShellBaseColor.copy(brandColors[shellIndex]);
+      orbCoreMaterial.color.copy(orbCoreBaseColor);
+      orbShellMaterial.color.copy(orbShellBaseColor);
+
+      orbSpinY = (Math.random() < 0.5 ? -1 : 1) * (0.09 + Math.random() * 0.2);
+      orbSpinZ = (Math.random() < 0.5 ? -1 : 1) * (0.04 + Math.random() * 0.11);
+    };
+    resetSignalOrb();
 
     const gateCyan = new THREE.Color(0x47f7ff);
     const gateGreen = new THREE.Color(0x9cff57);
@@ -288,8 +352,11 @@ function SignalRunnerScene(props: SignalRunnerSceneProps) {
     let previousSignalId = initialState.signalId;
     let lastTelemetryPublishedAt = 0;
     let previousPhenomenonZ = frequencyGate.position.z;
-    let bankRemaining = 0;
-    let bankDirection = 1;
+    let steeringElapsed = STEERING_MIN_DURATION;
+    let steeringDuration = STEERING_MIN_DURATION;
+    let steeringYaw = 0;
+    let steeringPitch = 0;
+    let steeringRoll = 0;
 
     const animate = (frameTime: number) => {
       const delta = Math.min((frameTime - lastFrameTime) / 1000, 0.05);
@@ -322,10 +389,25 @@ function SignalRunnerScene(props: SignalRunnerSceneProps) {
 
       frequencyGate.position.z += travelVelocity * delta;
       frequencyGate.rotation.z += delta * 0.032;
+      signalOrb.position.z += travelVelocity * delta;
+      signalOrb.rotation.y += delta * orbSpinY;
+      signalOrb.rotation.z += delta * orbSpinZ;
 
       if (previousPhenomenonZ < -0.8 && frequencyGate.position.z >= -0.8) {
-        bankRemaining = POST_EVENT_BANK_DURATION;
-        bankDirection *= -1;
+        if (Math.random() < 0.72) {
+          steeringElapsed = 0;
+          steeringDuration =
+            STEERING_MIN_DURATION + Math.random() * STEERING_DURATION_VARIANCE;
+          const direction = Math.random() < 0.5 ? -1 : 1;
+          steeringYaw = direction * (0.072 + Math.random() * 0.042);
+          steeringPitch =
+            Math.random() < 0.32
+              ? (Math.random() < 0.5 ? -1 : 1) * (0.014 + Math.random() * 0.012)
+              : 0;
+          steeringRoll = direction * (0.022 + Math.random() * 0.014);
+        } else {
+          steeringElapsed = steeringDuration;
+        }
       }
       previousPhenomenonZ = frequencyGate.position.z;
 
@@ -336,11 +418,30 @@ function SignalRunnerScene(props: SignalRunnerSceneProps) {
         previousPhenomenonZ = frequencyGate.position.z;
       }
 
-      bankRemaining = Math.max(0, bankRemaining - delta);
-      const bankProgress = bankRemaining / POST_EVENT_BANK_DURATION;
-      const bankTarget = bankDirection * 0.018 * bankProgress * bankProgress;
-      camera.rotation.z +=
-        (bankTarget - camera.rotation.z) * (1 - Math.exp(-delta * 5));
+      if (signalOrb.position.z > NEAR_PLANE + 4) {
+        resetSignalOrb();
+      }
+
+      steeringElapsed = Math.min(steeringDuration, steeringElapsed + delta);
+      const steeringProgress = steeringElapsed / steeringDuration;
+      const steeringBuild = THREE.MathUtils.smoothstep(
+        steeringProgress,
+        0,
+        0.72,
+      );
+      const steeringRelease =
+        1 - THREE.MathUtils.smoothstep(steeringProgress, 0.84, 1);
+      const steeringWeight = Math.min(steeringBuild, steeringRelease);
+      const steeringTargetYaw = steeringYaw * steeringWeight;
+      const steeringTargetPitch = steeringPitch * steeringWeight;
+      const steeringTargetRoll = steeringRoll * steeringWeight;
+      const steeringSmoothing = 1 - Math.exp(-delta * 1.8);
+      flightWorld.rotation.y +=
+        (steeringTargetYaw - flightWorld.rotation.y) * steeringSmoothing;
+      flightWorld.rotation.x +=
+        (steeringTargetPitch - flightWorld.rotation.x) * steeringSmoothing;
+      flightWorld.rotation.z +=
+        (steeringTargetRoll - flightWorld.rotation.z) * steeringSmoothing;
 
       const chromaAmount = state.chromaEnabled
         ? THREE.MathUtils.clamp(smoothedEnergy * 0.58 + (snapshot?.kickPulse ?? 0) * 0.22, 0, 1)
@@ -372,6 +473,13 @@ function SignalRunnerScene(props: SignalRunnerSceneProps) {
         phenomenonColorScratch.copy(gateSalmon).lerp(gateCyan, chromaAmount * 0.24);
         nodeMaterial.color.copy(phenomenonColorScratch);
         arcMaterial.color.copy(phenomenonColorScratch);
+        phenomenonColorScratch.copy(orbCoreBaseColor).lerp(gateSalmon, chromaAmount * 0.22);
+        orbCoreMaterial.color.copy(phenomenonColorScratch);
+        phenomenonColorScratch.copy(orbShellBaseColor).lerp(gateCyan, chromaAmount * 0.2);
+        orbShellMaterial.color.copy(phenomenonColorScratch);
+      } else {
+        orbCoreMaterial.color.copy(orbCoreBaseColor);
+        orbShellMaterial.color.copy(orbShellBaseColor);
       }
 
       railGreen.coreMaterial.opacity = 0.46 + chromaAmount * 0.08;
@@ -380,6 +488,8 @@ function SignalRunnerScene(props: SignalRunnerSceneProps) {
       railCyan.glowMaterial.opacity = 0.08 + chromaAmount * 0.04;
       nodeMaterial.opacity = 0.62 + arcBurst * 0.16 + chromaAmount * 0.1;
       arcMaterial.opacity = 0.06 + arcBurst * 0.34 + chromaAmount * 0.08;
+      orbCoreMaterial.opacity = 0.68 + chromaAmount * 0.12;
+      orbShellMaterial.opacity = 0.24 + chromaAmount * 0.1;
 
       for (let index = 0; index < STAR_COUNT; index += 1) {
         const pointOffset = index * 3;
@@ -449,6 +559,10 @@ function SignalRunnerScene(props: SignalRunnerSceneProps) {
       nodeMaterial.dispose();
       arcGeometry.dispose();
       arcMaterial.dispose();
+      orbCoreGeometry.dispose();
+      orbCoreMaterial.dispose();
+      orbShellGeometry.dispose();
+      orbShellMaterial.dispose();
       scene.clear();
       renderer.renderLists.dispose();
       renderer.dispose();
