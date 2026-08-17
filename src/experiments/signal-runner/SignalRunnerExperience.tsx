@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import type { AudioReactiveSnapshot } from "../../app/playerTypes";
 import SignalRunnerScene, {
   type SignalRunnerControlMode,
@@ -18,6 +19,29 @@ type SignalRunnerExperienceProps = {
   onDriveTelemetry?: (telemetry: SignalRunnerDriveTelemetry) => void;
 };
 
+const DRIVE_SEGMENT_COUNT = 14;
+const BLAST_OFF_ARM_SPEED = 68;
+const BLAST_OFF_ARM_HOLD_MS = 400;
+const BLAST_OFF_TRIGGER_SPEED = 99;
+const BLAST_OFF_COOLDOWN_MS = 1500;
+const BLAST_OFF_DISPLAY_MS = 1100;
+
+function getDriveState(actualSpeed: number) {
+  if (actualSpeed < 20) {
+    return "DRIFT";
+  }
+
+  if (actualSpeed < 55) {
+    return "CRUISE";
+  }
+
+  if (actualSpeed < 90) {
+    return "SURGE";
+  }
+
+  return "HYPER";
+}
+
 function SignalRunnerExperience({
   controlMode,
   manualFlightSpeed,
@@ -30,6 +54,89 @@ function SignalRunnerExperience({
   getLatestAudioSnapshot,
   onDriveTelemetry,
 }: SignalRunnerExperienceProps) {
+  const [driveTelemetry, setDriveTelemetry] = useState<SignalRunnerDriveTelemetry>({
+    controlMode,
+    smoothedEnergy: 0,
+    targetSpeed: isPlaying ? manualFlightSpeed : 0,
+    actualSpeed: isPlaying ? manualFlightSpeed : 0,
+  });
+  const [blastOffVisible, setBlastOffVisible] = useState(false);
+  const blastOffLowSinceRef = useRef<number | null>(null);
+  const blastOffArmedRef = useRef(false);
+  const blastOffCooldownUntilRef = useRef(0);
+  const blastOffTimeoutRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (isPlaying) {
+      return;
+    }
+
+    blastOffLowSinceRef.current = null;
+    blastOffArmedRef.current = false;
+  }, [isPlaying]);
+
+  useEffect(() => {
+    return () => {
+      if (blastOffTimeoutRef.current !== null) {
+        window.clearTimeout(blastOffTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const handleDriveTelemetry = (telemetry: SignalRunnerDriveTelemetry) => {
+    setDriveTelemetry(telemetry);
+    onDriveTelemetry?.(telemetry);
+
+    if (!isPlaying) {
+      setBlastOffVisible(false);
+      return;
+    }
+
+    const now = performance.now();
+
+    if (telemetry.targetSpeed <= BLAST_OFF_ARM_SPEED) {
+      blastOffLowSinceRef.current ??= now;
+
+      if (now - blastOffLowSinceRef.current >= BLAST_OFF_ARM_HOLD_MS) {
+        blastOffArmedRef.current = true;
+      }
+
+      return;
+    }
+
+    blastOffLowSinceRef.current = null;
+
+    if (
+      !blastOffArmedRef.current ||
+      telemetry.targetSpeed < BLAST_OFF_TRIGGER_SPEED ||
+      now < blastOffCooldownUntilRef.current
+    ) {
+      return;
+    }
+
+    blastOffArmedRef.current = false;
+    blastOffCooldownUntilRef.current = now + BLAST_OFF_COOLDOWN_MS;
+    setBlastOffVisible(true);
+
+    if (blastOffTimeoutRef.current !== null) {
+      window.clearTimeout(blastOffTimeoutRef.current);
+    }
+
+    blastOffTimeoutRef.current = window.setTimeout(() => {
+      blastOffTimeoutRef.current = null;
+      setBlastOffVisible(false);
+    }, BLAST_OFF_DISPLAY_MS);
+  };
+
+  const actualSpeed = Math.max(0, Math.min(100, driveTelemetry.actualSpeed));
+  const targetSpeed = Math.max(0, Math.min(100, driveTelemetry.targetSpeed));
+  const activeSegmentCount = Math.round(
+    (actualSpeed / 100) * DRIVE_SEGMENT_COUNT,
+  );
+  const targetMarkerStyle = {
+    "--signal-runner-target-position": `${targetSpeed}%`,
+  } as CSSProperties;
+
   return (
     <div
       className="signal-runner"
@@ -46,7 +153,7 @@ function SignalRunnerExperience({
             signalId={signalId}
             motionEnabled={motionEnabled}
             getLatestAudioSnapshot={getLatestAudioSnapshot}
-            onDriveTelemetry={onDriveTelemetry}
+            onDriveTelemetry={handleDriveTelemetry}
           />
           <div className="signal-runner__glass" aria-hidden="true" />
         </div>
@@ -61,7 +168,6 @@ function SignalRunnerExperience({
             <i />
             <i />
           </div>
-          <span>CANOPY SEAL // NOMINAL</span>
         </div>
       </div>
 
@@ -81,8 +187,6 @@ function SignalRunnerExperience({
           {controlMode === "audio" ? (
             <div className="signal-runner__audio-drive-active">
               <span>AUDIO DRIVE ACTIVE</span>
-              <strong>CONTROLLED BY SIGNAL</strong>
-              <small>MANUAL FLIGHT SPEED INACTIVE</small>
             </div>
           ) : (
             <>
@@ -107,19 +211,56 @@ function SignalRunnerExperience({
             </>
           )}
         </aside>
-        <div className="signal-runner__drive-status" aria-hidden="true">
-          <span>{controlMode === "audio" ? "AUDIO DRIVE" : "MANUAL DRIVE"}</span>
-          <strong>
-            {controlMode === "audio"
-              ? "SIG"
-              : Math.round(manualFlightSpeed).toString().padStart(3, "0")}
-          </strong>
-        </div>
-        <div className="signal-runner__console-bank signal-runner__console-bank--salmon" aria-hidden="true">
-          <span />
-          <span />
-          <span />
-          <span />
+        <section className="signal-runner__vector-drive" aria-label="Vector drive">
+          <div className="signal-runner__vector-drive-header">
+            <span>VECTOR DRIVE</span>
+            <strong>{getDriveState(actualSpeed)}</strong>
+          </div>
+          <div className="signal-runner__vector-drive-values">
+            <p>
+              <span>ACTUAL</span>
+              <strong>{Math.round(actualSpeed).toString().padStart(3, "0")}</strong>
+            </p>
+            <p>
+              <span>TARGET</span>
+              <strong>{Math.round(targetSpeed).toString().padStart(3, "0")}</strong>
+            </p>
+          </div>
+          <div className="signal-runner__drive-meter" style={targetMarkerStyle}>
+            <span className="signal-runner__target-marker" aria-hidden="true" />
+            <div className="signal-runner__drive-segments" aria-hidden="true">
+              {Array.from({ length: DRIVE_SEGMENT_COUNT }, (_, index) => (
+                <i
+                  className={index < activeSegmentCount ? "is-active" : ""}
+                  key={index}
+                />
+              ))}
+            </div>
+          </div>
+          {isPlaying && blastOffVisible ? (
+            <div className="signal-runner__blast-off" role="status">
+              BLAST OFF!
+            </div>
+          ) : null}
+        </section>
+        <div className="signal-runner__systems-panel" aria-hidden="true">
+          <div>
+            <span>NAV</span>
+            <i />
+          </div>
+          <div>
+            <span>LINK</span>
+            <i />
+          </div>
+          <div>
+            <span>CORE</span>
+            <i />
+          </div>
+          <div className="signal-runner__systems-buttons">
+            <b />
+            <b />
+            <b />
+          </div>
         </div>
       </div>
     </div>

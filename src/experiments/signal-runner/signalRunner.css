@@ -96,6 +96,23 @@
   height: 3px;
   background: var(--signal-green);
   box-shadow: 0 0 8px rgba(156, 255, 87, 0.78);
+  animation: signal-runner-status-breathe 3.6s ease-in-out infinite;
+}
+
+.signal-runner__status-lights i:nth-child(2) {
+  animation-delay: -1.2s;
+}
+
+.signal-runner__status-lights i:nth-child(3) {
+  animation-delay: -2.4s;
+}
+
+.signal-runner__status-lights i:nth-child(4) {
+  animation-delay: -0.6s;
+}
+
+.signal-runner__status-lights i:nth-child(5) {
+  animation-delay: -1.8s;
 }
 
 .signal-runner__status-lights i:nth-child(3n) {
@@ -549,8 +566,9 @@
 .signal-runner__lower-console {
   z-index: 3;
   height: clamp(130px, 20vh, 196px);
-  padding: clamp(20px, 3vh, 34px) clamp(42px, 7vw, 112px) 14px;
-  grid-template-columns: minmax(60px, 0.65fr) minmax(170px, 0.95fr) minmax(230px, 1.35fr) minmax(70px, 0.5fr) minmax(60px, 0.65fr);
+  padding: clamp(18px, 2.4vh, 28px) clamp(24px, 3vw, 42px) 12px;
+  grid-template-columns: minmax(48px, 0.45fr) minmax(110px, 0.8fr) minmax(170px, 1.1fr) minmax(250px, 1.65fr) minmax(72px, 0.55fr);
+  gap: clamp(8px, 1.4vw, 18px);
   background:
     linear-gradient(90deg, rgba(71, 247, 255, 0.035), transparent 22%, transparent 78%, rgba(71, 247, 255, 0.035)),
     linear-gradient(180deg, #111923 0%, #090e15 36%, #020304 100%);
@@ -559,28 +577,252 @@
     0 -10px 32px rgba(0, 0, 0, 0.42);
 }
 
-.signal-runner__drive-status {
-  display: grid;
-  justify-items: center;
-  align-content: center;
-  gap: 3px;
-  color: var(--signal-cyan);
-  font-size: 0.52rem;
-  letter-spacing: 0.14em;
-}
-
-.signal-runner__drive-status strong {
-  color: var(--signal-green);
-  font-size: clamp(1rem, 0.8rem + 0.7vw, 1.5rem);
-  line-height: 1;
-}
-
 .signal-runner__controls {
   position: static;
   width: 100%;
   box-sizing: border-box;
   background: rgba(2, 7, 10, 0.76);
   transform: none;
+}
+
+.signal-runner__vector-drive {
+  position: relative;
+  min-width: 0;
+  padding: 8px 10px 9px;
+  align-self: stretch;
+  display: grid;
+  align-content: center;
+  gap: 5px;
+  overflow: hidden;
+  border: 1px solid rgba(71, 247, 255, 0.42);
+  background:
+    linear-gradient(90deg, rgba(71, 247, 255, 0.045), transparent 34%, rgba(255, 127, 161, 0.035)),
+    rgba(1, 7, 10, 0.94);
+  box-shadow:
+    inset 0 0 18px rgba(71, 247, 255, 0.055),
+    0 0 14px rgba(0, 0, 0, 0.34);
+}
+
+.signal-runner__vector-drive::before,
+.signal-runner__vector-drive::after {
+  content: "";
+  position: absolute;
+  width: 18px;
+  height: 7px;
+  border-color: var(--signal-cyan);
+  opacity: 0.52;
+}
+
+.signal-runner__vector-drive::before {
+  top: 3px;
+  left: 3px;
+  border-top: 1px solid;
+  border-left: 1px solid;
+}
+
+.signal-runner__vector-drive::after {
+  right: 3px;
+  bottom: 3px;
+  border-right: 1px solid;
+  border-bottom: 1px solid;
+}
+
+.signal-runner__vector-drive-header,
+.signal-runner__vector-drive-values {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.signal-runner__vector-drive-header {
+  color: var(--signal-cyan);
+  font-size: 0.55rem;
+  letter-spacing: 0.14em;
+}
+
+.signal-runner__vector-drive-header strong {
+  color: var(--signal-green);
+  font-size: 0.58rem;
+}
+
+.signal-runner__vector-drive-values p {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.signal-runner__vector-drive-values span {
+  color: rgba(233, 248, 255, 0.48);
+  font-size: 0.45rem;
+  letter-spacing: 0.1em;
+}
+
+.signal-runner__vector-drive-values p:first-child strong {
+  color: #eaffff;
+  font-size: clamp(1.18rem, 0.92rem + 0.65vw, 1.7rem);
+  line-height: 0.9;
+  text-shadow: 0 0 10px rgba(71, 247, 255, 0.25);
+}
+
+.signal-runner__vector-drive-values p:last-child strong {
+  color: var(--signal-salmon);
+  font-size: 0.78rem;
+}
+
+.signal-runner__drive-meter {
+  position: relative;
+  padding-top: 7px;
+}
+
+.signal-runner__target-marker {
+  position: absolute;
+  z-index: 2;
+  top: 0;
+  left: clamp(2px, var(--signal-runner-target-position), calc(100% - 2px));
+  width: 1px;
+  height: 17px;
+  background: var(--signal-salmon);
+  box-shadow: 0 0 6px rgba(255, 127, 161, 0.78);
+  transform: translateX(-50%);
+}
+
+.signal-runner__target-marker::before {
+  content: "";
+  position: absolute;
+  top: -1px;
+  left: 50%;
+  border-width: 3px 3px 0;
+  border-style: solid;
+  border-color: var(--signal-salmon) transparent transparent;
+  transform: translateX(-50%);
+}
+
+.signal-runner__drive-segments {
+  height: 13px;
+  display: grid;
+  grid-template-columns: repeat(14, minmax(3px, 1fr));
+  gap: 3px;
+}
+
+.signal-runner__drive-segments i {
+  border: 1px solid rgba(71, 247, 255, 0.1);
+  background: rgba(42, 65, 72, 0.16);
+  transform: skewX(-8deg);
+}
+
+.signal-runner__drive-segments i.is-active {
+  background: var(--signal-cyan);
+  border-color: rgba(142, 255, 255, 0.82);
+  box-shadow: 0 0 5px rgba(71, 247, 255, 0.48);
+}
+
+.signal-runner__drive-segments i.is-active:nth-child(n + 7) {
+  background: var(--signal-green);
+  border-color: rgba(205, 255, 172, 0.8);
+  box-shadow: 0 0 5px rgba(156, 255, 87, 0.48);
+}
+
+.signal-runner__drive-segments i.is-active:nth-child(n + 12) {
+  background: var(--signal-salmon);
+  border-color: rgba(255, 190, 207, 0.84);
+  box-shadow: 0 0 6px rgba(255, 127, 161, 0.56);
+}
+
+.signal-runner__blast-off {
+  position: absolute;
+  z-index: 4;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #fff1f5;
+  background: rgba(32, 5, 15, 0.84);
+  border: 1px solid var(--signal-salmon);
+  font-size: clamp(0.86rem, 0.7rem + 0.55vw, 1.25rem);
+  letter-spacing: 0.16em;
+  text-shadow:
+    0 0 8px rgba(255, 127, 161, 0.9),
+    0 0 18px rgba(255, 87, 183, 0.5);
+  animation: signal-runner-blast-off 1100ms ease-out both;
+}
+
+@keyframes signal-runner-blast-off {
+  0% {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+
+  18%,
+  68% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(1.035);
+  }
+}
+
+.signal-runner__systems-panel {
+  min-width: 0;
+  padding: 8px;
+  display: grid;
+  align-content: center;
+  gap: 6px;
+  border: 1px solid rgba(255, 127, 161, 0.24);
+  background: rgba(3, 7, 11, 0.72);
+}
+
+.signal-runner__systems-panel > div:not(.signal-runner__systems-buttons) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 5px;
+  color: rgba(233, 248, 255, 0.5);
+  font-size: 0.43rem;
+  letter-spacing: 0.1em;
+}
+
+.signal-runner__systems-panel i {
+  width: 16px;
+  height: 3px;
+  background: var(--signal-cyan);
+  box-shadow: 0 0 5px rgba(71, 247, 255, 0.4);
+}
+
+.signal-runner__systems-panel > div:nth-child(2) i {
+  background: var(--signal-green);
+  box-shadow: 0 0 5px rgba(156, 255, 87, 0.4);
+}
+
+.signal-runner__systems-panel > div:nth-child(3) i {
+  background: var(--signal-salmon);
+  box-shadow: 0 0 5px rgba(255, 127, 161, 0.4);
+}
+
+.signal-runner__systems-buttons {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+}
+
+.signal-runner__systems-buttons b {
+  height: 8px;
+  border: 1px solid rgba(71, 247, 255, 0.18);
+  background: rgba(71, 247, 255, 0.045);
+}
+
+@keyframes signal-runner-status-breathe {
+  0%,
+  100% {
+    opacity: 0.62;
+  }
+
+  50% {
+    opacity: 1;
+  }
 }
 
 @media (max-width: 620px) {
@@ -596,7 +838,7 @@
   .signal-runner__canopy {
     top: 42px;
     right: 10px;
-    bottom: 190px;
+    bottom: 276px;
     left: 10px;
     clip-path: polygon(5% 0, 95% 0, 100% 7%, 97% 100%, 3% 100%, 0 7%);
   }
@@ -610,16 +852,16 @@
     box-sizing: border-box;
     left: 0;
     right: 0;
-    height: 190px;
+    height: 276px;
     padding: 12px 28px;
     grid-template-columns: minmax(0, 1fr) 64px;
-    grid-template-rows: auto auto;
+    grid-template-rows: auto auto auto;
     gap: 8px 12px;
   }
 
   .signal-runner__controls {
     grid-column: 1 / -1;
-    grid-row: 2;
+    grid-row: 3;
   }
 
   .signal-runner__console-display {
@@ -636,10 +878,15 @@
     display: none;
   }
 
-  .signal-runner__drive-status {
+  .signal-runner__vector-drive {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    min-height: 92px;
+  }
+
+  .signal-runner__systems-panel {
     grid-column: 2;
     grid-row: 1;
-    min-width: 0;
   }
 }
 

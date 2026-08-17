@@ -78,7 +78,7 @@ function SignalLabShell() {
   const [selectedEnvironmentId, setSelectedEnvironmentId] =
     useState<SignalLabEnvironmentId>("cosmic-nexus");
   const [runnerControlMode, setRunnerControlMode] =
-    useState<SignalRunnerControlMode>("manual");
+    useState<SignalRunnerControlMode>("audio");
   const [manualFlightSpeed, setManualFlightSpeed] = useState(42);
   const [runnerTelemetry, setRunnerTelemetry] =
     useState<SignalRunnerDriveTelemetry>(ZERO_RUNNER_TELEMETRY);
