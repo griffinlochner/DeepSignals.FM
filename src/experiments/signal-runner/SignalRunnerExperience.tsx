@@ -143,53 +143,25 @@ function SignalRunnerExperience({
       data-playing={isPlaying}
       data-chroma-enabled={chromaEnabled}
     >
-      <div className="signal-runner__canopy" aria-label="Spaceflight windshield">
-        <div className="signal-runner__windshield">
-          <SignalRunnerScene
-            controlMode={controlMode}
-            flightSpeed={manualFlightSpeed}
-            isPlaying={isPlaying}
-            volume={volume}
-            signalId={signalId}
-            motionEnabled={motionEnabled}
-            getLatestAudioSnapshot={getLatestAudioSnapshot}
-            onDriveTelemetry={handleDriveTelemetry}
-          />
-          <div className="signal-runner__glass" aria-hidden="true" />
-        </div>
+      <div className="signal-runner__viewscreen" aria-label="Spaceflight viewscreen">
+        <SignalRunnerScene
+          controlMode={controlMode}
+          flightSpeed={manualFlightSpeed}
+          isPlaying={isPlaying}
+          volume={volume}
+          signalId={signalId}
+          motionEnabled={motionEnabled}
+          getLatestAudioSnapshot={getLatestAudioSnapshot}
+          onDriveTelemetry={handleDriveTelemetry}
+        />
+        <div className="signal-runner__glass" aria-hidden="true" />
       </div>
 
-      <div className="signal-runner__cockpit" aria-hidden="true">
-        <div className="signal-runner__upper-frame">
-          <div className="signal-runner__status-lights signal-runner__status-lights--upper">
-            <i />
-            <i />
-            <i />
-            <i />
-            <i />
-          </div>
-        </div>
-      </div>
-
-      <div className="signal-runner__lower-console">
-        <div className="signal-runner__console-bank signal-runner__console-bank--green" aria-hidden="true">
-          <span />
-          <span />
-          <span />
-          <span />
-        </div>
-        <div className="signal-runner__console-display" aria-hidden="true">
-          <span>DEEPSIGNALS.FM</span>
-          <strong>SIGNAL RUNNER</strong>
-          <small>FLIGHT SYSTEM // EXPERIMENTAL</small>
-        </div>
-        <aside className="signal-runner__controls" aria-label="Signal Runner controls">
-          {controlMode === "audio" ? (
-            <div className="signal-runner__audio-drive-active">
-              <span>AUDIO DRIVE ACTIVE</span>
-            </div>
-          ) : (
-            <>
+      <div className="signal-runner__hud-pod">
+        {/* Reserved for future HUD widgets. */}
+        <div className="signal-runner__hud-slot signal-runner__hud-slot--left">
+          {controlMode === "manual" ? (
+            <aside className="signal-runner__controls" aria-label="Signal Runner controls">
               <div className="signal-runner__control-heading">
                 <label htmlFor="signal-runner-speed">FLIGHT SPEED</label>
                 <output htmlFor="signal-runner-speed">{Math.round(manualFlightSpeed)}%</output>
@@ -208,9 +180,10 @@ function SignalRunnerExperience({
                 <span>CRUISE</span>
                 <span>HYPER</span>
               </div>
-            </>
-          )}
-        </aside>
+            </aside>
+          ) : null}
+        </div>
+
         <section className="signal-runner__vector-drive" aria-label="Vector drive">
           <div className="signal-runner__vector-drive-header">
             <span>VECTOR DRIVE</span>
@@ -243,25 +216,12 @@ function SignalRunnerExperience({
             </div>
           ) : null}
         </section>
-        <div className="signal-runner__systems-panel" aria-hidden="true">
-          <div>
-            <span>NAV</span>
-            <i />
-          </div>
-          <div>
-            <span>LINK</span>
-            <i />
-          </div>
-          <div>
-            <span>CORE</span>
-            <i />
-          </div>
-          <div className="signal-runner__systems-buttons">
-            <b />
-            <b />
-            <b />
-          </div>
-        </div>
+
+        {/* Reserved for future HUD widgets. */}
+        <div
+          className="signal-runner__hud-slot signal-runner__hud-slot--right"
+          aria-hidden="true"
+        />
       </div>
     </div>
   );

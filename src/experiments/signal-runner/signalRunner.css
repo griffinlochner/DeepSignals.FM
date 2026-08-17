@@ -9,7 +9,7 @@
   min-height: 480px;
   overflow: hidden;
   color: #e9f8ff;
-  background: #020202;
+  background: #010104;
   font-family: var(--display);
   isolation: isolate;
   filter: grayscale(0) saturate(1);
@@ -21,316 +21,95 @@
   filter: grayscale(1) saturate(0.12);
 }
 
+/* Full-bleed space view */
+
+.signal-runner__viewscreen {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  overflow: hidden;
+}
+
 .signal-runner__space {
   position: absolute;
+  z-index: 0;
   inset: 0;
-  z-index: -2;
 }
 
 .signal-runner__space canvas {
+  display: block;
   width: 100%;
   height: 100%;
 }
 
-.signal-runner__cockpit {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
-
-.signal-runner__cockpit::before,
-.signal-runner__cockpit::after {
-  content: "";
-  position: absolute;
-  z-index: 2;
-  top: 0;
-  bottom: 0;
-  width: clamp(24px, 7vw, 112px);
-  background:
-    linear-gradient(90deg, rgba(71, 247, 255, 0.09), transparent 16%),
-    linear-gradient(180deg, #080b10 0%, #030509 45%, #0a0d12 100%);
-  border-color: rgba(71, 247, 255, 0.26);
-  border-style: solid;
-  box-shadow: inset 0 0 34px rgba(0, 0, 0, 0.9);
-}
-
-.signal-runner__cockpit::before {
-  left: 0;
-  border-width: 0 1px 0 0;
-  clip-path: polygon(0 0, 100% 0, 60% 42%, 100% 100%, 0 100%);
-}
-
-.signal-runner__cockpit::after {
-  right: 0;
-  border-width: 0 0 0 1px;
-  clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 40% 42%);
-  transform: scaleX(-1);
-}
-
-.signal-runner__upper-frame {
-  position: absolute;
-  z-index: 3;
-  top: 0;
-  left: clamp(20px, 6vw, 96px);
-  right: clamp(20px, 6vw, 96px);
-  height: clamp(38px, 6.5vh, 66px);
-  padding: 0 clamp(18px, 4vw, 58px);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 18px;
-  color: rgba(71, 247, 255, 0.78);
-  background: linear-gradient(180deg, #0a0e14 0%, rgba(4, 7, 11, 0.94) 78%, transparent 100%);
-  border-bottom: 1px solid rgba(71, 247, 255, 0.3);
-  font-size: clamp(0.54rem, 0.48rem + 0.2vw, 0.72rem);
-  letter-spacing: 0.18em;
-}
-
-.signal-runner__status-lights {
-  display: flex;
-  gap: 12px;
-}
-
-.signal-runner__status-lights i {
-  width: 18px;
-  height: 3px;
-  background: var(--signal-green);
-  box-shadow: 0 0 8px rgba(156, 255, 87, 0.78);
-  animation: signal-runner-status-breathe 3.6s ease-in-out infinite;
-}
-
-.signal-runner__status-lights i:nth-child(2) {
-  animation-delay: -1.2s;
-}
-
-.signal-runner__status-lights i:nth-child(3) {
-  animation-delay: -2.4s;
-}
-
-.signal-runner__status-lights i:nth-child(4) {
-  animation-delay: -0.6s;
-}
-
-.signal-runner__status-lights i:nth-child(5) {
-  animation-delay: -1.8s;
-}
-
-.signal-runner__status-lights i:nth-child(3n) {
-  background: var(--signal-salmon);
-  box-shadow: 0 0 8px rgba(255, 127, 161, 0.72);
-}
-
-.signal-runner__strut {
-  position: absolute;
-  z-index: 3;
-  top: 3vh;
-  bottom: 20vh;
-  width: clamp(22px, 3.4vw, 54px);
-  background: linear-gradient(90deg, #06090e, #111720 48%, #030508);
-  border: 1px solid rgba(71, 247, 255, 0.2);
-  box-shadow:
-    inset 0 0 16px rgba(0, 0, 0, 0.9),
-    0 0 14px rgba(71, 247, 255, 0.05);
-}
-
-.signal-runner__strut--left {
-  left: clamp(40px, 12vw, 190px);
-  clip-path: polygon(0 0, 100% 0, 38% 100%, 0 100%);
-}
-
-.signal-runner__strut--right {
-  right: clamp(40px, 12vw, 190px);
-  clip-path: polygon(0 0, 100% 0, 100% 100%, 62% 100%);
-}
-
-.signal-runner__reticle {
-  position: absolute;
-  left: 50%;
-  top: 46%;
-  width: 76px;
-  height: 76px;
-  border: 1px solid rgba(71, 247, 255, 0.28);
-  border-radius: 50%;
-  transform: translate(-50%, -50%);
-  box-shadow: 0 0 14px rgba(71, 247, 255, 0.06);
-}
-
-.signal-runner__reticle::before,
-.signal-runner__reticle::after,
-.signal-runner__reticle span::before,
-.signal-runner__reticle span::after {
-  content: "";
-  position: absolute;
-  background: var(--signal-cyan);
-  opacity: 0.46;
-}
-
-.signal-runner__reticle::before,
-.signal-runner__reticle::after {
-  top: 50%;
-  width: 15px;
-  height: 1px;
-}
-
-.signal-runner__reticle::before {
-  left: -8px;
-}
-
-.signal-runner__reticle::after {
-  right: -8px;
-}
-
-.signal-runner__reticle span::before,
-.signal-runner__reticle span::after {
-  left: 50%;
-  width: 1px;
-  height: 15px;
-}
-
-.signal-runner__reticle span::before {
-  top: -8px;
-}
-
-.signal-runner__reticle span::after {
-  bottom: -8px;
-}
-
-.signal-runner__readout {
+.signal-runner__glass {
   position: absolute;
   z-index: 1;
-  top: 18%;
-  display: grid;
-  gap: 2px;
-  color: var(--signal-cyan);
-  font-size: 0.62rem;
-  letter-spacing: 0.14em;
-  text-shadow: 0 0 8px rgba(71, 247, 255, 0.36);
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(115deg, rgba(71, 247, 255, 0.035), transparent 24%),
+    linear-gradient(180deg, rgba(71, 247, 255, 0.022), transparent 35%),
+    radial-gradient(120% 90% at 50% 50%, transparent 58%, rgba(0, 0, 0, 0.42) 100%);
 }
 
-.signal-runner__readout strong {
-  color: var(--signal-green);
-  font-size: 0.86rem;
-}
+/* Cockpit-style lower HUD pod */
 
-.signal-runner__readout small {
-  color: rgba(233, 248, 255, 0.5);
-  font-size: 0.52rem;
-}
-
-.signal-runner__readout--left {
-  left: clamp(78px, 15vw, 240px);
-}
-
-.signal-runner__readout--right {
-  right: clamp(78px, 15vw, 240px);
-  text-align: right;
-}
-
-.signal-runner__lower-console {
+.signal-runner__hud-pod {
   position: absolute;
   z-index: 4;
-  left: clamp(10px, 4vw, 64px);
-  right: clamp(10px, 4vw, 64px);
+  left: 0;
+  right: 0;
   bottom: 0;
-  height: clamp(106px, 18vh, 180px);
-  padding: clamp(18px, 3vh, 34px) clamp(30px, 8vw, 128px) 12px;
+  width: 100%;
+  min-height: 150px;
+  padding: 12px 18px 0;
   display: grid;
-  grid-template-columns: minmax(80px, 1fr) minmax(220px, 1.5fr) minmax(80px, 1fr);
-  align-items: start;
-  gap: clamp(18px, 5vw, 72px);
-  background: linear-gradient(180deg, rgba(5, 8, 12, 0.88), #0a0e14 36%, #020304 100%);
-  border-top: 1px solid rgba(71, 247, 255, 0.34);
-  clip-path: polygon(8% 0, 92% 0, 100% 38%, 100% 100%, 0 100%, 0 38%);
-  box-shadow: inset 0 12px 28px rgba(0, 0, 0, 0.68);
+  grid-template-columns: minmax(150px, 0.9fr) minmax(0, 1fr) minmax(150px, 0.9fr);
+  align-items: end;
+  gap: 12px;
+  overflow: visible;
+  isolation: isolate;
 }
 
-.signal-runner__console-bank {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
-  padding-top: 18px;
-}
-
-.signal-runner__console-bank span {
-  height: 6px;
-  background: var(--signal-green);
-  box-shadow: 0 0 8px rgba(156, 255, 87, 0.55);
-}
-
-.signal-runner__console-bank--salmon span {
-  background: var(--signal-salmon);
-  box-shadow: 0 0 8px rgba(255, 127, 161, 0.55);
-}
-
-.signal-runner__console-display {
-  padding: 10px 14px;
-  display: grid;
-  justify-items: center;
-  gap: 2px;
-  background: rgba(2, 8, 11, 0.92);
-  border: 1px solid rgba(71, 247, 255, 0.38);
-  box-shadow: inset 0 0 18px rgba(71, 247, 255, 0.06);
-  text-align: center;
-  letter-spacing: 0.16em;
-}
-
-.signal-runner__console-display span {
-  color: var(--signal-green);
-  font-size: 0.58rem;
-}
-
-.signal-runner__console-display strong {
-  color: var(--signal-cyan);
-  font-size: clamp(0.8rem, 0.7rem + 0.45vw, 1.15rem);
-}
-
-.signal-runner__console-display small {
-  color: var(--signal-salmon);
-  font-size: 0.48rem;
-}
-
-.signal-runner__identity {
+.signal-runner__hud-pod::before {
+  content: "";
   position: absolute;
-  z-index: 5;
-  top: clamp(54px, 8vh, 84px);
-  left: 50%;
-  text-align: center;
-  transform: translateX(-50%);
+  inset: 0;
+  z-index: 0;
+  border: 1px solid rgba(71, 247, 255, 0.42);
+  border-bottom: none;
+  background:
+    linear-gradient(180deg, rgba(6, 18, 22, 0.98), rgba(3, 9, 12, 0.98) 58%, rgba(1, 5, 7, 0.99) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(71, 247, 255, 0.18),
+    inset 0 0 24px rgba(71, 247, 255, 0.04),
+    0 -18px 26px rgba(0, 0, 0, 0.18);
+  clip-path: polygon(15% 0, 85% 0, 100% 100%, 0 100%);
   pointer-events: none;
 }
 
-.signal-runner__identity p,
-.signal-runner__identity h1 {
-  margin: 0;
-  letter-spacing: 0.16em;
+.signal-runner__hud-pod > * {
+  position: relative;
+  z-index: 1;
 }
 
-.signal-runner__identity p {
-  color: rgba(71, 247, 255, 0.68);
-  font-size: clamp(0.5rem, 0.46rem + 0.15vw, 0.66rem);
-}
 
-.signal-runner__identity h1 {
-  margin-top: 4px;
-  color: var(--signal-green);
-  font-family: var(--display);
-  font-size: clamp(1rem, 0.75rem + 1vw, 1.85rem);
-  font-weight: 600;
-  line-height: 1;
-  text-shadow: 0 0 14px rgba(156, 255, 87, 0.3);
+/* Empty bays kept open for future widgets */
+.signal-runner__hud-slot {
+  min-width: 0;
+  display: grid;
+  align-content: center;
+  padding: 10px 16px 16px;
+  border: 1px solid rgba(71, 247, 255, 0.12);
+  border-radius: 10px 10px 0 0;
+  background: rgba(1, 7, 10, 0.42);
+  box-shadow: inset 0 0 16px rgba(0, 0, 0, 0.44);
+  clip-path: polygon(10% 0, 100% 0, 92% 100%, 0 100%);
 }
 
 .signal-runner__controls {
-  position: absolute;
-  z-index: 6;
-  left: 50%;
-  bottom: clamp(118px, 20vh, 196px);
-  width: min(330px, calc(100% - 180px));
-  padding: 10px 14px;
-  background: rgba(2, 7, 10, 0.88);
-  border: 1px solid rgba(71, 247, 255, 0.38);
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.56);
-  transform: translateX(-50%);
+  min-width: 0;
 }
 
 .signal-runner__control-heading,
@@ -343,8 +122,8 @@
 .signal-runner__control-heading {
   margin-bottom: 7px;
   color: var(--signal-cyan);
-  font-size: 0.68rem;
-  letter-spacing: 0.16em;
+  font-size: 0.6rem;
+  letter-spacing: 0.14em;
 }
 
 .signal-runner__control-heading output {
@@ -365,242 +144,56 @@
   letter-spacing: 0.12em;
 }
 
-.signal-runner__audio-drive-active {
-  min-height: 48px;
-  display: grid;
-  align-content: center;
-  justify-items: center;
-  gap: 2px;
-  text-align: center;
-  letter-spacing: 0.12em;
-}
-
-.signal-runner__audio-drive-active span {
-  color: var(--signal-green);
-  font-size: 0.62rem;
-}
-
-.signal-runner__audio-drive-active strong {
-  color: var(--signal-cyan);
-  font-size: 0.72rem;
-}
-
-.signal-runner__audio-drive-active small {
-  color: rgba(233, 248, 255, 0.46);
-  font-size: 0.46rem;
-}
-
-@media (max-width: 620px) {
-  .signal-runner {
-    min-height: 420px;
-  }
-
-  .signal-runner__upper-frame {
-    left: 10px;
-    right: 10px;
-    padding-inline: 12px;
-  }
-
-  .signal-runner__upper-frame > span:last-child,
-  .signal-runner__readout--left,
-  .signal-runner__console-bank {
-    display: none;
-  }
-
-  .signal-runner__strut--left {
-    left: 22px;
-  }
-
-  .signal-runner__strut--right {
-    right: 22px;
-  }
-
-  .signal-runner__readout--right {
-    top: 20%;
-    right: 54px;
-  }
-
-  .signal-runner__reticle {
-    width: 58px;
-    height: 58px;
-  }
-
-  .signal-runner__lower-console {
-    left: 0;
-    right: 0;
-    height: 100px;
-    padding: 18px 54px 10px;
-    grid-template-columns: 1fr;
-  }
-
-  .signal-runner__controls {
-    bottom: 112px;
-    width: min(260px, calc(100% - 92px));
-  }
-
-  .signal-runner__identity {
-    top: 62px;
-    width: calc(100% - 120px);
-  }
-}
-
-@media (max-height: 600px) {
-  .signal-runner__identity {
-    top: 48px;
-  }
-
-  .signal-runner__lower-console {
-    height: 96px;
-  }
-
-  .signal-runner__controls {
-    bottom: 106px;
-  }
-}
-
-/* Phase 2B unified canopy */
-.signal-runner {
-  background:
-    linear-gradient(90deg, #0b1119 0%, #030609 11%, #030609 89%, #0b1119 100%),
-    #020202;
-}
-
-.signal-runner__canopy {
-  position: absolute;
-  z-index: 1;
-  top: clamp(48px, 7vh, 70px);
-  right: clamp(20px, 4vw, 66px);
-  bottom: clamp(130px, 20vh, 196px);
-  left: clamp(20px, 4vw, 66px);
-  clip-path: polygon(7% 0, 93% 0, 100% 10%, 96% 100%, 4% 100%, 0 10%);
-  background:
-    linear-gradient(90deg, #0a1119 0%, #162330 50%, #0a1119 100%);
-  filter: drop-shadow(0 0 12px rgba(71, 247, 255, 0.16));
-}
-
-.signal-runner__canopy::before {
-  content: "";
-  position: absolute;
-  z-index: 2;
-  inset: 0;
-  pointer-events: none;
-  background:
-    linear-gradient(180deg, rgba(71, 247, 255, 0.18), transparent 8%),
-    linear-gradient(90deg, rgba(71, 247, 255, 0.12), transparent 9%, transparent 91%, rgba(71, 247, 255, 0.12));
-  opacity: 0.55;
-}
-
-.signal-runner__windshield {
-  position: absolute;
-  z-index: 1;
-  inset: clamp(8px, 0.75vw, 12px);
-  overflow: hidden;
-  clip-path: polygon(7% 0, 93% 0, 100% 10%, 96% 100%, 4% 100%, 0 10%);
-  background: #010104;
-  box-shadow:
-    inset 0 0 0 1px rgba(71, 247, 255, 0.58),
-    inset 0 0 42px rgba(0, 0, 0, 0.62);
-}
-
-.signal-runner__windshield::before {
-  content: "";
-  position: absolute;
-  z-index: 2;
-  inset: 0;
-  pointer-events: none;
-  box-shadow:
-    inset 0 0 0 1px rgba(71, 247, 255, 0.48),
-    inset 0 0 20px rgba(71, 247, 255, 0.04);
-}
-
-.signal-runner__windshield .signal-runner__space {
-  position: absolute;
-  z-index: 0;
-  inset: 0;
-}
-
-.signal-runner__windshield .signal-runner__space canvas {
-  display: block;
-}
-
-.signal-runner__glass {
-  position: absolute;
-  z-index: 1;
-  inset: 0;
-  pointer-events: none;
-  background:
-    linear-gradient(115deg, rgba(71, 247, 255, 0.035), transparent 24%),
-    linear-gradient(180deg, rgba(71, 247, 255, 0.022), transparent 35%);
-}
-
-.signal-runner__cockpit {
-  z-index: 2;
-}
-
-.signal-runner__cockpit::before,
-.signal-runner__cockpit::after {
-  display: none;
-}
-
-.signal-runner__upper-frame {
-  left: 0;
-  right: 0;
-  height: clamp(40px, 5.8vh, 58px);
-  padding-inline: clamp(28px, 5vw, 80px);
-  justify-content: flex-end;
-  border-bottom: 0;
-  border-radius: 0;
-  background:
-    linear-gradient(90deg, #111923 0%, #090e15 50%, #111923 100%);
-  box-shadow: inset 0 -10px 20px rgba(0, 0, 0, 0.42);
-}
-
-.signal-runner__upper-frame::after {
-  content: none;
-}
-
-.signal-runner__status-lights--upper {
-  margin-left: auto;
-}
-
-.signal-runner__lower-console {
-  z-index: 3;
-  height: clamp(130px, 20vh, 196px);
-  padding: clamp(18px, 2.4vh, 28px) clamp(24px, 3vw, 42px) 12px;
-  grid-template-columns: minmax(48px, 0.45fr) minmax(110px, 0.8fr) minmax(170px, 1.1fr) minmax(250px, 1.65fr) minmax(72px, 0.55fr);
-  gap: clamp(8px, 1.4vw, 18px);
-  background:
-    linear-gradient(90deg, rgba(71, 247, 255, 0.035), transparent 22%, transparent 78%, rgba(71, 247, 255, 0.035)),
-    linear-gradient(180deg, #111923 0%, #090e15 36%, #020304 100%);
-  box-shadow:
-    inset 0 12px 28px rgba(0, 0, 0, 0.68),
-    0 -10px 32px rgba(0, 0, 0, 0.42);
-}
-
-.signal-runner__controls {
-  position: static;
-  width: 100%;
-  box-sizing: border-box;
-  background: rgba(2, 7, 10, 0.76);
-  transform: none;
-}
+/* Vector Drive hero widget */
 
 .signal-runner__vector-drive {
   position: relative;
+  width: min(100%, 520px);
+  max-width: 100%;
   min-width: 0;
-  padding: 8px 10px 9px;
-  align-self: stretch;
+  justify-self: center;
+  padding: 12px 18px 14px;
   display: grid;
   align-content: center;
   gap: 5px;
-  overflow: hidden;
+  overflow: visible;
   border: 1px solid rgba(71, 247, 255, 0.42);
+  border-radius: 12px 12px 0 0;
   background:
     linear-gradient(90deg, rgba(71, 247, 255, 0.045), transparent 34%, rgba(255, 127, 161, 0.035)),
     rgba(1, 7, 10, 0.94);
   box-shadow:
     inset 0 0 18px rgba(71, 247, 255, 0.055),
     0 0 14px rgba(0, 0, 0, 0.34);
+  min-height: 100%;
+}
+
+@media (max-width: 980px) {
+  .signal-runner__hud-pod {
+    min-height: 120px;
+    padding: 10px 12px 0;
+    gap: 10px;
+  }
+
+  .signal-runner__vector-drive {
+    width: min(100%, 440px);
+    padding: 10px 14px 12px;
+  }
+
+  .signal-runner__vector-drive-header,
+  .signal-runner__vector-drive-values {
+    gap: 8px;
+  }
+}
+
+@media (max-width: 640px) {
+  .signal-runner__hud-pod {
+    min-height: 80px;
+  }
+
+  .signal-runner__vector-drive {
+    display: none;
+  }
 }
 
 .signal-runner__vector-drive::before,
@@ -765,137 +358,20 @@
   }
 }
 
-.signal-runner__systems-panel {
-  min-width: 0;
-  padding: 8px;
-  display: grid;
-  align-content: center;
-  gap: 6px;
-  border: 1px solid rgba(255, 127, 161, 0.24);
-  background: rgba(3, 7, 11, 0.72);
-}
-
-.signal-runner__systems-panel > div:not(.signal-runner__systems-buttons) {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 5px;
-  color: rgba(233, 248, 255, 0.5);
-  font-size: 0.43rem;
-  letter-spacing: 0.1em;
-}
-
-.signal-runner__systems-panel i {
-  width: 16px;
-  height: 3px;
-  background: var(--signal-cyan);
-  box-shadow: 0 0 5px rgba(71, 247, 255, 0.4);
-}
-
-.signal-runner__systems-panel > div:nth-child(2) i {
-  background: var(--signal-green);
-  box-shadow: 0 0 5px rgba(156, 255, 87, 0.4);
-}
-
-.signal-runner__systems-panel > div:nth-child(3) i {
-  background: var(--signal-salmon);
-  box-shadow: 0 0 5px rgba(255, 127, 161, 0.4);
-}
-
-.signal-runner__systems-buttons {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 4px;
-}
-
-.signal-runner__systems-buttons b {
-  height: 8px;
-  border: 1px solid rgba(71, 247, 255, 0.18);
-  background: rgba(71, 247, 255, 0.045);
-}
-
-@keyframes signal-runner-status-breathe {
-  0%,
-  100% {
-    opacity: 0.62;
+@media (max-width: 720px) {
+  .signal-runner {
+    min-height: 420px;
   }
 
-  50% {
-    opacity: 1;
-  }
-}
-
-@media (max-width: 620px) {
-  .signal-runner__upper-frame {
-    padding-inline: 12px;
+  .signal-runner__hud-pod {
+    width: calc(100% - 24px);
+    min-height: 0;
+    padding: 10px 12px 12px;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
   }
 
-  .signal-runner__upper-frame > span,
-  .signal-runner__console-bank {
+  .signal-runner__hud-slot--right {
     display: none;
-  }
-
-  .signal-runner__canopy {
-    top: 42px;
-    right: 10px;
-    bottom: 276px;
-    left: 10px;
-    clip-path: polygon(5% 0, 95% 0, 100% 7%, 97% 100%, 3% 100%, 0 7%);
-  }
-
-  .signal-runner__windshield {
-    inset: 7px;
-    clip-path: polygon(5% 0, 95% 0, 100% 7%, 97% 100%, 3% 100%, 0 7%);
-  }
-
-  .signal-runner__lower-console {
-    box-sizing: border-box;
-    left: 0;
-    right: 0;
-    height: 276px;
-    padding: 12px 28px;
-    grid-template-columns: minmax(0, 1fr) 64px;
-    grid-template-rows: auto auto auto;
-    gap: 8px 12px;
-  }
-
-  .signal-runner__controls {
-    grid-column: 1 / -1;
-    grid-row: 3;
-  }
-
-  .signal-runner__console-display {
-    gap: 0;
-    padding: 5px 8px;
-  }
-
-  .signal-runner__console-display strong {
-    font-size: 0.76rem;
-    white-space: nowrap;
-  }
-
-  .signal-runner__console-display small {
-    display: none;
-  }
-
-  .signal-runner__vector-drive {
-    grid-column: 1 / -1;
-    grid-row: 2;
-    min-height: 92px;
-  }
-
-  .signal-runner__systems-panel {
-    grid-column: 2;
-    grid-row: 1;
-  }
-}
-
-@media (max-height: 600px) and (min-width: 621px) {
-  .signal-runner__canopy {
-    bottom: 122px;
-  }
-
-  .signal-runner__lower-console {
-    height: 122px;
   }
 }

@@ -67,6 +67,20 @@ const SIGNAL_ROWS: Array<{
   { label: "TRANSIENT", field: "transient" },
 ];
 
+function formatClock(seconds: number) {
+  if (!Number.isFinite(seconds) || seconds < 0) {
+    return "--:--";
+  }
+
+  const wholeSeconds = Math.floor(seconds);
+  const minutes = Math.floor(wholeSeconds / 60);
+  const remainder = wholeSeconds % 60;
+
+  return `${minutes.toString().padStart(2, "0")}:${remainder
+    .toString()
+    .padStart(2, "0")}`;
+}
+
 function SignalLabShell() {
   const [selectedSourceId, setSelectedSourceId] = useState(
     AUDIO_SOURCES[0]?.id ?? "",
@@ -133,6 +147,11 @@ function SignalLabShell() {
 
   const isLoading = controller.playbackStatus === "loading";
   const signalRunnerSelected = selectedEnvironmentId === "signal-runner";
+  const isLocalTrack = controller.audioSource.kind !== "live-stream";
+  const hasDuration = controller.duration > 0;
+  const scrubMax = hasDuration ? controller.duration : 0;
+  const scrubValue = Math.min(controller.currentTime, scrubMax);
+  const scrubDisabled = !controller.seekable || !hasDuration;
 
   return (
     <main className="signal-lab">
@@ -143,6 +162,8 @@ function SignalLabShell() {
           <p className="signal-lab__subtitle">Universal production signal monitor</p>
         </header>
 
+        <div className="signal-lab__layout">
+          <div className="signal-lab__column signal-lab__column--controls">
         <section className="signal-lab__controls" aria-label="Audio controls">
           <label className="signal-lab__field">
             <span>SOURCE</span>
@@ -184,6 +205,43 @@ function SignalLabShell() {
             </div>
           </div>
         </section>
+
+        {isLocalTrack ? (
+          <section className="signal-lab__scrub" aria-label="Local track position">
+            <div className="signal-lab__scrub-heading">
+              <span>POSITION</span>
+              <output>
+                {formatClock(scrubValue)} /{" "}
+                {hasDuration ? formatClock(controller.duration) : "--:--"}
+              </output>
+            </div>
+            <div className="signal-lab__scrub-row">
+              <input
+                type="range"
+                min={0}
+                max={scrubMax || 1}
+                step={0.01}
+                value={scrubValue}
+                disabled={scrubDisabled}
+                aria-label="Seek local track"
+                onChange={(event) =>
+                  controller.seekTo(Number(event.target.value))
+                }
+              />
+              <button
+                type="button"
+                className="signal-lab__scrub-restart"
+                disabled={scrubDisabled}
+                onClick={() => controller.seekTo(0)}
+              >
+                RESTART
+              </button>
+            </div>
+            {!hasDuration ? (
+              <p className="signal-lab__scrub-hint">WAITING FOR METADATA</p>
+            ) : null}
+          </section>
+        ) : null}
 
         <section className="signal-lab__status" aria-label="Audio status">
           <p>
@@ -245,7 +303,9 @@ function SignalLabShell() {
             </p>
           </div>
         </section>
+          </div>
 
+          <div className="signal-lab__column signal-lab__column--stage">
         <section
           className="signal-lab__environment"
           aria-labelledby="signal-lab-environment-title"
@@ -351,6 +411,8 @@ function SignalLabShell() {
             )}
           </div>
         </section>
+          </div>
+        </div>
       </div>
     </main>
   );
