@@ -42,6 +42,19 @@ function getDriveState(actualSpeed: number) {
   return "HYPER";
 }
 
+function getDriveValueClass(speed: number) {
+  switch (getDriveState(speed)) {
+    case "DRIFT":
+      return "signal-runner__actual-value--idle";
+    case "CRUISE":
+      return "signal-runner__actual-value--cyan";
+    case "SURGE":
+      return "signal-runner__actual-value--green";
+    case "HYPER":
+      return "signal-runner__actual-value--hyper";
+  }
+}
+
 function SignalRunnerExperience({
   controlMode,
   manualFlightSpeed,
@@ -130,12 +143,18 @@ function SignalRunnerExperience({
 
   const actualSpeed = Math.max(0, Math.min(100, driveTelemetry.actualSpeed));
   const targetSpeed = Math.max(0, Math.min(100, driveTelemetry.targetSpeed));
+  const motionState =
+    actualSpeed < targetSpeed - 3 ? "ACCEL" : actualSpeed > targetSpeed + 3 ? "DECEL" : "HOLD";
+  const motionSymbol =
+    motionState === "ACCEL" ? "▲" : motionState === "DECEL" ? "▼" : "•";
   const activeSegmentCount = Math.round(
     (actualSpeed / 100) * DRIVE_SEGMENT_COUNT,
   );
   const targetMarkerStyle = {
     "--signal-runner-target-position": `${targetSpeed}%`,
   } as CSSProperties;
+  const actualSpeedClass = getDriveValueClass(actualSpeed);
+  const targetSpeedClass = getDriveValueClass(targetSpeed);
 
   return (
     <div
@@ -187,17 +206,32 @@ function SignalRunnerExperience({
         <section className="signal-runner__vector-drive" aria-label="Vector drive">
           <div className="signal-runner__vector-drive-header">
             <span>VECTOR DRIVE</span>
-            <strong>{getDriveState(actualSpeed)}</strong>
+            <div className="signal-runner__vector-drive-status">
+              <strong>{getDriveState(actualSpeed)}</strong>
+              <span
+                className={`signal-runner__vector-drive-motion signal-runner__vector-drive-motion--${motionState.toLowerCase()}`}
+              >
+                {motionSymbol} {motionState}
+              </span>
+            </div>
           </div>
           <div className="signal-runner__vector-drive-values">
             <p>
               <span>ACTUAL</span>
-              <strong>{Math.round(actualSpeed).toString().padStart(3, "0")}</strong>
+              <strong className={actualSpeedClass}>
+                {Math.round(actualSpeed).toString().padStart(3, "0")}
+              </strong>
             </p>
             <p>
               <span>TARGET</span>
-              <strong>{Math.round(targetSpeed).toString().padStart(3, "0")}</strong>
+              <strong className={targetSpeedClass}>
+                {Math.round(targetSpeed).toString().padStart(3, "0")}
+              </strong>
             </p>
+          </div>
+          <div className="signal-runner__vector-drive-aux" aria-label="Vector drive sync">
+            <span className="signal-runner__sync-label">SYNC //</span>
+            <strong>{actualSpeed.toFixed(1)}</strong>
           </div>
           <div className="signal-runner__drive-meter" style={targetMarkerStyle}>
             <span className="signal-runner__target-marker" aria-hidden="true" />

@@ -166,6 +166,24 @@
     inset 0 0 18px rgba(71, 247, 255, 0.055),
     0 0 14px rgba(0, 0, 0, 0.34);
   min-height: 100%;
+  animation: signal-runner-vector-drive-pulse 5s ease-in-out infinite;
+}
+
+@keyframes signal-runner-vector-drive-pulse {
+  0%,
+  100% {
+    box-shadow:
+      inset 0 0 18px rgba(71, 247, 255, 0.055),
+      0 0 10px rgba(0, 0, 0, 0.34),
+      0 0 0 rgba(71, 247, 255, 0);
+  }
+
+  50% {
+    box-shadow:
+      inset 0 0 20px rgba(71, 247, 255, 0.075),
+      0 0 14px rgba(0, 0, 0, 0.42),
+      0 0 12px rgba(71, 247, 255, 0.16);
+  }
 }
 
 @media (max-width: 980px) {
@@ -221,7 +239,8 @@
 }
 
 .signal-runner__vector-drive-header,
-.signal-runner__vector-drive-values {
+.signal-runner__vector-drive-values,
+.signal-runner__vector-drive-aux {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -234,19 +253,47 @@
   letter-spacing: 0.14em;
 }
 
+.signal-runner__vector-drive-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .signal-runner__vector-drive-header strong {
   color: var(--signal-green);
   font-size: 0.58rem;
 }
 
+.signal-runner__vector-drive-motion {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.45rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.signal-runner__vector-drive-motion--accel {
+  color: var(--signal-cyan);
+}
+
+.signal-runner__vector-drive-motion--decel {
+  color: var(--signal-salmon);
+}
+
+.signal-runner__vector-drive-motion--hold {
+  color: rgba(233, 248, 255, 0.7);
+}
+
 .signal-runner__vector-drive-values p {
   margin: 0;
   display: flex;
-  align-items: baseline;
+  align-items: flex-end;
   gap: 6px;
 }
 
-.signal-runner__vector-drive-values span {
+.signal-runner__vector-drive-values span,
+.signal-runner__vector-drive-aux span {
   color: rgba(233, 248, 255, 0.48);
   font-size: 0.45rem;
   letter-spacing: 0.1em;
@@ -254,19 +301,62 @@
 
 .signal-runner__vector-drive-values p:first-child strong {
   color: #eaffff;
-  font-size: clamp(1.18rem, 0.92rem + 0.65vw, 1.7rem);
+  font-size: clamp(1.66rem, 1.2rem + 1vw, 2.35rem);
   line-height: 0.9;
+  letter-spacing: -0.05em;
   text-shadow: 0 0 10px rgba(71, 247, 255, 0.25);
 }
 
-.signal-runner__vector-drive-values p:last-child strong {
+.signal-runner__actual-value--idle {
+  color: #edf3ff;
+}
+
+.signal-runner__actual-value--cyan {
+  color: var(--signal-cyan);
+  text-shadow: 0 0 10px rgba(71, 247, 255, 0.5);
+}
+
+.signal-runner__actual-value--green {
+  color: var(--signal-green);
+  text-shadow: 0 0 10px rgba(156, 255, 87, 0.42);
+}
+
+.signal-runner__actual-value--hyper {
   color: var(--signal-salmon);
-  font-size: 0.78rem;
+  text-shadow: 0 0 12px rgba(255, 127, 161, 0.54);
+}
+
+.signal-runner__vector-drive-values p:last-child strong {
+  font-size: 0.98rem;
+}
+
+.signal-runner__vector-drive-aux {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+  margin-top: -2px;
+  padding: 0 2px;
+  color: rgba(233, 248, 255, 0.7);
+  font-size: 0.42rem;
+  letter-spacing: 0.12em;
+}
+
+.signal-runner__sync-label {
+  color: rgba(233, 248, 255, 0.62);
+}
+
+.signal-runner__vector-drive-aux strong {
+  color: rgba(71, 247, 255, 0.95);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
 }
 
 .signal-runner__drive-meter {
   position: relative;
   padding-top: 7px;
+  overflow: hidden;
 }
 
 .signal-runner__target-marker {
@@ -274,53 +364,77 @@
   z-index: 2;
   top: 0;
   left: clamp(2px, var(--signal-runner-target-position), calc(100% - 2px));
-  width: 1px;
-  height: 17px;
-  background: var(--signal-salmon);
+  width: 2px;
+  height: 14px;
+  background: rgba(255, 127, 161, 0.9);
   box-shadow: 0 0 6px rgba(255, 127, 161, 0.78);
   transform: translateX(-50%);
 }
 
-.signal-runner__target-marker::before {
-  content: "";
-  position: absolute;
-  top: -1px;
-  left: 50%;
-  border-width: 3px 3px 0;
-  border-style: solid;
-  border-color: var(--signal-salmon) transparent transparent;
-  transform: translateX(-50%);
-}
-
 .signal-runner__drive-segments {
+  position: relative;
   height: 13px;
   display: grid;
   grid-template-columns: repeat(14, minmax(3px, 1fr));
   gap: 3px;
+  padding: 2px 0;
+  border-radius: 5px;
+  background: rgba(5, 17, 23, 0.4);
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.7), inset 0 0 0 1px rgba(71, 247, 255, 0.08);
+  overflow: hidden;
 }
 
 .signal-runner__drive-segments i {
-  border: 1px solid rgba(71, 247, 255, 0.1);
-  background: rgba(42, 65, 72, 0.16);
+  position: relative;
+  border: 1px solid rgba(71, 247, 255, 0.08);
+  background: linear-gradient(180deg, rgba(23, 38, 44, 0.9), rgba(8, 16, 21, 0.9));
+  box-shadow: inset 0 1px 0 rgba(101, 166, 180, 0.08), inset 0 -2px 3px rgba(0, 0, 0, 0.75);
   transform: skewX(-8deg);
 }
 
 .signal-runner__drive-segments i.is-active {
-  background: var(--signal-cyan);
-  border-color: rgba(142, 255, 255, 0.82);
-  box-shadow: 0 0 5px rgba(71, 247, 255, 0.48);
+  position: relative;
+  background: linear-gradient(180deg, rgba(71, 247, 255, 1), rgba(71, 247, 255, 0.72));
+  border-color: rgba(142, 255, 255, 0.9);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    0 0 6px rgba(71, 247, 255, 0.5);
+}
+
+.signal-runner__drive-segments i.is-active::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.7), transparent);
+  transform: translateX(-100%);
+  animation: signal-runner-meter-sweep 3.2s ease-in-out infinite;
 }
 
 .signal-runner__drive-segments i.is-active:nth-child(n + 7) {
-  background: var(--signal-green);
-  border-color: rgba(205, 255, 172, 0.8);
-  box-shadow: 0 0 5px rgba(156, 255, 87, 0.48);
+  background: linear-gradient(180deg, rgba(156, 255, 87, 1), rgba(156, 255, 87, 0.7));
+  border-color: rgba(205, 255, 172, 0.86);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    0 0 6px rgba(156, 255, 87, 0.5);
 }
 
 .signal-runner__drive-segments i.is-active:nth-child(n + 12) {
-  background: var(--signal-salmon);
-  border-color: rgba(255, 190, 207, 0.84);
-  box-shadow: 0 0 6px rgba(255, 127, 161, 0.56);
+  background: linear-gradient(180deg, rgba(255, 127, 161, 1), rgba(255, 127, 161, 0.76));
+  border-color: rgba(255, 190, 207, 0.9);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.58),
+    0 0 7px rgba(255, 127, 161, 0.6);
+}
+
+@keyframes signal-runner-meter-sweep {
+  0% {
+    transform: translateX(-120%);
+  }
+
+  30%,
+  100% {
+    transform: translateX(130%);
+  }
 }
 
 .signal-runner__blast-off {
