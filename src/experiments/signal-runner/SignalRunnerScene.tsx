@@ -18,6 +18,7 @@ type SignalRunnerSceneProps = {
   volume: number;
   signalId: string | null;
   motionEnabled: boolean;
+  chromaEnabled: boolean;
   getLatestAudioSnapshot?: (() => AudioReactiveSnapshot) | null;
   onDriveTelemetry?: (telemetry: SignalRunnerDriveTelemetry) => void;
 };
@@ -29,6 +30,13 @@ const AUDIO_ENERGY_FLOOR = 0.04;
 const AUDIO_ENERGY_CEILING = 0.72;
 const SPEED_EASING_PER_SECOND = 2.8;
 const TELEMETRY_INTERVAL_MS = 100;
+const GATE_SPAWN_DEPTH = 88;
+const GATE_RECYCLE_DEPTH = 430;
+const GATE_RECYCLE_VARIANCE = 180;
+const PHENOMENON_POINT_COUNT = 96;
+const PHENOMENON_NODE_COUNT = 6;
+const PHENOMENON_ARC_COUNT = 3;
+const POST_EVENT_BANK_DURATION = 0.9;
 
 function mapSmoothedEnergyToSpeed(smoothedEnergy: number) {
   const normalized = THREE.MathUtils.clamp(
@@ -150,6 +158,110 @@ function SignalRunnerScene(props: SignalRunnerSceneProps) {
     const streaks = new THREE.LineSegments(streakGeometry, streakMaterial);
     scene.add(streaks);
 
+    const createHelixPositions = (phase: number, radius: number) => {
+      const positions = new Float32Array(PHENOMENON_POINT_COUNT * 3);
+      for (let index = 0; index < PHENOMENON_POINT_COUNT; index += 1) {
+        const progress = index / (PHENOMENON_POINT_COUNT - 1);
+        const angle = progress * Math.PI * 4.4 + phase;
+        const offset = index * 3;
+        positions[offset] = Math.cos(angle) * radius * (0.72 + progress * 0.28);
+        positions[offset + 1] = Math.sin(angle) * radius * (0.72 + progress * 0.28);
+        positions[offset + 2] = -24 + progress * 48;
+      }
+      return positions;
+    };
+
+    const createPhenomenonRail = (positions: Float32Array, color: number) => {
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+      const glowMaterial = new THREE.LineBasicMaterial({
+        color,
+        transparent: true,
+        opacity: 0.1,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+      });
+      const coreMaterial = new THREE.LineBasicMaterial({
+        color,
+        transparent: true,
+        opacity: 0.55,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+      });
+      const glow = new THREE.Line(geometry, glowMaterial);
+      const core = new THREE.Line(geometry, coreMaterial);
+      return { geometry, glowMaterial, coreMaterial, glow, core };
+    };
+
+    const railGreen = createPhenomenonRail(createHelixPositions(0, 4.2), 0x9cff57);
+    const railCyan = createPhenomenonRail(createHelixPositions(Math.PI, 3.6), 0x47f7ff);
+    const railGroup = new THREE.Group();
+    railGroup.add(railGreen.glow, railGreen.core, railCyan.glow, railCyan.core);
+
+    const nodePositions = new Float32Array(PHENOMENON_NODE_COUNT * 3);
+    for (let index = 0; index < PHENOMENON_NODE_COUNT; index += 1) {
+      const progress = (index + 1) / (PHENOMENON_NODE_COUNT + 1);
+      const angle = progress * Math.PI * 4.4 + 0.22;
+      const offset = index * 3;
+      nodePositions[offset] = Math.cos(angle) * 4.35 * (0.72 + progress * 0.28);
+      nodePositions[offset + 1] = Math.sin(angle) * 4.35 * (0.72 + progress * 0.28);
+      nodePositions[offset + 2] = -24 + progress * 48;
+    }
+    const nodeGeometry = new THREE.BufferGeometry();
+    nodeGeometry.setAttribute("position", new THREE.BufferAttribute(nodePositions, 3));
+    const nodeMaterial = new THREE.PointsMaterial({
+      color: 0xff7fa1,
+      size: 0.62,
+      transparent: true,
+      opacity: 0.72,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      sizeAttenuation: true,
+    });
+    const nodes = new THREE.Points(nodeGeometry, nodeMaterial);
+
+    const arcPositions = new Float32Array(PHENOMENON_ARC_COUNT * 4 * 3);
+    for (let index = 0; index < PHENOMENON_ARC_COUNT; index += 1) {
+      const progress = (index + 1) / (PHENOMENON_ARC_COUNT + 1);
+      const angle = progress * Math.PI * 4.4 + 0.8;
+      const centerX = Math.cos(angle) * 4.1;
+      const centerY = Math.sin(angle) * 4.1;
+      const offset = index * 12;
+      arcPositions[offset] = centerX - 0.5;
+      arcPositions[offset + 1] = centerY - 0.35;
+      arcPositions[offset + 2] = -24 + progress * 48;
+      arcPositions[offset + 3] = centerX - 0.1;
+      arcPositions[offset + 4] = centerY + 0.32;
+      arcPositions[offset + 5] = -24 + progress * 48;
+      arcPositions[offset + 6] = centerX + 0.18;
+      arcPositions[offset + 7] = centerY - 0.18;
+      arcPositions[offset + 8] = -24 + progress * 48;
+      arcPositions[offset + 9] = centerX + 0.58;
+      arcPositions[offset + 10] = centerY + 0.18;
+      arcPositions[offset + 11] = -24 + progress * 48;
+    }
+    const arcGeometry = new THREE.BufferGeometry();
+    arcGeometry.setAttribute("position", new THREE.BufferAttribute(arcPositions, 3));
+    const arcMaterial = new THREE.LineBasicMaterial({
+      color: 0xff7fa1,
+      transparent: true,
+      opacity: 0.16,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    });
+    const arcs = new THREE.LineSegments(arcGeometry, arcMaterial);
+
+    const frequencyGate = new THREE.Group();
+    frequencyGate.add(railGroup, nodes, arcs);
+    frequencyGate.name = "signal-phenomena-v1";
+    frequencyGate.position.set(0, 0, -GATE_SPAWN_DEPTH);
+    scene.add(frequencyGate);
+
+    const gateCyan = new THREE.Color(0x47f7ff);
+    const gateGreen = new THREE.Color(0x9cff57);
+    const gateSalmon = new THREE.Color(0xff7fa1);
+    const phenomenonColorScratch = new THREE.Color();
+
     const resize = () => {
       const width = mount.clientWidth;
       const height = mount.clientHeight;
@@ -175,6 +287,9 @@ function SignalRunnerScene(props: SignalRunnerSceneProps) {
       initialState.controlMode === "manual" ? initialState.flightSpeed : 0;
     let previousSignalId = initialState.signalId;
     let lastTelemetryPublishedAt = 0;
+    let previousPhenomenonZ = frequencyGate.position.z;
+    let bankRemaining = 0;
+    let bankDirection = 1;
 
     const animate = (frameTime: number) => {
       const delta = Math.min((frameTime - lastFrameTime) / 1000, 0.05);
@@ -205,6 +320,67 @@ function SignalRunnerScene(props: SignalRunnerSceneProps) {
       const streakMix = THREE.MathUtils.smoothstep(normalizedSpeed, 0.28, 0.82);
       const streakLength = 0.08 + streakMix * streakMix * 9;
 
+      frequencyGate.position.z += travelVelocity * delta;
+      frequencyGate.rotation.z += delta * 0.032;
+
+      if (previousPhenomenonZ < -0.8 && frequencyGate.position.z >= -0.8) {
+        bankRemaining = POST_EVENT_BANK_DURATION;
+        bankDirection *= -1;
+      }
+      previousPhenomenonZ = frequencyGate.position.z;
+
+      if (frequencyGate.position.z > NEAR_PLANE) {
+        frequencyGate.position.z = -(
+          GATE_RECYCLE_DEPTH + Math.random() * GATE_RECYCLE_VARIANCE
+        );
+        previousPhenomenonZ = frequencyGate.position.z;
+      }
+
+      bankRemaining = Math.max(0, bankRemaining - delta);
+      const bankProgress = bankRemaining / POST_EVENT_BANK_DURATION;
+      const bankTarget = bankDirection * 0.018 * bankProgress * bankProgress;
+      camera.rotation.z +=
+        (bankTarget - camera.rotation.z) * (1 - Math.exp(-delta * 5));
+
+      const chromaAmount = state.chromaEnabled
+        ? THREE.MathUtils.clamp(smoothedEnergy * 0.58 + (snapshot?.kickPulse ?? 0) * 0.22, 0, 1)
+        : 0;
+      const approachVisibility = THREE.MathUtils.clamp(
+        (frequencyGate.position.z + 85) / 55,
+        0,
+        1,
+      );
+      const exitVisibility = THREE.MathUtils.clamp(
+        (14 - frequencyGate.position.z) / 32,
+        0,
+        1,
+      );
+      const phenomenonVisibility = approachVisibility * exitVisibility;
+      const arcBurst =
+        Math.pow(Math.max(0, Math.sin(frameTime * 0.0024 + 0.8)), 12) *
+        phenomenonVisibility;
+
+      if (state.chromaEnabled) {
+        phenomenonColorScratch.copy(gateGreen).lerp(gateCyan, chromaAmount * 0.28);
+        railGreen.coreMaterial.color.copy(phenomenonColorScratch);
+        phenomenonColorScratch.copy(gateGreen).lerp(gateCyan, chromaAmount * 0.24);
+        railGreen.glowMaterial.color.copy(phenomenonColorScratch);
+        phenomenonColorScratch.copy(gateCyan).lerp(gateSalmon, chromaAmount * 0.22);
+        railCyan.coreMaterial.color.copy(phenomenonColorScratch);
+        phenomenonColorScratch.copy(gateCyan).lerp(gateSalmon, chromaAmount * 0.16);
+        railCyan.glowMaterial.color.copy(phenomenonColorScratch);
+        phenomenonColorScratch.copy(gateSalmon).lerp(gateCyan, chromaAmount * 0.24);
+        nodeMaterial.color.copy(phenomenonColorScratch);
+        arcMaterial.color.copy(phenomenonColorScratch);
+      }
+
+      railGreen.coreMaterial.opacity = 0.46 + chromaAmount * 0.08;
+      railGreen.glowMaterial.opacity = 0.08 + chromaAmount * 0.04;
+      railCyan.coreMaterial.opacity = 0.48 + chromaAmount * 0.08;
+      railCyan.glowMaterial.opacity = 0.08 + chromaAmount * 0.04;
+      nodeMaterial.opacity = 0.62 + arcBurst * 0.16 + chromaAmount * 0.1;
+      arcMaterial.opacity = 0.06 + arcBurst * 0.34 + chromaAmount * 0.08;
+
       for (let index = 0; index < STAR_COUNT; index += 1) {
         const pointOffset = index * 3;
         const streakOffset = index * 6;
@@ -227,7 +403,11 @@ function SignalRunnerScene(props: SignalRunnerSceneProps) {
         streakPositions[streakOffset + 5] = z - streakLength;
       }
 
-      pointMaterial.opacity = THREE.MathUtils.lerp(0.95, 0.48, streakMix);
+      pointMaterial.opacity = THREE.MathUtils.clamp(
+        THREE.MathUtils.lerp(0.95, 0.48, streakMix),
+        0,
+        1,
+      );
       pointMaterial.size = THREE.MathUtils.lerp(0.12, 0.075, streakMix);
       streakMaterial.opacity = streakMix * 0.9;
       pointPositionAttribute.needsUpdate = true;
@@ -259,6 +439,16 @@ function SignalRunnerScene(props: SignalRunnerSceneProps) {
       pointMaterial.dispose();
       streakGeometry.dispose();
       streakMaterial.dispose();
+      railGreen.geometry.dispose();
+      railGreen.glowMaterial.dispose();
+      railGreen.coreMaterial.dispose();
+      railCyan.geometry.dispose();
+      railCyan.glowMaterial.dispose();
+      railCyan.coreMaterial.dispose();
+      nodeGeometry.dispose();
+      nodeMaterial.dispose();
+      arcGeometry.dispose();
+      arcMaterial.dispose();
       scene.clear();
       renderer.renderLists.dispose();
       renderer.dispose();

@@ -19,7 +19,7 @@ type SignalRunnerExperienceProps = {
   onDriveTelemetry?: (telemetry: SignalRunnerDriveTelemetry) => void;
 };
 
-const DRIVE_SEGMENT_COUNT = 14;
+const DRIVE_SEGMENT_COUNT = 12;
 const BLAST_OFF_ARM_SPEED = 68;
 const BLAST_OFF_ARM_HOLD_MS = 400;
 const BLAST_OFF_TRIGGER_SPEED = 99;
@@ -251,6 +251,7 @@ function SignalRunnerExperience({
           volume={volume}
           signalId={signalId}
           motionEnabled={motionEnabled}
+          chromaEnabled={chromaEnabled}
           getLatestAudioSnapshot={getLatestAudioSnapshot}
           onDriveTelemetry={handleDriveTelemetry}
         />
@@ -310,10 +311,6 @@ function SignalRunnerExperience({
                   {Math.round(targetSpeed).toString().padStart(3, "0")}
                 </strong>
               </p>
-            </div>
-            <div className="signal-runner__vector-drive-aux" aria-label="Vector drive sync">
-              <span className="signal-runner__sync-label">SYNC //</span>
-              <strong>{actualSpeed.toFixed(1)}</strong>
             </div>
             <div className="signal-runner__drive-meter" style={targetMarkerStyle}>
               <span className="signal-runner__target-marker" aria-hidden="true" />
