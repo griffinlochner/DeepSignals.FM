@@ -33,34 +33,9 @@ const LED_BASE_COLOR_INDEXES = [0, 1, 0, 1, 2, 0, 1, 2];
 const GLYPH_CHARS = ["░", "▒", "▓", "▌", "▐", "┃", "╎", "╏", "¦", "†", "‡", "×", "⌁", "⌬", "∴", "⋄", "◊", "✦"];
 const GLYPH_STRIP_CELLS = 7;
 const PULSE_LADDER_SEGMENTS = 6;
-const SLOGAN_TEXT = "TUNE IN. TRANSMIT. TRANSCEND.";
-const SLOGAN_SCRAMBLE_MS = 2200;
-const SLOGAN_DECODE_MS = 1100;
-const SLOGAN_RESOLVED_MS = 2600;
-const SLOGAN_DEGRADE_MS = 1400;
-const SLOGAN_CYCLE_MS =
-  SLOGAN_SCRAMBLE_MS + SLOGAN_DECODE_MS + SLOGAN_RESOLVED_MS + SLOGAN_DEGRADE_MS;
 
 function clamp01(value: number) {
   return Math.min(1, Math.max(0, value));
-}
-
-function scrambleSlogan(seed: number, revealCount: number) {
-  let result = "";
-
-  for (let index = 0; index < SLOGAN_TEXT.length; index += 1) {
-    const char = SLOGAN_TEXT[index];
-
-    if (index < revealCount || char === " ") {
-      result += char;
-      continue;
-    }
-
-    const glyphSeed = seed * 37 + index * 11;
-    result += GLYPH_CHARS[Math.abs(glyphSeed) % GLYPH_CHARS.length];
-  }
-
-  return result;
 }
 
 type CoilSignal = {
@@ -703,79 +678,36 @@ function MicroPulseLadder({
   );
 }
 
-type SloganDecodeStripProps = {
-  chromaEnabled: boolean;
-  motionEnabled: boolean;
-};
+const MESSAGE_STREAM_GROUP = [
+  { text: "WELCOME TO", color: "white", joinPrevious: false },
+  { text: "DEEP", color: "green", joinPrevious: false },
+  { text: "SIGNALS", color: "cyan", joinPrevious: true },
+  { text: ".FM", color: "pink", joinPrevious: true },
+  { text: "TUNE IN.", color: "green" },
+  { text: "TRANSMIT.", color: "cyan" },
+  { text: "TRANSCEND.", color: "pink" },
+] as const;
 
-function SloganDecodeStrip({ chromaEnabled, motionEnabled }: SloganDecodeStripProps) {
-  const textRefA = useRef<HTMLSpanElement | null>(null);
-  const textRefB = useRef<HTMLSpanElement | null>(null);
-  const stateRef = useRef({ chromaEnabled, motionEnabled });
-
-  useEffect(() => {
-    stateRef.current = { chromaEnabled, motionEnabled };
-  }, [chromaEnabled, motionEnabled]);
-
-  useEffect(() => {
-    let frameId = 0;
-    const cycleStart = performance.now();
-
-    const render = (frameTime: number) => {
-      const state = stateRef.current;
-      let text: string;
-
-      if (!state.motionEnabled) {
-        // Reduced motion: rest on the fully decoded slogan.
-        text = SLOGAN_TEXT;
-      } else {
-        const elapsed = (frameTime - cycleStart) % SLOGAN_CYCLE_MS;
-        const tick = Math.floor(frameTime / 90);
-        let revealFraction: number;
-
-        if (elapsed < SLOGAN_SCRAMBLE_MS) {
-          revealFraction = 0;
-        } else if (elapsed < SLOGAN_SCRAMBLE_MS + SLOGAN_DECODE_MS) {
-          revealFraction = (elapsed - SLOGAN_SCRAMBLE_MS) / SLOGAN_DECODE_MS;
-        } else if (elapsed < SLOGAN_SCRAMBLE_MS + SLOGAN_DECODE_MS + SLOGAN_RESOLVED_MS) {
-          revealFraction = 1;
-        } else {
-          const degradeElapsed =
-            elapsed - SLOGAN_SCRAMBLE_MS - SLOGAN_DECODE_MS - SLOGAN_RESOLVED_MS;
-          revealFraction = 1 - clamp01(degradeElapsed / SLOGAN_DEGRADE_MS) * 0.65;
-        }
-
-        const revealCount = Math.round(clamp01(revealFraction) * SLOGAN_TEXT.length);
-        text = scrambleSlogan(tick, revealCount);
-      }
-
-      if (textRefA.current) {
-        textRefA.current.textContent = text;
-      }
-
-      if (textRefB.current) {
-        textRefB.current.textContent = text;
-      }
-
-      frameId = window.requestAnimationFrame(render);
-    };
-
-    frameId = window.requestAnimationFrame(render);
-
-    return () => window.cancelAnimationFrame(frameId);
-  }, []);
+function MessageStream() {
+  const renderMessageGroup = (groupIndex: number) => (
+    <span className="signal-runner__message-stream-group" key={groupIndex}>
+      {MESSAGE_STREAM_GROUP.map(({ text, color, joinPrevious }) => (
+        <span
+          className={`signal-runner__message-stream-part signal-runner__message-stream-part--${color}${joinPrevious ? " signal-runner__message-stream-part--joined" : ""}`}
+          key={text}
+        >
+          {text}
+        </span>
+      ))}
+    </span>
+  );
 
   return (
-    <div
-      className="signal-runner__slogan-strip"
-      data-chroma={chromaEnabled}
-      data-motion={motionEnabled}
-      aria-hidden="true"
-    >
-      <div className="signal-runner__slogan-track">
-        <span className="signal-runner__slogan-text" ref={textRefA} />
-        <span className="signal-runner__slogan-text" ref={textRefB} />
-      </div>
+    <div className="signal-runner__message-stream" aria-label="Signal Runner message">
+      <span className="signal-runner__message-stream-track">
+        {renderMessageGroup(0)}
+        {renderMessageGroup(1)}
+      </span>
     </div>
   );
 }
@@ -968,7 +900,9 @@ function SignalRunnerExperience({
             ) : null}
           </div>
 
-          <section className="signal-runner__vector-drive" aria-label="Vector drive">
+          <div className="signal-runner__center-stack">
+            <MessageStream />
+            <section className="signal-runner__vector-drive" aria-label="Vector drive">
             <div className="signal-runner__vector-drive-header">
               <span>VECTOR DRIVE</span>
               <div className="signal-runner__vector-drive-status">
@@ -1010,7 +944,8 @@ function SignalRunnerExperience({
                 BLAST OFF!
               </div>
             ) : null}
-          </section>
+            </section>
+          </div>
 
           <div className="signal-runner__hud-slot signal-runner__hud-slot--right">
             <div className="signal-runner__spiral-row">
@@ -1035,7 +970,6 @@ function SignalRunnerExperience({
                 chromaEnabled={chromaEnabled}
                 getLatestAudioSnapshot={getLatestAudioSnapshot}
               />
-              <SloganDecodeStrip chromaEnabled={chromaEnabled} motionEnabled={motionEnabled} />
             </div>
           </div>
         </div>
