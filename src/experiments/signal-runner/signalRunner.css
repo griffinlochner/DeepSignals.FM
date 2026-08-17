@@ -16,8 +16,7 @@
   transition: filter 320ms ease;
 }
 
-.signal-runner[data-playing="false"],
-.signal-runner[data-chroma-enabled="false"] {
+.signal-runner[data-playing="false"] {
   filter: grayscale(1) saturate(0.12);
 }
 
