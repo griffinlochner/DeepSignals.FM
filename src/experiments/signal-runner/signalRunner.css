@@ -61,9 +61,9 @@
   right: 0;
   bottom: 0;
   width: 100%;
-  min-height: 124px;
+  height: 128px;
   container-type: inline-size;
-  overflow: visible;
+  overflow: hidden;
   isolation: isolate;
 }
 
@@ -71,14 +71,13 @@
   position: relative;
   z-index: 1;
   box-sizing: border-box;
-  min-height: 124px;
-  padding: 8px clamp(4rem, 15%, 10rem) 14px;
+  height: 100%;
+  padding: 8px clamp(1.5rem, 7vw, 10rem);
   display: grid;
-  grid-template-columns: 120px minmax(320px, 400px) 150px;
+  grid-template-columns: minmax(0, 1fr) 300px minmax(0, 1fr);
   align-items: end;
-  justify-content: center;
   gap: 6px;
-  overflow: visible;
+  overflow: hidden;
 }
 
 .signal-runner__hud-pod::before {
@@ -111,7 +110,7 @@
 }
 
 .signal-runner__hud-slot--left {
-  width: min(100%, 120px);
+  width: 112px;
   grid-template-rows: minmax(78px, 1fr) auto;
   justify-self: end;
   align-content: center;
@@ -125,8 +124,10 @@
 }
 
 .signal-runner__hud-slot--right {
+  width: min(250px, 100%);
   display: flex;
   flex-direction: column;
+  justify-self: start;
   align-items: stretch;
   border: 0;
   background: transparent;
@@ -280,8 +281,9 @@
   --signal-runner-slogan-gap: 26px;
   --signal-runner-slogan-duration: 8s;
   position: relative;
-  flex: 1;
-  min-width: 0;
+  flex: 0 1 166px;
+  width: min(166px, 100%);
+  min-width: 132px;
   height: 16px;
   box-sizing: border-box;
   overflow: hidden;
@@ -716,15 +718,32 @@
 }
 
 @container (max-width: 980px) {
+  .signal-runner__hud-pod {
+    height: 110px;
+  }
+
   .signal-runner__hud-content {
-    min-height: 108px;
-    padding: 7px clamp(4rem, 15%, 10rem) 10px;
-    grid-template-columns: 112px minmax(300px, 340px) 96px;
+    padding: 8px clamp(1.25rem, 6vw, 4rem);
+    grid-template-columns: minmax(0, 1fr) 300px minmax(0, 1fr);
     gap: 4px;
   }
 
-  .signal-runner__slogan-strip {
+  .signal-runner__hud-slot--left {
+    width: 88px;
+  }
+
+  .signal-runner__hud-slot--right {
+    width: min(184px, 100%);
+  }
+
+  .signal-runner__sensor-row > :first-child {
     display: none;
+  }
+
+  .signal-runner__led-bank {
+    max-width: 44px;
+    padding: 5px 4px;
+    gap: 3px;
   }
 
   .signal-runner__vector-drive {
@@ -766,13 +785,25 @@
 }
 
 @container (max-width: 880px) {
-  .signal-runner__spiral,
-  .signal-runner__signal-bar {
+  .signal-runner__hud-content {
+    grid-template-columns: minmax(0, 1fr) 300px minmax(0, 1fr);
+    padding-inline: clamp(1rem, 4vw, 2.5rem);
+  }
+
+  .signal-runner__hud-slot--left {
+    width: 64px;
+  }
+
+  .signal-runner__hud-slot--right {
+    width: min(150px, 100%);
+  }
+
+  .signal-runner__sensor-row > :nth-child(2),
+  .signal-runner__sensor-row > :nth-child(3) {
     display: none;
   }
 
-  .signal-runner__glyph-strip,
-  .signal-runner__pulse-ladder {
+  .signal-runner__led-bank {
     display: none;
   }
 }
@@ -1020,19 +1051,29 @@
 }
 
 @container (max-width: 760px) {
-  .signal-runner__hud-content {
-    min-height: 0;
-    padding: 10px 15% 12px;
-    grid-template-columns: minmax(0, 1fr);
-    gap: 10px;
+  .signal-runner__hud-pod {
+    height: 110px;
   }
 
-  .signal-runner__hud-slot--left,
-  .signal-runner__hud-slot--right {
+  .signal-runner__hud-content {
+    padding: 8px 14px;
+    grid-template-columns: minmax(0, 1fr) 300px minmax(0, 1fr);
+    gap: 4px;
+  }
+
+  .signal-runner__hud-slot--left {
+    width: 42px;
+  }
+
+  .signal-runner__sensor-row > :nth-child(4) {
     display: none;
   }
 
-  .signal-runner__impulse-coil {
+  .signal-runner__hud-slot--right {
+    width: min(134px, 100%);
+  }
+
+  .signal-runner__spiral-row {
     display: none;
   }
 
@@ -1041,5 +1082,29 @@
     max-width: 100%;
     height: 94px;
     justify-self: center;
+  }
+}
+
+@container (max-width: 680px) {
+  .signal-runner__slogan-strip,
+  .signal-runner__hud-slot--right {
+    display: none;
+  }
+}
+
+@container (max-width: 540px) {
+  .signal-runner__hud-content {
+    padding-inline: 8px;
+  }
+
+  .signal-runner__hud-slot--left {
+    display: none;
+  }
+
+}
+
+@container (max-width: 430px) {
+  .signal-runner__hud-content {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 300px) minmax(0, 1fr);
   }
 }

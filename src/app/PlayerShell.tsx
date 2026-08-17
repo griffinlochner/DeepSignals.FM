@@ -78,10 +78,11 @@ const PLAYER_PREFERENCES_STORAGE_KEY_V3 = "deepsignals.player.preferences.v3";
 const SIGNAL_TELEMETRY_VISIBLE_STORAGE_KEY_V2 =
   "deepsignals.player.signal-telemetry.visible.v2";
 
-const DEFAULT_PLAYER_THEME_ID = "dark-psy-temple";
+const DEFAULT_PLAYER_THEME_ID = "signal-runner";
 const DEFAULT_PLAYER_AUDIO_SOURCE_ID =
   GLOBULAR_FOR_THE_TIME_BEING_AUDIO_SOURCE.id;
 const PUBLIC_PLAYER_ENVIRONMENT_IDS = [
+  "signal-runner",
   "minimal",
   "cosmic-nexus",
   "uv-reactive-jungle",
