@@ -403,9 +403,69 @@ type ScannerDialProps = {
   size: "large" | "small";
   chromaEnabled: boolean;
   motionEnabled: boolean;
+  isPlaying: boolean;
+  getLatestAudioSnapshot?: (() => AudioReactiveSnapshot) | null;
 };
 
-function ScannerDial({ size, chromaEnabled, motionEnabled }: ScannerDialProps) {
+type ScannerPulse = {
+  id: number;
+  strength: number;
+  energy: number;
+  bass: number;
+};
+
+function ScannerDial({
+  size,
+  chromaEnabled,
+  motionEnabled,
+  isPlaying,
+  getLatestAudioSnapshot,
+}: ScannerDialProps) {
+  const [pulses, setPulses] = useState<ScannerPulse[]>([]);
+  const stateRef = useRef({ isPlaying, chromaEnabled, getLatestAudioSnapshot });
+  const sequenceRef = useRef(0);
+
+  useEffect(() => {
+    stateRef.current = { isPlaying, chromaEnabled, getLatestAudioSnapshot };
+  }, [chromaEnabled, getLatestAudioSnapshot, isPlaying]);
+
+  useEffect(() => {
+    if (size !== "large") {
+      return;
+    }
+
+    let frameId = 0;
+
+    const render = () => {
+      const state = stateRef.current;
+      const snapshot = state.isPlaying ? state.getLatestAudioSnapshot?.() ?? null : null;
+      const acceptedSequence = snapshot?.kickPulseAcceptedEventSequence ?? 0;
+
+      if (state.chromaEnabled && snapshot && acceptedSequence !== sequenceRef.current) {
+        sequenceRef.current = acceptedSequence;
+        const energy = clamp01(snapshot.smoothedEnergy);
+        const bass = clamp01(snapshot.bassPulse);
+        setPulses((currentPulses) => [
+          ...currentPulses.slice(-5),
+          {
+            id: acceptedSequence,
+            strength: clamp01(0.5 + energy * 0.36 + bass * 0.24),
+            energy,
+            bass,
+          },
+        ]);
+      } else if (!snapshot || !state.chromaEnabled) {
+        sequenceRef.current = acceptedSequence;
+      }
+
+      frameId = window.requestAnimationFrame(render);
+    };
+
+    frameId = window.requestAnimationFrame(render);
+
+    return () => window.cancelAnimationFrame(frameId);
+  }, [size]);
+
   return (
     <section
       className={`signal-runner__scanner-dial signal-runner__scanner-dial--${size}`}
@@ -422,6 +482,26 @@ function ScannerDial({ size, chromaEnabled, motionEnabled }: ScannerDialProps) {
           <path className="signal-runner__scanner-beam" d="M50 50 50 7A43 43 0 0 1 80 20Z" />
           <circle className="signal-runner__scanner-orbit" cx="50" cy="50" r="36" />
         </g>
+        {size === "large" && chromaEnabled
+          ? pulses.map((pulse) => (
+              <g
+                className="signal-runner__scanner-pulse"
+                key={pulse.id}
+                style={
+                  {
+                    "--signal-runner-scanner-pulse-strength": pulse.strength,
+                    "--signal-runner-scanner-pulse-energy": pulse.energy,
+                    "--signal-runner-scanner-pulse-bass": pulse.bass,
+                  } as CSSProperties
+                }
+              >
+                <circle className="signal-runner__scanner-pulse-core" cx="50" cy="50" r="5" />
+                <circle className="signal-runner__scanner-pulse-ring signal-runner__scanner-pulse-ring--inner" cx="50" cy="50" r="15" />
+                <circle className="signal-runner__scanner-pulse-ring signal-runner__scanner-pulse-ring--middle" cx="50" cy="50" r="29" />
+                <circle className="signal-runner__scanner-pulse-ring signal-runner__scanner-pulse-ring--outer" cx="50" cy="50" r="42" />
+              </g>
+            ))
+          : null}
         <circle className="signal-runner__scanner-core" cx="50" cy="50" r="4" />
       </svg>
       <span className="signal-runner__scanner-label">{size === "large" ? "DEEP SCAN" : "AUX"}</span>
@@ -849,7 +929,13 @@ function SignalRunnerExperience({
           <div className="signal-runner__hud-slot signal-runner__hud-slot--left">
             <div className="signal-runner__left-rail">
               <div className="signal-runner__left-slot signal-runner__left-slot--scan">
-                <ScannerDial size="large" chromaEnabled={chromaEnabled} motionEnabled={motionEnabled} />
+                <ScannerDial
+                  size="large"
+                  chromaEnabled={chromaEnabled}
+                  motionEnabled={motionEnabled}
+                  isPlaying={isPlaying}
+                  getLatestAudioSnapshot={getLatestAudioSnapshot}
+                />
               </div>
               <div className="signal-runner__left-slot signal-runner__left-slot--spiral">
                 <HypnoticSpiral
@@ -963,7 +1049,12 @@ function SignalRunnerExperience({
                 <SignalMonitor chromaEnabled={chromaEnabled} motionEnabled={motionEnabled} />
               </div>
               <div className="signal-runner__right-slot signal-runner__right-slot--aux">
-                <ScannerDial size="small" chromaEnabled={chromaEnabled} motionEnabled={motionEnabled} />
+                <ScannerDial
+                  size="small"
+                  chromaEnabled={chromaEnabled}
+                  motionEnabled={motionEnabled}
+                  isPlaying={isPlaying}
+                />
               </div>
               <div className="signal-runner__right-slot signal-runner__right-slot--spiral">
                 <HypnoticSpiral
