@@ -211,6 +211,147 @@
   width: 63px;
 }
 
+/* Discrete equipment activity lamps in the free space below each auxiliary rail. */
+.signal-runner__hardware-led-bank {
+  --signal-runner-hardware-energy: 0;
+  --signal-runner-hardware-kick: 0;
+  position: absolute;
+  top: 121px;
+  z-index: 2;
+  box-sizing: border-box;
+  height: 20px;
+  display: grid;
+  grid-template-columns: repeat(4, 6px);
+  grid-template-rows: repeat(2, 6px);
+  align-content: center;
+  gap: 3px 11px;
+  padding: 2px 9px;
+  border: 1px solid rgba(71, 247, 255, 0.18);
+  background: rgba(0, 4, 6, 0.92);
+  box-shadow: inset 0 0 7px rgba(0, 0, 0, 0.9);
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.signal-runner__hardware-led-bank--left {
+  right: calc(50% + 188px);
+  width: 134px;
+  justify-content: center;
+}
+
+.signal-runner__hardware-led-bank--right {
+  left: calc(50% + 188px);
+  width: 190px;
+  grid-template-columns: repeat(6, 6px);
+  justify-content: center;
+  gap: 3px 18px;
+}
+
+.signal-runner__hardware-led {
+  --signal-runner-hardware-color: #47f7ff;
+  box-sizing: border-box;
+  width: 6px;
+  height: 6px;
+  border: 1px solid color-mix(in srgb, var(--signal-runner-hardware-color) 28%, #0a1417);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--signal-runner-hardware-color) 9%, #020608);
+  box-shadow: inset 0 0 2px rgba(0, 0, 0, 0.95);
+  opacity: 0.62;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+.signal-runner__hardware-led--2,
+.signal-runner__hardware-led--5,
+.signal-runner__hardware-led--8,
+.signal-runner__hardware-led--10 {
+  --signal-runner-hardware-color: #9cff57;
+}
+
+.signal-runner__hardware-led--3,
+.signal-runner__hardware-led--7,
+.signal-runner__hardware-led--12 {
+  --signal-runner-hardware-color: #ff7fa1;
+}
+
+.signal-runner__hardware-led--1 { animation-name: signal-runner-led-single; animation-duration: 2.9s; animation-delay: -1.37s; }
+.signal-runner__hardware-led--2 { animation-name: signal-runner-led-double; animation-duration: 3.7s; animation-delay: -2.11s; }
+.signal-runner__hardware-led--3 { animation-name: signal-runner-led-packet; animation-duration: 2.15s; animation-delay: -0.43s; }
+.signal-runner__hardware-led--4 { animation-name: signal-runner-led-sustain; animation-duration: 5.3s; animation-delay: -3.19s; }
+.signal-runner__hardware-led--5 { animation-name: signal-runner-led-burst; animation-duration: 4.1s; animation-delay: -1.73s; }
+.signal-runner__hardware-led--6 { animation-name: signal-runner-led-rare; animation-duration: 6.8s; animation-delay: -4.07s; }
+.signal-runner__hardware-led--7 { animation-name: signal-runner-led-alternate-a; animation-duration: 1.9s; animation-delay: -0.29s; }
+.signal-runner__hardware-led--8 { animation-name: signal-runner-led-alternate-b; animation-duration: 1.9s; animation-delay: -0.29s; }
+.signal-runner__hardware-led--9 { animation-name: signal-runner-led-packet; animation-duration: 2.62s; animation-delay: -1.09s; }
+.signal-runner__hardware-led--10 { animation-name: signal-runner-led-single; animation-duration: 3.13s; animation-delay: -0.53s; }
+.signal-runner__hardware-led--11 { animation-name: signal-runner-led-rare; animation-duration: 5.9s; animation-delay: -2.47s; }
+.signal-runner__hardware-led--12 { animation-name: signal-runner-led-burst; animation-duration: 4.7s; animation-delay: -3.31s; }
+
+.signal-runner__hardware-led-bank--right .signal-runner__hardware-led--1 { animation-delay: -2.23s; animation-duration: 3.35s; }
+.signal-runner__hardware-led-bank--right .signal-runner__hardware-led--2 { animation-delay: -0.71s; animation-duration: 4.25s; }
+.signal-runner__hardware-led-bank--right .signal-runner__hardware-led--3 { animation-delay: -1.61s; animation-duration: 1.72s; }
+.signal-runner__hardware-led-bank--right .signal-runner__hardware-led--4 { animation-delay: -4.13s; animation-duration: 6.1s; }
+.signal-runner__hardware-led-bank--right .signal-runner__hardware-led--5 { animation-delay: -2.83s; animation-duration: 3.55s; }
+.signal-runner__hardware-led-bank--right .signal-runner__hardware-led--6 { animation-delay: -5.17s; animation-duration: 7.4s; }
+.signal-runner__hardware-led-bank--right .signal-runner__hardware-led--7,
+.signal-runner__hardware-led-bank--right .signal-runner__hardware-led--8 { animation-delay: -0.91s; animation-duration: 2.3s; }
+.signal-runner__hardware-led-bank--right .signal-runner__hardware-led--9 { animation-delay: -3.67s; animation-duration: 1.94s; }
+.signal-runner__hardware-led-bank--right .signal-runner__hardware-led--10 { animation-delay: -1.19s; animation-duration: 4.6s; }
+.signal-runner__hardware-led-bank--right .signal-runner__hardware-led--11 { animation-delay: -6.31s; animation-duration: 8.2s; }
+.signal-runner__hardware-led-bank--right .signal-runner__hardware-led--12 { animation-delay: -2.09s; animation-duration: 3.05s; }
+
+.signal-runner__hardware-led--2 {
+  filter: brightness(calc(0.9 + var(--signal-runner-hardware-energy) * 0.45));
+}
+
+.signal-runner__hardware-led--6 {
+  filter: brightness(calc(0.9 + var(--signal-runner-hardware-kick) * 0.55));
+}
+
+.signal-runner__hardware-led-bank[data-motion="false"] .signal-runner__hardware-led {
+  animation-play-state: paused;
+}
+
+@keyframes signal-runner-led-single {
+  0%, 7%, 100% { opacity: 0.62; background: color-mix(in srgb, var(--signal-runner-hardware-color) 9%, #020608); box-shadow: inset 0 0 2px #000; }
+  1%, 5% { opacity: 1; background: var(--signal-runner-hardware-color); box-shadow: 0 0 3px var(--signal-runner-hardware-color), inset 0 0 1px #fff; }
+}
+
+@keyframes signal-runner-led-double {
+  0%, 3%, 7%, 10%, 100% { opacity: 0.62; background: color-mix(in srgb, var(--signal-runner-hardware-color) 9%, #020608); box-shadow: inset 0 0 2px #000; }
+  1%, 5%, 8% { opacity: 1; background: var(--signal-runner-hardware-color); box-shadow: 0 0 3px var(--signal-runner-hardware-color); }
+}
+
+@keyframes signal-runner-led-packet {
+  0%, 4%, 8%, 15%, 21%, 29%, 100% { opacity: 0.62; background: color-mix(in srgb, var(--signal-runner-hardware-color) 9%, #020608); box-shadow: inset 0 0 2px #000; }
+  2%, 6%, 11%, 18%, 24% { opacity: 1; background: var(--signal-runner-hardware-color); box-shadow: 0 0 3px var(--signal-runner-hardware-color); }
+}
+
+@keyframes signal-runner-led-sustain {
+  0%, 24%, 45%, 100% { opacity: 0.62; background: color-mix(in srgb, var(--signal-runner-hardware-color) 9%, #020608); box-shadow: inset 0 0 2px #000; }
+  25%, 44% { opacity: 1; background: var(--signal-runner-hardware-color); box-shadow: 0 0 3px var(--signal-runner-hardware-color); }
+}
+
+@keyframes signal-runner-led-burst {
+  0%, 31%, 34%, 38%, 42%, 47%, 100% { opacity: 0.62; background: color-mix(in srgb, var(--signal-runner-hardware-color) 9%, #020608); box-shadow: inset 0 0 2px #000; }
+  32%, 36%, 40%, 44% { opacity: 1; background: var(--signal-runner-hardware-color); box-shadow: 0 0 3px var(--signal-runner-hardware-color); }
+}
+
+@keyframes signal-runner-led-rare {
+  0%, 72%, 75%, 100% { opacity: 0.62; background: color-mix(in srgb, var(--signal-runner-hardware-color) 9%, #020608); box-shadow: inset 0 0 2px #000; }
+  73%, 74% { opacity: 1; background: var(--signal-runner-hardware-color); box-shadow: 0 0 3px var(--signal-runner-hardware-color); }
+}
+
+@keyframes signal-runner-led-alternate-a {
+  0%, 18%, 52%, 100% { opacity: 0.62; background: color-mix(in srgb, var(--signal-runner-hardware-color) 9%, #020608); box-shadow: inset 0 0 2px #000; }
+  19%, 51% { opacity: 1; background: var(--signal-runner-hardware-color); box-shadow: 0 0 3px var(--signal-runner-hardware-color); }
+}
+
+@keyframes signal-runner-led-alternate-b {
+  0%, 51%, 84%, 100% { opacity: 0.62; background: color-mix(in srgb, var(--signal-runner-hardware-color) 9%, #020608); box-shadow: inset 0 0 2px #000; }
+  52%, 83% { opacity: 1; background: var(--signal-runner-hardware-color); box-shadow: 0 0 3px var(--signal-runner-hardware-color); }
+}
+
 
 .signal-runner__left-feature {
   display: flex;
@@ -1217,6 +1358,13 @@
 }
 
 @container (max-width: 1090px) {
+  .signal-runner__hardware-led-bank {
+    display: none;
+  }
+}
+
+/* Hidden well before the widget + glow can cross the pod's slanted right edge. */
+@container (max-width: 1280px) {
   .signal-runner__right-slot--spiral {
     display: none;
   }

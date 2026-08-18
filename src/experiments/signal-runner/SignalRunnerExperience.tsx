@@ -432,6 +432,36 @@ function ScannerDial({ size, chromaEnabled, motionEnabled }: ScannerDialProps) {
   );
 }
 
+type HardwareLedBankProps = {
+  side: "left" | "right";
+  count: number;
+  signal: CoilSignal;
+  motionEnabled: boolean;
+};
+
+function HardwareLedBank({ side, count, signal, motionEnabled }: HardwareLedBankProps) {
+  const style = {
+    "--signal-runner-hardware-energy": signal.energy,
+    "--signal-runner-hardware-kick": signal.kick,
+  } as CSSProperties;
+
+  return (
+    <div
+      className={`signal-runner__hardware-led-bank signal-runner__hardware-led-bank--${side}`}
+      data-motion={motionEnabled}
+      style={style}
+      aria-hidden="true"
+    >
+      {Array.from({ length: count }, (_, index) => (
+        <i
+          className={`signal-runner__hardware-led signal-runner__hardware-led--${index + 1}`}
+          key={index}
+        />
+      ))}
+    </div>
+  );
+}
+
 function SignalMonitor({ chromaEnabled, motionEnabled }: { chromaEnabled: boolean; motionEnabled: boolean }) {
   return (
     <section
@@ -826,6 +856,7 @@ function SignalRunnerExperience({
                 </div>
               </div>
             </div>
+            <HardwareLedBank side="left" count={8} signal={coilSignal} motionEnabled={motionEnabled} />
             {controlMode === "manual" ? (
               <aside className="signal-runner__controls" aria-label="Signal Runner controls">
                 <div className="signal-runner__control-heading">
@@ -916,6 +947,7 @@ function SignalRunnerExperience({
                 />
               </div>
             </div>
+            <HardwareLedBank side="right" count={12} signal={coilSignal} motionEnabled={motionEnabled} />
           </div>
         </div>
       </div>
