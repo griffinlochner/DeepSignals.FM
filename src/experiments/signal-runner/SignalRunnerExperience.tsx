@@ -342,31 +342,23 @@ function HypnoticSpiral({
         rotorRef.current.style.transform = `rotate(${angle.toFixed(2)}deg)`;
       }
 
-      // MOTION off freezes glow/color reactivity alongside rotation.
-      if (state.motionEnabled) {
-        const targetGlow = state.isPlaying ? 0.24 + energy * 0.6 + kick * 0.28 : 0;
-        glow += (clamp01(targetGlow) - glow) * (1 - Math.exp(-delta * 7));
+      const targetGlow = state.chromaEnabled && state.isPlaying
+        ? 0.24 + energy * 0.6 + kick * 0.28
+        : 0.08;
+      glow += (clamp01(targetGlow) - glow) * (1 - Math.exp(-delta * 7));
 
-        const spiral = spiralRef.current;
+      const spiral = spiralRef.current;
 
-        if (spiral) {
-          spiral.style.setProperty("--signal-runner-spiral-glow", glow.toFixed(3));
+      if (spiral) {
+        spiral.style.setProperty("--signal-runner-spiral-glow", glow.toFixed(3));
 
-          if (state.chromaEnabled && snapshot) {
-            const shift =
-              Math.floor((energy * 1.6 + kick * 1.9) * 1.7) % LED_PALETTE.length;
-            spiral.style.setProperty(
-              "--signal-runner-spiral-color-a",
-              LED_PALETTE[shift],
-            );
-            spiral.style.setProperty(
-              "--signal-runner-spiral-color-b",
-              LED_PALETTE[(shift + 2) % LED_PALETTE.length],
-            );
-          } else {
-            spiral.style.setProperty("--signal-runner-spiral-color-a", LED_PALETTE[0]);
-            spiral.style.setProperty("--signal-runner-spiral-color-b", LED_PALETTE[2]);
-          }
+        if (state.chromaEnabled) {
+          const shift = Math.floor((frameTime * 0.00018 + energy * 1.6 + kick * 1.9) * 1.7) % LED_PALETTE.length;
+          spiral.style.setProperty("--signal-runner-spiral-color-a", LED_PALETTE[shift]);
+          spiral.style.setProperty("--signal-runner-spiral-color-b", LED_PALETTE[(shift + 2) % LED_PALETTE.length]);
+        } else {
+          spiral.style.setProperty("--signal-runner-spiral-color-a", LED_PALETTE[0]);
+          spiral.style.setProperty("--signal-runner-spiral-color-b", LED_PALETTE[1]);
         }
       }
 
@@ -383,6 +375,7 @@ function HypnoticSpiral({
       className="signal-runner__spiral"
       data-active={isPlaying}
       data-motion={motionEnabled}
+      data-chroma={chromaEnabled}
       ref={spiralRef}
       aria-hidden="true"
     >
@@ -437,9 +430,10 @@ type HardwareLedBankProps = {
   count: number;
   signal: CoilSignal;
   motionEnabled: boolean;
+  chromaEnabled: boolean;
 };
 
-function HardwareLedBank({ side, count, signal, motionEnabled }: HardwareLedBankProps) {
+function HardwareLedBank({ side, count, signal, motionEnabled, chromaEnabled }: HardwareLedBankProps) {
   const style = {
     "--signal-runner-hardware-energy": signal.energy,
     "--signal-runner-hardware-kick": signal.kick,
@@ -449,6 +443,7 @@ function HardwareLedBank({ side, count, signal, motionEnabled }: HardwareLedBank
     <div
       className={`signal-runner__hardware-led-bank signal-runner__hardware-led-bank--${side}`}
       data-motion={motionEnabled}
+      data-chroma={chromaEnabled}
       style={style}
       aria-hidden="true"
     >
@@ -513,23 +508,23 @@ function DecodingGlyphStrip({ chromaEnabled, motionEnabled }: DecodingGlyphStrip
     const render = (frameTime: number) => {
       const state = stateRef.current;
 
-      // MOTION off freezes the readout on its last decoded frame.
-      if (state.motionEnabled) {
-        const tick = Math.floor(frameTime / 140);
+      const tick = Math.floor(frameTime / 140);
 
-        for (let index = 0; index < GLYPH_STRIP_CELLS; index += 1) {
-          const cell = cellRefs.current[index];
+      for (let index = 0; index < GLYPH_STRIP_CELLS; index += 1) {
+        const cell = cellRefs.current[index];
 
-          if (!cell) {
-            continue;
-          }
+        if (!cell) {
+          continue;
+        }
 
+        if (state.motionEnabled) {
           const seed = tick * 31 + index * 13;
           cell.textContent = GLYPH_CHARS[Math.abs(seed) % GLYPH_CHARS.length];
-          cell.style.color = state.chromaEnabled
-            ? LED_PALETTE[Math.abs(seed + tick) % LED_PALETTE.length]
-            : "";
         }
+
+        cell.style.color = state.chromaEnabled
+          ? LED_PALETTE[Math.abs(index * 13 + tick) % LED_PALETTE.length]
+          : "";
       }
 
       frameId = window.requestAnimationFrame(render);
@@ -793,12 +788,17 @@ function SignalRunnerExperience({
   } as CSSProperties;
   const actualSpeedClass = getDriveValueClass(actualSpeed);
   const targetSpeedClass = getDriveValueClass(targetSpeed);
+  const runnerStyle = {
+    "--signal-runner-hud-chroma-energy": coilSignal.energy,
+    "--signal-runner-hud-chroma-kick": coilSignal.kick,
+  } as CSSProperties;
 
   return (
     <div
       className="signal-runner"
       data-playing={isPlaying}
       data-chroma-enabled={chromaEnabled}
+      style={runnerStyle}
     >
       <div className="signal-runner__viewscreen" aria-label="Spaceflight viewscreen">
         <SignalRunnerScene
@@ -856,7 +856,7 @@ function SignalRunnerExperience({
                 </div>
               </div>
             </div>
-            <HardwareLedBank side="left" count={8} signal={coilSignal} motionEnabled={motionEnabled} />
+            <HardwareLedBank side="left" count={8} signal={coilSignal} motionEnabled={motionEnabled} chromaEnabled={chromaEnabled} />
             {controlMode === "manual" ? (
               <aside className="signal-runner__controls" aria-label="Signal Runner controls">
                 <div className="signal-runner__control-heading">
@@ -947,7 +947,7 @@ function SignalRunnerExperience({
                 />
               </div>
             </div>
-            <HardwareLedBank side="right" count={12} signal={coilSignal} motionEnabled={motionEnabled} />
+            <HardwareLedBank side="right" count={12} signal={coilSignal} motionEnabled={motionEnabled} chromaEnabled={chromaEnabled} />
           </div>
         </div>
       </div>
