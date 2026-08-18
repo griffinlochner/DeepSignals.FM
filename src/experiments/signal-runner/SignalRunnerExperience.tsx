@@ -510,20 +510,24 @@ function ScannerDial({
 }
 
 function AuxTraceWidget({
+  side,
   chromaEnabled,
+  motionEnabled,
   isPlaying,
   getLatestAudioSnapshot,
 }: {
+  side: "left" | "right";
   chromaEnabled: boolean;
+  motionEnabled: boolean;
   isPlaying: boolean;
   getLatestAudioSnapshot?: (() => AudioReactiveSnapshot) | null;
 }) {
-  const traceRef = useRef<HTMLDivElement | null>(null);
-  const stateRef = useRef({ chromaEnabled, isPlaying, getLatestAudioSnapshot });
+  const glyphRefs = useRef<Array<HTMLSpanElement | null>>([]);
+  const stateRef = useRef({ chromaEnabled, motionEnabled, isPlaying, getLatestAudioSnapshot });
 
   useEffect(() => {
-    stateRef.current = { chromaEnabled, isPlaying, getLatestAudioSnapshot };
-  }, [chromaEnabled, getLatestAudioSnapshot, isPlaying]);
+    stateRef.current = { chromaEnabled, motionEnabled, isPlaying, getLatestAudioSnapshot };
+  }, [chromaEnabled, getLatestAudioSnapshot, isPlaying, motionEnabled]);
 
   useEffect(() => {
     let frameId = 0;
@@ -532,18 +536,28 @@ function AuxTraceWidget({
       const state = stateRef.current;
       const snapshot = state.isPlaying ? state.getLatestAudioSnapshot?.() ?? null : null;
       const energy = state.chromaEnabled ? clamp01(snapshot?.smoothedEnergy ?? 0) : 0;
-      const bass = state.chromaEnabled ? clamp01(snapshot?.bassPulse ?? 0) : 0;
-      const highs = state.chromaEnabled ? clamp01(snapshot?.highs ?? 0) : 0;
-      const trace = traceRef.current;
+      const hue = document.querySelector<HTMLElement>(".signal-runner")
+        ?.style.getPropertyValue("--signal-runner-hud-chroma-hue") || "0deg";
+      const tick = Math.floor(frameTime / 120);
 
-      if (trace) {
-        trace.style.setProperty("--signal-runner-aux-trace-energy", energy.toFixed(3));
-        trace.style.setProperty("--signal-runner-aux-trace-bass", bass.toFixed(3));
-        trace.style.setProperty("--signal-runner-aux-trace-highs", highs.toFixed(3));
-        trace.style.setProperty(
-          "--signal-runner-aux-trace-phase",
-          `${((frameTime * 0.08) % 100).toFixed(2)}%`,
-        );
+      for (let index = 0; index < glyphRefs.current.length; index += 1) {
+        const glyph = glyphRefs.current[index];
+
+        if (!glyph) {
+          continue;
+        }
+
+        if (state.motionEnabled) {
+          const seed = tick * 31 + index * 17;
+          glyph.textContent = GLYPH_CHARS[Math.abs(seed) % GLYPH_CHARS.length];
+        }
+
+        glyph.style.color = state.chromaEnabled
+          ? `hsl(calc(${184 + (index % 4) * 22}deg + ${hue}) ${76 + energy * 20}% ${56 + energy * 22}% / ${0.45 + energy * 0.55})`
+          : "";
+        glyph.style.textShadow = state.chromaEnabled
+          ? `0 0 5px hsl(calc(184deg + ${hue}) 88% 64% / ${0.12 + energy * 0.52})`
+          : "";
       }
 
       frameId = window.requestAnimationFrame(render);
@@ -556,14 +570,22 @@ function AuxTraceWidget({
 
   return (
     <div
-      className="signal-runner__aux-trace"
-      ref={traceRef}
+      className={`signal-runner__aux-trace signal-runner__aux-trace--${side}`}
       data-chroma={chromaEnabled}
+      data-motion={motionEnabled}
       aria-label="Auxiliary signal trace"
     >
-      <span className="signal-runner__aux-trace-label">AUX TRACE</span>
-      <span className="signal-runner__aux-trace-bars" aria-hidden="true">
-        {Array.from({ length: 4 }, (_, index) => <i key={index} />)}
+      <span className="signal-runner__aux-trace-glyphs" aria-hidden="true">
+        {Array.from({ length: 18 }, (_, index) => (
+          <span
+            key={index}
+            ref={(element) => {
+              glyphRefs.current[index] = element;
+            }}
+          >
+            {GLYPH_CHARS[(index * 3 + 2) % GLYPH_CHARS.length]}
+          </span>
+        ))}
       </span>
     </div>
   );
@@ -1188,15 +1210,6 @@ function SignalRunnerExperience({
         <div className="signal-runner__hud-content">
           <div className="signal-runner__hud-slot signal-runner__hud-slot--left">
             <div className="signal-runner__left-rail">
-              <div className="signal-runner__left-slot signal-runner__left-slot--scan">
-                <ScannerDial
-                  size="large"
-                  chromaEnabled={chromaEnabled}
-                  motionEnabled={motionEnabled}
-                  isPlaying={isPlaying}
-                  getLatestAudioSnapshot={getLatestAudioSnapshot}
-                />
-              </div>
               <div className="signal-runner__left-slot signal-runner__left-slot--spiral">
                 <HypnoticSpiral
                   isPlaying={isPlaying}
@@ -1204,6 +1217,15 @@ function SignalRunnerExperience({
                   chromaEnabled={chromaEnabled}
                   actualSpeed={actualSpeed}
                   rotationMultiplier={0.34}
+                  getLatestAudioSnapshot={getLatestAudioSnapshot}
+                />
+              </div>
+              <div className="signal-runner__left-slot signal-runner__left-slot--scan">
+                <ScannerDial
+                  size="large"
+                  chromaEnabled={chromaEnabled}
+                  motionEnabled={motionEnabled}
+                  isPlaying={isPlaying}
                   getLatestAudioSnapshot={getLatestAudioSnapshot}
                 />
               </div>
@@ -1231,6 +1253,13 @@ function SignalRunnerExperience({
                 </div>
               </div>
             </div>
+            <AuxTraceWidget
+              side="left"
+              chromaEnabled={chromaEnabled}
+              motionEnabled={motionEnabled}
+              isPlaying={isPlaying}
+              getLatestAudioSnapshot={getLatestAudioSnapshot}
+            />
             <HardwareLedBank side="left" count={8} signal={coilSignal} motionEnabled={motionEnabled} chromaEnabled={chromaEnabled} />
             {controlMode === "manual" ? (
               <aside className="signal-runner__controls" aria-label="Signal Runner controls">
@@ -1326,11 +1355,6 @@ function SignalRunnerExperience({
                   motionEnabled={motionEnabled}
                   isPlaying={isPlaying}
                 />
-                <AuxTraceWidget
-                  chromaEnabled={chromaEnabled}
-                  isPlaying={isPlaying}
-                  getLatestAudioSnapshot={getLatestAudioSnapshot}
-                />
               </div>
               <div className="signal-runner__right-slot signal-runner__right-slot--spiral">
                 <HypnoticSpiral
@@ -1343,7 +1367,14 @@ function SignalRunnerExperience({
                 />
               </div>
             </div>
-            <HardwareLedBank side="right" count={12} signal={coilSignal} motionEnabled={motionEnabled} chromaEnabled={chromaEnabled} />
+            <AuxTraceWidget
+              side="right"
+              chromaEnabled={chromaEnabled}
+              motionEnabled={motionEnabled}
+              isPlaying={isPlaying}
+              getLatestAudioSnapshot={getLatestAudioSnapshot}
+            />
+            <HardwareLedBank side="right" count={8} signal={coilSignal} motionEnabled={motionEnabled} chromaEnabled={chromaEnabled} />
           </div>
         </div>
       </div>
