@@ -4,6 +4,10 @@ import SignalRunnerScene, {
   type SignalRunnerControlMode,
   type SignalRunnerDriveTelemetry,
 } from "./SignalRunnerScene";
+import {
+  mapSignalRunnerChromaHue,
+  SIGNAL_RUNNER_CHROMA_HUE_RESPONSE,
+} from "./signalRunnerChroma";
 import "./signalRunner.css";
 
 type SignalRunnerExperienceProps = {
@@ -682,6 +686,8 @@ function SignalRunnerExperience({
   getLatestAudioSnapshot,
   onDriveTelemetry,
 }: SignalRunnerExperienceProps) {
+  const runnerRef = useRef<HTMLDivElement | null>(null);
+  const hudChromaHueRef = useRef(0);
   const [driveTelemetry, setDriveTelemetry] = useState<SignalRunnerDriveTelemetry>({
     controlMode,
     smoothedEnergy: 0,
@@ -728,6 +734,27 @@ function SignalRunnerExperience({
 
     return () => window.clearInterval(intervalId);
   }, [getLatestAudioSnapshot, isPlaying]);
+
+  useEffect(() => {
+    let frameId = 0;
+
+    const updateHudChromaHue = () => {
+      const snapshot = getLatestAudioSnapshot?.();
+      const energy = isPlaying ? Math.min(1, Math.max(0, snapshot?.smoothedEnergy ?? 0)) : 0;
+      const targetHue = chromaEnabled && isPlaying ? mapSignalRunnerChromaHue(energy) : 0;
+      hudChromaHueRef.current +=
+        (targetHue - hudChromaHueRef.current) * SIGNAL_RUNNER_CHROMA_HUE_RESPONSE;
+      runnerRef.current?.style.setProperty(
+        "--signal-runner-hud-chroma-hue",
+        `${hudChromaHueRef.current.toFixed(2)}deg`,
+      );
+      frameId = window.requestAnimationFrame(updateHudChromaHue);
+    };
+
+    frameId = window.requestAnimationFrame(updateHudChromaHue);
+
+    return () => window.cancelAnimationFrame(frameId);
+  }, [chromaEnabled, getLatestAudioSnapshot, isPlaying]);
 
   const handleDriveTelemetry = (telemetry: SignalRunnerDriveTelemetry) => {
     setDriveTelemetry(telemetry);
@@ -791,11 +818,13 @@ function SignalRunnerExperience({
   const runnerStyle = {
     "--signal-runner-hud-chroma-energy": coilSignal.energy,
     "--signal-runner-hud-chroma-kick": coilSignal.kick,
+    "--signal-runner-hud-chroma-hue": "0deg",
   } as CSSProperties;
 
   return (
     <div
       className="signal-runner"
+      ref={runnerRef}
       data-playing={isPlaying}
       data-chroma-enabled={chromaEnabled}
       style={runnerStyle}

@@ -1,6 +1,10 @@
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import type { AudioReactiveSnapshot } from "../../app/playerTypes";
+import {
+  mapSignalRunnerChromaHue,
+  SIGNAL_RUNNER_CHROMA_HUE_RESPONSE,
+} from "./signalRunnerChroma";
 
 export type SignalRunnerControlMode = "manual" | "audio";
 
@@ -29,9 +33,6 @@ const NEAR_PLANE = 1.5;
 const AUDIO_ENERGY_FLOOR = 0.04;
 const AUDIO_ENERGY_CEILING = 0.72;
 const SPEED_EASING_PER_SECOND = 2.8;
-const CHROMA_HUE_MIN_DEGREES = -180;
-const CHROMA_HUE_MAX_DEGREES = 180;
-const CHROMA_HUE_RESPONSE_SMOOTHING = 0.08;
 const TELEMETRY_INTERVAL_MS = 100;
 const GATE_SPAWN_DEPTH = 88;
 const GATE_RECYCLE_DEPTH = 430;
@@ -480,14 +481,10 @@ function SignalRunnerScene(props: SignalRunnerSceneProps) {
       }
 
       const targetChromaHueOffset = state.chromaEnabled
-        ? THREE.MathUtils.lerp(
-            CHROMA_HUE_MIN_DEGREES,
-            CHROMA_HUE_MAX_DEGREES,
-            THREE.MathUtils.clamp(smoothedEnergy, 0, 1),
-          )
+        ? mapSignalRunnerChromaHue(smoothedEnergy)
         : 0;
       smoothedChromaHueOffset +=
-        (targetChromaHueOffset - smoothedChromaHueOffset) * CHROMA_HUE_RESPONSE_SMOOTHING;
+        (targetChromaHueOffset - smoothedChromaHueOffset) * SIGNAL_RUNNER_CHROMA_HUE_RESPONSE;
 
       const chromaAmount = state.chromaEnabled
         ? THREE.MathUtils.clamp(smoothedEnergy * 0.58 + (snapshot?.kickPulse ?? 0) * 0.22, 0, 1)
