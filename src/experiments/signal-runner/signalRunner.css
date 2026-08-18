@@ -55,9 +55,10 @@
 /* Cockpit-style lower HUD pod */
 
 .signal-runner__hud-pod {
+  --signal-runner-hud-scale: 1.2;
   --signal-runner-hud-inset: 8px;
   --signal-runner-hud-widget-gap: 8px;
-  --signal-runner-instrumentation-max-width: 900px;
+  --signal-runner-instrumentation-max-width: 1080px;
   --signal-runner-vector-height: 112px;
   position: absolute;
   z-index: 4;
@@ -65,7 +66,7 @@
   right: 0;
   bottom: 0;
   width: 100%;
-  height: 128px;
+  height: 154px;
   container-type: inline-size;
   overflow: visible;
   isolation: isolate;
@@ -81,9 +82,9 @@
     var(--signal-runner-instrumentation-max-width)
   );
   margin: 0 auto;
-  padding: var(--signal-runner-hud-inset) 0;
+  padding: 10px 0;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 300px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) 360px minmax(0, 1fr);
   align-items: start;
   gap: var(--signal-runner-hud-widget-gap);
   overflow: visible;
@@ -119,12 +120,12 @@
 }
 
 .signal-runner__hud-slot--left {
-  width: 112px;
-  grid-template-rows: minmax(78px, 1fr) auto;
+  width: 134px;
+  grid-template-rows: minmax(94px, 1fr) auto;
   justify-self: end;
   align-content: start;
   gap: var(--signal-runner-hud-widget-gap);
-  padding: 0 0 10px;
+  padding: 0 0 12px;
   border: 0;
   border-radius: 0;
   background: transparent;
@@ -133,7 +134,7 @@
 }
 
 .signal-runner__hud-slot--right {
-  width: min(250px, 100%);
+  width: min(300px, 100%);
   display: flex;
   flex-direction: column;
   justify-self: start;
@@ -153,8 +154,8 @@
   --signal-runner-spiral-glow: 0;
   --signal-runner-spiral-color-a: #47f7ff;
   --signal-runner-spiral-color-b: #ff7fa1;
-  width: 46px;
-  height: 46px;
+  width: 55px;
+  height: 55px;
   justify-self: center;
   border-radius: 50%;
   background: radial-gradient(circle at 50% 50%, rgba(138, 92, 255, 0.16), rgba(1, 7, 10, 0.9) 70%);
@@ -213,8 +214,8 @@
   justify-content: space-between;
   align-items: center;
   flex: none;
-  width: 14px;
-  height: 86px;
+  width: 17px;
+  height: 103px;
   box-sizing: border-box;
   padding: 6px 2px;
   border: 1px solid rgba(71, 247, 255, 0.16);
@@ -250,8 +251,8 @@
   flex-direction: column-reverse;
   gap: 3px;
   flex: none;
-  width: 14px;
-  height: 86px;
+  width: 17px;
+  height: 103px;
   box-sizing: border-box;
   padding: 4px;
   border: 1px solid rgba(156, 255, 87, 0.18);
@@ -282,7 +283,7 @@
 
 .signal-runner__center-stack {
   min-width: 0;
-  height: 112px;
+  height: 134px;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
@@ -292,12 +293,12 @@
 
 .signal-runner__message-stream {
   --signal-runner-message-group-gap: 56px;
-  flex: 0 0 28px;
+  flex: 0 0 34px;
   width: 100%;
   min-width: 0;
   box-sizing: border-box;
   display: block;
-  padding: 5px 8px;
+  padding: 6px 10px;
   overflow: hidden;
   border: 1px solid rgba(71, 247, 255, 0.42);
   border-radius: 4px;
@@ -306,9 +307,9 @@
     inset 0 0 10px rgba(71, 247, 255, 0.05),
     0 0 8px rgba(0, 0, 0, 0.28);
   color: rgba(233, 248, 255, 0.9);
-  font-size: 0.66rem;
+  font-size: 0.79rem;
   letter-spacing: 0.06em;
-  line-height: 16px;
+  line-height: 19px;
   white-space: nowrap;
 }
 
@@ -376,8 +377,8 @@
   --signal-runner-heat-level: 0;
   position: relative;
   flex: none;
-  width: 16px;
-  height: 86px;
+  width: 19px;
+  height: 103px;
   box-sizing: border-box;
   border: 1px solid rgba(71, 247, 255, 0.28);
   border-radius: 4px;
@@ -459,8 +460,8 @@
   --signal-runner-bar-level: 0;
   position: relative;
   flex: none;
-  width: 12px;
-  height: 86px;
+  width: 14px;
+  height: 103px;
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 4px;
   background: rgba(1, 7, 10, 0.72);
@@ -534,11 +535,11 @@
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   align-content: center;
-  gap: 5px;
+  gap: 6px;
   box-sizing: border-box;
   width: 100%;
-  max-width: 78px;
-  padding: 7px 6px;
+  max-width: 94px;
+  padding: 8px 7px;
   border: 1px solid rgba(71, 247, 255, 0.2);
   border-radius: 6px;
   background: rgba(1, 7, 10, 0.52);
@@ -570,8 +571,8 @@
   --signal-runner-coil-energy: 0;
   --signal-runner-coil-kick: 0;
   --signal-runner-coil-bass: 0;
-  width: 32px;
-  height: 86px;
+  width: 38px;
+  height: 103px;
   justify-self: start;
   align-self: center;
   position: relative;
@@ -724,7 +725,7 @@
   box-sizing: border-box;
   min-width: 0;
   justify-self: center;
-  padding: 9px 14px 10px;
+  padding: 11px 17px 12px;
   display: grid;
   align-content: center;
   gap: 4px;
@@ -771,21 +772,21 @@
 
 @container (max-width: 980px) {
   .signal-runner__hud-pod {
-    height: 110px;
-    --signal-runner-vector-height: 94px;
+    height: 132px;
+    --signal-runner-vector-height: 113px;
   }
 
   .signal-runner__hud-content {
     width: calc(100% - 2.5rem);
-    grid-template-columns: minmax(0, 1fr) 300px minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) 360px minmax(0, 1fr);
   }
 
   .signal-runner__hud-slot--left {
-    width: 88px;
+    width: 106px;
   }
 
   .signal-runner__hud-slot--right {
-    width: min(184px, 100%);
+    width: min(221px, 100%);
   }
 
   .signal-runner__sensor-row > :first-child {
@@ -793,9 +794,9 @@
   }
 
   .signal-runner__led-bank {
-    max-width: 44px;
-    padding: 5px 4px;
-    gap: 3px;
+    max-width: 53px;
+    padding: 6px 5px;
+    gap: 4px;
   }
 
   .signal-runner__vector-drive {
@@ -804,48 +805,48 @@
 
   .signal-runner__vector-drive-header,
   .signal-runner__vector-drive-values {
-    gap: 8px;
+    gap: 10px;
   }
 
   .signal-runner__spiral {
-    width: 38px;
-    height: 38px;
+    width: 46px;
+    height: 46px;
   }
 
   .signal-runner__heat-sensor {
-    width: 13px;
+    width: 16px;
   }
 
   .signal-runner__impulse-coil {
-    width: 28px;
+    width: 34px;
   }
 
   .signal-runner__glyph-strip,
   .signal-runner__pulse-ladder {
-    width: 12px;
+    width: 14px;
   }
 
   .signal-runner__signal-bar {
-    width: 10px;
+    width: 12px;
   }
 
   .signal-runner__spiral-row .signal-runner__signal-bar {
-    height: 38px;
+    height: 46px;
   }
 }
 
 @container (max-width: 880px) {
   .signal-runner__hud-content {
     width: calc(100% - 2rem);
-    grid-template-columns: minmax(0, 1fr) 300px minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) 360px minmax(0, 1fr);
   }
 
   .signal-runner__hud-slot--left {
-    width: 64px;
+    width: 77px;
   }
 
   .signal-runner__hud-slot--right {
-    width: min(150px, 100%);
+    width: min(180px, 100%);
   }
 
   .signal-runner__sensor-row > :nth-child(2),
@@ -869,11 +870,11 @@
 }
 
 .signal-runner__vector-drive-header {
-  height: 16px;
-  flex: 0 0 16px;
+  height: 19px;
+  flex: 0 0 19px;
   white-space: nowrap;
   color: var(--signal-cyan);
-  font-size: 0.55rem;
+  font-size: 0.66rem;
   letter-spacing: 0.14em;
 }
 
@@ -882,19 +883,19 @@
   white-space: nowrap;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
 }
 
 .signal-runner__vector-drive-header strong {
   color: var(--signal-green);
-  font-size: 0.58rem;
+  font-size: 0.7rem;
 }
 
 .signal-runner__vector-drive-motion {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  font-size: 0.45rem;
+  gap: 5px;
+  font-size: 0.54rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
@@ -917,18 +918,18 @@
   margin: 0;
   display: flex;
   align-items: flex-end;
-  gap: 5px;
+  gap: 6px;
 }
 
 .signal-runner__vector-drive-values span {
   color: rgba(233, 248, 255, 0.48);
-  font-size: 0.45rem;
+  font-size: 0.54rem;
   letter-spacing: 0.1em;
 }
 
 .signal-runner__vector-drive-values p:first-child strong {
   color: #eaffff;
-  font-size: clamp(1.25rem, 0.95rem + 0.6vw, 1.65rem);
+  font-size: clamp(1.5rem, 1.14rem + 0.72vw, 1.98rem);
   line-height: 0.82;
   letter-spacing: -0.05em;
   text-shadow: 0 0 10px rgba(71, 247, 255, 0.25);
@@ -954,12 +955,12 @@
 }
 
 .signal-runner__vector-drive-values p:last-child strong {
-  font-size: 0.98rem;
+  font-size: 1.18rem;
 }
 
 .signal-runner__drive-meter {
   position: relative;
-  padding-top: 7px;
+  padding-top: 8px;
   overflow: hidden;
 }
 
@@ -977,10 +978,10 @@
 
 .signal-runner__drive-segments {
   position: relative;
-  height: 13px;
+  height: 16px;
   display: grid;
   grid-template-columns: repeat(9, minmax(3px, 1fr));
-  gap: 3px;
+  gap: 4px;
   padding: 2px 0;
   border-radius: 5px;
   background: rgba(5, 17, 23, 0.4);
@@ -1078,16 +1079,16 @@
 
 @container (max-width: 760px) {
   .signal-runner__hud-pod {
-    height: 110px;
+    height: 132px;
   }
 
   .signal-runner__hud-content {
     width: calc(100% - 1.75rem);
-    grid-template-columns: minmax(0, 1fr) 300px minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) 360px minmax(0, 1fr);
   }
 
   .signal-runner__hud-slot--left {
-    width: 42px;
+    width: 50px;
   }
 
   .signal-runner__sensor-row > :nth-child(4) {
@@ -1095,7 +1096,7 @@
   }
 
   .signal-runner__hud-slot--right {
-    width: min(134px, 100%);
+    width: min(161px, 100%);
   }
 
   .signal-runner__spiral-row {

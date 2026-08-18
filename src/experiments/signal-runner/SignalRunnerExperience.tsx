@@ -683,15 +683,15 @@ const MESSAGE_STREAM_GROUP = [
   { text: "DEEP", color: "green", joinPrevious: false },
   { text: "SIGNALS", color: "cyan", joinPrevious: true },
   { text: ".FM", color: "pink", joinPrevious: true },
-  { text: "TUNE IN.", color: "green" },
-  { text: "TRANSMIT.", color: "cyan" },
-  { text: "TRANSCEND.", color: "pink" },
+  { text: "TUNE IN.", color: "green", joinPrevious: false },
+  { text: "TRANSMIT.", color: "cyan", joinPrevious: false },
+  { text: "TRANSCEND.", color: "pink", joinPrevious: false },
 ] as const;
 
 function MessageStream() {
   const renderMessageGroup = (groupIndex: number) => (
     <span className="signal-runner__message-stream-group" key={groupIndex}>
-      {MESSAGE_STREAM_GROUP.map(({ text, color, joinPrevious }) => (
+      {MESSAGE_STREAM_GROUP.map(({ text, color, joinPrevious = false }) => (
         <span
           className={`signal-runner__message-stream-part signal-runner__message-stream-part--${color}${joinPrevious ? " signal-runner__message-stream-part--joined" : ""}`}
           key={text}
