@@ -1,14 +1,12 @@
-import { useEffect, useRef, useState } from 'react'
-import type { TrackSignalMetadata } from './trackSignalMetadata'
+import {
+  useExternalNowPlaying,
+  type ExternalNowPlayingMetadata,
+} from './useExternalNowPlaying'
 
 const PSYSTREAM_SOURCE_ID = 'psystream'
 const PSYSTREAM_NOW_PLAYING_URL =
   'https://radio.psymusic.co.uk/api/nowplaying_static/psystream.json'
 const PSYSTREAM_METADATA_POLL_MS = 12_000
-
-type PsyStreamNowPlaying = TrackSignalMetadata & {
-  changeKey: string
-}
 
 type PsyStreamNowPlayingResponse = {
   now_playing?: {
@@ -27,7 +25,7 @@ function cleanString(value: unknown) {
   return typeof value === 'string' && value.trim() ? value.trim() : null
 }
 
-function parsePsyStreamNowPlaying(value: unknown): PsyStreamNowPlaying | null {
+function parsePsyStreamNowPlaying(value: unknown): ExternalNowPlayingMetadata | null {
   if (!value || typeof value !== 'object') {
     return null
   }
@@ -58,73 +56,14 @@ function parsePsyStreamNowPlaying(value: unknown): PsyStreamNowPlaying | null {
   }
 }
 
+const PSYSTREAM_NOW_PLAYING_CONFIG = {
+  sourceId: PSYSTREAM_SOURCE_ID,
+  nowPlayingUrl: PSYSTREAM_NOW_PLAYING_URL,
+  pollMs: PSYSTREAM_METADATA_POLL_MS,
+  fetchResponseType: 'json' as const,
+  parse: parsePsyStreamNowPlaying,
+}
+
 export function usePsyStreamNowPlaying(selectedSourceId: string | null) {
-  const [metadata, setMetadata] = useState<PsyStreamNowPlaying | null>(null)
-  const requestGenerationRef = useRef(0)
-
-  useEffect(() => {
-    requestGenerationRef.current += 1
-    const generation = requestGenerationRef.current
-
-    if (selectedSourceId !== PSYSTREAM_SOURCE_ID) {
-      return
-    }
-
-    let timeoutHandle: number | null = null
-    let activeController: AbortController | null = null
-
-    const poll = async () => {
-      activeController = new AbortController()
-
-      try {
-        const response = await fetch(PSYSTREAM_NOW_PLAYING_URL, {
-          cache: 'no-store',
-          mode: 'cors',
-          signal: activeController.signal,
-        })
-
-        if (!response.ok) {
-          throw new Error(`PsyStream metadata request failed (${response.status})`)
-        }
-
-        const nextMetadata = parsePsyStreamNowPlaying(await response.json())
-
-        if (requestGenerationRef.current !== generation) {
-          return
-        }
-
-        setMetadata((current) =>
-          current?.changeKey === nextMetadata?.changeKey ? current : nextMetadata,
-        )
-      } catch (error) {
-        if (
-          activeController.signal.aborted ||
-          requestGenerationRef.current !== generation
-        ) {
-          return
-        }
-
-        console.warn('PsyStream Now Playing metadata unavailable', error)
-        setMetadata(null)
-      } finally {
-        if (requestGenerationRef.current === generation) {
-          timeoutHandle = window.setTimeout(poll, PSYSTREAM_METADATA_POLL_MS)
-        }
-      }
-    }
-
-    void poll()
-
-    return () => {
-      requestGenerationRef.current += 1
-      activeController?.abort()
-      setMetadata(null)
-
-      if (timeoutHandle !== null) {
-        window.clearTimeout(timeoutHandle)
-      }
-    }
-  }, [selectedSourceId])
-
-  return selectedSourceId === PSYSTREAM_SOURCE_ID ? metadata : null
+  return useExternalNowPlaying(selectedSourceId, PSYSTREAM_NOW_PLAYING_CONFIG)
 }

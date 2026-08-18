@@ -31,6 +31,7 @@ import { imageDepthEnvironmentCatalog } from "../themes/image-depth/environmentC
 import { useAudioAnalysis } from "./useAudioAnalysis";
 import { usePersistentAudioController } from "./usePersistentAudioController";
 import { usePsyStreamNowPlaying } from "./usePsyStreamNowPlaying";
+import { usePsyBrazilNowPlaying } from "./usePsyBrazilNowPlaying";
 import {
   mapSignalTarget,
   resolveShortestHueDeltaDegrees,
@@ -526,6 +527,8 @@ function PlayerShell({ className }: PlayerShellProps) {
     selectedSignalId ?? undefined,
   );
   const psyStreamNowPlaying = usePsyStreamNowPlaying(selectedSignalId);
+  const psyBrazilNowPlaying = usePsyBrazilNowPlaying(selectedSignalId);
+  const externalNowPlaying = psyStreamNowPlaying ?? psyBrazilNowPlaying;
   const registrySourceBpm = audioController.audioSource.bpm ?? null;
   const effectiveReactiveBpm = ignoreSourceBpmEnabled
     ? null
@@ -1246,12 +1249,16 @@ function PlayerShell({ className }: PlayerShellProps) {
   }, [signalTelemetryVisible]);
 
   const transmissionLabel = useMemo(() => {
-    if (psyStreamNowPlaying?.artist && psyStreamNowPlaying.title) {
-      return `${psyStreamNowPlaying.artist} — ${psyStreamNowPlaying.title}`;
+    if (externalNowPlaying?.artist && externalNowPlaying.title) {
+      return `${externalNowPlaying.artist} — ${externalNowPlaying.title}`;
+    }
+
+    if (externalNowPlaying?.title) {
+      return externalNowPlaying.title;
     }
 
     return formatAudioSourceLabel(audioController.audioSource);
-  }, [audioController.audioSource, psyStreamNowPlaying]);
+  }, [audioController.audioSource, externalNowPlaying]);
 
   const handleAudioTogglePlay = async () => {
     if (audioController.playbackStatus !== "playing") {
@@ -1383,7 +1390,7 @@ function PlayerShell({ className }: PlayerShellProps) {
           selectedTrackSource={
             selectedSignalId ? audioController.audioSource : null
           }
-          metadataOverride={psyStreamNowPlaying}
+          metadataOverride={externalNowPlaying}
           Frame={activeTheme.VisualFeedFrame}
         />
       </div>

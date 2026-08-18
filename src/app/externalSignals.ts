@@ -7,6 +7,7 @@ export type ExternalSignalId =
   | 'psyndora-chillout'
   | 'psystream'
   | 'dmt-fm'
+  | 'psybrazil'
   | 'hirschmilch-psytrance'
   | 'hirschmilch-chillout'
   | 'hirschmilch-progressive'
@@ -73,6 +74,14 @@ export const EXTERNAL_SIGNAL_DEFINITIONS: ExternalSignalDefinition[] = [
     sourceAttribution: 'External development signal',
     publicPlayerCompatible: true,
     artworkUrl: publicAssetUrl('/images/stations/dmt-fm-logo.webp'),
+  },
+  {
+    id: 'psybrazil',
+    stationName: 'PsyBrazil',
+    streamUrl: 'https://radio.psybrazil.com.br/psybr',
+    stationWebsite: 'https://psybrazil.com.br/',
+    sourceAttribution: 'External signal from PsyBrazil',
+    publicPlayerCompatible: true,
   },
   {
     id: 'hirschmilch-psytrance',
