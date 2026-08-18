@@ -541,10 +541,126 @@ function HardwareLedBank({ side, count, signal, motionEnabled, chromaEnabled }: 
   );
 }
 
-function SignalMonitor({ chromaEnabled, motionEnabled }: { chromaEnabled: boolean; motionEnabled: boolean }) {
+type SignalMonitorProps = {
+  chromaEnabled: boolean;
+  motionEnabled: boolean;
+  isPlaying: boolean;
+  getLatestAudioSnapshot?: (() => AudioReactiveSnapshot) | null;
+};
+
+function SignalMonitor({
+  chromaEnabled,
+  motionEnabled,
+  isPlaying,
+  getLatestAudioSnapshot,
+}: SignalMonitorProps) {
+  const cellRefs = useRef<Array<HTMLElement | null>>([]);
+  const barRefs = useRef<Array<HTMLElement | null>>([]);
+  const monitorRef = useRef<HTMLElement | null>(null);
+  const stateRef = useRef({ chromaEnabled, motionEnabled, isPlaying, getLatestAudioSnapshot });
+  const acceptedKickSequenceRef = useRef(0);
+  const flashRef = useRef(0);
+
+  useEffect(() => {
+    stateRef.current = { chromaEnabled, motionEnabled, isPlaying, getLatestAudioSnapshot };
+  }, [chromaEnabled, getLatestAudioSnapshot, isPlaying, motionEnabled]);
+
+  useEffect(() => {
+    let frameId = 0;
+    let lastFrameTime = performance.now();
+
+    const render = (frameTime: number) => {
+      const delta = Math.min((frameTime - lastFrameTime) / 1000, 0.05);
+      lastFrameTime = frameTime;
+      const state = stateRef.current;
+      const snapshot = state.isPlaying ? state.getLatestAudioSnapshot?.() ?? null : null;
+      const energy = clamp01(snapshot?.smoothedEnergy ?? 0);
+      const bass = clamp01(snapshot?.bassPulse ?? 0);
+      const mids = clamp01(snapshot?.mids ?? 0);
+      const highs = clamp01(snapshot?.highs ?? 0);
+      const kick = clamp01(snapshot?.kickPulse ?? 0);
+      const acceptedKickSequence = snapshot?.kickPulseAcceptedEventSequence ?? 0;
+
+      if (state.chromaEnabled && acceptedKickSequence !== acceptedKickSequenceRef.current) {
+        acceptedKickSequenceRef.current = acceptedKickSequence;
+        flashRef.current = Math.max(flashRef.current, 0.72 + kick * 0.28);
+      } else if (!state.chromaEnabled || !snapshot) {
+        acceptedKickSequenceRef.current = acceptedKickSequence;
+      }
+
+      const flash = state.chromaEnabled ? flashRef.current : 0;
+      flashRef.current = Math.max(0, flashRef.current - delta * 5.2);
+      const hue = monitorRef.current?.closest<HTMLElement>(".signal-runner")
+        ?.style.getPropertyValue("--signal-runner-hud-chroma-hue") || "0deg";
+
+      if (monitorRef.current) {
+        monitorRef.current.style.setProperty("--signal-runner-monitor-energy", state.chromaEnabled ? energy.toFixed(3) : "0");
+        monitorRef.current.style.setProperty("--signal-runner-monitor-bass", state.chromaEnabled ? bass.toFixed(3) : "0");
+        monitorRef.current.style.setProperty("--signal-runner-monitor-kick", state.chromaEnabled ? flash.toFixed(3) : "0");
+        monitorRef.current.style.setProperty("--signal-runner-monitor-scan", state.chromaEnabled ? `${(frameTime * 0.055) % 124 - 12}%` : "50%");
+        monitorRef.current.style.setProperty("--signal-runner-monitor-hue", hue);
+      }
+
+      for (let index = 0; index < cellRefs.current.length; index += 1) {
+        const cell = cellRefs.current[index];
+
+        if (!cell) {
+          continue;
+        }
+
+        const row = Math.floor(index / 18);
+        const column = index % 18;
+        const rowSignal = row === 0 ? highs : row === 1 ? mids : bass;
+        const chatter = ((Math.sin(frameTime * 0.006 + index * 1.7) + 1) / 2) * 0.22;
+        const level = state.chromaEnabled
+          ? clamp01(0.18 + energy * 0.38 + rowSignal * 0.28 + chatter + (column % 5 === 0 ? flash * 0.5 : 0))
+          : 0;
+
+        if (state.motionEnabled) {
+          const seed = Math.floor(frameTime / 140) * 31 + index * 13;
+          cell.textContent = GLYPH_CHARS[Math.abs(seed) % GLYPH_CHARS.length];
+        }
+
+        cell.style.color = state.chromaEnabled
+          ? `hsl(calc(${184 + (row * 28)}deg + ${hue}) ${72 + level * 20}% ${58 + level * 20}% / ${0.32 + level * 0.68})`
+          : "";
+        cell.style.opacity = state.chromaEnabled ? level.toFixed(3) : "";
+        cell.style.textShadow = state.chromaEnabled && level > 0.62
+          ? `0 0 5px hsl(calc(184deg + ${hue}) 90% 64% / ${level.toFixed(3)})`
+          : "";
+      }
+
+      for (let index = 0; index < barRefs.current.length; index += 1) {
+        const bar = barRefs.current[index];
+
+        if (!bar) {
+          continue;
+        }
+
+        const band = index < 3 ? highs : index < 6 ? mids : bass;
+        const variation = (Math.sin(frameTime * 0.008 + index * 1.9) + 1) / 2;
+        const level = state.chromaEnabled
+          ? clamp01(0.22 + energy * 0.3 + band * 0.32 + variation * 0.16 + (index === 1 || index === 6 ? flash * 0.48 : 0))
+          : 0.4 + (index % 3) * 0.12;
+        bar.style.transform = state.chromaEnabled ? `scaleY(${level.toFixed(3)})` : "";
+        bar.style.opacity = state.chromaEnabled ? (0.3 + level * 0.7).toFixed(3) : "0.58";
+        bar.style.background = state.chromaEnabled
+          ? `hsl(calc(${184 + (index % 4) * 22}deg + ${hue}) 88% ${58 + level * 15}%)`
+          : "";
+      }
+
+      frameId = window.requestAnimationFrame(render);
+    };
+
+    frameId = window.requestAnimationFrame(render);
+
+    return () => window.cancelAnimationFrame(frameId);
+  }, []);
+
   return (
     <section
       className="signal-runner__signal-monitor"
+      ref={monitorRef}
       data-chroma={chromaEnabled}
       data-motion={motionEnabled}
       aria-label="Signal analysis monitor"
@@ -557,13 +673,27 @@ function SignalMonitor({ chromaEnabled, motionEnabled }: { chromaEnabled: boolea
         {Array.from({ length: 3 }, (_, row) => (
           <div className="signal-runner__monitor-line" key={row}>
             {Array.from({ length: 18 }, (_, index) => (
-              <i key={index}>{GLYPH_CHARS[(row * 11 + index * 3) % GLYPH_CHARS.length]}</i>
+              <i
+                key={index}
+                ref={(element) => {
+                  cellRefs.current[row * 18 + index] = element;
+                }}
+              >
+                {GLYPH_CHARS[(row * 11 + index * 3) % GLYPH_CHARS.length]}
+              </i>
             ))}
           </div>
         ))}
       </div>
       <div className="signal-runner__monitor-bars" aria-hidden="true">
-        {Array.from({ length: 8 }, (_, index) => <i key={index} />)}
+        {Array.from({ length: 8 }, (_, index) => (
+          <i
+            key={index}
+            ref={(element) => {
+              barRefs.current[index] = element;
+            }}
+          />
+        ))}
       </div>
       <div className="signal-runner__monitor-footer">
         <span>RX 884.2</span>
@@ -1046,7 +1176,12 @@ function SignalRunnerExperience({
           <div className="signal-runner__hud-slot signal-runner__hud-slot--right">
             <div className="signal-runner__right-rail">
               <div className="signal-runner__right-slot signal-runner__right-slot--monitor">
-                <SignalMonitor chromaEnabled={chromaEnabled} motionEnabled={motionEnabled} />
+                <SignalMonitor
+                  chromaEnabled={chromaEnabled}
+                  motionEnabled={motionEnabled}
+                  isPlaying={isPlaying}
+                  getLatestAudioSnapshot={getLatestAudioSnapshot}
+                />
               </div>
               <div className="signal-runner__right-slot signal-runner__right-slot--aux">
                 <ScannerDial

@@ -527,9 +527,54 @@
   100% { opacity: 0; transform: scale(1); }
 }
 .signal-runner__right-feature-row { display: flex; align-items: center; gap: 8px; min-width: 0; height: 103px; }
-.signal-runner__signal-monitor { width: 135px; min-width: 0; flex: none; height: 88px; box-sizing: border-box; padding: 8px; border: 1px solid rgba(71, 247, 255, 0.26); background: #010507; box-shadow: inset 0 0 16px rgba(71, 247, 255, 0.08); overflow: hidden; }
+.signal-runner__signal-monitor {
+  --signal-runner-monitor-energy: 0;
+  --signal-runner-monitor-bass: 0;
+  --signal-runner-monitor-kick: 0;
+  --signal-runner-monitor-scan: 50%;
+  --signal-runner-monitor-hue: 0deg;
+  position: relative;
+  width: 135px;
+  min-width: 0;
+  flex: none;
+  height: 88px;
+  box-sizing: border-box;
+  padding: 8px;
+  border: 1px solid rgba(71, 247, 255, 0.26);
+  background: #010507;
+  box-shadow: inset 0 0 16px rgba(71, 247, 255, 0.08);
+  overflow: hidden;
+}
+.signal-runner__signal-monitor::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(
+      90deg,
+      transparent calc(var(--signal-runner-monitor-scan) - 12%),
+      hsl(calc(184deg + var(--signal-runner-monitor-hue)) 88% 64% / calc(0.02 + var(--signal-runner-monitor-energy) * 0.1)) var(--signal-runner-monitor-scan),
+      transparent calc(var(--signal-runner-monitor-scan) + 12%)
+    ),
+    radial-gradient(circle at 50% 55%, hsl(calc(212deg + var(--signal-runner-monitor-hue)) 82% 56% / calc(var(--signal-runner-monitor-energy) * 0.08)), transparent 70%);
+  mix-blend-mode: screen;
+}
+.signal-runner__signal-monitor[data-chroma="true"] {
+  border-color: hsl(calc(184deg + var(--signal-runner-monitor-hue)) 82% 62% / calc(0.3 + var(--signal-runner-monitor-energy) * 0.36));
+  box-shadow:
+    inset 0 0 16px hsl(calc(184deg + var(--signal-runner-monitor-hue)) 86% 56% / calc(0.08 + var(--signal-runner-monitor-energy) * 0.16)),
+    0 0 8px hsl(calc(184deg + var(--signal-runner-monitor-hue)) 86% 56% / calc(var(--signal-runner-monitor-kick) * 0.16));
+}
+.signal-runner__monitor-header,
+.signal-runner__monitor-field,
+.signal-runner__monitor-bars,
+.signal-runner__monitor-footer { position: relative; z-index: 1; }
 .signal-runner__monitor-header, .signal-runner__monitor-footer { display: flex; justify-content: space-between; gap: 6px; color: rgba(71, 247, 255, 0.62); }
-.signal-runner__monitor-header b, .signal-runner__monitor-footer b { color: var(--signal-green); }
+.signal-runner__monitor-header { text-shadow: 0 0 5px hsl(calc(184deg + var(--signal-runner-monitor-hue)) 88% 64% / calc(var(--signal-runner-monitor-energy) * 0.7 + var(--signal-runner-monitor-kick) * 0.55)); }
+.signal-runner__monitor-header b { color: hsl(calc(184deg + var(--signal-runner-monitor-hue)) 84% 66% / calc(0.5 + var(--signal-runner-monitor-energy) * 0.45 + var(--signal-runner-monitor-kick) * 0.2)); }
+.signal-runner__monitor-footer b { color: var(--signal-green); }
 .signal-runner__monitor-field { display: grid; gap: 4px; margin: 12px 0; color: rgba(71, 247, 255, 0.62); font-family: var(--display); font-size: 0.6rem; line-height: 1; }
 .signal-runner__monitor-line { display: flex; justify-content: space-between; opacity: 0.5; animation: signal-runner-monitor-drift 4s ease-in-out infinite alternate; }
 .signal-runner__monitor-line:nth-child(2) { color: var(--signal-green); animation-delay: -1.6s; }
@@ -540,6 +585,10 @@
 .signal-runner__monitor-bars i:nth-child(2n) { height: 75%; background: var(--signal-green); animation-delay: -0.7s; }
 .signal-runner__monitor-bars i:nth-child(3n) { height: 55%; background: var(--signal-pink); animation-delay: -1.1s; }
 .signal-runner__signal-monitor[data-motion="false"] .signal-runner__monitor-bars i { animation-play-state: paused; }
+.signal-runner__signal-monitor[data-chroma="true"] .signal-runner__monitor-line { color: hsl(calc(184deg + var(--signal-runner-monitor-hue)) 84% 66%); }
+.signal-runner__signal-monitor[data-chroma="true"] .signal-runner__monitor-line:nth-child(2) { color: hsl(calc(212deg + var(--signal-runner-monitor-hue)) 82% 64%); }
+.signal-runner__signal-monitor[data-chroma="true"] .signal-runner__monitor-line:nth-child(3) { color: hsl(calc(246deg + var(--signal-runner-monitor-hue)) 80% 70%); }
+.signal-runner__signal-monitor[data-chroma="false"]::before { display: none; }
 .signal-runner__compact-utility { display: flex; align-items: center; gap: 7px; min-width: 0; }
 .signal-runner__compact-utility .signal-runner__led-bank { max-width: 74px; }
 @keyframes signal-runner-monitor-drift { from { transform: translateX(-5px); opacity: 0.32; } to { transform: translateX(4px); opacity: 0.76; } }
