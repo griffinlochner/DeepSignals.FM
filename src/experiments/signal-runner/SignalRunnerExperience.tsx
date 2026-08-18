@@ -26,10 +26,7 @@ const BLAST_OFF_TRIGGER_SPEED = 99;
 const BLAST_OFF_COOLDOWN_MS = 1500;
 const BLAST_OFF_DISPLAY_MS = 1100;
 const COIL_SIGNAL_INTERVAL_MS = 100;
-const LED_ROW_SIZE = 4;
-const LED_COUNT = LED_ROW_SIZE * 2;
 const LED_PALETTE = ["#47f7ff", "#9cff57", "#ff7fa1"];
-const LED_BASE_COLOR_INDEXES = [0, 1, 0, 1, 2, 0, 1, 2];
 const GLYPH_CHARS = ["░", "▒", "▓", "▌", "▐", "┃", "╎", "╏", "¦", "†", "‡", "×", "⌁", "⌬", "∴", "⋄", "◊", "✦"];
 const GLYPH_STRIP_CELLS = 7;
 const PULSE_LADDER_SEGMENTS = 6;
@@ -286,6 +283,7 @@ type HypnoticSpiralProps = {
   motionEnabled: boolean;
   chromaEnabled: boolean;
   actualSpeed: number;
+  rotationMultiplier?: number;
   getLatestAudioSnapshot?: (() => AudioReactiveSnapshot) | null;
 };
 
@@ -294,6 +292,7 @@ function HypnoticSpiral({
   motionEnabled,
   chromaEnabled,
   actualSpeed,
+  rotationMultiplier = 1,
   getLatestAudioSnapshot,
 }: HypnoticSpiralProps) {
   const spiralRef = useRef<HTMLDivElement | null>(null);
@@ -336,7 +335,7 @@ function HypnoticSpiral({
       const speed = clamp01(state.actualSpeed / 100);
 
       if (active) {
-        angle = (angle + delta * (18 + speed * speed * 520 + energy * 46)) % 360;
+        angle = (angle + delta * (18 + speed * speed * 520 + energy * 46) * rotationMultiplier) % 360;
       }
 
       if (rotorRef.current) {
@@ -377,7 +376,7 @@ function HypnoticSpiral({
     frameId = window.requestAnimationFrame(render);
 
     return () => window.cancelAnimationFrame(frameId);
-  }, []);
+  }, [rotationMultiplier]);
 
   return (
     <div
@@ -403,130 +402,64 @@ function HypnoticSpiral({
   );
 }
 
-type ChromaLedBankProps = {
-  isPlaying: boolean;
+type ScannerDialProps = {
+  size: "large" | "small";
   chromaEnabled: boolean;
-  getLatestAudioSnapshot?: (() => AudioReactiveSnapshot) | null;
+  motionEnabled: boolean;
 };
 
-function ChromaLedBank({
-  isPlaying,
-  chromaEnabled,
-  getLatestAudioSnapshot,
-}: ChromaLedBankProps) {
-  const ledRefs = useRef<Array<HTMLSpanElement | null>>([]);
-  const stateRef = useRef({ isPlaying, chromaEnabled, getLatestAudioSnapshot });
-
-  useEffect(() => {
-    stateRef.current = { isPlaying, chromaEnabled, getLatestAudioSnapshot };
-  }, [isPlaying, chromaEnabled, getLatestAudioSnapshot]);
-
-  useEffect(() => {
-    let frameId = 0;
-    let lastFrameTime = performance.now();
-    let kickFlash = 0;
-    let lastKickSequence = -1;
-    const renderedLevels = new Array<number>(LED_COUNT).fill(0.04);
-
-    const render = (frameTime: number) => {
-      const delta = Math.min((frameTime - lastFrameTime) / 1000, 0.05);
-      lastFrameTime = frameTime;
-
-      const state = stateRef.current;
-      const snapshot = state.isPlaying
-        ? state.getLatestAudioSnapshot?.() ?? null
-        : null;
-      const energy = clamp01(snapshot?.smoothedEnergy ?? 0);
-      const bass = clamp01(snapshot?.bass ?? 0);
-      const bassPulse = clamp01(snapshot?.bassPulse ?? 0);
-      const mids = clamp01(snapshot?.mids ?? 0);
-      const highs = clamp01(snapshot?.highs ?? 0);
-
-      kickFlash = Math.max(0, kickFlash - delta * 3.6);
-
-      if (snapshot) {
-        const sequence = snapshot.kickPulseAcceptedEventSequence ?? -1;
-
-        if (sequence !== lastKickSequence) {
-          lastKickSequence = sequence;
-          kickFlash = 1;
-        }
-      } else {
-        lastKickSequence = -1;
-      }
-
-      const chromaShift = state.chromaEnabled
-        ? Math.floor(
-            (bass * 1.1 + highs * 1.7 + mids * 0.8 + kickFlash * 1.4) * 1.8,
-          )
-        : 0;
-      const phase = frameTime * 0.0042;
-
-      for (let index = 0; index < LED_COUNT; index += 1) {
-        const led = ledRefs.current[index];
-
-        if (!led) {
-          continue;
-        }
-
-        const isSecondary = index >= LED_ROW_SIZE;
-        let level = 0.04;
-
-        if (snapshot && state.chromaEnabled) {
-          const wave =
-            (Math.sin(phase * (isSecondary ? 1.7 : 1) - index * 0.8) + 1) / 2;
-          const bandInfluence = isSecondary
-            ? mids * 0.2 + highs * 0.3
-            : bassPulse * 0.28 + bass * 0.12;
-
-          level =
-            0.1 +
-            energy * 0.42 +
-            wave * (0.12 + energy * 0.26) +
-            kickFlash * (index % 2 === 0 ? 0.5 : 0.18) +
-            bandInfluence;
-        } else if (snapshot) {
-          level = 0.12 + energy * (isSecondary ? 0.52 : 0.68);
-        }
-
-        const colorIndex =
-          (LED_BASE_COLOR_INDEXES[index] + chromaShift) % LED_PALETTE.length;
-        const easing = state.chromaEnabled ? 1 : 1 - Math.exp(-delta * 3.2);
-        renderedLevels[index] += (clamp01(level) - renderedLevels[index]) * easing;
-
-        led.style.setProperty(
-          "--signal-runner-led-level",
-          renderedLevels[index].toFixed(3),
-        );
-        led.style.setProperty("--signal-runner-led-color", LED_PALETTE[colorIndex]);
-      }
-
-      frameId = window.requestAnimationFrame(render);
-    };
-
-    frameId = window.requestAnimationFrame(render);
-
-    return () => window.cancelAnimationFrame(frameId);
-  }, []);
-
+function ScannerDial({ size, chromaEnabled, motionEnabled }: ScannerDialProps) {
   return (
     <section
-      className="signal-runner__led-bank"
-      data-active={isPlaying}
+      className={`signal-runner__scanner-dial signal-runner__scanner-dial--${size}`}
       data-chroma={chromaEnabled}
-      aria-hidden="true"
+      data-motion={motionEnabled}
+      aria-label={`${size === "large" ? "Deep field" : "Auxiliary"} scanner`}
     >
-      {Array.from({ length: LED_COUNT }, (_, index) => (
-        <span
-          key={index}
-          ref={(element) => {
-            ledRefs.current[index] = element;
-          }}
-          className={`signal-runner__led${
-            index >= LED_ROW_SIZE ? " signal-runner__led--secondary" : ""
-          }`}
-        />
-      ))}
+      <svg viewBox="0 0 100 100" aria-hidden="true">
+        <circle className="signal-runner__scanner-grid" cx="50" cy="50" r="42" />
+        <circle className="signal-runner__scanner-grid" cx="50" cy="50" r="29" />
+        <circle className="signal-runner__scanner-grid" cx="50" cy="50" r="15" />
+        <path className="signal-runner__scanner-axis" d="M50 5V95M5 50H95" />
+        <g className="signal-runner__scanner-sweep">
+          <path className="signal-runner__scanner-beam" d="M50 50 50 7A43 43 0 0 1 80 20Z" />
+          <circle className="signal-runner__scanner-orbit" cx="50" cy="50" r="36" />
+        </g>
+        <circle className="signal-runner__scanner-core" cx="50" cy="50" r="4" />
+      </svg>
+      <span className="signal-runner__scanner-label">{size === "large" ? "DEEP SCAN" : "AUX"}</span>
+    </section>
+  );
+}
+
+function SignalMonitor({ chromaEnabled, motionEnabled }: { chromaEnabled: boolean; motionEnabled: boolean }) {
+  return (
+    <section
+      className="signal-runner__signal-monitor"
+      data-chroma={chromaEnabled}
+      data-motion={motionEnabled}
+      aria-label="Signal analysis monitor"
+    >
+      <div className="signal-runner__monitor-header">
+        <span>ANALYSIS / 07</span>
+        <b>LIVE</b>
+      </div>
+      <div className="signal-runner__monitor-field" aria-hidden="true">
+        {Array.from({ length: 3 }, (_, row) => (
+          <div className="signal-runner__monitor-line" key={row}>
+            {Array.from({ length: 18 }, (_, index) => (
+              <i key={index}>{GLYPH_CHARS[(row * 11 + index * 3) % GLYPH_CHARS.length]}</i>
+            ))}
+          </div>
+        ))}
+      </div>
+      <div className="signal-runner__monitor-bars" aria-hidden="true">
+        {Array.from({ length: 8 }, (_, index) => <i key={index} />)}
+      </div>
+      <div className="signal-runner__monitor-footer">
+        <span>RX 884.2</span>
+        <span>SYNC <b>OK</b></span>
+      </div>
     </section>
   );
 }
@@ -855,26 +788,43 @@ function SignalRunnerExperience({
       <div className="signal-runner__hud-pod">
         <div className="signal-runner__hud-content">
           <div className="signal-runner__hud-slot signal-runner__hud-slot--left">
-            <div className="signal-runner__sensor-row">
-              <SignalBar
+            <div className="signal-runner__left-rail">
+              <div className="signal-runner__left-slot signal-runner__left-slot--scan">
+                <ScannerDial size="large" chromaEnabled={chromaEnabled} motionEnabled={motionEnabled} />
+              </div>
+              <div className="signal-runner__left-slot signal-runner__left-slot--spiral">
+                <HypnoticSpiral
+                  isPlaying={isPlaying}
+                  motionEnabled={motionEnabled}
+                  chromaEnabled={chromaEnabled}
+                  actualSpeed={actualSpeed}
+                  rotationMultiplier={0.34}
+                  getLatestAudioSnapshot={getLatestAudioSnapshot}
+                />
+              </div>
+              <div className="signal-runner__left-slot signal-runner__left-slot--inner">
+                <div className="signal-runner__sensor-row">
+                <SignalBar
                 isPlaying={isPlaying}
                 motionEnabled={motionEnabled}
                 field="bass"
                 variant="ember"
                 getLatestAudioSnapshot={getLatestAudioSnapshot}
-              />
-              <DecodingGlyphStrip chromaEnabled={chromaEnabled} motionEnabled={motionEnabled} />
-              <MicroPulseLadder
+                />
+                <DecodingGlyphStrip chromaEnabled={chromaEnabled} motionEnabled={motionEnabled} />
+                <MicroPulseLadder
                 isPlaying={isPlaying}
                 motionEnabled={motionEnabled}
                 getLatestAudioSnapshot={getLatestAudioSnapshot}
-              />
-              <ImpulseCoil signal={coilSignal} />
-              <HeatSensor
+                />
+                <ImpulseCoil signal={coilSignal} />
+                <HeatSensor
                 isPlaying={isPlaying}
                 motionEnabled={motionEnabled}
                 getLatestAudioSnapshot={getLatestAudioSnapshot}
-              />
+                />
+                </div>
+              </div>
             </div>
             {controlMode === "manual" ? (
               <aside className="signal-runner__controls" aria-label="Signal Runner controls">
@@ -948,28 +898,23 @@ function SignalRunnerExperience({
           </div>
 
           <div className="signal-runner__hud-slot signal-runner__hud-slot--right">
-            <div className="signal-runner__spiral-row">
-              <SignalBar
-                isPlaying={isPlaying}
-                motionEnabled={motionEnabled}
-                field="highs"
-                variant="ion"
-                getLatestAudioSnapshot={getLatestAudioSnapshot}
-              />
-              <HypnoticSpiral
-                isPlaying={isPlaying}
-                motionEnabled={motionEnabled}
-                chromaEnabled={chromaEnabled}
-                actualSpeed={actualSpeed}
-                getLatestAudioSnapshot={getLatestAudioSnapshot}
-              />
-            </div>
-            <div className="signal-runner__lower-row">
-              <ChromaLedBank
-                isPlaying={isPlaying}
-                chromaEnabled={chromaEnabled}
-                getLatestAudioSnapshot={getLatestAudioSnapshot}
-              />
+            <div className="signal-runner__right-rail">
+              <div className="signal-runner__right-slot signal-runner__right-slot--monitor">
+                <SignalMonitor chromaEnabled={chromaEnabled} motionEnabled={motionEnabled} />
+              </div>
+              <div className="signal-runner__right-slot signal-runner__right-slot--aux">
+                <ScannerDial size="small" chromaEnabled={chromaEnabled} motionEnabled={motionEnabled} />
+              </div>
+              <div className="signal-runner__right-slot signal-runner__right-slot--spiral">
+                <HypnoticSpiral
+                  isPlaying={isPlaying}
+                  motionEnabled={motionEnabled}
+                  chromaEnabled={chromaEnabled}
+                  actualSpeed={actualSpeed}
+                  rotationMultiplier={1.35}
+                  getLatestAudioSnapshot={getLatestAudioSnapshot}
+                />
+              </div>
             </div>
           </div>
         </div>
