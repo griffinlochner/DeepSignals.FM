@@ -1038,7 +1038,7 @@
   }
 
   .signal-runner__hud-slot--left {
-    width: 106px;
+    width: 63px;
   }
 
   .signal-runner__hud-slot--right {
@@ -1098,7 +1098,7 @@
   }
 
   .signal-runner__hud-slot--left {
-    width: 77px;
+    width: 63px;
   }
 
   .signal-runner__hud-slot--right {
@@ -1357,7 +1357,7 @@
   }
 }
 
-@container (max-width: 1090px) {
+@container (max-width: 980px) {
   .signal-runner__hardware-led-bank {
     display: none;
   }
@@ -1381,7 +1381,7 @@
   }
 
   .signal-runner__hud-slot--left {
-    width: 50px;
+    width: 63px;
   }
 
   .signal-runner__left-slot--inner {
@@ -1409,7 +1409,7 @@
   }
 }
 
-@container (max-width: 980px) {
+@container (max-width: 1100px) {
   .signal-runner__left-feature {
     display: none;
   }
@@ -1422,10 +1422,6 @@
     display: none;
   }
 
-  .signal-runner__left-slot--spiral {
-    display: none;
-  }
-
   .signal-runner__right-slot--monitor {
     display: none;
   }
@@ -1435,12 +1431,13 @@
   }
 
   .signal-runner__left-slot--inner {
-    width: 106px;
+    display: none;
   }
 }
 
-@container (max-width: 680px) {
-  .signal-runner__hud-slot--right {
+@container (max-width: 700px) {
+  .signal-runner__left-slot--spiral,
+  .signal-runner__right-slot--aux {
     display: none;
   }
 }
