@@ -1936,3 +1936,21 @@
     display: none;
   }
 }
+
+@media (orientation: portrait) and (min-width: 900px) {
+  .signal-runner__hud-slot--left,
+  .signal-runner__hud-slot--right {
+    width: 190px;
+  }
+
+  .signal-runner__left-rail,
+  .signal-runner__right-rail {
+    width: 190px;
+  }
+
+  .signal-runner__left-slot--scan,
+  .signal-runner__right-slot--spiral {
+    display: grid;
+  }
+}
+
