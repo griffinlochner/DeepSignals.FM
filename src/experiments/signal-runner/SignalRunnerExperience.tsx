@@ -1025,6 +1025,69 @@ function SignalRunnerExperience({
   } as CSSProperties;
   const actualSpeedClass = getDriveValueClass(actualSpeed);
   const targetSpeedClass = getDriveValueClass(targetSpeed);
+  const vectorDriveRef = useRef<HTMLElement | null>(null);
+  const vectorDriveStateRef = useRef({
+    actualSpeed,
+    chromaEnabled,
+    getLatestAudioSnapshot,
+    isPlaying,
+  });
+
+  useEffect(() => {
+    vectorDriveStateRef.current = {
+      actualSpeed,
+      chromaEnabled,
+      getLatestAudioSnapshot,
+      isPlaying,
+    };
+  }, [actualSpeed, chromaEnabled, getLatestAudioSnapshot, isPlaying]);
+
+  useEffect(() => {
+    let frameId = 0;
+    let lastFrameTime = performance.now();
+    let acceptedKickSequence = 0;
+    let kickSurge = 0;
+
+    const renderVectorDriveEffects = (frameTime: number) => {
+      const delta = Math.min((frameTime - lastFrameTime) / 1000, 0.05);
+      lastFrameTime = frameTime;
+      const state = vectorDriveStateRef.current;
+      const snapshot = state.isPlaying ? state.getLatestAudioSnapshot?.() ?? null : null;
+      const energy = state.chromaEnabled ? clamp01(snapshot?.smoothedEnergy ?? 0) : 0;
+      const bass = state.chromaEnabled ? clamp01(snapshot?.bassPulse ?? 0) : 0;
+      const kick = state.chromaEnabled ? clamp01(snapshot?.kickPulse ?? 0) : 0;
+      const nextKickSequence = snapshot?.kickPulseAcceptedEventSequence ?? 0;
+
+      if (state.chromaEnabled && nextKickSequence !== acceptedKickSequence) {
+        acceptedKickSequence = nextKickSequence;
+        kickSurge = Math.max(kickSurge, 0.72 + kick * 0.28);
+      } else if (!state.chromaEnabled || !snapshot) {
+        acceptedKickSequence = nextKickSequence;
+      }
+
+      kickSurge = Math.max(0, kickSurge - delta * 4.8);
+      const stress = state.chromaEnabled ? clamp01(state.actualSpeed / 100) : 0;
+      const flicker = state.chromaEnabled
+        ? clamp01(stress * (0.72 + ((Math.sin(frameTime * 0.037) + 1) / 2) * 0.28))
+        : 0;
+      const vectorDrive = vectorDriveRef.current;
+
+      if (vectorDrive) {
+        vectorDrive.style.setProperty("--signal-runner-vector-energy", energy.toFixed(3));
+        vectorDrive.style.setProperty("--signal-runner-vector-bass", bass.toFixed(3));
+        vectorDrive.style.setProperty("--signal-runner-vector-kick", kickSurge.toFixed(3));
+        vectorDrive.style.setProperty("--signal-runner-vector-stress", stress.toFixed(3));
+        vectorDrive.style.setProperty("--signal-runner-vector-flicker", flicker.toFixed(3));
+      }
+
+      frameId = window.requestAnimationFrame(renderVectorDriveEffects);
+    };
+
+    frameId = window.requestAnimationFrame(renderVectorDriveEffects);
+
+    return () => window.cancelAnimationFrame(frameId);
+  }, []);
+
   const runnerStyle = {
     "--signal-runner-hud-chroma-energy": coilSignal.energy,
     "--signal-runner-hud-chroma-kick": coilSignal.kick,
@@ -1128,7 +1191,12 @@ function SignalRunnerExperience({
 
           <div className="signal-runner__center-stack">
             <MessageStream />
-            <section className="signal-runner__vector-drive" aria-label="Vector drive">
+            <section
+              className="signal-runner__vector-drive"
+              data-chroma={chromaEnabled}
+              ref={vectorDriveRef}
+              aria-label="Vector drive"
+            >
             <div className="signal-runner__vector-drive-header">
               <span>VECTOR DRIVE</span>
               <div className="signal-runner__vector-drive-status">
