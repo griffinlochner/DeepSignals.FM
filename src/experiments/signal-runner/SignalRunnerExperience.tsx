@@ -509,6 +509,66 @@ function ScannerDial({
   );
 }
 
+function AuxTraceWidget({
+  chromaEnabled,
+  isPlaying,
+  getLatestAudioSnapshot,
+}: {
+  chromaEnabled: boolean;
+  isPlaying: boolean;
+  getLatestAudioSnapshot?: (() => AudioReactiveSnapshot) | null;
+}) {
+  const traceRef = useRef<HTMLDivElement | null>(null);
+  const stateRef = useRef({ chromaEnabled, isPlaying, getLatestAudioSnapshot });
+
+  useEffect(() => {
+    stateRef.current = { chromaEnabled, isPlaying, getLatestAudioSnapshot };
+  }, [chromaEnabled, getLatestAudioSnapshot, isPlaying]);
+
+  useEffect(() => {
+    let frameId = 0;
+
+    const render = (frameTime: number) => {
+      const state = stateRef.current;
+      const snapshot = state.isPlaying ? state.getLatestAudioSnapshot?.() ?? null : null;
+      const energy = state.chromaEnabled ? clamp01(snapshot?.smoothedEnergy ?? 0) : 0;
+      const bass = state.chromaEnabled ? clamp01(snapshot?.bassPulse ?? 0) : 0;
+      const highs = state.chromaEnabled ? clamp01(snapshot?.highs ?? 0) : 0;
+      const trace = traceRef.current;
+
+      if (trace) {
+        trace.style.setProperty("--signal-runner-aux-trace-energy", energy.toFixed(3));
+        trace.style.setProperty("--signal-runner-aux-trace-bass", bass.toFixed(3));
+        trace.style.setProperty("--signal-runner-aux-trace-highs", highs.toFixed(3));
+        trace.style.setProperty(
+          "--signal-runner-aux-trace-phase",
+          `${((frameTime * 0.08) % 100).toFixed(2)}%`,
+        );
+      }
+
+      frameId = window.requestAnimationFrame(render);
+    };
+
+    frameId = window.requestAnimationFrame(render);
+
+    return () => window.cancelAnimationFrame(frameId);
+  }, []);
+
+  return (
+    <div
+      className="signal-runner__aux-trace"
+      ref={traceRef}
+      data-chroma={chromaEnabled}
+      aria-label="Auxiliary signal trace"
+    >
+      <span className="signal-runner__aux-trace-label">AUX TRACE</span>
+      <span className="signal-runner__aux-trace-bars" aria-hidden="true">
+        {Array.from({ length: 4 }, (_, index) => <i key={index} />)}
+      </span>
+    </div>
+  );
+}
+
 type HardwareLedBankProps = {
   side: "left" | "right";
   count: number;
@@ -1265,6 +1325,11 @@ function SignalRunnerExperience({
                   chromaEnabled={chromaEnabled}
                   motionEnabled={motionEnabled}
                   isPlaying={isPlaying}
+                />
+                <AuxTraceWidget
+                  chromaEnabled={chromaEnabled}
+                  isPlaying={isPlaying}
+                  getLatestAudioSnapshot={getLatestAudioSnapshot}
                 />
               </div>
               <div className="signal-runner__right-slot signal-runner__right-slot--spiral">
