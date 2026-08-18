@@ -802,6 +802,17 @@
   color: var(--signal-salmon);
 }
 
+.signal-runner__message-stream--blast-off .signal-runner__message-stream-track {
+  animation: signal-runner-message-stream-blast-off 1100ms steps(4, end) both;
+}
+
+.signal-runner__message-stream--blast-off .signal-runner__message-stream-part--blast-off {
+  color: #ff536f;
+  text-shadow:
+    0 0 4px rgba(255, 48, 77, 0.72),
+    0 0 10px rgba(255, 48, 77, 0.34);
+}
+
 @keyframes signal-runner-message-stream-scroll {
   from {
     transform: translateX(0);
@@ -810,6 +821,14 @@
   to {
     transform: translateX(-50%);
   }
+}
+
+@keyframes signal-runner-message-stream-blast-off {
+  0% { opacity: 0; transform: translateX(8px); }
+  18% { opacity: 0.32; transform: translateX(-2px); }
+  34%, 78% { opacity: 1; transform: translateX(0); }
+  86% { opacity: 0.5; transform: translateX(1px); }
+  100% { opacity: 1; transform: translateX(0); }
 }
 
 .signal-runner__lower-row {
@@ -1238,12 +1257,26 @@
       hsl(calc(184deg + var(--signal-runner-hud-chroma-hue)) 90% 64% / calc(var(--signal-runner-vector-kick) * 0.22)) 48%,
       transparent 84%
     );
-  opacity: calc(0.24 + var(--signal-runner-vector-energy) * 0.36 + var(--signal-runner-vector-kick) * 0.4);
+  opacity: calc(0.12 + var(--signal-runner-vector-stress) * 0.42);
   mix-blend-mode: screen;
 }
 
 .signal-runner__vector-drive[data-chroma="false"] {
   animation: none;
+}
+
+.signal-runner__vector-drive[data-chroma="false"]::after {
+  opacity: 0;
+  animation: none;
+}
+
+.signal-runner__vector-drive[data-chroma="true"] {
+  animation-duration: calc(5s - var(--signal-runner-vector-stress) * 3.2s);
+}
+
+.signal-runner__vector-drive[data-chroma="true"][data-blast-off="true"]::after {
+  opacity: 0.72;
+  animation: signal-runner-vector-drive-blast-off 1100ms ease-out both;
 }
 
 .signal-runner__vector-drive[data-chroma="true"] .signal-runner__vector-drive-header > span {
@@ -1273,6 +1306,14 @@
   68% { opacity: 1; }
   73% { opacity: calc(0.94 - var(--signal-runner-vector-flicker) * 0.14); }
   75% { opacity: 1; }
+}
+
+@keyframes signal-runner-vector-drive-blast-off {
+  0% { opacity: 0.18; }
+  12% { opacity: 0.82; }
+  24% { opacity: 0.42; }
+  38% { opacity: 0.68; }
+  100% { opacity: 0.24; }
 }
 
 .signal-runner__center-stack .signal-runner__vector-drive {

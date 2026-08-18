@@ -860,10 +860,14 @@ const MESSAGE_STREAM_GROUP = [
   { text: "TRANSCEND.", color: "pink", joinPrevious: false },
 ] as const;
 
-function MessageStream() {
+function MessageStream({ blastOffVisible }: { blastOffVisible: boolean }) {
+  const messageParts = blastOffVisible
+    ? [{ text: "BLAST OFF!", color: "blast-off", joinPrevious: false }]
+    : MESSAGE_STREAM_GROUP;
+
   const renderMessageGroup = (groupIndex: number) => (
     <span className="signal-runner__message-stream-group" key={groupIndex}>
-      {MESSAGE_STREAM_GROUP.map(({ text, color, joinPrevious = false }) => (
+      {messageParts.map(({ text, color, joinPrevious = false }) => (
         <span
           className={`signal-runner__message-stream-part signal-runner__message-stream-part--${color}${joinPrevious ? " signal-runner__message-stream-part--joined" : ""}`}
           key={text}
@@ -875,7 +879,10 @@ function MessageStream() {
   );
 
   return (
-    <div className="signal-runner__message-stream" aria-label="Signal Runner message">
+    <div
+      className={`signal-runner__message-stream${blastOffVisible ? " signal-runner__message-stream--blast-off" : ""}`}
+      aria-label="Signal Runner message"
+    >
       <span className="signal-runner__message-stream-track">
         {renderMessageGroup(0)}
         {renderMessageGroup(1)}
@@ -967,7 +974,7 @@ function SignalRunnerExperience({
   }, [chromaEnabled, getLatestAudioSnapshot, isPlaying]);
 
   const handleDriveTelemetry = (telemetry: SignalRunnerDriveTelemetry) => {
-    setDriveTelemetry(telemetry);
+  setDriveTelemetry(telemetry);
     onDriveTelemetry?.(telemetry);
 
     if (!isPlaying) {
@@ -1190,10 +1197,11 @@ function SignalRunnerExperience({
           </div>
 
           <div className="signal-runner__center-stack">
-            <MessageStream />
+            <MessageStream blastOffVisible={isPlaying && blastOffVisible} />
             <section
               className="signal-runner__vector-drive"
               data-chroma={chromaEnabled}
+              data-blast-off={isPlaying && blastOffVisible}
               ref={vectorDriveRef}
               aria-label="Vector drive"
             >
