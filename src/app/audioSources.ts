@@ -66,20 +66,6 @@ function createLiveStreamAudioSource(definition: ExternalSignalDefinition): Audi
   }
 }
 
-export const DEMO_MODULATION_MANIPULATION_AUDIO_SOURCE = createDemoTrackAudioSource({
-  id: 'demo-modulation-manipulation',
-  artist: 'Dohm & Schizoid Bears',
-  title: 'Modulation Manipulation',
-  release: 'Under The Moss Vol. 4',
-  label: 'Forest Freaks',
-  bpm: 150,
-  audioPath: '/audio/demo/dohm-schizoid-bears-modulation-manipulation.mp3',
-  sourceUrl: 'https://ektoplazm.com/label/forest-freaks',
-  license: 'Creative Commons license for noncommercial usage; exact variant not yet confirmed.',
-  attribution:
-    'Dohm & Schizoid Bears — Modulation Manipulation, from Under The Moss Vol. 4, released by Forest Freaks.',
-})
-
 export const DEMO_MODULAR_DIMENSIONS_AUDIO_SOURCE = createDemoTrackAudioSource({
   id: 'demo-modular-dimensions',
   artist: 'Zzbing',
@@ -167,18 +153,7 @@ export const DEMO_DFECTV_ITS_A_TRAP_AUDIO_SOURCE = createDemoTrackAudioSource({
   attribution: "Dfectv — It's A Trap, used with artist permission.",
 })
 
-export const DEMO_DFECTV_SIMULATED_ALCHEMY_AUDIO_SOURCE = createDemoTrackAudioSource({
-  id: 'demo-dfectv-simulated-alchemy',
-  artist: 'Dfectv',
-  title: 'Simulated Alchemy',
-  release: DFECTV_DEMO_RELEASE,
-  audioPath: '/audio/demo/Dfectv - Simulated Alchemy.mp3',
-  license: DFECTV_DEMO_LICENSE,
-  attribution: 'Dfectv — Simulated Alchemy, used with artist permission.',
-})
-
 export const DEMO_AUDIO_SOURCES: AudioSource[] = [
-  DEMO_MODULATION_MANIPULATION_AUDIO_SOURCE,
   DEMO_MODULAR_DIMENSIONS_AUDIO_SOURCE,
   DEMO_PSYCHEDELIC_EXPERIENCE_AUDIO_SOURCE,
   DEMO_FRAGMENTS_OF_REALITY_AUDIO_SOURCE,
@@ -187,7 +162,6 @@ export const DEMO_AUDIO_SOURCES: AudioSource[] = [
   DEMO_DFECTV_THE_MAZE_AUDIO_SOURCE,
   DEMO_DFECTV_STARFIRE_BEYOND_THE_BOUNDRIES_AUDIO_SOURCE,
   DEMO_DFECTV_ITS_A_TRAP_AUDIO_SOURCE,
-  DEMO_DFECTV_SIMULATED_ALCHEMY_AUDIO_SOURCE,
 ]
 
 export const PUBLIC_EXTERNAL_AUDIO_SOURCES: AudioSource[] =

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { AUDIO_SOURCES, DEMO_MODULATION_MANIPULATION_AUDIO_SOURCE } from './audioSources'
+import { AUDIO_SOURCES, DEMO_MODULAR_DIMENSIONS_AUDIO_SOURCE } from './audioSources'
 import type { AudioPlaybackStatus, AudioSource } from './playerTypes'
 
 type UsePersistentAudioControllerResult = {
@@ -75,7 +75,7 @@ export function usePersistentAudioController(initialVolume = 0.7, selectedSource
   const sourceUrlRef = useRef<string>('')
   const safeInitialVolume = clampVolume(initialVolume)
   const volumeRef = useRef(safeInitialVolume)
-  const seekableRef = useRef(DEMO_MODULATION_MANIPULATION_AUDIO_SOURCE.isSeekable)
+  const seekableRef = useRef(DEMO_MODULAR_DIMENSIONS_AUDIO_SOURCE.isSeekable)
   const [playbackStatus, setPlaybackStatus] = useState<AudioPlaybackStatus>('idle')
   const [audioElement] = useState<HTMLAudioElement | null>(() =>
     typeof window === 'undefined' ? null : getSharedAudioElement(),
@@ -84,19 +84,19 @@ export function usePersistentAudioController(initialVolume = 0.7, selectedSource
   const [duration, setDuration] = useState(0)
   const [volume, setVolumeState] = useState(safeInitialVolume)
   const [isSeeking, setIsSeeking] = useState(false)
-  const [seekable, setSeekable] = useState(DEMO_MODULATION_MANIPULATION_AUDIO_SOURCE.isSeekable)
+  const [seekable, setSeekable] = useState(DEMO_MODULAR_DIMENSIONS_AUDIO_SOURCE.isSeekable)
   const [metadataLoaded, setMetadataLoaded] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
   const audioSource = useMemo(() => {
     if (!selectedSourceId) {
-      return AUDIO_SOURCES[0] ?? DEMO_MODULATION_MANIPULATION_AUDIO_SOURCE
+      return AUDIO_SOURCES[0] ?? DEMO_MODULAR_DIMENSIONS_AUDIO_SOURCE
     }
 
     return (
       AUDIO_SOURCES.find((source) => source.id === selectedSourceId) ??
       AUDIO_SOURCES[0] ??
-      DEMO_MODULATION_MANIPULATION_AUDIO_SOURCE
+      DEMO_MODULAR_DIMENSIONS_AUDIO_SOURCE
     )
   }, [selectedSourceId])
 
