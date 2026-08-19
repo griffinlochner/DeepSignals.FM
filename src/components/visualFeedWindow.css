@@ -278,6 +278,11 @@
   background: rgba(4, 10, 14, 0.82);
 }
 
+.visual-feed-window__artwork--psybrazil {
+  object-fit: cover;
+  object-position: center;
+}
+
 .visual-feed-window__artwork-link {
   width: 100%;
   height: 100%;

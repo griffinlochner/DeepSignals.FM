@@ -89,7 +89,12 @@ function VisualFeedWindow({
       : undefined
   const artworkImage = artworkUrl ? (
     <img
-      className="visual-feed-window__artwork"
+      className={[
+        'visual-feed-window__artwork',
+        selectedTrackSource?.id === 'psybrazil'
+          ? 'visual-feed-window__artwork--psybrazil'
+          : '',
+      ].filter(Boolean).join(' ')}
       src={artworkUrl}
       alt={isBrandFallback ? 'DeepSignals.FM' : `Cover artwork for ${resolvedTitle}`}
       onError={() => {

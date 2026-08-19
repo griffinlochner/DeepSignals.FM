@@ -82,6 +82,7 @@ export const EXTERNAL_SIGNAL_DEFINITIONS: ExternalSignalDefinition[] = [
     stationWebsite: 'https://psybrazil.com.br/',
     sourceAttribution: 'External signal from PsyBrazil',
     publicPlayerCompatible: true,
+    artworkUrl: publicAssetUrl('/images/stations/psybr.jpg'),
   },
   {
     id: 'hirschmilch-psytrance',
