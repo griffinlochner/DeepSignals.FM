@@ -15,5 +15,5 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["scripts/**/*.ts"]
+  "include": ["scripts/validate-environments.ts"]
 }
