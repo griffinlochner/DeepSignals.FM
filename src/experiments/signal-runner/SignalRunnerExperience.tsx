@@ -504,7 +504,6 @@ function ScannerDial({
           : null}
         <circle className="signal-runner__scanner-core" cx="50" cy="50" r="4" />
       </svg>
-      <span className="signal-runner__scanner-label">{size === "large" ? "DEEP SCAN" : "AUX"}</span>
     </section>
   );
 }
