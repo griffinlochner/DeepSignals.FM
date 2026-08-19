@@ -127,28 +127,6 @@ export const GLOBULAR_FOR_THE_TIME_BEING_AUDIO_SOURCE = createDemoTrackAudioSour
   attribution: 'Globular — For The Time Being, from Entangled Everything.',
 })
 
-export const GLOBULAR_THE_CHALICE_AUDIO_SOURCE = createDemoTrackAudioSource({
-  id: 'globular-the-chalice',
-  artist: 'Globular',
-  title: 'The Chalice',
-  release: 'Entangled Everything',
-  bpm: 95,
-  audioPath: '/audio/demo/globular-the-chalice.mp3',
-  license: 'Creative Commons license for noncommercial usage; exact variant not specified.',
-  attribution: 'Globular — The Chalice, from Entangled Everything.',
-})
-
-export const GLOBULAR_KALEIDOSCOPE_TRIBE_AUDIO_SOURCE = createDemoTrackAudioSource({
-  id: 'globular-kaleidoscope-tribe',
-  artist: 'Globular',
-  title: 'Kaleidoscope Tribe',
-  release: 'Entangled Everything',
-  bpm: 74,
-  audioPath: '/audio/demo/globular-kaleidoscope-tribe.mp3',
-  license: 'Creative Commons license for noncommercial usage; exact variant not specified.',
-  attribution: 'Globular — Kaleidoscope Tribe, from Entangled Everything.',
-})
-
 export const DEMO_DFECTV_SPCYHT_NO_NAME_AUDIO_SOURCE = createDemoTrackAudioSource({
   id: 'demo-dfectv-spcyht-no-name',
   artist: 'Dfectv & Spcyht',
@@ -199,41 +177,17 @@ export const DEMO_DFECTV_SIMULATED_ALCHEMY_AUDIO_SOURCE = createDemoTrackAudioSo
   attribution: 'Dfectv — Simulated Alchemy, used with artist permission.',
 })
 
-export const DEMO_DFECTV_FINGER_FUCKING_THE_FLOOR_AUDIO_SOURCE = createDemoTrackAudioSource({
-  id: 'demo-dfectv-finger-fucking-the-floor',
-  artist: 'Dfectv',
-  title: 'Finger Fucking The Floor',
-  release: DFECTV_DEMO_RELEASE,
-  audioPath: '/audio/demo/Dfectv - Finger Fucking The Floor.mp3',
-  license: DFECTV_DEMO_LICENSE,
-  attribution: 'Dfectv — Finger Fucking The Floor, used with artist permission.',
-})
-
-export const DEMO_DFECTV_JUSTINS_GHOST_AUDIO_SOURCE = createDemoTrackAudioSource({
-  id: 'demo-dfectv-justins-ghost',
-  artist: 'Dfectv',
-  title: 'Justins Ghost',
-  release: DFECTV_DEMO_RELEASE,
-  audioPath: '/audio/demo/Dfectv - Justins Ghost.mp3',
-  license: DFECTV_DEMO_LICENSE,
-  attribution: 'Dfectv — Justins Ghost, used with artist permission.',
-})
-
 export const DEMO_AUDIO_SOURCES: AudioSource[] = [
   DEMO_MODULATION_MANIPULATION_AUDIO_SOURCE,
   DEMO_MODULAR_DIMENSIONS_AUDIO_SOURCE,
   DEMO_PSYCHEDELIC_EXPERIENCE_AUDIO_SOURCE,
   DEMO_FRAGMENTS_OF_REALITY_AUDIO_SOURCE,
   GLOBULAR_FOR_THE_TIME_BEING_AUDIO_SOURCE,
-  GLOBULAR_THE_CHALICE_AUDIO_SOURCE,
-  GLOBULAR_KALEIDOSCOPE_TRIBE_AUDIO_SOURCE,
   DEMO_DFECTV_SPCYHT_NO_NAME_AUDIO_SOURCE,
   DEMO_DFECTV_THE_MAZE_AUDIO_SOURCE,
   DEMO_DFECTV_STARFIRE_BEYOND_THE_BOUNDRIES_AUDIO_SOURCE,
   DEMO_DFECTV_ITS_A_TRAP_AUDIO_SOURCE,
   DEMO_DFECTV_SIMULATED_ALCHEMY_AUDIO_SOURCE,
-  DEMO_DFECTV_FINGER_FUCKING_THE_FLOOR_AUDIO_SOURCE,
-  DEMO_DFECTV_JUSTINS_GHOST_AUDIO_SOURCE,
 ]
 
 export const PUBLIC_EXTERNAL_AUDIO_SOURCES: AudioSource[] =

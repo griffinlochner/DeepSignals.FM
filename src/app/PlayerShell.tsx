@@ -578,32 +578,35 @@ function PlayerShell({ className }: PlayerShellProps) {
         label: "DEEPSIGNALS.FM",
         signals: [
           {
-            id: "deepsignals-psytrance-coming-soon",
-            label: "DeepSignals.FM Psytrance — COMING SOON",
+            id: "deepsignals-chillout-coming-soon",
+            label: "DeepSignals.FM Chillout — COMING SOON",
             disabled: true,
           },
           {
-            id: "deepsignals-chillout-coming-soon",
-            label: "DeepSignals.FM Chillout — COMING SOON",
+            id: "deepsignals-psytrance-coming-soon",
+            label: "DeepSignals.FM Psytrance — COMING SOON",
             disabled: true,
           },
         ],
       },
       {
         label: "EXTERNAL SIGNALS",
-        signals: PUBLIC_EXTERNAL_AUDIO_SOURCES.map((source) => ({
-          id: source.id,
-          label: formatAudioSourceLabel(source),
-        })),
+        signals: PUBLIC_EXTERNAL_AUDIO_SOURCES
+          .map((source) => ({
+            id: source.id,
+            label: formatAudioSourceLabel(source),
+          }))
+          .sort((left, right) => left.label.localeCompare(right.label)),
       },
       {
         label: "DEMO TRANSMISSIONS",
-        signals: DEMO_AUDIO_SOURCES.filter(
-          (source) => !PUBLIC_DEMO_SOURCE_EXCLUSIONS.has(source.id),
-        ).map((source) => ({
-          id: source.id,
-          label: formatAudioSourceLabel(source),
-        })),
+        signals: DEMO_AUDIO_SOURCES
+          .filter((source) => !PUBLIC_DEMO_SOURCE_EXCLUSIONS.has(source.id))
+          .map((source) => ({
+            id: source.id,
+            label: formatAudioSourceLabel(source),
+          }))
+          .sort((left, right) => left.label.localeCompare(right.label)),
       },
     ],
     [],
