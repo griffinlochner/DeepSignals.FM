@@ -112,6 +112,9 @@ const PUBLIC_DEMO_SOURCE_EXCLUSIONS = new Set([
   "demo-dfectv-starfire-beyond-the-boundries",
   "demo-dfectv-its-a-trap",
 ]);
+// Additional PsyBrazil network station ids can be added here as they are onboarded.
+const PSYBRAZIL_NETWORK_SOURCE_IDS = new Set(["psybrazil"]);
+const PSYBRAZIL_NETWORK_GROUP_LABEL = "PSYBRAZIL ENTERTAINMENT NETWORK";
 
 const PLAYER_EDGE_GAP = 22;
 const PLAYER_PANEL_FALLBACK_WIDTH = 430;
@@ -621,8 +624,19 @@ function PlayerShell({ className }: PlayerShellProps) {
         ],
       },
       {
+        label: PSYBRAZIL_NETWORK_GROUP_LABEL,
+        signals: PUBLIC_EXTERNAL_AUDIO_SOURCES
+          .filter((source) => PSYBRAZIL_NETWORK_SOURCE_IDS.has(source.id))
+          .map((source) => ({
+            id: source.id,
+            label: formatAudioSourceLabel(source),
+          }))
+          .sort((left, right) => left.label.localeCompare(right.label)),
+      },
+      {
         label: "EXTERNAL SIGNALS",
         signals: PUBLIC_EXTERNAL_AUDIO_SOURCES
+          .filter((source) => !PSYBRAZIL_NETWORK_SOURCE_IDS.has(source.id))
           .map((source) => ({
             id: source.id,
             label: formatAudioSourceLabel(source),
