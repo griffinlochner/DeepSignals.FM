@@ -1,5 +1,9 @@
-import { forwardRef, useId, type RefObject } from "react";
-import type { AudioPlaybackStatus, SignalSourceGroup } from "../app/playerTypes";
+import { forwardRef, useId, type CSSProperties, type RefObject } from "react";
+import type {
+  AudioPlaybackStatus,
+  AudioReactiveSnapshot,
+  SignalSourceGroup,
+} from "../app/playerTypes";
 import type { ThemeId } from "../themes/themeTypes";
 import PanelChevronIcon from "./PanelChevronIcon";
 import PlayStopButton from "./PlayStopButton";
@@ -16,6 +20,7 @@ type FloatingPlayerPanelProps = {
   selectedEnvironmentId: ThemeId;
   onEnvironmentChange: (id: ThemeId) => void;
   audioPlaybackStatus: AudioPlaybackStatus;
+  audioReactiveSnapshot: AudioReactiveSnapshot;
   audioCurrentTime: number;
   audioDuration: number;
   audioSeekable: boolean;
@@ -56,6 +61,7 @@ const FloatingPlayerPanel = forwardRef<HTMLElement, FloatingPlayerPanelProps>(fu
     selectedEnvironmentId,
     onEnvironmentChange,
     audioPlaybackStatus,
+    audioReactiveSnapshot,
     audioCurrentTime,
     audioDuration,
     audioSeekable,
@@ -101,12 +107,29 @@ const FloatingPlayerPanel = forwardRef<HTMLElement, FloatingPlayerPanelProps>(fu
   const toggleLabel = collapsed
     ? "Expand player panel"
     : "Collapse player panel";
+  const chromaReactive = chromaEnabled && audioPlaybackStatus === "playing";
+  const reactiveEnergy = chromaReactive
+    ? Math.max(0, Math.min(1, audioReactiveSnapshot.smoothedEnergy))
+    : 0;
+  const reactiveBassPulse = chromaReactive
+    ? Math.max(0, Math.min(1, audioReactiveSnapshot.bassPulse))
+    : 0;
+  const reactiveHighs = chromaReactive
+    ? Math.max(0, Math.min(1, audioReactiveSnapshot.highs))
+    : 0;
+  const panelStyle = {
+    "--player-reactive-energy": reactiveEnergy,
+    "--player-reactive-bass-pulse": reactiveBassPulse,
+    "--player-reactive-highs": reactiveHighs,
+  } as CSSProperties;
 
   return (
     <aside
       ref={ref}
       className="floating-player-panel"
       data-collapsed={collapsed}
+      data-chroma-reactive={chromaReactive}
+      style={panelStyle}
       aria-label={`${environmentName} controls`}
     >
       <header className="floating-player-panel__header">

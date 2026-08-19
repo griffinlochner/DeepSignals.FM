@@ -1357,6 +1357,7 @@ function PlayerShell({ className }: PlayerShellProps) {
             selectedEnvironmentId={selectedThemeId}
             onEnvironmentChange={handleThemeChange}
             audioPlaybackStatus={audioController.playbackStatus}
+            audioReactiveSnapshot={audioAnalysis.snapshot}
             audioCurrentTime={audioController.currentTime}
             audioDuration={audioController.duration}
             audioSeekable={audioController.seekable}
