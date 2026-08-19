@@ -976,11 +976,13 @@ function SignalRunnerExperience({
   isPlaying,
   volume,
   signalId,
-  motionEnabled,
+  motionEnabled: motionSetting,
   chromaEnabled,
   getLatestAudioSnapshot,
   onDriveTelemetry,
 }: SignalRunnerExperienceProps) {
+  // HUD widgets freeze while playback is stopped even though the MOTION toggle stays on.
+  const motionEnabled = motionSetting && isPlaying;
   const runnerRef = useRef<HTMLDivElement | null>(null);
   const hudChromaHueRef = useRef(0);
   const [driveTelemetry, setDriveTelemetry] = useState<SignalRunnerDriveTelemetry>({
@@ -1194,7 +1196,7 @@ function SignalRunnerExperience({
           isPlaying={isPlaying}
           volume={volume}
           signalId={signalId}
-          motionEnabled={motionEnabled}
+          motionEnabled={motionSetting}
           chromaEnabled={chromaEnabled}
           getLatestAudioSnapshot={getLatestAudioSnapshot}
           onDriveTelemetry={handleDriveTelemetry}
