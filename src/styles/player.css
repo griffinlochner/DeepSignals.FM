@@ -438,13 +438,16 @@
 }
 
 .track-marquee__scroll {
+  --marquee-period: 0px;
   display: flex;
   align-items: center;
-  gap: var(--marquee-gap);
   width: max-content;
-  min-width: 100%;
   animation: marquee-scroll var(--marquee-duration) linear infinite;
   will-change: transform;
+}
+
+.track-marquee__scroll[data-measured="false"] {
+  animation: none;
 }
 
 .track-marquee__text {
@@ -453,8 +456,12 @@
 }
 
 .track-marquee__text--animated {
+  flex: 0 0 auto;
   overflow: visible;
   text-overflow: clip;
+  /* Gap lives inside each copy so every copy is identical width and the loop
+     distance equals one copy exactly. */
+  padding-right: var(--marquee-gap);
 }
 
 .track-marquee__text--reduced {
@@ -497,7 +504,7 @@
     transform: translateX(0);
   }
   100% {
-    transform: translateX(calc(-50% - var(--marquee-gap) / 2));
+    transform: translateX(calc(var(--marquee-period) * -1));
   }
 }
 
