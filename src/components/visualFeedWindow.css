@@ -58,6 +58,10 @@
   min-height: auto;
 }
 
+.visual-feed-window--dock-right .visual-feed-window__viewport {
+  aspect-ratio: 1 / 1;
+}
+
 .visual-feed-window--dock-bottom {
   width: min(
     var(--player-panel-width, 100%),

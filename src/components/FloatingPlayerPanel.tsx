@@ -324,7 +324,7 @@ const FloatingPlayerPanel = forwardRef<HTMLElement, FloatingPlayerPanelProps>(fu
                       aria-label="Toggle signal feed"
                     />
                     <span className="floating-player-panel__switch-label">
-                      Signal Feed
+                      Feed
                     </span>
                     <span
                       className="floating-player-panel__switch-track"

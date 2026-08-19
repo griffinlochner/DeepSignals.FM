@@ -22,6 +22,7 @@
     18px + env(safe-area-inset-bottom, 0px)
   );
   --player-edge-gap: clamp(12px, 2.2vw, 22px);
+  --player-feed-module-width: 240px;
   --attached-panel-header-height: 49px;
 }
 
@@ -60,7 +61,7 @@
   display: inline-grid;
   align-items: start;
   justify-content: start;
-  gap: 0;
+  gap: 8px;
   pointer-events: none;
 }
 
@@ -94,15 +95,15 @@
         )
       )
     )
-    max-content;
+    var(--player-feed-module-width);
   grid-template-rows: auto;
   align-items: start;
 }
 
 .player-shell__dock--bottom {
-  grid-template-columns: minmax(0, max-content);
+  grid-template-columns: minmax(0, var(--player-panel-width, 100%));
   grid-template-rows: auto auto;
-  width: max-content;
+  width: var(--player-panel-width, 100%);
 }
 
 .player-shell__dock .floating-player-panel {
@@ -118,39 +119,27 @@
   grid-row: 1;
 }
 
-.player-shell__dock--right .floating-player-panel {
-  border-top-right-radius: 0;
-  border-bottom-right-radius: 0;
-}
-
 .player-shell__dock--right .visual-feed-window {
   grid-column: 2;
   grid-row: 1;
-  width: auto;
+  box-sizing: border-box;
+  width: var(--player-feed-module-width);
   height: auto;
   min-height: auto;
   align-self: start;
-  border-top-left-radius: 0;
-  border-bottom-left-radius: 0;
 }
 
 .player-shell__dock--bottom .visual-feed-window {
   grid-column: 1;
   grid-row: 2;
-  width: auto;
+  box-sizing: border-box;
+  width: 100%;
   height: auto;
-  border-top-left-radius: 0;
-  border-top-right-radius: 0;
 }
 
 .player-shell__dock--bottom .player-shell__primary-column {
   grid-column: 1;
   grid-row: 1;
-}
-
-.player-shell__dock--bottom .floating-player-panel {
-  border-bottom-left-radius: 0;
-  border-bottom-right-radius: 0;
 }
 
 .player-shell__primary-column .signal-telemetry-panel {

@@ -111,7 +111,7 @@ function VisualFeedWindow({
       aria-hidden="false"
     >
       <header className="visual-feed-window__header">
-        <p className="visual-feed-window__title">Signal Feed</p>
+        <p className="visual-feed-window__title">Feed</p>
         <a
           className="visual-feed-window__about-link"
           href={externalSourceUrl ?? '/about/'}

@@ -115,8 +115,7 @@ const PUBLIC_DEMO_SOURCE_EXCLUSIONS = new Set([
 const PLAYER_EDGE_GAP = 22;
 const PLAYER_PANEL_FALLBACK_WIDTH = 430;
 const PLAYER_PANEL_FALLBACK_HEIGHT = 560;
-const VISUAL_FEED_MIN_WIDTH = 280;
-const VISUAL_FEED_MAX_WIDTH = 540;
+const VISUAL_FEED_MODULE_WIDTH = 240;
 const VISUAL_FEED_ASPECT_RATIO = 9 / 16;
 const VISUAL_FEED_HEADER_HEIGHT = 52;
 const TELEMETRY_BOTTOM_DOCK_FALLBACK_HEIGHT = 224;
@@ -253,17 +252,14 @@ function isIgnoreSourceBpmEnabled() {
   return searchParams.get("ignoreSourceBpm") === "1";
 }
 
-function estimateVisualFeedWidth(viewportWidth: number) {
-  return Math.min(
-    VISUAL_FEED_MAX_WIDTH,
-    Math.max(VISUAL_FEED_MIN_WIDTH, Math.round(viewportWidth * 0.46)),
-  );
+function estimateVisualFeedWidth() {
+  return VISUAL_FEED_MODULE_WIDTH;
 }
 
-function estimateVisualFeedHeight(viewportWidth: number) {
+function estimateVisualFeedHeight() {
   return (
     Math.round(
-      estimateVisualFeedWidth(viewportWidth) * VISUAL_FEED_ASPECT_RATIO,
+      estimateVisualFeedWidth() * VISUAL_FEED_ASPECT_RATIO,
     ) + VISUAL_FEED_HEADER_HEIGHT
   );
 }
@@ -323,8 +319,8 @@ function getVisualFeedFit(
 ) {
   const { width: playerWidth, height: playerHeight } =
     getAvailabilityPlayerDimensions(viewportWidth, playerPanelSize);
-  const rightFeedWidth = estimateVisualFeedWidth(viewportWidth);
-  const rightFeedHeight = estimateVisualFeedHeight(viewportWidth);
+  const rightFeedWidth = estimateVisualFeedWidth();
+  const rightFeedHeight = estimateVisualFeedHeight();
   const bottomFeedHeight =
     Math.round(playerWidth * VISUAL_FEED_ASPECT_RATIO) +
     VISUAL_FEED_HEADER_HEIGHT;
