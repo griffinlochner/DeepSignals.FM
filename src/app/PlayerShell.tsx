@@ -121,6 +121,7 @@ const VISUAL_FEED_HEADER_HEIGHT = 52;
 const TELEMETRY_BOTTOM_DOCK_FALLBACK_HEIGHT = 224;
 const TELEMETRY_BOTTOM_DOCK_FALLBACK_HEIGHT_COMPACT = 210;
 const TELEMETRY_BOTTOM_DOCK_FALLBACK_HEIGHT_TABLET = 264;
+const TELEMETRY_VISIBILITY_HYSTERESIS_PX = 12;
 
 const FULLON_STOP_SETTLE_DEPTH = 0.5;
 const FULLON_STOP_SETTLE_HUE_DEGREES = 0;
@@ -357,6 +358,26 @@ function canFitTelemetryBelowPlayer(
   );
 }
 
+function getTelemetryFitSlack(
+  viewportWidth: number,
+  viewportHeight: number,
+  playerPanelSize: PlayerPanelSize,
+  telemetryPanelMeasurement: TelemetryPanelMeasurement,
+) {
+  const { height: playerHeight } =
+    getAvailabilityPlayerDimensions(viewportWidth, playerPanelSize);
+  const telemetryHeight = getTelemetryBottomDockHeight(
+    viewportWidth,
+    viewportHeight,
+    telemetryPanelMeasurement,
+  );
+
+  return (
+    viewportHeight -
+    (Math.ceil(playerHeight) + telemetryHeight + PLAYER_EDGE_GAP * 2)
+  );
+}
+
 function canFitSharedBottomAuxSlot(
   viewportWidth: number,
   viewportHeight: number,
@@ -488,6 +509,8 @@ function PlayerShell({ className }: PlayerShellProps) {
   const [signalTelemetryVisible, setSignalTelemetryVisible] = useState(() =>
     readStoredSignalTelemetryVisiblePreference(),
   );
+  const [telemetryControlAvailable, setTelemetryControlAvailable] =
+    useState(true);
   const [viewportSize, setViewportSize] = useState(() => ({
     width: typeof window === "undefined" ? 1024 : window.innerWidth,
     height: typeof window === "undefined" ? 768 : window.innerHeight,
@@ -705,7 +728,7 @@ function PlayerShell({ className }: PlayerShellProps) {
       : null;
 
   const showVisualFeedControl = supportsVisualFeed && auxiliaryControlsVisible;
-  const showSignalTelemetryControl = canFitTelemetryBottom;
+  const showSignalTelemetryControl = telemetryControlAvailable;
 
   const setVisualFeedOpenFromToggle = useCallback(
     (enabled: boolean) => {
@@ -765,6 +788,17 @@ function PlayerShell({ className }: PlayerShellProps) {
         nextViewport.height,
         playerPanelSize,
         telemetryPanelMeasurement,
+      );
+      const nextTelemetryFitSlack = getTelemetryFitSlack(
+        nextViewport.width,
+        nextViewport.height,
+        playerPanelSize,
+        telemetryPanelMeasurement,
+      );
+      setTelemetryControlAvailable((current) =>
+        current
+          ? nextTelemetryFitSlack >= -TELEMETRY_VISIBILITY_HYSTERESIS_PX
+          : nextTelemetryFitSlack >= TELEMETRY_VISIBILITY_HYSTERESIS_PX,
       );
       const nextSharedBottomSlot =
         !nextVisualFeedFit.right &&
