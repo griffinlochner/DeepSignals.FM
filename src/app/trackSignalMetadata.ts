@@ -8,6 +8,10 @@ export type TrackSignalMetadata = {
   artist?: string
   album?: string
   year?: string
+  genre?: string
+  license?: string
+  label?: string
+  releaseUrl?: string
   artworkUrl?: string
   artworkMimeType?: string
   origin: TrackSignalMetadataOrigin

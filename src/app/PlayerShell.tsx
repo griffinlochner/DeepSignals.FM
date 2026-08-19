@@ -32,6 +32,7 @@ import { useAudioAnalysis } from "./useAudioAnalysis";
 import { usePersistentAudioController } from "./usePersistentAudioController";
 import { usePsyStreamNowPlaying } from "./usePsyStreamNowPlaying";
 import { usePsyBrazilNowPlaying } from "./usePsyBrazilNowPlaying";
+import { useDeepTripNowPlaying } from "./useDeepTripNowPlaying";
 import {
   mapSignalTarget,
   resolveShortestHueDeltaDegrees,
@@ -556,7 +557,9 @@ function PlayerShell({ className }: PlayerShellProps) {
   );
   const psyStreamNowPlaying = usePsyStreamNowPlaying(selectedSignalId);
   const psyBrazilNowPlaying = usePsyBrazilNowPlaying(selectedSignalId);
-  const externalNowPlaying = psyStreamNowPlaying ?? psyBrazilNowPlaying;
+  const deepTripNowPlaying = useDeepTripNowPlaying(selectedSignalId);
+  const externalNowPlaying =
+    psyStreamNowPlaying ?? psyBrazilNowPlaying ?? deepTripNowPlaying;
   const registrySourceBpm = audioController.audioSource.bpm ?? null;
   const effectiveReactiveBpm = ignoreSourceBpmEnabled
     ? null

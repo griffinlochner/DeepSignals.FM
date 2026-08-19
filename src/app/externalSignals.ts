@@ -12,6 +12,7 @@ export type ExternalSignalId =
   | 'hirschmilch-chillout'
   | 'hirschmilch-progressive'
   | 'space-unicorn-radio'
+  | 'deep-trip-radio'
 
 export type ExternalSignalDefinition = {
   id: ExternalSignalId
@@ -83,6 +84,14 @@ export const EXTERNAL_SIGNAL_DEFINITIONS: ExternalSignalDefinition[] = [
     sourceAttribution: 'External signal from PsyBrazil',
     publicPlayerCompatible: true,
     artworkUrl: publicAssetUrl('/images/stations/psybr.jpg'),
+  },
+  {
+    id: 'deep-trip-radio',
+    stationName: 'Deep Trip Radio',
+    streamUrl: 'https://stream.deeptripradio.net/live',
+    stationWebsite: 'https://deeptripradio.net/',
+    sourceAttribution: 'External signal from Deep Trip Radio',
+    publicPlayerCompatible: true,
   },
   {
     id: 'hirschmilch-psytrance',
