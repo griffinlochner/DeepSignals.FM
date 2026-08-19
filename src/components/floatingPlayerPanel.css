@@ -163,8 +163,11 @@
   gap: 6px 10px;
 }
 
-.floating-player-panel__row > .floating-player-panel__label {
+.floating-player-panel__row > .floating-player-panel__label,
+.floating-player-panel__seek-row > .floating-player-panel__label {
   margin: 0;
+  padding-inline-start: 6px;
+  box-sizing: border-box;
   text-align: left;
   white-space: nowrap;
   overflow: hidden;
