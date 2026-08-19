@@ -32,6 +32,11 @@ const BLAST_OFF_DISPLAY_MS = 1100;
 const COIL_SIGNAL_INTERVAL_MS = 100;
 const LED_PALETTE = ["#47f7ff", "#9cff57", "#ff7fa1"];
 const GLYPH_CHARS = ["░", "▒", "▓", "▌", "▐", "┃", "╎", "╏", "¦", "†", "‡", "×", "⌁", "⌬", "∴", "⋄", "◊", "✦"];
+const MONITOR_GLYPH_CHARS = GLYPH_CHARS.filter((glyph) => glyph !== "†");
+const MONITOR_LANE_COUNT = 6;
+const MONITOR_GLYPH_CELLS_PER_LANE = 36;
+const MONITOR_GLYPH_SEQUENCE_LENGTH = MONITOR_GLYPH_CELLS_PER_LANE / 2;
+const MONITOR_LANE_BASE_DURATIONS = [1.02, 0.82, 0.94, 1.14, 0.88, 1.08];
 const GLYPH_STRIP_CELLS = 7;
 const PULSE_LADDER_SEGMENTS = 6;
 
@@ -623,6 +628,7 @@ function HardwareLedBank({ side, count, signal, motionEnabled, chromaEnabled }: 
 }
 
 type SignalMonitorProps = {
+  actualSpeed: number;
   chromaEnabled: boolean;
   motionEnabled: boolean;
   isPlaying: boolean;
@@ -630,6 +636,7 @@ type SignalMonitorProps = {
 };
 
 function SignalMonitor({
+  actualSpeed,
   chromaEnabled,
   motionEnabled,
   isPlaying,
@@ -638,13 +645,13 @@ function SignalMonitor({
   const cellRefs = useRef<Array<HTMLElement | null>>([]);
   const barRefs = useRef<Array<HTMLElement | null>>([]);
   const monitorRef = useRef<HTMLElement | null>(null);
-  const stateRef = useRef({ chromaEnabled, motionEnabled, isPlaying, getLatestAudioSnapshot });
+  const stateRef = useRef({ actualSpeed, chromaEnabled, motionEnabled, isPlaying, getLatestAudioSnapshot });
   const acceptedKickSequenceRef = useRef(0);
   const flashRef = useRef(0);
 
   useEffect(() => {
-    stateRef.current = { chromaEnabled, motionEnabled, isPlaying, getLatestAudioSnapshot };
-  }, [chromaEnabled, getLatestAudioSnapshot, isPlaying, motionEnabled]);
+    stateRef.current = { actualSpeed, chromaEnabled, motionEnabled, isPlaying, getLatestAudioSnapshot };
+  }, [actualSpeed, chromaEnabled, getLatestAudioSnapshot, isPlaying, motionEnabled]);
 
   useEffect(() => {
     let frameId = 0;
@@ -675,11 +682,19 @@ function SignalMonitor({
         ?.style.getPropertyValue("--signal-runner-hud-chroma-hue") || "0deg";
 
       if (monitorRef.current) {
+        const speedScale = 2.7 - clamp01(state.actualSpeed / 100) * 1.6;
         monitorRef.current.style.setProperty("--signal-runner-monitor-energy", state.chromaEnabled ? energy.toFixed(3) : "0");
         monitorRef.current.style.setProperty("--signal-runner-monitor-bass", state.chromaEnabled ? bass.toFixed(3) : "0");
         monitorRef.current.style.setProperty("--signal-runner-monitor-kick", state.chromaEnabled ? flash.toFixed(3) : "0");
         monitorRef.current.style.setProperty("--signal-runner-monitor-scan", state.chromaEnabled ? `${(frameTime * 0.055) % 124 - 12}%` : "50%");
         monitorRef.current.style.setProperty("--signal-runner-monitor-hue", hue);
+
+        for (let index = 0; index < MONITOR_LANE_BASE_DURATIONS.length; index += 1) {
+          monitorRef.current.style.setProperty(
+            `--signal-runner-monitor-line-duration-${index + 1}`,
+            `${(MONITOR_LANE_BASE_DURATIONS[index] * speedScale).toFixed(3)}s`,
+          );
+        }
       }
 
       for (let index = 0; index < cellRefs.current.length; index += 1) {
@@ -689,9 +704,9 @@ function SignalMonitor({
           continue;
         }
 
-        const row = Math.floor(index / 18);
-        const column = index % 18;
-        const rowSignal = row === 0 ? highs : row === 1 ? mids : bass;
+        const row = Math.floor(index / MONITOR_GLYPH_CELLS_PER_LANE);
+        const column = index % MONITOR_GLYPH_CELLS_PER_LANE;
+        const rowSignal = row % 3 === 0 ? highs : row % 3 === 1 ? mids : bass;
         const chatter = ((Math.sin(frameTime * 0.006 + index * 1.7) + 1) / 2) * 0.22;
         const level = state.chromaEnabled
           ? clamp01(0.18 + energy * 0.38 + rowSignal * 0.28 + chatter + (column % 5 === 0 ? flash * 0.5 : 0))
@@ -699,13 +714,13 @@ function SignalMonitor({
 
         if (state.motionEnabled) {
           const seed = Math.floor(frameTime / 140) * 31 + index * 13;
-          cell.textContent = GLYPH_CHARS[Math.abs(seed) % GLYPH_CHARS.length];
+          cell.textContent = MONITOR_GLYPH_CHARS[Math.abs(seed) % MONITOR_GLYPH_CHARS.length];
         }
 
         cell.style.color = state.chromaEnabled
-          ? `hsl(calc(${184 + (row * 28)}deg + ${hue}) ${72 + level * 20}% ${58 + level * 20}% / ${0.32 + level * 0.68})`
+          ? `hsl(calc(${184 + (row * 28)}deg + ${hue}) ${82 + level * 16}% ${64 + level * 18}% / ${0.54 + level * 0.46})`
           : "";
-        cell.style.opacity = state.chromaEnabled ? level.toFixed(3) : "";
+        cell.style.opacity = state.chromaEnabled ? (0.62 + level * 0.38).toFixed(3) : "";
         cell.style.textShadow = state.chromaEnabled && level > 0.62
           ? `0 0 5px hsl(calc(184deg + ${hue}) 90% 64% / ${level.toFixed(3)})`
           : "";
@@ -746,39 +761,21 @@ function SignalMonitor({
       data-motion={motionEnabled}
       aria-label="Signal analysis monitor"
     >
-      <div className="signal-runner__monitor-header">
-        <span>ANALYSIS / 07</span>
-        <b>LIVE</b>
-      </div>
       <div className="signal-runner__monitor-field" aria-hidden="true">
-        {Array.from({ length: 3 }, (_, row) => (
+        {Array.from({ length: MONITOR_LANE_COUNT }, (_, row) => (
           <div className="signal-runner__monitor-line" key={row}>
-            {Array.from({ length: 18 }, (_, index) => (
+            {Array.from({ length: MONITOR_GLYPH_CELLS_PER_LANE }, (_, index) => (
               <i
                 key={index}
                 ref={(element) => {
-                  cellRefs.current[row * 18 + index] = element;
+                  cellRefs.current[row * MONITOR_GLYPH_CELLS_PER_LANE + index] = element;
                 }}
               >
-                {GLYPH_CHARS[(row * 11 + index * 3) % GLYPH_CHARS.length]}
+                {MONITOR_GLYPH_CHARS[(row * 11 + (index % MONITOR_GLYPH_SEQUENCE_LENGTH) * 3) % MONITOR_GLYPH_CHARS.length]}
               </i>
             ))}
           </div>
         ))}
-      </div>
-      <div className="signal-runner__monitor-bars" aria-hidden="true">
-        {Array.from({ length: 8 }, (_, index) => (
-          <i
-            key={index}
-            ref={(element) => {
-              barRefs.current[index] = element;
-            }}
-          />
-        ))}
-      </div>
-      <div className="signal-runner__monitor-footer">
-        <span>RX 884.2</span>
-        <span>SYNC <b>OK</b></span>
       </div>
     </section>
   );
@@ -1341,6 +1338,7 @@ function SignalRunnerExperience({
             <div className="signal-runner__right-rail">
               <div className="signal-runner__right-slot signal-runner__right-slot--monitor">
                 <SignalMonitor
+                  actualSpeed={actualSpeed}
                   chromaEnabled={chromaEnabled}
                   motionEnabled={motionEnabled}
                   isPlaying={isPlaying}
