@@ -1900,6 +1900,17 @@
   }
 }
 
+/* Compact HUD: pair the two spirals around Vector Drive instead of leaving a lone scanner. */
+@container (min-width: 701px) and (max-width: 1100px) {
+  .signal-runner__right-slot--aux {
+    display: none;
+  }
+
+  .signal-runner__right-slot--spiral {
+    display: grid;
+  }
+}
+
 @container (max-width: 540px) {
   .signal-runner__hud-content {
     width: calc(100% - 1rem);
