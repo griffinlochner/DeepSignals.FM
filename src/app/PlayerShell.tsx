@@ -96,6 +96,15 @@ const PUBLIC_PLAYER_ENVIRONMENT_IDS = [
 const publicPlayerEnvironmentIds = new Set<string>(
   PUBLIC_PLAYER_ENVIRONMENT_IDS,
 );
+// Kept selectable via persisted/dev state, but hidden from the visible Environment dropdown.
+const HIDDEN_ENVIRONMENT_DROPDOWN_IDS = new Set<string>(["slime-cavern"]);
+// Short, user-facing labels for the Environment dropdown; underlying theme names/ids are unchanged.
+const PUBLIC_ENVIRONMENT_DISPLAY_NAME_OVERRIDES: Record<string, string> = {
+  "cosmic-nexus": "Nexus",
+  "uv-reactive-jungle": "Psy Jungle",
+  "analog-signal-laboratory": "Analog Lab",
+  "bioluminescent-psy-reef": "Psy Reef",
+};
 const PUBLIC_DEMO_SOURCE_EXCLUSIONS = new Set([
   "demo-dfectv-spcyht-no-name",
   "demo-dfectv-the-maze",
@@ -619,9 +628,20 @@ function PlayerShell({ className }: PlayerShellProps) {
   const themeOptions = useMemo(
     () =>
       PUBLIC_PLAYER_ENVIRONMENT_IDS.flatMap((themeId) => {
+        if (HIDDEN_ENVIRONMENT_DROPDOWN_IDS.has(themeId)) {
+          return [];
+        }
+
         const theme = themeRegistry.find((candidate) => candidate.id === themeId);
-        return theme ? [{ id: theme.id, name: theme.name }] : [];
-      }),
+        return theme
+          ? [
+              {
+                id: theme.id,
+                name: PUBLIC_ENVIRONMENT_DISPLAY_NAME_OVERRIDES[theme.id] ?? theme.name,
+              },
+            ]
+          : [];
+      }).sort((left, right) => left.name.localeCompare(right.name)),
     [],
   );
 

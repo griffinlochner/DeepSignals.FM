@@ -130,8 +130,8 @@ const FloatingPlayerPanel = forwardRef<HTMLElement, FloatingPlayerPanelProps>(fu
 
       {collapsed ? (
         <div className="floating-player-panel__collapsed-body" id={contentId}>
-          <div className="floating-player-panel__field">
-            <p className="floating-player-panel__label">Signal Source</p>
+          <div className="floating-player-panel__row floating-player-panel__signal-row">
+            <p className="floating-player-panel__label">Signal</p>
             <SignalSourceSelector
               value={selectedSignalId || ""}
               groups={signalGroups}
@@ -150,8 +150,8 @@ const FloatingPlayerPanel = forwardRef<HTMLElement, FloatingPlayerPanelProps>(fu
         </div>
       ) : (
         <div className="floating-player-panel__body" id={contentId}>
-          <div className="floating-player-panel__field">
-            <p className="floating-player-panel__label">Signal Source</p>
+          <div className="floating-player-panel__row floating-player-panel__signal-row">
+            <p className="floating-player-panel__label">Signal</p>
             <SignalSourceSelector
               value={selectedSignalId || ""}
               groups={signalGroups}
@@ -159,18 +159,18 @@ const FloatingPlayerPanel = forwardRef<HTMLElement, FloatingPlayerPanelProps>(fu
             />
           </div>
 
-          <div className="floating-player-panel__field">
+          <div className="floating-player-panel__row floating-player-panel__transmission-row">
             <p className="floating-player-panel__label">Transmission</p>
             <TrackMarquee
               signalLabel={signalLabel}
               marqueeState={marqueeState}
             />
-            {audioErrorMessage ? (
-              <p className="floating-player-panel__audio-error" role="status">
-                {audioErrorMessage}
-              </p>
-            ) : null}
           </div>
+          {audioErrorMessage ? (
+            <p className="floating-player-panel__audio-error" role="status">
+              {audioErrorMessage}
+            </p>
+          ) : null}
 
           <section
             className="floating-player-panel__controls"
@@ -184,7 +184,7 @@ const FloatingPlayerPanel = forwardRef<HTMLElement, FloatingPlayerPanelProps>(fu
             />
 
             <section
-              className="floating-player-panel__volume-row"
+              className="floating-player-panel__row"
               aria-label="Volume control"
             >
               <p className="floating-player-panel__label">Volume</p>
@@ -222,7 +222,7 @@ const FloatingPlayerPanel = forwardRef<HTMLElement, FloatingPlayerPanelProps>(fu
               </section>
             ) : null}
 
-            <div className="floating-player-panel__field floating-player-panel__environment-field">
+            <div className="floating-player-panel__row">
               <p className="floating-player-panel__label">Environment</p>
               <ThemeSelector
                 value={selectedEnvironmentId}

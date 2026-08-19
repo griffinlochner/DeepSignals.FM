@@ -1,5 +1,8 @@
 .floating-player-panel {
   --floating-panel-edge-gap: clamp(12px, 2.2vw, 22px);
+  --player-label-col-width: 108px;
+  container-type: inline-size;
+  container-name: floating-player-panel;
   --player-font-family: "Avenir Next", "Segoe UI", sans-serif;
   --player-font-size-label: 0.64rem;
   --player-font-size-control: 0.82rem;
@@ -134,6 +137,34 @@
   gap: 5px;
 }
 
+/* Compact label-column + control-column row used by the primary Signal/Transmission/Volume/Environment controls. */
+.floating-player-panel__row {
+  display: grid;
+  grid-template-columns: var(--player-label-col-width) minmax(0, 1fr);
+  align-items: center;
+  gap: 6px 10px;
+}
+
+.floating-player-panel__row > .floating-player-panel__label {
+  margin: 0;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@container floating-player-panel (max-width: 300px) {
+  .floating-player-panel__row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+  }
+
+  .floating-player-panel__row > .floating-player-panel__label {
+    text-align: left;
+    white-space: normal;
+  }
+}
+
 .floating-player-panel__label {
   color: var(--theme-muted, rgba(189, 229, 223, 0.62));
   font-size: var(--player-font-size-label);
@@ -176,6 +207,17 @@
   line-height: var(--player-font-line-height);
 }
 
+.floating-player-panel .volume-control {
+  width: 100%;
+  min-width: 0;
+  justify-content: flex-start;
+}
+
+.floating-player-panel .volume-control__range {
+  width: 100%;
+  max-width: none;
+}
+
 .floating-player-panel__controls {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -202,10 +244,6 @@
   border-radius: 10px;
 }
 
-.floating-player-panel__controls .floating-player-panel__environment-field {
-  margin-top: 4px;
-}
-
 .floating-player-panel__toggle-row {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -222,10 +260,6 @@
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: 10px;
-}
-
-.floating-player-panel__controls .floating-player-panel__volume-row {
-  margin-top: -1px;
 }
 
 .floating-player-panel__controls .floating-player-panel__seek-row {
@@ -399,30 +433,6 @@
   transform: translateX(0);
 }
 
-.floating-player-panel__volume-row {
-  display: grid;
-  grid-template-columns: auto minmax(190px, 1fr);
-  align-items: center;
-  gap: 14px;
-}
-
-.floating-player-panel__volume-row .floating-player-panel__label {
-  margin-bottom: 0;
-}
-
-.floating-player-panel__volume-row .volume-control {
-  justify-content: flex-start;
-  min-width: 0;
-  width: 100%;
-}
-
-.floating-player-panel__volume-row .volume-control__range {
-  margin: 0;
-  width: 100%;
-  min-width: 190px;
-  max-width: none;
-}
-
 @media (max-width: 360px) {
   .floating-player-panel__toggle-row {
     grid-template-columns: minmax(0, 1fr);
@@ -453,22 +463,12 @@
     padding: 0 9px;
   }
 
-  .floating-player-panel__volume-row {
-    grid-template-columns: max-content minmax(0, 1fr);
-    gap: 8px;
-  }
-
-  .floating-player-panel__volume-row .volume-control {
-    align-items: center;
-  }
-
   .floating-player-panel__seek-row {
     grid-template-columns: max-content minmax(0, 1fr) max-content;
     gap: 8px;
   }
 
-  .floating-player-panel__seek-row .floating-player-panel__label,
-  .floating-player-panel__volume-row .floating-player-panel__label {
+  .floating-player-panel__seek-row .floating-player-panel__label {
     white-space: nowrap;
   }
 
@@ -476,9 +476,6 @@
     justify-self: end;
   }
 
-  .floating-player-panel__volume-row .volume-control__range {
-    min-width: 0;
-  }
 }
 
 @media (min-width: 1025px) and (max-height: 800px),
@@ -544,21 +541,9 @@
     border-radius: 8px;
   }
 
-  .floating-player-panel__controls .floating-player-panel__volume-row {
-    margin-top: 0;
-  }
-
-  .floating-player-panel__volume-row .volume-control {
-    height: 34px;
-  }
-
   .floating-player-panel__controls .floating-player-panel__seek-row {
     margin-top: -1px;
     margin-bottom: 1px;
-  }
-
-  .floating-player-panel__controls .floating-player-panel__environment-field {
-    margin-top: 2px;
   }
 
   .floating-player-panel__toggle-row {
