@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "test:runtime": "tsx scripts/test-environment-runtime.ts",
+    "test:psybrazil-metadata": "tsx scripts/test-psybrazil-metadata.ts",
     "preview": "vite preview",
     "validate:environments": "tsx scripts/validate-environments.ts"
   },
