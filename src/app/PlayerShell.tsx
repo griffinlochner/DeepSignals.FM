@@ -33,6 +33,10 @@ import { usePersistentAudioController } from "./usePersistentAudioController";
 import { usePsyStreamNowPlaying } from "./usePsyStreamNowPlaying";
 import { usePsyBrazilNowPlaying } from "./usePsyBrazilNowPlaying";
 import { useDumangueNowPlaying } from "./useDumangueNowPlaying";
+import { usePsyBrazilProgressiveNowPlaying } from "./usePsyBrazilProgressiveNowPlaying";
+import { usePsyBrazilLoFiNowPlaying } from "./usePsyBrazilLoFiNowPlaying";
+import { usePsyBrazilLowBpmNowPlaying } from "./usePsyBrazilLowBpmNowPlaying";
+import { usePsyBrazilElectroNowPlaying } from "./usePsyBrazilElectroNowPlaying";
 import { useDeepTripNowPlaying } from "./useDeepTripNowPlaying";
 import {
   mapSignalTarget,
@@ -114,7 +118,16 @@ const PUBLIC_DEMO_SOURCE_EXCLUSIONS = new Set([
   "demo-dfectv-its-a-trap",
 ]);
 // Additional PsyBrazil network station ids can be added here as they are onboarded.
-const PSYBRAZIL_NETWORK_SOURCE_IDS = new Set(["psybrazil", "psybrazil-dumangue"]);
+// Order is intentional (flagship first) rather than alphabetical.
+const PSYBRAZIL_NETWORK_SOURCE_IDS = [
+  "psybrazil",
+  "psybrazil-dumangue",
+  "psybrazil-progressive",
+  "psybrazil-lofi",
+  "psybrazil-lowbpm",
+  "psybrazil-electro",
+];
+const PSYBRAZIL_NETWORK_SOURCE_ID_SET = new Set(PSYBRAZIL_NETWORK_SOURCE_IDS);
 const PSYBRAZIL_NETWORK_GROUP_LABEL = "PSYBRAZIL ENTERTAINMENT NETWORK";
 
 const PLAYER_EDGE_GAP = 22;
@@ -562,11 +575,20 @@ function PlayerShell({ className }: PlayerShellProps) {
   const psyStreamNowPlaying = usePsyStreamNowPlaying(selectedSignalId);
   const psyBrazilNowPlaying = usePsyBrazilNowPlaying(selectedSignalId);
   const dumangueNowPlaying = useDumangueNowPlaying(selectedSignalId);
+  const psyBrazilProgressiveNowPlaying =
+    usePsyBrazilProgressiveNowPlaying(selectedSignalId);
+  const psyBrazilLoFiNowPlaying = usePsyBrazilLoFiNowPlaying(selectedSignalId);
+  const psyBrazilLowBpmNowPlaying = usePsyBrazilLowBpmNowPlaying(selectedSignalId);
+  const psyBrazilElectroNowPlaying = usePsyBrazilElectroNowPlaying(selectedSignalId);
   const deepTripNowPlaying = useDeepTripNowPlaying(selectedSignalId);
   const externalNowPlaying =
     psyStreamNowPlaying ??
     psyBrazilNowPlaying ??
     dumangueNowPlaying ??
+    psyBrazilProgressiveNowPlaying ??
+    psyBrazilLoFiNowPlaying ??
+    psyBrazilLowBpmNowPlaying ??
+    psyBrazilElectroNowPlaying ??
     deepTripNowPlaying;
   const registrySourceBpm = audioController.audioSource.bpm ?? null;
   const effectiveReactiveBpm = ignoreSourceBpmEnabled
@@ -630,18 +652,20 @@ function PlayerShell({ className }: PlayerShellProps) {
       },
       {
         label: PSYBRAZIL_NETWORK_GROUP_LABEL,
-        signals: PUBLIC_EXTERNAL_AUDIO_SOURCES
-          .filter((source) => PSYBRAZIL_NETWORK_SOURCE_IDS.has(source.id))
-          .map((source) => ({
-            id: source.id,
-            label: formatAudioSourceLabel(source),
-          }))
-          .sort((left, right) => left.label.localeCompare(right.label)),
+        signals: PSYBRAZIL_NETWORK_SOURCE_IDS.flatMap((networkSourceId) => {
+          const source = PUBLIC_EXTERNAL_AUDIO_SOURCES.find(
+            (candidate) => candidate.id === networkSourceId,
+          );
+
+          return source
+            ? [{ id: source.id, label: formatAudioSourceLabel(source) }]
+            : [];
+        }),
       },
       {
         label: "EXTERNAL SIGNALS",
         signals: PUBLIC_EXTERNAL_AUDIO_SOURCES
-          .filter((source) => !PSYBRAZIL_NETWORK_SOURCE_IDS.has(source.id))
+          .filter((source) => !PSYBRAZIL_NETWORK_SOURCE_ID_SET.has(source.id))
           .map((source) => ({
             id: source.id,
             label: formatAudioSourceLabel(source),

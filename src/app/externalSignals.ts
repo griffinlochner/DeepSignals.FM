@@ -9,6 +9,10 @@ export type ExternalSignalId =
   | 'dmt-fm'
   | 'psybrazil'
   | 'psybrazil-dumangue'
+  | 'psybrazil-progressive'
+  | 'psybrazil-lofi'
+  | 'psybrazil-lowbpm'
+  | 'psybrazil-electro'
   | 'hirschmilch-psytrance'
   | 'hirschmilch-chillout'
   | 'hirschmilch-progressive'
@@ -94,6 +98,42 @@ export const EXTERNAL_SIGNAL_DEFINITIONS: ExternalSignalDefinition[] = [
     sourceAttribution: 'External signal from PsyBrazil',
     publicPlayerCompatible: true,
     artworkUrl: publicAssetUrl('/images/stations/psybrazil-dumangue.jpg'),
+  },
+  {
+    id: 'psybrazil-progressive',
+    stationName: 'Progressive',
+    streamUrl: 'https://radio.psybrazil.com.br/progressive',
+    stationWebsite: 'https://psybrazil.com.br/',
+    sourceAttribution: 'External signal from PsyBrazil',
+    publicPlayerCompatible: true,
+    artworkUrl: publicAssetUrl('/images/stations/psybrazil-progressive.jpg'),
+  },
+  {
+    id: 'psybrazil-lofi',
+    stationName: 'LoFi',
+    streamUrl: 'https://radio.psybrazil.com.br/lofi',
+    stationWebsite: 'https://psybrazil.com.br/',
+    sourceAttribution: 'External signal from PsyBrazil',
+    publicPlayerCompatible: true,
+    artworkUrl: publicAssetUrl('/images/stations/psybrazil-lofi.jpg'),
+  },
+  {
+    id: 'psybrazil-lowbpm',
+    stationName: 'LowBPM',
+    streamUrl: 'https://radio.psybrazil.com.br/lowbpm',
+    stationWebsite: 'https://psybrazil.com.br/',
+    sourceAttribution: 'External signal from PsyBrazil',
+    publicPlayerCompatible: true,
+    artworkUrl: publicAssetUrl('/images/stations/psybrazil-lowbpm.jpg'),
+  },
+  {
+    id: 'psybrazil-electro',
+    stationName: 'Electro',
+    streamUrl: 'https://radio.psybrazil.com.br/electro',
+    stationWebsite: 'https://psybrazil.com.br/',
+    sourceAttribution: 'External signal from PsyBrazil',
+    publicPlayerCompatible: true,
+    artworkUrl: publicAssetUrl('/images/stations/psybrazil-electro.jpg'),
   },
   {
     id: 'deep-trip-radio',
