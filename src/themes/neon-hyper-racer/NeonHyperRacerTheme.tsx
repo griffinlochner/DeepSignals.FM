@@ -36,8 +36,6 @@ function NeonHyperRacerTheme({
   getLatestAudioSnapshot,
 }: ThemeSceneProps) {
   const mountRef = useRef<HTMLDivElement | null>(null);
-  const speedValueRef = useRef<HTMLSpanElement | null>(null);
-  const hudRef = useRef<HTMLDivElement | null>(null);
   const propsRef = useRef({ isPlaying, volume, reducedMotion, motionEnabled, chromaEnabled, getLatestAudioSnapshot });
 
   useEffect(() => {
@@ -312,7 +310,6 @@ function NeonHyperRacerTheme({
       const musicDrive = volumeDrive * signalDrive;
       const surgeDrive = volumeDrive * surge * 0.98;
       const finalSpatialDrive = spatialMotion ? clamp(Math.max(musicDrive, surgeDrive)) : 0;
-      const speedValue = Math.round(finalSpatialDrive * 999999);
 
       if (spatialMotion) {
         world.position.z += delta * (finalSpatialDrive * 48 + surgeDrive * 88);
@@ -356,14 +353,6 @@ function NeonHyperRacerTheme({
           material.color.copy(base);
         }
       });
-      if (speedValueRef.current) {
-        speedValueRef.current.textContent = String(speedValue).padStart(6, "0");
-        speedValueRef.current.dataset.speedBand = speedValue >= 666666 ? "high" : speedValue >= 333333 ? "mid" : "low";
-      }
-      if (hudRef.current) {
-        hudRef.current.dataset.active = state.isPlaying ? "true" : "false";
-        hudRef.current.dataset.boost = surge > 0.02 ? "true" : "false";
-      }
       starMaterial.size = 0.12 + highs * 0.1 + transient * 0.07;
       beacons.forEach((beacon, index) => {
         beacon.scale.setScalar(1 + (index % 3) * 0.16 + transient * 0.4);
@@ -395,11 +384,7 @@ function NeonHyperRacerTheme({
   }, []);
 
   return (
-    <div ref={mountRef} className="neon-hyper-racer-scene" aria-hidden="true">
-      <div ref={hudRef} className="neon-hyper-racer-hero-hud" data-active="false">
-        <span ref={speedValueRef} className="neon-hyper-racer-hero-hud__value" data-speed-band="low">000000</span>
-      </div>
-    </div>
+    <div ref={mountRef} className="neon-hyper-racer-scene" aria-hidden="true" />
   );
 }
 
