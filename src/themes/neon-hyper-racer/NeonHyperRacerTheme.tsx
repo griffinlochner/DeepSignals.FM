@@ -26,17 +26,20 @@ const clamp = (value: number) => THREE.MathUtils.clamp(value, 0, 1);
 
 function NeonHyperRacerTheme({
   isPlaying,
+  volume,
   reducedMotion,
   motionEnabled = true,
   chromaEnabled = true,
   getLatestAudioSnapshot,
 }: ThemeSceneProps) {
   const mountRef = useRef<HTMLDivElement | null>(null);
-  const propsRef = useRef({ isPlaying, reducedMotion, motionEnabled, chromaEnabled, getLatestAudioSnapshot });
+  const speedValueRef = useRef<HTMLSpanElement | null>(null);
+  const hudRef = useRef<HTMLDivElement | null>(null);
+  const propsRef = useRef({ isPlaying, volume, reducedMotion, motionEnabled, chromaEnabled, getLatestAudioSnapshot });
 
   useEffect(() => {
-    propsRef.current = { isPlaying, reducedMotion, motionEnabled, chromaEnabled, getLatestAudioSnapshot };
-  }, [chromaEnabled, getLatestAudioSnapshot, isPlaying, motionEnabled, reducedMotion]);
+    propsRef.current = { isPlaying, volume, reducedMotion, motionEnabled, chromaEnabled, getLatestAudioSnapshot };
+  }, [chromaEnabled, getLatestAudioSnapshot, isPlaying, motionEnabled, reducedMotion, volume]);
 
   useEffect(() => {
     const mount = mountRef.current;
@@ -242,9 +245,13 @@ function NeonHyperRacerTheme({
       const transient = clamp(Math.max(snapshot.transient, snapshot.kickPulse));
       const chroma = state.chromaEnabled && state.isPlaying;
       const spatialMotion = state.isPlaying && state.motionEnabled && !state.reducedMotion;
+      const effectiveDrive = state.isPlaying
+        ? clamp(state.volume * (0.04 + energy * 0.72 + bass * 0.22 + transient * 0.12))
+        : 0;
+      const speedValue = Math.round(effectiveDrive * 1000);
 
       if (spatialMotion) {
-        world.position.z += delta * (10 + energy * 9 + surge * 25);
+        world.position.z += delta * (3 + effectiveDrive * 22 + surge * 25);
         corridorSegments.forEach((segment) => {
           if (segment.position.z + world.position.z > 22) {
             segment.position.z -= corridorLength;
@@ -262,12 +269,20 @@ function NeonHyperRacerTheme({
         const lift = family === "path" ? bass * 0.32 + transient * 0.5 : family === "structure" ? energy * 0.28 + mids * 0.18 : highs * 0.45;
         material.opacity = THREE.MathUtils.clamp(baseOpacity + lift + surge * 0.24, 0.08, 1);
         if (chroma) {
-          const hueShift = family === "path" ? mids * 0.11 + surge * 0.04 : family === "structure" ? highs * 0.16 : highs * 0.06;
-          material.color.copy(base).offsetHSL(hueShift, 0.08 + energy * 0.08, lift * 0.18 + surge * 0.14);
+          const hueShift = family === "path" ? mids * 0.22 + highs * 0.08 + surge * 0.04 : family === "structure" ? highs * 0.24 + mids * 0.08 : highs * 0.1;
+          const lightness = family === "structure" ? -0.015 + surge * 0.04 : -0.01 + lift * 0.04;
+          material.color.copy(base).offsetHSL(hueShift, 0.04 + energy * 0.05, lightness);
         } else {
           material.color.copy(base);
         }
       });
+      if (speedValueRef.current) {
+        speedValueRef.current.textContent = String(speedValue).padStart(4, "0");
+        speedValueRef.current.dataset.speedBand = speedValue >= 667 ? "high" : speedValue >= 334 ? "mid" : "low";
+      }
+      if (hudRef.current) {
+        hudRef.current.dataset.active = state.isPlaying ? "true" : "false";
+      }
       starMaterial.size = 0.12 + highs * 0.1 + transient * 0.07;
       beacons.forEach((beacon, index) => {
         beacon.scale.setScalar(1 + (index % 3) * 0.16 + transient * 0.4);
@@ -298,7 +313,13 @@ function NeonHyperRacerTheme({
     };
   }, []);
 
-  return <div ref={mountRef} className="neon-hyper-racer-scene" aria-hidden="true" />;
+  return (
+    <div ref={mountRef} className="neon-hyper-racer-scene" aria-hidden="true">
+      <div ref={hudRef} className="neon-hyper-racer-hero-hud" data-active="false">
+        <span ref={speedValueRef} className="neon-hyper-racer-hero-hud__value" data-speed-band="low">0000</span>
+      </div>
+    </div>
+  );
 }
 
 export default NeonHyperRacerTheme;
