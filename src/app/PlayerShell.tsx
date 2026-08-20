@@ -92,6 +92,7 @@ const PUBLIC_PLAYER_ENVIRONMENT_IDS = [
   "signal-runner",
   "minimal",
   "cosmic-nexus",
+  "neon-hyper-racer",
   "uv-reactive-jungle",
   "analog-signal-laboratory",
   "bioluminescent-psy-reef",
