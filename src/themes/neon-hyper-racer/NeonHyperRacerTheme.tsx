@@ -296,10 +296,8 @@ function NeonHyperRacerTheme({
       const laneMaterials = [laneBase, greenBase, laneBase, index % 3 === 0 ? amberBase : laneBase];
       const laneMarkers = laneOffsets.map((offset, markerIndex) => {
         const marker = new THREE.Mesh(laneGeo, laneMaterials[markerIndex]);
-        const curveDrift = Math.sin((index + markerIndex) * 0.8) * 0.38;
-        const zOffset = markerIndex % 2 === index % 2 ? -1.12 - curveDrift : 1.12 + curveDrift;
-        marker.position.set((offset + curveDrift * 0.22) * road.scale.x, 0.04, zOffset);
-        marker.rotation.z = -curveDrift * 0.18;
+        const zOffset = markerIndex % 2 === index % 2 ? -1.12 : 1.12;
+        marker.position.set(offset * road.scale.x, 0.04, zOffset);
         return marker;
       });
       segment.add(leftRail, rightRail, ...laneMarkers);
@@ -548,14 +546,9 @@ function NeonHyperRacerTheme({
       materials.forEach(({ material, base, baseOpacity, family }) => {
         material.opacity = baseOpacity;
         if (chromaActive) {
-          const hueShift = family === "path"
-            ? hueOffset * 0.42
-            : family === "structure"
-              ? hueOffset * 0.24
-              : hueOffset * 0.18;
           const saturationShift = family === "sky" ? 0.12 : 0.08;
           const lightnessShift = family === "structure" ? 0.04 : 0.02;
-          material.color.copy(base).offsetHSL(hueShift, saturationShift, lightnessShift);
+          material.color.copy(base).offsetHSL(hueOffset, saturationShift, lightnessShift);
         } else {
           material.color.copy(base);
         }
