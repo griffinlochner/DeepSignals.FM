@@ -287,10 +287,11 @@ function NeonHyperRacerTheme({
 
     const timer = new THREE.Timer();
     timer.connect(document);
-    const lookTarget = new THREE.Vector3();
     let elapsed = 0;
     let previousSurgeSequence = 0;
     let surgeUntil = 0;
+    let currentTravelSpeed = 0;
+    let accumulatedTravel = 0;
     let animationFrame = 0;
 
     const resize = () => {
@@ -342,29 +343,27 @@ function NeonHyperRacerTheme({
       }
       const surge = motionActive ? Math.max(0, Math.min(1, (surgeUntil - elapsed) / 0.9)) : 0;
       const travelEnergy = clamp((smoothedEnergy - 0.04) / (0.72 - 0.04));
-      const targetTravel = motionActive ? clamp(state.volume * travelEnergy) : 0;
-      const travelEase = 1 - Math.exp(-delta * 3.2);
-      const travelMix = motionActive ? targetTravel : 0;
-      world.position.z += (travelMix * 38 - world.position.z) * travelEase;
+      const targetTravelSpeed = motionActive ? clamp(state.volume * travelEnergy) * 34 : 0;
+      const travelEase = 1 - Math.exp(-delta * 2.2);
+      currentTravelSpeed = THREE.MathUtils.lerp(currentTravelSpeed, targetTravelSpeed, travelEase);
+      accumulatedTravel += currentTravelSpeed * delta;
 
       if (motionActive) {
         corridorSegments.forEach((segment) => {
-          segment.position.z += delta * (travelMix * 20 + surge * 12);
+          segment.position.z += delta * currentTravelSpeed;
           if (segment.position.z > 18) {
             segment.position.z -= corridorLength;
           }
         });
         beacons.forEach((beacon) => {
-          beacon.position.z += delta * (travelMix * 20 + surge * 12);
+          beacon.position.z += delta * currentTravelSpeed;
           if (beacon.position.z > 32) {
             beacon.position.z -= beaconLength;
           }
         });
-        world.rotation.z = THREE.MathUtils.lerp(world.rotation.z, Math.sin(elapsed * 0.19) * 0.035 + surge * 0.018, 0.035);
-      }
-
-      if (!motionActive) {
-        world.position.z = 0;
+      } else {
+        currentTravelSpeed = 0;
+        accumulatedTravel = 0;
       }
 
       const targetHueDegrees = chromaActive ? mapSignalRunnerChromaHue(smoothedEnergy) : 0;
@@ -415,24 +414,15 @@ function NeonHyperRacerTheme({
           material.color.copy(base);
         }
       });
-      starMaterial.size = chromaActive ? 0.12 + highs * 0.1 + transient * 0.07 : 0.12;
+      starMaterial.size = 0.16;
       beacons.forEach((beacon, index) => {
-        if (motionActive) {
-          beacon.scale.setScalar(1 + (index % 3) * 0.16 + transient * 0.4);
-        } else {
-          beacon.scale.setScalar(1 + (index % 3) * 0.16);
-        }
+        beacon.scale.setScalar(1 + (index % 3) * 0.16);
       });
 
-      if (motionActive) {
-        const targetFov = 63 + surge * 8 * state.volume + smoothedEnergy * 1.5 * state.volume;
-        camera.fov = THREE.MathUtils.lerp(camera.fov, targetFov, 0.06);
-        camera.position.x = THREE.MathUtils.lerp(camera.position.x, Math.sin(elapsed * 0.17) * 0.22, 0.035);
-        camera.position.y = THREE.MathUtils.lerp(camera.position.y, 2.2 + Math.sin(elapsed * 0.13) * 0.04 + bass * 0.025, 0.04);
-        lookTarget.set(Math.sin(elapsed * 0.17) * 1.2, 1.75 + surge * 0.25, -42);
-        camera.lookAt(lookTarget);
-        camera.updateProjectionMatrix();
-      }
+      camera.position.set(0, 2.2, 8);
+      camera.rotation.set(0, 0, 0);
+      camera.lookAt(0, 1.4, -42);
+      camera.updateProjectionMatrix();
       if (motionActive && state.isPlaying && snapshot.kickPulseAcceptedEventSequence !== previousSurgeSequence) {
         previousSurgeSequence = snapshot.kickPulseAcceptedEventSequence;
       }
