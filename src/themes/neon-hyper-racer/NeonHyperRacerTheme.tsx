@@ -19,6 +19,9 @@ const COLORS = {
   amber: 0xffb84d,
   blue: 0x3f6dff,
   indigo: 0x765cff,
+  violet: 0x8b35ff,
+  roadway: 0x171b3d,
+  roadwayEdge: 0x1d2850,
   white: 0xeaffff,
 };
 
@@ -59,6 +62,8 @@ function NeonHyperRacerTheme({
 
     const world = new THREE.Group();
     scene.add(world);
+    const skyLayer = new THREE.Group();
+    scene.add(skyLayer);
     const materials: ReactiveMaterial[] = [];
     const geometries = new Set<THREE.BufferGeometry>();
     const trackMaterial = (color: number, family: ReactiveMaterial["family"], opacity = 1) => {
@@ -90,19 +95,21 @@ function NeonHyperRacerTheme({
     };
 
     const pathGeo = geometry(new THREE.BoxGeometry(0.12, 0.08, 7.4));
-    const laneGeo = geometry(new THREE.BoxGeometry(0.025, 0.025, 7.4));
-    const pylonGeo = geometry(new THREE.BoxGeometry(0.16, 5, 0.16));
-    const archGeo = geometry(new THREE.TorusGeometry(5.5, 0.11, 6, 28, Math.PI));
+    const laneGeo = geometry(new THREE.BoxGeometry(0.07, 0.035, 1.65));
+    const roadGeo = geometry(new THREE.BoxGeometry(15.8, 0.2, 7.4));
+    const roadEdgeGeo = geometry(new THREE.BoxGeometry(0.18, 0.08, 7.4));
+    const barrierGeo = geometry(new THREE.BoxGeometry(0.3, 0.48, 2.4));
     const towerGeo = geometry(new THREE.BoxGeometry(1.2, 1, 1.2));
-    const tunnelRoofGeo = geometry(new THREE.BoxGeometry(12, 0.2, 7.4));
-    const tunnelLightGeo = geometry(new THREE.BoxGeometry(8, 0.1, 0.08));
-    const helixGeo = geometry(new THREE.BufferGeometry());
-    const helixPoints: THREE.Vector3[] = [];
-    for (let point = 0; point < 32; point += 1) {
-      const phase = (point / 31) * Math.PI * 4;
-      helixPoints.push(new THREE.Vector3(Math.cos(phase) * 1.15, (point / 31 - 0.5) * 5.2, Math.sin(phase) * 1.15));
-    }
-    helixGeo.setFromPoints(helixPoints);
+    const nexusCoreGeo = geometry(new THREE.IcosahedronGeometry(0.92, 2));
+    const nexusInnerGeo = geometry(new THREE.SphereGeometry(0.2, 12, 8));
+    const nexusGlowGeo = geometry(new THREE.SphereGeometry(1.9, 20, 14));
+    const nexusShellGeo = geometry(new THREE.IcosahedronGeometry(1.22, 1));
+    const nexusShellAccentGeo = geometry(new THREE.OctahedronGeometry(1.46, 1));
+    const nexusRingGeos = [
+      geometry(new THREE.TorusGeometry(2.15, 0.035, 8, 64)),
+      geometry(new THREE.TorusGeometry(2.45, 0.028, 8, 64)),
+      geometry(new THREE.TorusGeometry(2.75, 0.022, 8, 64)),
+    ];
     const starGeo = geometry(new THREE.BufferGeometry());
     const starPositions = new Float32Array(240 * 3);
     for (let index = 0; index < 240; index += 1) {
@@ -113,86 +120,139 @@ function NeonHyperRacerTheme({
     starGeo.setAttribute("position", new THREE.BufferAttribute(starPositions, 3));
     const starMaterial = new THREE.PointsMaterial({ color: COLORS.white, size: 0.16, transparent: true, opacity: 0.55, depthWrite: false, blending: THREE.AdditiveBlending });
     materials.push({ material: starMaterial, base: new THREE.Color(COLORS.white), baseOpacity: 0.55, family: "sky" });
-    world.add(new THREE.Points(starGeo, starMaterial));
+    skyLayer.add(new THREE.Points(starGeo, starMaterial));
 
     const pathBase = trackMaterial(COLORS.cyan, "path", 0.9);
     const laneBase = trackMaterial(COLORS.pink, "path", 0.78);
     const structureBase = trackMaterial(COLORS.indigo, "structure", 0.94);
     const amberBase = trackMaterial(COLORS.amber, "structure", 0.96);
     const greenBase = trackMaterial(COLORS.green, "path", 0.9);
-    const helixBase = lineMaterial(COLORS.pink, "path", 0.9);
-    const helixAccent = lineMaterial(COLORS.green, "path", 0.9);
+    const roadwayBase = trackMaterial(COLORS.roadway, "structure", 1);
+    const nexusCoreBase = trackMaterial(0x05020f, "structure", 0.96);
+    const nexusInnerBase = trackMaterial(COLORS.pink, "path", 1);
+    const nexusGlowBase = trackMaterial(COLORS.pink, "path", 0.18);
+    const nexusShellBase = new THREE.MeshBasicMaterial({ color: COLORS.violet, wireframe: true, transparent: true, opacity: 0.78, depthWrite: false, blending: THREE.AdditiveBlending });
+    const nexusShellAccentBase = new THREE.MeshBasicMaterial({ color: COLORS.indigo, wireframe: true, transparent: true, opacity: 0.52, depthWrite: false, blending: THREE.AdditiveBlending });
+    materials.push({ material: nexusShellBase, base: new THREE.Color(COLORS.violet), baseOpacity: 0.78, family: "path" });
+    materials.push({ material: nexusShellAccentBase, base: new THREE.Color(COLORS.indigo), baseOpacity: 0.52, family: "path" });
+    const nexusCyanBase = lineMaterial(COLORS.cyan, "path", 0.9);
+    const nexusGreenBase = lineMaterial(COLORS.green, "path", 0.86);
+    const nexusPinkBase = lineMaterial(COLORS.pink, "path", 0.84);
+    const nexusAmberBase = lineMaterial(COLORS.amber, "path", 0.78);
     const corridorSegments: THREE.Group[] = [];
     const corridorLength = 32 * 7.5;
 
-    // Five fixed spatial compositions: open night, megastructure, curve, tunnel, open vista.
+    // Fixed spatial compositions keep coverage continuous while changing the visual rhythm.
     for (let index = 0; index < 32; index += 1) {
       const z = -index * 7.5 - 8;
       const progress = index / 31;
       const x = progress < 0.32 ? 0 : progress < 0.62 ? Math.sin((progress - 0.32) * 5.8) * 6 : progress < 0.82 ? 0 : Math.sin(progress * 5) * 1.5;
-      const y = progress < 0.28 ? 0 : progress < 0.62 ? Math.sin((progress - 0.28) * 4.6) * 1.3 : progress < 0.82 ? 0.5 : -0.1;
+      const y = 0;
       const segment = new THREE.Group();
       segment.position.set(x, y, z);
-      segment.rotation.y = progress < 0.62 ? Math.sin(progress * 5.8) * 0.18 : 0;
+      segment.rotation.y = progress < 0.62 ? Math.sin(progress * 5.8) * 0.04 : 0;
       world.add(segment);
       corridorSegments.push(segment);
+
+      const road = new THREE.Mesh(roadGeo, roadwayBase);
+      road.scale.x = index % 6 === 2 ? 0.9 : index % 6 === 5 ? 1.06 : 1;
+      road.position.set(0, -0.16, 0);
+      const leftEdge = new THREE.Mesh(roadEdgeGeo, pathBase);
+      leftEdge.position.set(-7.45 * road.scale.x, -0.01, 0);
+      const rightEdge = new THREE.Mesh(roadEdgeGeo, index % 3 === 0 ? amberBase : pathBase);
+      rightEdge.position.set(7.45 * road.scale.x, -0.01, 0);
+      segment.add(road, leftEdge, rightEdge);
 
       const leftRail = new THREE.Mesh(pathGeo, pathBase);
       leftRail.position.set(-3.4, 0, 0);
       const rightRail = new THREE.Mesh(pathGeo, pathBase);
       rightRail.position.set(3.4, 0, 0);
-      const leftLane = new THREE.Mesh(laneGeo, laneBase);
-      leftLane.position.set(-1.2, 0.04, 0);
-      const rightLane = new THREE.Mesh(laneGeo, laneBase);
-      rightLane.position.set(1.2, 0.04, 0);
-      segment.add(leftRail, rightRail, leftLane, rightLane);
+      const laneOffsets = index % 4 === 1 ? [-4.4, -1.5, 1.5, 4.4] : [-3.8, -1.25, 1.25, 3.8];
+      const laneMaterials = [laneBase, greenBase, laneBase, index % 3 === 0 ? amberBase : laneBase];
+      const laneMarkers = laneOffsets.map((offset, markerIndex) => {
+        const marker = new THREE.Mesh(laneGeo, laneMaterials[markerIndex]);
+        marker.position.set(offset * road.scale.x, 0.04, markerIndex % 2 === index % 2 ? -1.2 : 1.2);
+        return marker;
+      });
+      segment.add(leftRail, rightRail, ...laneMarkers);
 
-      if (index % 2 === 0) {
-        const leftPylon = new THREE.Mesh(pylonGeo, structureBase);
-        leftPylon.position.set(-7.4, 2.7, 0);
-        const rightPylon = new THREE.Mesh(pylonGeo, structureBase);
-        rightPylon.position.set(7.4, 2.7, 0);
-        segment.add(leftPylon, rightPylon);
+      if (index % 5 === 1 || index % 5 === 3) {
+        const leftBarrier = new THREE.Mesh(barrierGeo, index % 2 ? amberBase : structureBase);
+        leftBarrier.position.set(-7.7 * road.scale.x, 0.12, index % 2 ? -1 : 1);
+        const rightBarrier = new THREE.Mesh(barrierGeo, index % 2 ? structureBase : amberBase);
+        rightBarrier.position.set(7.7 * road.scale.x, 0.12, index % 2 ? 1 : -1);
+        segment.add(leftBarrier, rightBarrier);
       }
 
-      if (index >= 6 && index <= 9) {
-        const arch = new THREE.Mesh(archGeo, amberBase);
-        arch.position.set(0, 0.4, 0);
-        arch.rotation.x = Math.PI / 2;
-        segment.add(arch);
-      }
-      if (index >= 16 && index <= 23) {
-        const roof = new THREE.Mesh(tunnelRoofGeo, structureBase);
-        roof.position.y = 6.8;
-        segment.add(roof);
-        const tunnelLight = new THREE.Mesh(tunnelLightGeo, index % 2 ? greenBase : amberBase);
-        tunnelLight.position.y = 6.55;
-        segment.add(tunnelLight);
-        const tunnelLeft = new THREE.Mesh(pylonGeo, structureBase);
-        tunnelLeft.position.set(-5.6, 3.2, 0);
-        const tunnelRight = new THREE.Mesh(pylonGeo, structureBase);
-        tunnelRight.position.set(5.6, 3.2, 0);
-        segment.add(tunnelLeft, tunnelRight);
-      }
-      if (index >= 24 && index <= 30 && index % 2 === 0) {
-        for (let tower = 0; tower < 3; tower += 1) {
+      if (index >= 23 && index <= 30 && index % 2 === 0) {
+        for (let tower = 0; tower < 2 + (index % 4 === 0 ? 1 : 0); tower += 1) {
           const building = new THREE.Mesh(towerGeo, tower % 2 ? structureBase : amberBase);
-          const side = tower < 2 ? -1 : 1;
-          building.scale.set(0.78 + tower * 0.18, 1.8 + tower * 0.65, 0.78);
-          building.position.set(side * (9.2 + (tower % 2) * 2.2), building.scale.y * 0.5 - 0.2, 1.8);
+          const side = tower % 2 ? 1 : -1;
+          building.scale.set(0.9 + ((index + tower) % 3) * 0.28, 0.55 + ((index + tower) % 3) * 0.28, 1.1);
+          building.position.set(side * (8.8 + ((index + tower) % 3) * 1.5), building.scale.y * 0.5 - 0.2, (tower - 1) * 1.8);
           segment.add(building);
         }
       }
-      if (index >= 10 && index <= 14 && index % 2 === 0) {
-        const helixLeft = new THREE.Line(helixGeo, helixBase);
-        helixLeft.position.set(-5.2, 3.3, 0);
-        helixLeft.rotation.z = Math.PI / 2;
-        const helixRight = new THREE.Line(helixGeo, helixAccent);
-        helixRight.position.set(5.2, 3.3, 0);
-        helixRight.rotation.z = -Math.PI / 2;
-        segment.add(helixLeft, helixRight);
-      }
     }
+
+    const nexus = new THREE.Group();
+    nexus.position.set(12, 11.5, -72);
+    nexus.scale.setScalar(3.6);
+    const nexusCore = new THREE.Mesh(nexusCoreGeo, nexusCoreBase);
+    const nexusInner = new THREE.Mesh(nexusInnerGeo, nexusInnerBase);
+    const nexusGlow = new THREE.Mesh(nexusGlowGeo, nexusGlowBase);
+    nexusGlow.scale.setScalar(0.82);
+    const nexusShell = new THREE.Mesh(nexusShellGeo, nexusShellBase);
+    const nexusShellAccent = new THREE.Mesh(nexusShellAccentGeo, nexusShellAccentBase);
+    nexusShell.rotation.set(0.3, 0.5, 0.1);
+    nexusShellAccent.rotation.set(1.05, 0.15, 0.65);
+    nexus.add(nexusGlow, nexusCore, nexusInner, nexusShell, nexusShellAccent);
+
+    const nexusRings = nexusRingGeos.map((ringGeometry, index) => {
+      const ring = new THREE.Mesh(ringGeometry, [nexusCyanBase, nexusPinkBase, nexusAmberBase][index]);
+      ring.rotation.copy([
+        new THREE.Euler(0.3, 0.15, 0.44),
+        new THREE.Euler(1.0, 0.2, 0.2),
+        new THREE.Euler(0.8, 0.62, 0.95),
+      ][index]);
+      nexus.add(ring);
+      return ring;
+    });
+
+    const nexusPulseGeo = geometry(new THREE.SphereGeometry(0.11, 8, 6));
+    const nexusPulseGlowGeo = geometry(new THREE.SphereGeometry(0.25, 8, 6));
+    const nexusPulses: Array<{ pulse: THREE.Mesh; glow: THREE.Mesh; curve: THREE.Curve<THREE.Vector3>; progress: number; speed: number }> = [];
+    const createNexusWave = (start: THREE.Vector3, end: THREE.Vector3, turns: number, radius: number, material: THREE.LineBasicMaterial, pulseMaterial: THREE.Material) => {
+      const forward = end.clone().sub(start).normalize();
+      const reference = Math.abs(forward.y) < 0.9 ? new THREE.Vector3(0, 1, 0) : new THREE.Vector3(1, 0, 0);
+      const side = new THREE.Vector3().crossVectors(forward, reference).normalize();
+      const up = new THREE.Vector3().crossVectors(side, forward).normalize();
+      const points: THREE.Vector3[] = [];
+      for (let point = 0; point <= 36; point += 1) {
+        const progress = point / 36;
+        const position = start.clone().lerp(end, progress);
+        const phase = progress * Math.PI * 2 * turns;
+        const taperedRadius = THREE.MathUtils.lerp(radius, radius * 0.18, progress);
+        position.addScaledVector(side, Math.cos(phase) * taperedRadius);
+        position.addScaledVector(up, Math.sin(phase) * taperedRadius);
+        points.push(position);
+      }
+      const curve = new THREE.CatmullRomCurve3(points);
+      const wave = new THREE.Line(geometry(new THREE.BufferGeometry().setFromPoints(points)), material);
+      nexus.add(wave);
+      [0.08, 0.54].forEach((progress) => {
+        const pulse = new THREE.Mesh(nexusPulseGeo, pulseMaterial);
+        const glow = new THREE.Mesh(nexusPulseGlowGeo, pulseMaterial);
+        nexus.add(pulse, glow);
+        nexusPulses.push({ pulse, glow, curve, progress, speed: 0.075 + (progress * 0.025) });
+      });
+    };
+
+    createNexusWave(new THREE.Vector3(-8.5, 4.5, -3.5), new THREE.Vector3(-0.7, 0.7, 0), 4.8, 0.5, nexusCyanBase, nexusCyanBase);
+    createNexusWave(new THREE.Vector3(-8.8, 2.4, -3.5), new THREE.Vector3(-0.75, 0.35, 0), 5.2, 0.46, nexusPinkBase, nexusPinkBase);
+    createNexusWave(new THREE.Vector3(8.2, 4.0, -3.5), new THREE.Vector3(0.75, 0.7, 0), 4.6, 0.44, nexusGreenBase, nexusGreenBase);
+    createNexusWave(new THREE.Vector3(7.8, 2.6, -3.5), new THREE.Vector3(0.72, 0.35, 0), 5.0, 0.42, nexusAmberBase, nexusAmberBase);
+    skyLayer.add(nexus);
 
     const beaconGeo = geometry(new THREE.SphereGeometry(0.12, 6, 4));
     const beacons: THREE.Mesh[] = [];
@@ -235,9 +295,11 @@ function NeonHyperRacerTheme({
       };
       if (snapshot.kickPulseAcceptedEventSequence !== previousSurgeSequence) {
         previousSurgeSequence = snapshot.kickPulseAcceptedEventSequence;
-        surgeUntil = elapsed + 2.4;
+        if (state.isPlaying) {
+          surgeUntil = elapsed + 1.8;
+        }
       }
-      const surge = Math.max(0, Math.min(1, (surgeUntil - elapsed) / 2.4));
+      const surge = Math.max(0, Math.min(1, (surgeUntil - elapsed) / 1.8));
       const energy = clamp(snapshot.smoothedEnergy || snapshot.energy);
       const bass = clamp(snapshot.bass);
       const mids = clamp(snapshot.mids);
@@ -245,13 +307,15 @@ function NeonHyperRacerTheme({
       const transient = clamp(Math.max(snapshot.transient, snapshot.kickPulse));
       const chroma = state.chromaEnabled && state.isPlaying;
       const spatialMotion = state.isPlaying && state.motionEnabled && !state.reducedMotion;
-      const effectiveDrive = state.isPlaying
-        ? clamp(state.volume * (0.04 + energy * 0.72 + bass * 0.22 + transient * 0.12))
-        : 0;
-      const speedValue = Math.round(effectiveDrive * 1000);
+      const signalDrive = clamp(energy * 0.88 + bass * 0.07 + transient * 0.05);
+      const volumeDrive = clamp(state.volume);
+      const musicDrive = volumeDrive * signalDrive;
+      const surgeDrive = volumeDrive * surge * 0.98;
+      const finalSpatialDrive = spatialMotion ? clamp(Math.max(musicDrive, surgeDrive)) : 0;
+      const speedValue = Math.round(finalSpatialDrive * 999999);
 
       if (spatialMotion) {
-        world.position.z += delta * (3 + effectiveDrive * 22 + surge * 25);
+        world.position.z += delta * (finalSpatialDrive * 48 + surgeDrive * 88);
         corridorSegments.forEach((segment) => {
           if (segment.position.z + world.position.z > 22) {
             segment.position.z -= corridorLength;
@@ -264,6 +328,22 @@ function NeonHyperRacerTheme({
         });
         world.rotation.z = THREE.MathUtils.lerp(world.rotation.z, Math.sin(elapsed * 0.19) * 0.035 + surge * 0.018, 0.035);
       }
+      nexus.rotation.y += delta * (0.08 + highs * 0.12);
+      nexus.rotation.x = THREE.MathUtils.lerp(nexus.rotation.x, Math.sin(elapsed * 0.11) * 0.08, 0.025);
+      nexusRings.forEach((ring, index) => {
+        ring.rotation.x += delta * [0.08, -0.11, 0.05][index];
+        ring.rotation.y += delta * [0.15, 0.06, -0.09][index];
+      });
+      nexusShell.rotation.y += delta * 0.1;
+      nexusShellAccent.rotation.x -= delta * 0.08;
+      nexusPulses.forEach(({ pulse, glow, curve, progress, speed }, index) => {
+        const nextProgress = (progress + delta * speed) % 1;
+        nexusPulses[index].progress = nextProgress;
+        const position = curve.getPointAt(nextProgress);
+        pulse.position.copy(position);
+        glow.position.copy(position);
+        glow.scale.setScalar(1.5 + Math.sin(elapsed * 8 + index) * 0.18);
+      });
 
       materials.forEach(({ material, base, baseOpacity, family }) => {
         const lift = family === "path" ? bass * 0.32 + transient * 0.5 : family === "structure" ? energy * 0.28 + mids * 0.18 : highs * 0.45;
@@ -277,11 +357,12 @@ function NeonHyperRacerTheme({
         }
       });
       if (speedValueRef.current) {
-        speedValueRef.current.textContent = String(speedValue).padStart(4, "0");
-        speedValueRef.current.dataset.speedBand = speedValue >= 667 ? "high" : speedValue >= 334 ? "mid" : "low";
+        speedValueRef.current.textContent = String(speedValue).padStart(6, "0");
+        speedValueRef.current.dataset.speedBand = speedValue >= 666666 ? "high" : speedValue >= 333333 ? "mid" : "low";
       }
       if (hudRef.current) {
         hudRef.current.dataset.active = state.isPlaying ? "true" : "false";
+        hudRef.current.dataset.boost = surge > 0.02 ? "true" : "false";
       }
       starMaterial.size = 0.12 + highs * 0.1 + transient * 0.07;
       beacons.forEach((beacon, index) => {
@@ -289,11 +370,11 @@ function NeonHyperRacerTheme({
       });
 
       if (spatialMotion) {
-        const targetFov = 63 + surge * 7 + energy * 1.5;
+        const targetFov = 63 + surge * 8 * volumeDrive + energy * 1.5 * volumeDrive;
         camera.fov = THREE.MathUtils.lerp(camera.fov, targetFov, 0.06);
         camera.position.x = THREE.MathUtils.lerp(camera.position.x, Math.sin(elapsed * 0.17) * 0.22, 0.035);
         camera.position.y = THREE.MathUtils.lerp(camera.position.y, 2.2 + Math.sin(elapsed * 0.13) * 0.04 + bass * 0.025, 0.04);
-        lookTarget.set(Math.sin(elapsed * 0.17) * 1.2, 1.5 + surge * 0.25, -42);
+        lookTarget.set(Math.sin(elapsed * 0.17) * 1.2, 1.75 + surge * 0.25, -42);
         camera.lookAt(lookTarget);
         camera.updateProjectionMatrix();
       }
@@ -316,7 +397,7 @@ function NeonHyperRacerTheme({
   return (
     <div ref={mountRef} className="neon-hyper-racer-scene" aria-hidden="true">
       <div ref={hudRef} className="neon-hyper-racer-hero-hud" data-active="false">
-        <span ref={speedValueRef} className="neon-hyper-racer-hero-hud__value" data-speed-band="low">0000</span>
+        <span ref={speedValueRef} className="neon-hyper-racer-hero-hud__value" data-speed-band="low">000000</span>
       </div>
     </div>
   );
