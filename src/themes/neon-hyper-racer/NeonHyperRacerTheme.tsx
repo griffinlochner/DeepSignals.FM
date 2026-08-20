@@ -132,39 +132,45 @@ function NeonHyperRacerTheme({
     // Half of each layer clusters around a tilted band so the sky reads as a milky way rather than uniform noise.
     const STAR_BAND_TILT = 0.42;
     const starLayers = [
-      { count: 3400, size: 1.1, opacity: 0.5, color: COLORS.white },
-      { count: 1500, size: 1.7, opacity: 0.7, color: COLORS.white },
-      { count: 420, size: 2.4, opacity: 0.85, color: COLORS.cyan },
+      { count: 4800, size: 1.35, opacity: 0.62, color: COLORS.white, sizeVariance: 0.52 },
+      { count: 1500, size: 2.2, opacity: 0.8, color: COLORS.white, sizeVariance: 0.9 },
+      { count: 420, size: 4.1, opacity: 0.96, color: COLORS.cyan, sizeVariance: 1.2 },
+      { count: 80, size: 8.0, opacity: 1, color: COLORS.white, sizeVariance: 1.2 },
     ];
     const starSystems: Array<{
       points: THREE.Points;
       material: THREE.ShaderMaterial;
       baseColor: THREE.Color;
     }> = [];
-    starLayers.forEach(({ count, size, opacity, color }) => {
+    starLayers.forEach(({ count, size, opacity, color, sizeVariance }) => {
       const starGeo = geometry(new THREE.BufferGeometry());
       const starPositions = new Float32Array(count * 3);
       const baseColor = new THREE.Color(color);
       const starColors = new Float32Array(count * 3);
+      const starSizes = new Float32Array(count);
       const twinklePhases = new Float32Array(count);
       const twinkleSpeed = new Float32Array(count);
       const twinkleAmplitude = new Float32Array(count);
       for (let index = 0; index < count; index += 1) {
-        const radius = 90 + Math.random() * 170;
+        const scattersTowardEdges = size > 4 ? 0.75 : 0.22;
+        const radius = 74 + Math.random() * 170 + scattersTowardEdges * (30 + Math.random() * 80);
         const azimuth = Math.random() * Math.PI * 2;
+        const edgeBias = size > 4 ? (Math.random() > 0.5 ? 0.8 : -0.6) : (Math.random() > 0.5 ? 0.3 : -0.2);
         // Sampling in sine space keeps angular density even instead of banding at the extremes.
         const elevation = index % 2 === 0
-          ? 0.12 + Math.sin(azimuth) * STAR_BAND_TILT + (Math.random() - 0.5) * 0.22
-          : Math.asin(THREE.MathUtils.lerp(-0.45, 0.95, Math.random()));
+          ? 0.12 + Math.sin(azimuth) * STAR_BAND_TILT + (Math.random() - 0.5) * 0.22 + edgeBias * 0.52
+          : Math.asin(THREE.MathUtils.lerp(-0.45, 0.95, Math.random())) + edgeBias * 0.28;
         const horizontal = Math.cos(elevation) * radius;
         const xi = index * 3;
         starPositions[xi] = Math.sin(azimuth) * horizontal;
         starPositions[xi + 1] = Math.sin(elevation) * radius;
         starPositions[xi + 2] = Math.cos(azimuth) * horizontal;
 
+        const authoredSize = size * (0.9 + Math.random() * sizeVariance);
+        starSizes[index] = Math.min(authoredSize, size * (size > 4 ? 1.15 : 1.8));
         twinklePhases[index] = Math.random() * Math.PI * 2;
-        twinkleSpeed[index] = 0.45 + Math.random() * 0.85;
-        twinkleAmplitude[index] = 0.38 + Math.random() * 0.55;
+        twinkleSpeed[index] = (size > 4 ? 0.22 : 0.35) + Math.random() * (size > 4 ? 0.48 : 0.8);
+        twinkleAmplitude[index] = (size > 4 ? 0.45 : 0.3) + Math.random() * (size > 4 ? 0.62 : 0.7);
 
         starColors[xi] = baseColor.r;
         starColors[xi + 1] = baseColor.g;
@@ -172,6 +178,7 @@ function NeonHyperRacerTheme({
       }
       starGeo.setAttribute("position", new THREE.BufferAttribute(starPositions, 3));
       starGeo.setAttribute("aBaseColor", new THREE.BufferAttribute(starColors, 3));
+      starGeo.setAttribute("aSize", new THREE.BufferAttribute(starSizes, 1));
       starGeo.setAttribute("aPhase", new THREE.BufferAttribute(twinklePhases, 1));
       starGeo.setAttribute("aSpeed", new THREE.BufferAttribute(twinkleSpeed, 1));
       starGeo.setAttribute("aAmplitude", new THREE.BufferAttribute(twinkleAmplitude, 1));
@@ -186,11 +193,11 @@ function NeonHyperRacerTheme({
           uTwinkleActive: { value: 0 },
           uHueActive: { value: 0 },
           uHueShift: { value: 0 },
-          uPointSize: { value: size },
           uOpacity: { value: opacity },
         },
         vertexShader: `
           attribute vec3 aBaseColor;
+          attribute float aSize;
           attribute float aPhase;
           attribute float aSpeed;
           attribute float aAmplitude;
@@ -198,14 +205,16 @@ function NeonHyperRacerTheme({
           uniform float uTwinkleActive;
           uniform float uHueActive;
           uniform float uHueShift;
-          uniform float uPointSize;
           varying vec3 vColor;
 
           void main() {
             vec3 color = aBaseColor;
-            float twinkle = 1.0;
+            float brightness = 1.0;
+            float sizeScale = 1.0;
+
             if (uTwinkleActive > 0.5) {
-              twinkle = 0.58 + aAmplitude * (0.5 + 0.5 * sin(uTime * (0.7 + aSpeed) + aPhase));
+              brightness = 0.58 + aAmplitude * (0.5 + 0.5 * sin(uTime * (0.7 + aSpeed) + aPhase));
+              sizeScale = 0.9 + aAmplitude * 0.25 + 0.14 * sin(uTime * (0.5 + aSpeed) + aPhase);
             }
 
             if (uHueActive > 0.5) {
@@ -214,13 +223,13 @@ function NeonHyperRacerTheme({
                 0.5 + 0.5 * sin(uTime * 0.8 + aPhase + uHueShift * 8.0 + 2.0),
                 0.5 + 0.5 * sin(uTime * 0.8 + aPhase + uHueShift * 8.0 + 4.0)
               );
-              color = mix(color, hueTint, 0.34 + 0.18 * (0.5 + 0.5 * sin(uTime * 1.1 + aPhase)));
+              color = mix(color, hueTint, 0.24 + 0.2 * sin(uTime * 1.15 + aPhase));
             }
 
-            vColor = color * twinkle;
+            vColor = color * brightness;
             vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
             gl_Position = projectionMatrix * mvPosition;
-            gl_PointSize = uPointSize * (0.9 + aAmplitude * 0.38 + 0.12 * sin(uTime * (0.45 + aSpeed) + aPhase));
+            gl_PointSize = aSize * sizeScale;
           }
         `,
         fragmentShader: `
@@ -445,12 +454,12 @@ function NeonHyperRacerTheme({
       const hueOffset = chromaActive
         ? THREE.MathUtils.lerp(0, targetHueDegrees / 360, SIGNAL_RUNNER_CHROMA_HUE_RESPONSE)
         : 0;
-      const starTwinkleActive = state.isPlaying && state.chromaEnabled;
+      const starChromaEnabled = state.chromaEnabled;
       starSystems.forEach(({ material }) => {
         material.uniforms.uTime.value = elapsed;
-        material.uniforms.uTwinkleActive.value = starTwinkleActive ? 1 : 0;
-        material.uniforms.uHueActive.value = chromaActive ? 1 : 0;
-        material.uniforms.uHueShift.value = hueOffset;
+        material.uniforms.uTwinkleActive.value = starChromaEnabled ? 1 : 0;
+        material.uniforms.uHueActive.value = starChromaEnabled ? 1 : 0;
+        material.uniforms.uHueShift.value = starChromaEnabled ? hueOffset : 0;
       });
       if (motionActive) {
         nexus.rotation.y += delta * (0.08 + highs * 0.12);
