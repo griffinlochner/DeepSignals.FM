@@ -296,7 +296,10 @@ function NeonHyperRacerTheme({
       const laneMaterials = [laneBase, greenBase, laneBase, index % 3 === 0 ? amberBase : laneBase];
       const laneMarkers = laneOffsets.map((offset, markerIndex) => {
         const marker = new THREE.Mesh(laneGeo, laneMaterials[markerIndex]);
-        marker.position.set(offset * road.scale.x, 0.04, markerIndex % 2 === index % 2 ? -1.2 : 1.2);
+        const curveDrift = Math.sin((index + markerIndex) * 0.8) * 0.38;
+        const zOffset = markerIndex % 2 === index % 2 ? -1.12 - curveDrift : 1.12 + curveDrift;
+        marker.position.set((offset + curveDrift * 0.22) * road.scale.x, 0.04, zOffset);
+        marker.rotation.z = -curveDrift * 0.18;
         return marker;
       });
       segment.add(leftRail, rightRail, ...laneMarkers);
