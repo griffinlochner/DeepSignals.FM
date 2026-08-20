@@ -33,6 +33,9 @@ const clamp = (value: number) => THREE.MathUtils.clamp(value, 0, 1);
 const TRACK_SEGMENT_COUNT = 52;
 const TRACK_SEGMENT_SPACING = 7.5;
 const TRACK_SEGMENT_DEPTH = 8.9;
+// Roadway must start behind the camera so the near-field never opens onto empty space.
+const TRACK_SEGMENT_START_Z = 12;
+const TRACK_SEGMENT_RECYCLE_Z = TRACK_SEGMENT_START_Z + TRACK_SEGMENT_SPACING;
 
 function getTrackCenter(index: number) {
   const phase = (index / TRACK_SEGMENT_COUNT) * Math.PI * 2;
@@ -68,8 +71,8 @@ function NeonHyperRacerTheme({
     scene.background = new THREE.Color(COLORS.void);
     scene.fog = new THREE.FogExp2(COLORS.void, 0.0085);
     const camera = new THREE.PerspectiveCamera(63, 1, 0.1, 280);
-    camera.position.set(0, 2.2, 8);
-    camera.lookAt(0, 1.4, -42);
+    camera.position.set(0, 1.2, 5.2);
+    camera.lookAt(0, 0.8, -28);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.65));
@@ -160,7 +163,7 @@ function NeonHyperRacerTheme({
 
     // A continuous periodic centerline keeps the recycled corridor cohesive.
     for (let index = 0; index < TRACK_SEGMENT_COUNT; index += 1) {
-      const z = -index * TRACK_SEGMENT_SPACING - 8;
+      const z = TRACK_SEGMENT_START_Z - index * TRACK_SEGMENT_SPACING;
       const progress = index / TRACK_SEGMENT_COUNT;
       const center = getTrackCenter(index);
       const previousCenter = getTrackCenter(index - 1);
@@ -341,7 +344,7 @@ function NeonHyperRacerTheme({
       if (motionActive) {
         corridorSegments.forEach((segment) => {
           segment.position.z += delta * currentTravelSpeed;
-          if (segment.position.z > 18) {
+          if (segment.position.z > TRACK_SEGMENT_RECYCLE_Z) {
             segment.position.z -= corridorLength;
           }
         });
@@ -406,9 +409,9 @@ function NeonHyperRacerTheme({
         beacon.scale.setScalar(1 + (index % 3) * 0.16);
       });
 
-      camera.position.set(0, 2.2, 8);
+      camera.position.set(0, 1.2, 5.2);
       camera.rotation.set(0, 0, 0);
-      camera.lookAt(0, 1.4, -42);
+      camera.lookAt(0, 0.8, -28);
       camera.updateProjectionMatrix();
       if (motionActive && state.isPlaying && snapshot.kickPulseAcceptedEventSequence !== previousSurgeSequence) {
         previousSurgeSequence = snapshot.kickPulseAcceptedEventSequence;
