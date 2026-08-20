@@ -26,6 +26,20 @@ const COLORS = {
 };
 
 const clamp = (value: number) => THREE.MathUtils.clamp(value, 0, 1);
+const TRACK_SEGMENT_COUNT = 52;
+const TRACK_SEGMENT_SPACING = 7.5;
+const TRACK_SEGMENT_DEPTH = 8.9;
+
+function getTrackCenter(index: number) {
+  const phase = (index / TRACK_SEGMENT_COUNT) * Math.PI * 2;
+  return {
+    x:
+      Math.sin(phase) * 2.7 +
+      Math.sin(phase * 2 + 0.72) * 1.15 +
+      Math.sin(phase * 3 - 0.55) * 0.48,
+    y: 0,
+  };
+}
 
 function NeonHyperRacerTheme({
   isPlaying,
@@ -92,10 +106,10 @@ function NeonHyperRacerTheme({
       return value;
     };
 
-    const pathGeo = geometry(new THREE.BoxGeometry(0.12, 0.08, 7.4));
+    const pathGeo = geometry(new THREE.BoxGeometry(0.12, 0.08, TRACK_SEGMENT_DEPTH));
     const laneGeo = geometry(new THREE.BoxGeometry(0.07, 0.035, 1.65));
-    const roadGeo = geometry(new THREE.BoxGeometry(15.8, 0.2, 7.4));
-    const roadEdgeGeo = geometry(new THREE.BoxGeometry(0.18, 0.08, 7.4));
+    const roadGeo = geometry(new THREE.BoxGeometry(15.8, 0.2, TRACK_SEGMENT_DEPTH));
+    const roadEdgeGeo = geometry(new THREE.BoxGeometry(0.18, 0.08, TRACK_SEGMENT_DEPTH));
     const barrierGeo = geometry(new THREE.BoxGeometry(0.3, 0.48, 2.4));
     const towerGeo = geometry(new THREE.BoxGeometry(1.2, 1, 1.2));
     const nexusCoreGeo = geometry(new THREE.IcosahedronGeometry(0.92, 2));
@@ -138,22 +152,26 @@ function NeonHyperRacerTheme({
     const nexusPinkBase = lineMaterial(COLORS.pink, "path", 0.84);
     const nexusAmberBase = lineMaterial(COLORS.amber, "path", 0.78);
     const corridorSegments: THREE.Group[] = [];
-    const corridorLength = 32 * 7.5;
+    const corridorLength = TRACK_SEGMENT_COUNT * TRACK_SEGMENT_SPACING;
 
-    // Fixed spatial compositions keep coverage continuous while changing the visual rhythm.
-    for (let index = 0; index < 32; index += 1) {
-      const z = -index * 7.5 - 8;
-      const progress = index / 31;
-      const x = progress < 0.32 ? 0 : progress < 0.62 ? Math.sin((progress - 0.32) * 5.8) * 6 : progress < 0.82 ? 0 : Math.sin(progress * 5) * 1.5;
-      const y = 0;
+    // A continuous periodic centerline keeps the recycled corridor cohesive.
+    for (let index = 0; index < TRACK_SEGMENT_COUNT; index += 1) {
+      const z = -index * TRACK_SEGMENT_SPACING - 8;
+      const progress = index / TRACK_SEGMENT_COUNT;
+      const center = getTrackCenter(index);
+      const previousCenter = getTrackCenter(index - 1);
+      const nextCenter = getTrackCenter(index + 1);
       const segment = new THREE.Group();
-      segment.position.set(x, y, z);
-      segment.rotation.y = progress < 0.62 ? Math.sin(progress * 5.8) * 0.04 : 0;
+      segment.position.set(center.x, center.y, z);
+      segment.rotation.y = -Math.atan2(
+        nextCenter.x - previousCenter.x,
+        TRACK_SEGMENT_SPACING * 2,
+      );
       world.add(segment);
       corridorSegments.push(segment);
 
       const road = new THREE.Mesh(roadGeo, roadwayBase);
-      road.scale.x = index % 6 === 2 ? 0.9 : index % 6 === 5 ? 1.06 : 1;
+      road.scale.x = 0.98 + Math.sin(progress * Math.PI * 2 * 5 + 0.45) * 0.04;
       road.position.set(0, -0.16, 0);
       const leftEdge = new THREE.Mesh(roadEdgeGeo, pathBase);
       leftEdge.position.set(-7.45 * road.scale.x, -0.01, 0);
