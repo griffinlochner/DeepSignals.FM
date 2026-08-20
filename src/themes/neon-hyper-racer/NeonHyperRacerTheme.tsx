@@ -1,6 +1,10 @@
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import type { AudioReactiveSnapshot } from "../../app/playerTypes";
+import {
+  mapSignalRunnerChromaHue,
+  SIGNAL_RUNNER_CHROMA_HUE_RESPONSE,
+} from "../../experiments/signal-runner/signalRunnerChroma";
 import type { ThemeSceneProps } from "../themeTypes";
 import "./neonHyperRacer.css";
 
@@ -305,53 +309,86 @@ function NeonHyperRacerTheme({
       const delta = Math.min(timer.getDelta(), 0.05);
       elapsed += delta;
       const state = propsRef.current;
-      const snapshot: AudioReactiveSnapshot = state.getLatestAudioSnapshot?.() ?? {
-        energy: 0, smoothedEnergy: 0, bass: 0, kickPulse: 0, kickPulseAcceptedEvent: false,
-        kickPulseAcceptedEventCount: 0, kickPulseAcceptedEventSequence: 0, bassPulse: 0, mids: 0, highs: 0, transient: 0, isActive: false,
+      const defaultSnapshot: AudioReactiveSnapshot = {
+        energy: 0,
+        smoothedEnergy: 0,
+        bass: 0,
+        kickPulse: 0,
+        kickPulseAcceptedEvent: false,
+        kickPulseAcceptedEventCount: 0,
+        kickPulseAcceptedEventSequence: 0,
+        bassPulse: 0,
+        mids: 0,
+        highs: 0,
+        transient: 0,
+        isActive: false,
       };
-      if (snapshot.kickPulseAcceptedEventSequence !== previousSurgeSequence) {
-        previousSurgeSequence = snapshot.kickPulseAcceptedEventSequence;
-        if (state.isPlaying) {
-          surgeUntil = elapsed + 1.8;
-        }
-      }
-      const surge = Math.max(0, Math.min(1, (surgeUntil - elapsed) / 1.8));
-      const energy = clamp(snapshot.smoothedEnergy || snapshot.energy);
+      const snapshot: AudioReactiveSnapshot = state.getLatestAudioSnapshot?.() ?? defaultSnapshot;
+      const smoothedEnergy = clamp(snapshot.smoothedEnergy || snapshot.energy || 0);
       const bass = clamp(snapshot.bass);
       const mids = clamp(snapshot.mids);
       const highs = clamp(snapshot.highs);
       const transient = clamp(Math.max(snapshot.transient, snapshot.kickPulse));
-      const chroma = state.chromaEnabled && state.isPlaying;
-      const spatialMotion = state.isPlaying && state.motionEnabled && !state.reducedMotion;
-      const signalDrive = clamp(energy * 0.88 + bass * 0.07 + transient * 0.05);
-      const volumeDrive = clamp(state.volume);
-      const musicDrive = volumeDrive * signalDrive;
-      const surgeDrive = volumeDrive * surge * 0.98;
-      const finalSpatialDrive = spatialMotion ? clamp(Math.max(musicDrive, surgeDrive)) : 0;
+      const motionActive = state.isPlaying && state.motionEnabled && !state.reducedMotion;
+      const chromaActive = state.chromaEnabled && state.isPlaying;
 
-      if (spatialMotion) {
-        world.position.z += delta * (finalSpatialDrive * 48 + surgeDrive * 88);
+      if (snapshot.kickPulseAcceptedEventSequence !== previousSurgeSequence) {
+        previousSurgeSequence = snapshot.kickPulseAcceptedEventSequence;
+        if (state.isPlaying && motionActive) {
+          surgeUntil = elapsed + 0.9;
+        }
+      } else if (!state.isPlaying || !motionActive) {
+        surgeUntil = 0;
+      }
+      const surge = motionActive ? Math.max(0, Math.min(1, (surgeUntil - elapsed) / 0.9)) : 0;
+      const travelEnergy = clamp((smoothedEnergy - 0.04) / (0.72 - 0.04));
+      const targetTravel = motionActive ? clamp(state.volume * travelEnergy) : 0;
+      const travelEase = 1 - Math.exp(-delta * 3.2);
+      const travelMix = motionActive ? targetTravel : 0;
+      world.position.z += (travelMix * 38 - world.position.z) * travelEase;
+
+      if (motionActive) {
         corridorSegments.forEach((segment) => {
-          if (segment.position.z + world.position.z > 22) {
+          segment.position.z += delta * (travelMix * 20 + surge * 12);
+          if (segment.position.z > 18) {
             segment.position.z -= corridorLength;
           }
         });
         beacons.forEach((beacon) => {
-          if (beacon.position.z + world.position.z > 24) {
+          beacon.position.z += delta * (travelMix * 20 + surge * 12);
+          if (beacon.position.z > 32) {
             beacon.position.z -= beaconLength;
           }
         });
         world.rotation.z = THREE.MathUtils.lerp(world.rotation.z, Math.sin(elapsed * 0.19) * 0.035 + surge * 0.018, 0.035);
       }
-      nexus.rotation.y += delta * (0.08 + highs * 0.12);
-      nexus.rotation.x = THREE.MathUtils.lerp(nexus.rotation.x, Math.sin(elapsed * 0.11) * 0.08, 0.025);
-      nexusRings.forEach((ring, index) => {
-        ring.rotation.x += delta * [0.08, -0.11, 0.05][index];
-        ring.rotation.y += delta * [0.15, 0.06, -0.09][index];
-      });
-      nexusShell.rotation.y += delta * 0.1;
-      nexusShellAccent.rotation.x -= delta * 0.08;
+
+      if (!motionActive) {
+        world.position.z = 0;
+      }
+
+      const targetHueDegrees = chromaActive ? mapSignalRunnerChromaHue(smoothedEnergy) : 0;
+      const hueOffset = chromaActive
+        ? THREE.MathUtils.lerp(0, targetHueDegrees / 360, SIGNAL_RUNNER_CHROMA_HUE_RESPONSE)
+        : 0;
+      if (motionActive) {
+        nexus.rotation.y += delta * (0.08 + highs * 0.12);
+        nexus.rotation.x = THREE.MathUtils.lerp(nexus.rotation.x, Math.sin(elapsed * 0.11) * 0.08, 0.025);
+        nexusRings.forEach((ring, index) => {
+          ring.rotation.x += delta * [0.08, -0.11, 0.05][index];
+          ring.rotation.y += delta * [0.15, 0.06, -0.09][index];
+        });
+        nexusShell.rotation.y += delta * 0.1;
+        nexusShellAccent.rotation.x -= delta * 0.08;
+      }
+
       nexusPulses.forEach(({ pulse, glow, curve, progress, speed }, index) => {
+        if (!motionActive) {
+          pulse.position.copy(curve.getPointAt(progress));
+          glow.position.copy(curve.getPointAt(progress));
+          glow.scale.setScalar(1.15);
+          return;
+        }
         const nextProgress = (progress + delta * speed) % 1;
         nexusPulses[index].progress = nextProgress;
         const position = curve.getPointAt(nextProgress);
@@ -361,29 +398,43 @@ function NeonHyperRacerTheme({
       });
 
       materials.forEach(({ material, base, baseOpacity, family }) => {
-        const lift = family === "path" ? bass * 0.32 + transient * 0.5 : family === "structure" ? energy * 0.28 + mids * 0.18 : highs * 0.45;
+        const lift = family === "path" ? bass * 0.32 + transient * 0.5 : family === "structure" ? smoothedEnergy * 0.28 + mids * 0.18 : highs * 0.45;
+        const colorBoost = chromaActive ? (smoothedEnergy * 0.28 + (surge * 0.18)) : 0;
         material.opacity = THREE.MathUtils.clamp(baseOpacity + lift + surge * 0.24, 0.08, 1);
-        if (chroma) {
-          const hueShift = family === "path" ? mids * 0.22 + highs * 0.08 + surge * 0.04 : family === "structure" ? highs * 0.24 + mids * 0.08 : highs * 0.1;
-          const lightness = family === "structure" ? -0.015 + surge * 0.04 : -0.01 + lift * 0.04;
-          material.color.copy(base).offsetHSL(hueShift, 0.04 + energy * 0.05, lightness);
+        if (chromaActive) {
+          const hueShift = family === "path"
+            ? (hueOffset * 0.32) + (mids * 0.18 + highs * 0.12) + surge * 0.04
+            : family === "structure"
+              ? (hueOffset * 0.18) + (highs * 0.2 + mids * 0.08)
+              : (hueOffset * 0.12) + highs * 0.1;
+          const lightness = family === "structure"
+            ? -0.015 + surge * 0.04 + colorBoost * 0.18
+            : -0.01 + lift * 0.04 + colorBoost * 0.12;
+          material.color.copy(base).offsetHSL(hueShift, 0.04 + smoothedEnergy * 0.05, lightness);
         } else {
           material.color.copy(base);
         }
       });
-      starMaterial.size = 0.12 + highs * 0.1 + transient * 0.07;
+      starMaterial.size = chromaActive ? 0.12 + highs * 0.1 + transient * 0.07 : 0.12;
       beacons.forEach((beacon, index) => {
-        beacon.scale.setScalar(1 + (index % 3) * 0.16 + transient * 0.4);
+        if (motionActive) {
+          beacon.scale.setScalar(1 + (index % 3) * 0.16 + transient * 0.4);
+        } else {
+          beacon.scale.setScalar(1 + (index % 3) * 0.16);
+        }
       });
 
-      if (spatialMotion) {
-        const targetFov = 63 + surge * 8 * volumeDrive + energy * 1.5 * volumeDrive;
+      if (motionActive) {
+        const targetFov = 63 + surge * 8 * state.volume + smoothedEnergy * 1.5 * state.volume;
         camera.fov = THREE.MathUtils.lerp(camera.fov, targetFov, 0.06);
         camera.position.x = THREE.MathUtils.lerp(camera.position.x, Math.sin(elapsed * 0.17) * 0.22, 0.035);
         camera.position.y = THREE.MathUtils.lerp(camera.position.y, 2.2 + Math.sin(elapsed * 0.13) * 0.04 + bass * 0.025, 0.04);
         lookTarget.set(Math.sin(elapsed * 0.17) * 1.2, 1.75 + surge * 0.25, -42);
         camera.lookAt(lookTarget);
         camera.updateProjectionMatrix();
+      }
+      if (motionActive && state.isPlaying && snapshot.kickPulseAcceptedEventSequence !== previousSurgeSequence) {
+        previousSurgeSequence = snapshot.kickPulseAcceptedEventSequence;
       }
       renderer.render(scene, camera);
       animationFrame = window.requestAnimationFrame(render);
