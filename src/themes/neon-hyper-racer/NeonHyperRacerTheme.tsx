@@ -121,9 +121,6 @@ function NeonHyperRacerTheme({
     const towerGeo = geometry(new THREE.BoxGeometry(1.2, 1, 1.2));
     const nexusCoreGeo = geometry(new THREE.IcosahedronGeometry(0.92, 2));
     const nexusInnerGeo = geometry(new THREE.SphereGeometry(0.2, 12, 8));
-    const nexusGlowGeo = geometry(new THREE.SphereGeometry(1.9, 20, 14));
-    const nexusShellGeo = geometry(new THREE.IcosahedronGeometry(1.22, 1));
-    const nexusShellAccentGeo = geometry(new THREE.OctahedronGeometry(1.46, 1));
     const nexusRingGeos = [
       geometry(new THREE.TorusGeometry(2.15, 0.035, 8, 64)),
       geometry(new THREE.TorusGeometry(2.45, 0.028, 8, 64)),
@@ -328,49 +325,32 @@ function NeonHyperRacerTheme({
     nexus.scale.setScalar(3.6);
 
     const nexusCoreMaterial = new THREE.MeshBasicMaterial({
-      color: 0x0b0314,
+      color: 0x05020f,
       transparent: true,
-      opacity: 0.98,
+      opacity: 1,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+    });
+    const nexusWireframeMaterial = new THREE.MeshBasicMaterial({
+      color: COLORS.violet,
+      wireframe: true,
+      transparent: true,
+      opacity: 0.9,
       depthWrite: false,
       blending: THREE.AdditiveBlending,
     });
     const nexusInnerMaterial = new THREE.MeshBasicMaterial({
       color: COLORS.pink,
       transparent: true,
-      opacity: 0.9,
-      depthWrite: false,
-      blending: THREE.AdditiveBlending,
-    });
-    const nexusGlowMaterial = new THREE.MeshBasicMaterial({
-      color: COLORS.violet,
-      transparent: true,
-      opacity: 0.12,
+      opacity: 1,
       depthWrite: false,
       blending: THREE.AdditiveBlending,
     });
     const nexusCore = new THREE.Mesh(nexusCoreGeo, nexusCoreMaterial);
+    const nexusWireframe = new THREE.Mesh(new THREE.IcosahedronGeometry(1.04, 1), nexusWireframeMaterial);
+    nexusWireframe.rotation.set(0.3, 0.5, 0.1);
     const nexusInner = new THREE.Mesh(nexusInnerGeo, nexusInnerMaterial);
-    const nexusGlow = new THREE.Mesh(nexusGlowGeo, nexusGlowMaterial);
-    nexusGlow.scale.setScalar(0.62);
-    const nexusShell = new THREE.Mesh(nexusShellGeo, new THREE.MeshBasicMaterial({
-      color: COLORS.violet,
-      wireframe: true,
-      transparent: true,
-      opacity: 0.38,
-      depthWrite: false,
-      blending: THREE.AdditiveBlending,
-    }));
-    const nexusShellAccent = new THREE.Mesh(nexusShellAccentGeo, new THREE.MeshBasicMaterial({
-      color: COLORS.indigo,
-      wireframe: true,
-      transparent: true,
-      opacity: 0.18,
-      depthWrite: false,
-      blending: THREE.AdditiveBlending,
-    }));
-    nexusShell.rotation.set(0.3, 0.5, 0.1);
-    nexusShellAccent.rotation.set(1.05, 0.15, 0.65);
-    nexus.add(nexusGlow, nexusCore, nexusInner, nexusShell, nexusShellAccent);
+    nexus.add(nexusCore, nexusWireframe, nexusInner);
 
     const nexusRings = nexusRingGeos.map((ringGeometry, index) => {
       const ring = new THREE.Mesh(ringGeometry, [nexusCyanBase, nexusPinkBase, nexusAmberBase][index]);
@@ -420,8 +400,24 @@ function NeonHyperRacerTheme({
         points.push(position);
       }
       const curve = new THREE.CatmullRomCurve3(points);
-      const wave = new THREE.Line(geometry(new THREE.BufferGeometry().setFromPoints(points)), material);
-      nexus.add(wave);
+
+      const outerWaveMaterial = new THREE.MeshBasicMaterial({
+        color: material.color,
+        transparent: true,
+        opacity: 0.18,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+      });
+      const innerWaveMaterial = new THREE.MeshBasicMaterial({
+        color: material.color,
+        transparent: true,
+        opacity: 0.96,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+      });
+      const outerWave = new THREE.Mesh(geometry(new THREE.TubeGeometry(curve, 120, 0.05, 12, false)), outerWaveMaterial);
+      const innerWave = new THREE.Mesh(geometry(new THREE.TubeGeometry(curve, 120, 0.015, 10, false)), innerWaveMaterial);
+      nexus.add(outerWave, innerWave);
 
       const pulseProgress = (offset % 1 + 0.12) % 1;
       const pulse = new THREE.Mesh(nexusPulseGeo, pulseMaterial);
@@ -519,8 +515,6 @@ function NeonHyperRacerTheme({
           ring.rotation.x += delta * [0.08, -0.11, 0.05][index];
           ring.rotation.y += delta * [0.15, 0.06, -0.09][index];
         });
-        nexusShell.rotation.y += delta * 0.1;
-        nexusShellAccent.rotation.x -= delta * 0.08;
       }
 
       nexusPulses.forEach(({ pulse, glow, curve, progress, speed, offset }, index) => {
