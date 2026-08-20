@@ -129,17 +129,42 @@ function NeonHyperRacerTheme({
       geometry(new THREE.TorusGeometry(2.45, 0.028, 8, 64)),
       geometry(new THREE.TorusGeometry(2.75, 0.022, 8, 64)),
     ];
-    const starGeo = geometry(new THREE.BufferGeometry());
-    const starPositions = new Float32Array(240 * 3);
-    for (let index = 0; index < 240; index += 1) {
-      starPositions[index * 3] = (Math.random() - 0.5) * 150;
-      starPositions[index * 3 + 1] = 8 + Math.random() * 55;
-      starPositions[index * 3 + 2] = -10 - Math.random() * 250;
-    }
-    starGeo.setAttribute("position", new THREE.BufferAttribute(starPositions, 3));
-    const starMaterial = new THREE.PointsMaterial({ color: COLORS.white, size: 0.16, transparent: true, opacity: 0.55, depthWrite: false, blending: THREE.AdditiveBlending });
-    materials.push({ material: starMaterial, base: new THREE.Color(COLORS.white), baseOpacity: 0.55, family: "sky" });
-    skyLayer.add(new THREE.Points(starGeo, starMaterial));
+    // Half of each layer clusters around a tilted band so the sky reads as a milky way rather than uniform noise.
+    const STAR_BAND_TILT = 0.42;
+    const starLayers = [
+      { count: 3400, size: 1.1, opacity: 0.5, color: COLORS.white },
+      { count: 1500, size: 1.7, opacity: 0.7, color: COLORS.white },
+      { count: 420, size: 2.4, opacity: 0.85, color: COLORS.cyan },
+    ];
+    starLayers.forEach(({ count, size, opacity, color }) => {
+      const starGeo = geometry(new THREE.BufferGeometry());
+      const starPositions = new Float32Array(count * 3);
+      for (let index = 0; index < count; index += 1) {
+        const radius = 90 + Math.random() * 170;
+        const azimuth = Math.random() * Math.PI * 2;
+        // Sampling in sine space keeps angular density even instead of banding at the extremes.
+        const elevation = index % 2 === 0
+          ? 0.12 + Math.sin(azimuth) * STAR_BAND_TILT + (Math.random() - 0.5) * 0.22
+          : Math.asin(THREE.MathUtils.lerp(-0.45, 0.95, Math.random()));
+        const horizontal = Math.cos(elevation) * radius;
+        starPositions[index * 3] = Math.sin(azimuth) * horizontal;
+        starPositions[index * 3 + 1] = Math.sin(elevation) * radius;
+        starPositions[index * 3 + 2] = Math.cos(azimuth) * horizontal;
+      }
+      starGeo.setAttribute("position", new THREE.BufferAttribute(starPositions, 3));
+      const starMaterial = new THREE.PointsMaterial({
+        color,
+        size,
+        sizeAttenuation: false,
+        transparent: true,
+        opacity,
+        depthWrite: false,
+        fog: false,
+        blending: THREE.AdditiveBlending,
+      });
+      materials.push({ material: starMaterial, base: new THREE.Color(color), baseOpacity: opacity, family: "sky" });
+      skyLayer.add(new THREE.Points(starGeo, starMaterial));
+    });
 
     const pathBase = trackMaterial(COLORS.cyan, "path", 0.9);
     const laneBase = trackMaterial(COLORS.pink, "path", 0.78);
@@ -387,7 +412,6 @@ function NeonHyperRacerTheme({
           material.color.copy(base);
         }
       });
-      starMaterial.size = 0.16;
 
       camera.position.set(0, 1.2, 5.2);
       camera.rotation.set(0, 0, 0);
