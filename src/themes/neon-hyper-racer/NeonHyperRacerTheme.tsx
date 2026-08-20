@@ -289,7 +289,6 @@ function NeonHyperRacerTheme({
     timer.connect(document);
     let elapsed = 0;
     let previousSurgeSequence = 0;
-    let surgeUntil = 0;
     let currentTravelSpeed = 0;
     let accumulatedTravel = 0;
     let animationFrame = 0;
@@ -326,24 +325,15 @@ function NeonHyperRacerTheme({
       };
       const snapshot: AudioReactiveSnapshot = state.getLatestAudioSnapshot?.() ?? defaultSnapshot;
       const smoothedEnergy = clamp(snapshot.smoothedEnergy || snapshot.energy || 0);
-      const bass = clamp(snapshot.bass);
-      const mids = clamp(snapshot.mids);
       const highs = clamp(snapshot.highs);
-      const transient = clamp(Math.max(snapshot.transient, snapshot.kickPulse));
       const motionActive = state.isPlaying && state.motionEnabled && !state.reducedMotion;
       const chromaActive = state.chromaEnabled && state.isPlaying;
 
       if (snapshot.kickPulseAcceptedEventSequence !== previousSurgeSequence) {
         previousSurgeSequence = snapshot.kickPulseAcceptedEventSequence;
-        if (state.isPlaying && motionActive) {
-          surgeUntil = elapsed + 0.9;
-        }
-      } else if (!state.isPlaying || !motionActive) {
-        surgeUntil = 0;
       }
-      const surge = motionActive ? Math.max(0, Math.min(1, (surgeUntil - elapsed) / 0.9)) : 0;
       const travelEnergy = clamp((smoothedEnergy - 0.04) / (0.72 - 0.04));
-      const targetTravelSpeed = motionActive ? clamp(state.volume * travelEnergy) * 34 : 0;
+      const targetTravelSpeed = motionActive ? clamp(state.volume * travelEnergy) * 92 : 0;
       const travelEase = 1 - Math.exp(-delta * 2.2);
       currentTravelSpeed = THREE.MathUtils.lerp(currentTravelSpeed, targetTravelSpeed, travelEase);
       accumulatedTravel += currentTravelSpeed * delta;
@@ -397,19 +387,16 @@ function NeonHyperRacerTheme({
       });
 
       materials.forEach(({ material, base, baseOpacity, family }) => {
-        const lift = family === "path" ? bass * 0.32 + transient * 0.5 : family === "structure" ? smoothedEnergy * 0.28 + mids * 0.18 : highs * 0.45;
-        const colorBoost = chromaActive ? (smoothedEnergy * 0.28 + (surge * 0.18)) : 0;
-        material.opacity = THREE.MathUtils.clamp(baseOpacity + lift + surge * 0.24, 0.08, 1);
+        material.opacity = baseOpacity;
         if (chromaActive) {
           const hueShift = family === "path"
-            ? (hueOffset * 0.32) + (mids * 0.18 + highs * 0.12) + surge * 0.04
+            ? hueOffset * 0.42
             : family === "structure"
-              ? (hueOffset * 0.18) + (highs * 0.2 + mids * 0.08)
-              : (hueOffset * 0.12) + highs * 0.1;
-          const lightness = family === "structure"
-            ? -0.015 + surge * 0.04 + colorBoost * 0.18
-            : -0.01 + lift * 0.04 + colorBoost * 0.12;
-          material.color.copy(base).offsetHSL(hueShift, 0.04 + smoothedEnergy * 0.05, lightness);
+              ? hueOffset * 0.24
+              : hueOffset * 0.18;
+          const saturationShift = family === "sky" ? 0.12 : 0.08;
+          const lightnessShift = family === "structure" ? 0.04 : 0.02;
+          material.color.copy(base).offsetHSL(hueShift, saturationShift, lightnessShift);
         } else {
           material.color.copy(base);
         }
