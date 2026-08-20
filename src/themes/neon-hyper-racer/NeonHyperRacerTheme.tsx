@@ -260,12 +260,12 @@ function NeonHyperRacerTheme({
       const curve = new THREE.CatmullRomCurve3(points);
       const wave = new THREE.Line(geometry(new THREE.BufferGeometry().setFromPoints(points)), material);
       nexus.add(wave);
-      [0.08, 0.54].forEach((progress) => {
-        const pulse = new THREE.Mesh(nexusPulseGeo, pulseMaterial);
-        const glow = new THREE.Mesh(nexusPulseGlowGeo, pulseMaterial);
-        nexus.add(pulse, glow);
-        nexusPulses.push({ pulse, glow, curve, progress, speed: 0.075 + (progress * 0.025) });
-      });
+
+      const pulseProgress = 0.28;
+      const pulse = new THREE.Mesh(nexusPulseGeo, pulseMaterial);
+      const glow = new THREE.Mesh(nexusPulseGlowGeo, pulseMaterial);
+      nexus.add(pulse, glow);
+      nexusPulses.push({ pulse, glow, curve, progress: pulseProgress, speed: 0.09 });
     };
 
     createNexusWave(new THREE.Vector3(-8.5, 4.5, -3.5), new THREE.Vector3(-0.7, 0.7, 0), 4.8, 0.5, nexusCyanBase, nexusCyanBase);
