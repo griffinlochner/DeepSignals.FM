@@ -277,17 +277,6 @@ function NeonHyperRacerTheme({
     createNexusWave(new THREE.Vector3(7.8, 2.6, -3.5), new THREE.Vector3(0.72, 0.35, 0), 5.0, 0.42, nexusAmberBase, nexusAmberBase);
     skyLayer.add(nexus);
 
-    const beaconGeo = geometry(new THREE.SphereGeometry(0.12, 6, 4));
-    const beacons: THREE.Mesh[] = [];
-    const beaconSpacing = 8;
-    const beaconLength = 28 * beaconSpacing;
-    for (let index = 0; index < 28; index += 1) {
-      const beacon = new THREE.Mesh(beaconGeo, index % 3 ? pathBase : amberBase);
-      beacon.position.set(index % 2 ? 4.9 : -4.9, 1.15, -index * 8 - 12);
-      world.add(beacon);
-      beacons.push(beacon);
-    }
-
     const timer = new THREE.Timer();
     timer.connect(document);
     let elapsed = 0;
@@ -348,12 +337,6 @@ function NeonHyperRacerTheme({
             segment.position.z -= corridorLength;
           }
         });
-        beacons.forEach((beacon) => {
-          beacon.position.z += delta * currentTravelSpeed;
-          if (beacon.position.z > 32) {
-            beacon.position.z -= beaconLength;
-          }
-        });
       } else {
         currentTravelSpeed = 0;
         accumulatedTravel = 0;
@@ -405,9 +388,6 @@ function NeonHyperRacerTheme({
         }
       });
       starMaterial.size = 0.16;
-      beacons.forEach((beacon, index) => {
-        beacon.scale.setScalar(1 + (index % 3) * 0.16);
-      });
 
       camera.position.set(0, 1.2, 5.2);
       camera.rotation.set(0, 0, 0);
