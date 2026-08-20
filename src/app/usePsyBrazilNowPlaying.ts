@@ -4,9 +4,11 @@ import {
 } from './useExternalNowPlaying'
 
 const PSYBRAZIL_SOURCE_ID = 'psybrazil'
+// The legacy songstatus.php?sid=N route was retired upstream; the network now
+// exposes per-station now-playing through api/track.php?station=<mount>.
 const PSYBRAZIL_NOW_PLAYING_URL =
-  'https://blog.psybrazil.com.br/music/songstatus.php?sid=8&nocache=1'
-const PSYBRAZIL_METADATA_POLL_MS = 15_000
+  'https://psybrazil.com.br/api/track.php?station=psybr'
+export const PSYBRAZIL_METADATA_POLL_MS = 15_000
 
 // This feed reports the station/network label in `artist`, not the musical artist.
 const PSYBRAZIL_STATION_LABELS = new Set(['psybrazil', 'psy brazil'])
@@ -67,13 +69,17 @@ function musicalArtist(value: string | null) {
 type PsyBrazilNowPlayingRecord = Record<string, unknown>
 
 /**
- * The live endpoint returns JSON where `artist` is the station label and
- * `title` carries "Artist_-_Title" with underscores for spaces. This parser
- * unpacks that shape, still supports a plain text "Artist - Title" response,
- * and returns null (falling back to the station name) only when no title is
- * available, instead of throwing.
+ * Every PsyBrazil network station shares one response shape: JSON where the
+ * track arrives as a combined "Artist - Title" (or "Artist_-_Title" with
+ * underscores for spaces) and any `artist` field carries the station label
+ * rather than the musical artist. This parser unpacks that shape, still
+ * supports a plain text response, and returns null (falling back to the
+ * station name) only when no title is available, instead of throwing.
  */
-export function parsePsyBrazilNowPlaying(raw: unknown): ExternalNowPlayingMetadata | null {
+function parseNetworkNowPlaying(
+  raw: unknown,
+  nowPlayingUrl: string,
+): ExternalNowPlayingMetadata | null {
   const rawText = typeof raw === 'string' ? raw.trim() : ''
   let artist: string | null = null
   let title: string | null = null
@@ -86,6 +92,7 @@ export function parsePsyBrazilNowPlaying(raw: unknown): ExternalNowPlayingMetada
         cleanString(parsed.Artist) ??
         cleanString(parsed.singer)
       const combined =
+        cleanString(parsed.now_playing) ??
         cleanString(parsed.title) ??
         cleanString(parsed.Title) ??
         cleanString(parsed.song) ??
@@ -108,12 +115,21 @@ export function parsePsyBrazilNowPlaying(raw: unknown): ExternalNowPlayingMetada
   }
 
   return {
-    sourceUrl: PSYBRAZIL_NOW_PLAYING_URL,
+    sourceUrl: nowPlayingUrl,
     title,
     artist: artist ?? undefined,
     origin: 'configured',
     changeKey: `${artist ?? ''}:${title}`,
   }
+}
+
+/** Binds the shared network parser to one station's now-playing endpoint. */
+export function createPsyBrazilNowPlayingParser(nowPlayingUrl: string) {
+  return (raw: unknown) => parseNetworkNowPlaying(raw, nowPlayingUrl)
+}
+
+export function parsePsyBrazilNowPlaying(raw: unknown): ExternalNowPlayingMetadata | null {
+  return parseNetworkNowPlaying(raw, PSYBRAZIL_NOW_PLAYING_URL)
 }
 
 const PSYBRAZIL_NOW_PLAYING_CONFIG = {

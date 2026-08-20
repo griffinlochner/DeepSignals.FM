@@ -282,7 +282,8 @@
   background: rgba(4, 10, 14, 0.82);
 }
 
-.visual-feed-window__artwork--psybrazil {
+/* Station branding banners are wider than the square feed box; crop rather than letterbox. */
+.visual-feed-window__artwork--live-station {
   object-fit: cover;
   object-position: center;
 }

@@ -8,6 +8,7 @@ export type ExternalSignalId =
   | 'psystream'
   | 'dmt-fm'
   | 'psybrazil'
+  | 'psybrazil-dumangue'
   | 'hirschmilch-psytrance'
   | 'hirschmilch-chillout'
   | 'hirschmilch-progressive'
@@ -84,6 +85,15 @@ export const EXTERNAL_SIGNAL_DEFINITIONS: ExternalSignalDefinition[] = [
     sourceAttribution: 'External signal from PsyBrazil',
     publicPlayerCompatible: true,
     artworkUrl: publicAssetUrl('/images/stations/psybr.jpg'),
+  },
+  {
+    id: 'psybrazil-dumangue',
+    stationName: 'Dumangue',
+    streamUrl: 'https://radio.psybrazil.com.br/dumangue',
+    stationWebsite: 'https://psybrazil.com.br/',
+    sourceAttribution: 'External signal from PsyBrazil',
+    publicPlayerCompatible: true,
+    artworkUrl: publicAssetUrl('/images/stations/psybrazil-dumangue.jpg'),
   },
   {
     id: 'deep-trip-radio',

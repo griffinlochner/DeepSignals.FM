@@ -32,6 +32,7 @@ import { useAudioAnalysis } from "./useAudioAnalysis";
 import { usePersistentAudioController } from "./usePersistentAudioController";
 import { usePsyStreamNowPlaying } from "./usePsyStreamNowPlaying";
 import { usePsyBrazilNowPlaying } from "./usePsyBrazilNowPlaying";
+import { useDumangueNowPlaying } from "./useDumangueNowPlaying";
 import { useDeepTripNowPlaying } from "./useDeepTripNowPlaying";
 import {
   mapSignalTarget,
@@ -113,7 +114,7 @@ const PUBLIC_DEMO_SOURCE_EXCLUSIONS = new Set([
   "demo-dfectv-its-a-trap",
 ]);
 // Additional PsyBrazil network station ids can be added here as they are onboarded.
-const PSYBRAZIL_NETWORK_SOURCE_IDS = new Set(["psybrazil"]);
+const PSYBRAZIL_NETWORK_SOURCE_IDS = new Set(["psybrazil", "psybrazil-dumangue"]);
 const PSYBRAZIL_NETWORK_GROUP_LABEL = "PSYBRAZIL ENTERTAINMENT NETWORK";
 
 const PLAYER_EDGE_GAP = 22;
@@ -560,9 +561,13 @@ function PlayerShell({ className }: PlayerShellProps) {
   );
   const psyStreamNowPlaying = usePsyStreamNowPlaying(selectedSignalId);
   const psyBrazilNowPlaying = usePsyBrazilNowPlaying(selectedSignalId);
+  const dumangueNowPlaying = useDumangueNowPlaying(selectedSignalId);
   const deepTripNowPlaying = useDeepTripNowPlaying(selectedSignalId);
   const externalNowPlaying =
-    psyStreamNowPlaying ?? psyBrazilNowPlaying ?? deepTripNowPlaying;
+    psyStreamNowPlaying ??
+    psyBrazilNowPlaying ??
+    dumangueNowPlaying ??
+    deepTripNowPlaying;
   const registrySourceBpm = audioController.audioSource.bpm ?? null;
   const effectiveReactiveBpm = ignoreSourceBpmEnabled
     ? null

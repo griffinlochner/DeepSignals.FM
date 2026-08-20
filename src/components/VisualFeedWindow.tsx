@@ -91,8 +91,8 @@ function VisualFeedWindow({
     <img
       className={[
         'visual-feed-window__artwork',
-        selectedTrackSource?.id === 'psybrazil'
-          ? 'visual-feed-window__artwork--psybrazil'
+        selectedTrackSource?.kind === 'live-stream' && !isBrandFallback
+          ? 'visual-feed-window__artwork--live-station'
           : '',
       ].filter(Boolean).join(' ')}
       src={artworkUrl}
