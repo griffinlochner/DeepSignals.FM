@@ -441,6 +441,7 @@ function NeonHyperRacerTheme({
     let previousSurgeSequence = 0;
     let currentTravelSpeed = 0;
     let accumulatedTravel = 0;
+    let smoothedChromaHueOffset = 0;
     let animationFrame = 0;
 
     const resize = () => {
@@ -482,6 +483,12 @@ function NeonHyperRacerTheme({
       if (snapshot.kickPulseAcceptedEventSequence !== previousSurgeSequence) {
         previousSurgeSequence = snapshot.kickPulseAcceptedEventSequence;
       }
+      
+      // Reset hue smoothing when chroma is off for clean transition
+      if (!chromaActive) {
+        smoothedChromaHueOffset = 0;
+      }
+      
       const travelEnergy = clamp((smoothedEnergy - 0.04) / (0.72 - 0.04));
       const targetTravelSpeed = motionActive ? clamp(state.volume * travelEnergy) * 92 : 0;
       const travelEase = 1 - Math.exp(-delta * 2.2);
@@ -501,9 +508,9 @@ function NeonHyperRacerTheme({
       }
 
       const targetHueDegrees = chromaActive ? mapSignalRunnerChromaHue(smoothedEnergy) : 0;
-      const hueOffset = chromaActive
-        ? THREE.MathUtils.lerp(0, targetHueDegrees / 360, SIGNAL_RUNNER_CHROMA_HUE_RESPONSE)
-        : 0;
+      // Proper temporal smoothing: smoothedValue += (target - smoothedValue) * response
+      smoothedChromaHueOffset += (targetHueDegrees - smoothedChromaHueOffset) * SIGNAL_RUNNER_CHROMA_HUE_RESPONSE;
+      const hueOffset = chromaActive ? smoothedChromaHueOffset / 360 : 0;
       const starChromaEnabled = state.chromaEnabled;
       starSystems.forEach(({ material }) => {
         material.uniforms.uTime.value = elapsed;
