@@ -45,11 +45,13 @@ The player is designed to be extended through well-defined audio signal contract
 
 ### Environment Inventory
 
-**Three.js Environments (4):**
-- **Minimal**: CSS-based fallback, no audio reactivity
+**Three.js Environments (3):**
 - **Signal Runner**: Audio-reactive signal flight with sustained-energy travel
 - **Race to the Signal Nexus** (Neon Hyper-Racer): High-performance travel track with smooth energy-based speed
 - **The Signal Nexus** (Cosmic Nexus): Standalone complex reactive scene with orbital/particle systems
+
+**Minimal Environment (1):**
+- CSS-based fallback, no audio reactivity
 
 **2.5D Image-Depth Environments (15):**
 - Production-preset environments (7): UV Reactive Jungle, Analog Signal Laboratory, Bioluminescent Psy Forest, Bioluminescent Psy Reef, Crystal Cavern, Slime Cavern, Female DJ 1
@@ -106,12 +108,16 @@ audio source → analyser → destination
 
 The analyser examines audio **before** the speaker output volume control.
 
-**Important**: Audio-analysis snapshots are **NOT automatically volume-attenuated**. Scenes that want volume to control visuals must apply it explicitly.
+**Important**: Audio-analysis snapshots use the analyzer connected directly to the media source (`source → analyser → destination`), so they are **NOT automatically volume-attenuated** by the player output level. Scenes that want direct player volume control must apply it explicitly.
 
 **Current volume behavior by environment:**
-- **Signal Runner**: Volume affects snapshot indirectly through HTML audio element output; does NOT directly multiply travel speed
+- **Signal Runner**: Travel does **not** explicitly multiply its speed by `state.volume`. The scene includes a small base/idle velocity (`travelVelocity = 2.2 + normalizedSpeed² * 86`), so it can retain slow forward/coasting movement even when musical travel energy approaches zero. In browser testing, changing player volume appears to change Signal Runner visual reactivity, but the exact analyzer-level mechanism has not been conclusively established.
 - **Image-Depth scenes**: Do NOT apply volume to snapshot signals
-- **Race to the Signal Nexus**: **DOES** intentionally multiply travel speed by `state.volume` for direct player control
+- **Race to the Signal Nexus**: **Does** explicitly multiply travel speed by `state.volume` for direct player control; complete stop when volume = 0
+
+**Current presentation difference**:
+- **Hyper-Racer** can reach a complete stop at volume zero because it explicitly scales target speed by player volume.
+- **Signal Runner** retains a small idle/coasting velocity even when energy approaches zero. Both behaviors are currently acceptable; they do not need normalization unless future design/testing gives a reason to change them.
 
 **Future implementations**: Avoid accidentally applying volume twice (once in analysis gain, once in the scene). Use current code patterns as reference.
 
@@ -167,7 +173,7 @@ fast → slow → fast → slow → fast
 ```
 pumping, especially noticeable during kick-heavy music. Smooth energy preserves musical alignment without distraction.
 
-**Volume in Hyper-Racer:** The one exception: `targetSpeed = volume * travelEnergy * scaleFactor`. This intentional multiplier gives the player direct volume-based control of scene energy. Do NOT replicate this in Signal Runner style scenes without explicit design intent.
+**Volume in Hyper-Racer:** The one exception: `targetSpeed = volume * travelEnergy * scaleFactor`. This explicit multiplier gives the player direct volume-based control of scene energy. Do NOT replicate this in Signal Runner style scenes without an explicit design decision.
 
 **Motion/CHROMA behavior:**
 - MOTION OFF: All spatial travel and world animation freezes; procedural twinkle and CHROMA may continue
