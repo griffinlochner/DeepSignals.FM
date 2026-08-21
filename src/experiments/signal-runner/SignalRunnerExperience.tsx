@@ -11,7 +11,7 @@ import SignalRunnerScene, {
 import {
   mapSignalRunnerChromaHue,
   SIGNAL_RUNNER_CHROMA_HUE_RESPONSE,
-} from "./signalRunnerChroma";
+} from "../../app/sharedChroma";
 import "./signalRunner.css";
 
 type SignalRunnerExperienceProps = {

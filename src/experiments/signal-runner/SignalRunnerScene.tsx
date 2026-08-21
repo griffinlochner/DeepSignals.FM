@@ -4,7 +4,7 @@ import type { AudioReactiveSnapshot } from "../../app/playerTypes";
 import {
   mapSignalRunnerChromaHue,
   SIGNAL_RUNNER_CHROMA_HUE_RESPONSE,
-} from "./signalRunnerChroma";
+} from "../../app/sharedChroma";
 
 export type SignalRunnerControlMode = "manual" | "audio";
 

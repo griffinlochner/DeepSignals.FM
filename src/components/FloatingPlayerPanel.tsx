@@ -1,9 +1,21 @@
-import { forwardRef, useId, type CSSProperties, type RefObject } from "react";
+import {
+  forwardRef,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type CSSProperties,
+  type RefObject,
+} from "react";
 import type {
   AudioPlaybackStatus,
   AudioReactiveSnapshot,
   SignalSourceGroup,
 } from "../app/playerTypes";
+import {
+  applyChromaHueResponse,
+  mapSmoothedEnergyToHue,
+} from "../app/sharedChroma";
 import type { ThemeId } from "../themes/themeTypes";
 import PanelChevronIcon from "./PanelChevronIcon";
 import PlayStopButton from "./PlayStopButton";
@@ -108,19 +120,28 @@ const FloatingPlayerPanel = forwardRef<HTMLElement, FloatingPlayerPanelProps>(fu
     ? "Expand player panel"
     : "Collapse player panel";
   const chromaReactive = chromaEnabled && audioPlaybackStatus === "playing";
+  const [playerChromaHue, setPlayerChromaHue] = useState(0);
+  const playerChromaHueRef = useRef(0);
+
+  useEffect(() => {
+    const targetHue = chromaReactive
+      ? mapSmoothedEnergyToHue(audioReactiveSnapshot.smoothedEnergy)
+      : 0;
+    const nextHue = applyChromaHueResponse(
+      playerChromaHueRef.current,
+      targetHue,
+    );
+
+    playerChromaHueRef.current = nextHue;
+    setPlayerChromaHue(nextHue);
+  }, [audioReactiveSnapshot.smoothedEnergy, chromaReactive]);
+
   const reactiveEnergy = chromaReactive
     ? Math.max(0, Math.min(1, audioReactiveSnapshot.smoothedEnergy))
     : 0;
-  const reactiveBassPulse = chromaReactive
-    ? Math.max(0, Math.min(1, audioReactiveSnapshot.bassPulse))
-    : 0;
-  const reactiveHighs = chromaReactive
-    ? Math.max(0, Math.min(1, audioReactiveSnapshot.highs))
-    : 0;
   const panelStyle = {
     "--player-reactive-energy": reactiveEnergy,
-    "--player-reactive-bass-pulse": reactiveBassPulse,
-    "--player-reactive-highs": reactiveHighs,
+    "--player-chroma-hue": `${playerChromaHue}deg`,
   } as CSSProperties;
 
   return (

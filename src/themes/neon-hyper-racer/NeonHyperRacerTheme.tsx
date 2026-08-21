@@ -8,7 +8,7 @@ import {
 import {
   mapSignalRunnerChromaHue,
   SIGNAL_RUNNER_CHROMA_HUE_RESPONSE,
-} from "../../experiments/signal-runner/signalRunnerChroma";
+} from "../../app/sharedChroma";
 import type { ThemeSceneProps } from "../themeTypes";
 import "./neonHyperRacer.css";
 
