@@ -922,7 +922,7 @@ function NeonHyperRacerTheme({
       const surgeCoreBoost = surgeStateRef.active ? surgeEnvelope * 1.45 : 0;
       const preCompression =
         surgeStateRef.active && surgeProgress < 0.14
-          ? (0.14 - surgeProgress) / 0.14 * 0.18
+          ? ((0.14 - surgeProgress) / 0.14) * 0.18
           : 0;
       const reactorScale =
         1 + corePulseBoost * 0.82 + surgeCoreBoost + preCompression;
@@ -932,9 +932,13 @@ function NeonHyperRacerTheme({
         corePulseBoost * 0.09 +
         (surgeStateRef.active ? surgeEnvelope * 0.06 : 0);
       const pinkCoreSaturation =
-        0.88 + corePulseBoost * 0.14 + (surgeStateRef.active ? surgeEnvelope * 0.1 : 0);
+        0.88 +
+        corePulseBoost * 0.14 +
+        (surgeStateRef.active ? surgeEnvelope * 0.1 : 0);
       const pinkCoreLightness =
-        0.56 + corePulseBoost * 0.32 + (surgeStateRef.active ? surgeEnvelope * 0.28 : 0);
+        0.56 +
+        corePulseBoost * 0.32 +
+        (surgeStateRef.active ? surgeEnvelope * 0.28 : 0);
 
       if (!motionActive && surgeStateRef.active) {
         surgeStateRef.active = false;
