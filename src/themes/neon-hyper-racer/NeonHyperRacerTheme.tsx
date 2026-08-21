@@ -330,6 +330,7 @@ function NeonHyperRacerTheme({
           uHueActive: { value: 0 },
           uHueShift: { value: 0 },
           uSurgeFlash: { value: 0 },
+          uSurgeTurbulence: { value: 0 },
           uOpacity: { value: opacity },
         },
         vertexShader: `
@@ -343,12 +344,14 @@ function NeonHyperRacerTheme({
           uniform float uHueActive;
           uniform float uHueShift;
           uniform float uSurgeFlash;
+          uniform float uSurgeTurbulence;
           varying vec3 vColor;
 
           void main() {
             vec3 color = aBaseColor;
             float brightness = 1.0;
             float sizeScale = 1.0;
+            vec3 adjustedPosition = position;
 
             if (uTwinkleActive > 0.5) {
               brightness = 0.58 + aAmplitude * (0.5 + 0.5 * sin(uTime * (0.7 + aSpeed) + aPhase));
@@ -364,14 +367,17 @@ function NeonHyperRacerTheme({
               color = mix(color, hueTint, 0.24 + 0.2 * sin(uTime * 1.15 + aPhase));
             }
 
-            if (uSurgeFlash > 0.0) {
-              brightness *= 1.0 + (0.9 + 0.6 * sin(uTime * 17.0 + aPhase)) * uSurgeFlash;
-              color = mix(color, vec3(0.74, 0.74, 1.0), 0.42 * uSurgeFlash);
-              sizeScale *= 1.0 + 0.28 * uSurgeFlash;
+            if (uSurgeFlash > 0.0 || uSurgeTurbulence > 0.0) {
+              float turbulence = max(uSurgeFlash, uSurgeTurbulence);
+              float ripple = sin((position.y + uTime * 1.7) * 2.1 + aPhase * 6.0) * turbulence;
+              adjustedPosition += normalize(position + vec3(0.02, 0.04, 0.02)) * (turbulence * 4.0 + ripple * 0.9);
+              brightness *= 1.0 + (0.9 + 0.6 * sin(uTime * 17.0 + aPhase)) * turbulence;
+              color = mix(color, vec3(0.74, 0.74, 1.0), 0.42 * turbulence);
+              sizeScale *= 1.0 + 0.28 * turbulence + 0.12 * sin(uTime * 14.0 + aPhase);
             }
 
             vColor = color * brightness;
-            vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+            vec4 mvPosition = modelViewMatrix * vec4(adjustedPosition, 1.0);
             gl_Position = projectionMatrix * mvPosition;
             gl_PointSize = aSize * sizeScale;
           }
@@ -1014,12 +1020,16 @@ function NeonHyperRacerTheme({
         });
       }
 
+      const surgeStarBurst = surgeStateRef.active
+        ? Math.max(0, 1 - surgeProgress) * (1 + surgeStateRef.flash)
+        : 0;
       starSystems.forEach(({ material }) => {
         material.uniforms.uTime.value = elapsed;
         material.uniforms.uTwinkleActive.value = starChromaEnabled ? 1 : 0;
         material.uniforms.uHueActive.value = starChromaEnabled ? 1 : 0;
         material.uniforms.uHueShift.value = starChromaEnabled ? hueOffset : 0;
         material.uniforms.uSurgeFlash.value = surgeStateRef.flash;
+        material.uniforms.uSurgeTurbulence.value = surgeStarBurst;
       });
       if (surgeStateRef.active) {
         surgeStateRef.flash = Math.max(0, surgeStateRef.flash - delta * 2.2);
