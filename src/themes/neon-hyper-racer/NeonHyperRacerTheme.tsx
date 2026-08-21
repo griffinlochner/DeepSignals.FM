@@ -915,6 +915,26 @@ function NeonHyperRacerTheme({
         ? 1 - Math.pow(1 - THREE.MathUtils.clamp(surgeProgress * 1.25, 0, 1), 2)
         : 0;
       const surgeDecay = surgeStateRef.active ? 1 - surgeProgress : 0;
+      const kickReactivity = motionActive
+        ? Math.max(snapshot.kickPulse ?? 0, snapshot.transient ?? 0)
+        : 0;
+      const corePulseBoost = Math.max(0, kickReactivity - 0.08) * 0.9;
+      const surgeCoreBoost = surgeStateRef.active ? surgeEnvelope * 1.45 : 0;
+      const preCompression =
+        surgeStateRef.active && surgeProgress < 0.14
+          ? (0.14 - surgeProgress) / 0.14 * 0.18
+          : 0;
+      const reactorScale =
+        1 + corePulseBoost * 0.82 + surgeCoreBoost + preCompression;
+      const pinkCoreHue =
+        0.9 +
+        Math.sin(elapsed * 18 + 0.7) * 0.05 +
+        corePulseBoost * 0.09 +
+        (surgeStateRef.active ? surgeEnvelope * 0.06 : 0);
+      const pinkCoreSaturation =
+        0.88 + corePulseBoost * 0.14 + (surgeStateRef.active ? surgeEnvelope * 0.1 : 0);
+      const pinkCoreLightness =
+        0.56 + corePulseBoost * 0.32 + (surgeStateRef.active ? surgeEnvelope * 0.28 : 0);
 
       if (!motionActive && surgeStateRef.active) {
         surgeStateRef.active = false;
@@ -925,7 +945,13 @@ function NeonHyperRacerTheme({
         const coreScale = 1 + surgeEnvelope * 0.9;
         nexusCore.scale.setScalar(coreScale);
         nexusWireframe.scale.setScalar(1 + surgeEnvelope * 0.72);
-        nexusInner.scale.setScalar(1 + surgeEnvelope * 0.42);
+        nexusInner.scale.setScalar(reactorScale);
+        nexusInnerMaterial.color.setHSL(
+          pinkCoreHue,
+          pinkCoreSaturation,
+          pinkCoreLightness,
+        );
+        nexusInnerMaterial.opacity = 1 + surgeEnvelope * 0.6;
         nexusRings.forEach((ring, index) => {
           const ringBoost =
             1 +
@@ -938,7 +964,13 @@ function NeonHyperRacerTheme({
       } else {
         nexusCore.scale.setScalar(1);
         nexusWireframe.scale.setScalar(1);
-        nexusInner.scale.setScalar(1);
+        nexusInner.scale.setScalar(reactorScale);
+        nexusInnerMaterial.color.setHSL(
+          0.9 + Math.sin(elapsed * 18 + 0.7) * 0.04,
+          0.88 + corePulseBoost * 0.14,
+          0.56 + corePulseBoost * 0.28,
+        );
+        nexusInnerMaterial.opacity = 1;
         nexusRings.forEach((ring, index) => {
           const material = ring.material as THREE.LineBasicMaterial;
           material.opacity = [0.9, 0.84, 0.78][index] ?? 0.8;
