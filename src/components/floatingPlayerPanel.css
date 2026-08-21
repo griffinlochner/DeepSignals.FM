@@ -298,6 +298,7 @@
   margin: 2px;
   cursor: pointer;
   accent-color: var(--player-progress-accent);
+  background: var(--theme-accent-gradient);
 }
 
 .floating-player-panel__seek-slider:disabled {

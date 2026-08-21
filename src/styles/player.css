@@ -24,6 +24,23 @@
   --player-edge-gap: clamp(12px, 2.2vw, 22px);
   --player-feed-module-width: 240px;
   --attached-panel-header-height: 49px;
+  --theme-background: #061014;
+  --theme-panel: rgba(8, 25, 32, 0.72);
+  --theme-panel-strong: rgba(5, 16, 22, 0.9);
+  --theme-border: rgba(71, 247, 255, 0.3);
+  --theme-accent: #9cff57;
+  --theme-accent-secondary: #47f7ff;
+  --theme-accent-tertiary: #ff7fa1;
+  --theme-text: #effff5;
+  --theme-text-secondary: rgba(226, 250, 246, 0.8);
+  --theme-muted: rgba(188, 226, 218, 0.68);
+  --theme-glow: rgba(71, 247, 255, 0.2);
+  --theme-accent-gradient: linear-gradient(
+    90deg,
+    var(--theme-accent),
+    var(--theme-accent-secondary) 52%,
+    var(--theme-accent-tertiary)
+  );
 }
 
 @media (min-width: 1025px) and (max-height: 800px),
@@ -577,7 +594,8 @@
 .volume-control__range {
   width: min(100%, 160px);
   cursor: pointer;
-  accent-color: var(--theme-accent, #39ff14);
+  accent-color: var(--theme-accent-secondary);
+  background: var(--theme-accent-gradient);
 }
 
 .volume-control__range:focus {
@@ -722,44 +740,6 @@
     max-width: 95vw;
     max-height: 45vh;
     padding: clamp(10px, 1.5vw, 16px);
-  }
-}
-
-/* ============================================================
-   THEME-SPECIFIC SCOPING
-   ============================================================ */
-
-/* Minimal theme */
-.player-shell.theme-minimal {
-  --theme-background: #0f0f0f;
-  --theme-panel: rgba(30, 30, 30, 0.9);
-  --theme-panel-strong: rgba(20, 20, 20, 0.98);
-  --theme-border: rgba(100, 100, 100, 0.4);
-  --theme-accent: #e8e8e8;
-  --theme-accent-secondary: #b0b0b0;
-  --theme-text: #f0f0f0;
-  --theme-text-secondary: rgba(240, 240, 240, 0.75);
-  --theme-muted: rgba(240, 240, 240, 0.55);
-  --theme-glow: rgba(200, 200, 200, 0.08);
-}
-
-@media (max-width: 768px) {
-  .player-shell.theme-minimal .main-display__headline {
-    font-size: clamp(0.85rem, 1.8vw, 1rem);
-  }
-
-  .player-shell.theme-minimal .main-display__subheading {
-    font-size: clamp(1.3rem, 3vw, 1.8rem);
-  }
-}
-
-@media (max-width: 480px) {
-  .player-shell.theme-minimal .main-display__headline {
-    font-size: clamp(0.8rem, 1.5vw, 0.95rem);
-  }
-
-  .player-shell.theme-minimal .main-display__subheading {
-    font-size: clamp(1.1rem, 2.5vw, 1.5rem);
   }
 }
 

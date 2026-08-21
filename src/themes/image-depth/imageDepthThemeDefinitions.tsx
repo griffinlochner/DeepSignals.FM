@@ -43,7 +43,7 @@ export const imageDepthThemeDefinitions: ThemeDefinition[] =
     id: environment.id,
     name: environment.displayName,
     description: environment.description,
-    className: `theme-${environment.id} image-depth-theme skin-${environment.uiSkin}`,
+    className: `theme-${environment.id} image-depth-theme`,
     performanceTier: "enhanced",
     Scene: createImageDepthScene(environment.id),
     supportsChroma: true,

@@ -17,30 +17,9 @@
   pointer-events: auto;
 }
 
-.player-shell.skin-acid-green .image-depth-theme-scene {
-  background:
-    radial-gradient(circle at 18% 18%, rgba(35, 140, 118, 0.12), transparent 30%),
-    radial-gradient(circle at 72% 28%, rgba(255, 216, 77, 0.08), transparent 24%),
-    radial-gradient(circle at 58% 76%, rgba(222, 86, 170, 0.08), transparent 28%),
-    linear-gradient(180deg, rgba(4, 13, 14, 0.98), rgba(2, 7, 8, 1));
-}
-
-.player-shell.skin-ember-orange .image-depth-theme-scene {
-  background:
-    radial-gradient(circle at 12% 14%, rgba(255, 149, 96, 0.08), transparent 38%),
-    radial-gradient(circle at 78% 22%, rgba(83, 183, 255, 0.08), transparent 36%),
-    #0d0a07;
-}
-
-.player-shell.skin-deep-ocean .image-depth-theme-scene {
-  background:
-    radial-gradient(circle at 18% 20%, rgba(0, 251, 255, 0.11), transparent 30%),
-    radial-gradient(circle at 68% 24%, rgba(166, 0, 255, 0.11), transparent 28%),
-    radial-gradient(circle at 52% 78%, rgba(30, 255, 0, 0.08), transparent 24%),
-    linear-gradient(180deg, rgba(3, 10, 18, 0.98), rgba(2, 7, 12, 1));
-}
-
-.player-shell.skin-violet-cyan .image-depth-theme-scene {
+.player-shell.theme-psychedelic-temple .image-depth-theme-scene,
+.player-shell.theme-alien-dj-1 .image-depth-theme-scene,
+.player-shell.theme-female-meditation-1 .image-depth-theme-scene {
   background:
     radial-gradient(circle at 22% 18%, rgba(139, 207, 255, 0.12), transparent 28%),
     radial-gradient(circle at 76% 20%, rgba(255, 120, 194, 0.1), transparent 26%),
@@ -48,7 +27,24 @@
     linear-gradient(180deg, rgba(16, 10, 25, 0.98), rgba(7, 4, 12, 1));
 }
 
-.player-shell.skin-neon-pink .image-depth-theme-scene {
+.player-shell.theme-dark-psy-temple .image-depth-theme-scene,
+.player-shell.theme-psy-swamp-citadel .image-depth-theme-scene {
+  background:
+    radial-gradient(circle at 18% 18%, rgba(35, 140, 118, 0.12), transparent 30%),
+    radial-gradient(circle at 72% 28%, rgba(255, 216, 77, 0.08), transparent 24%),
+    radial-gradient(circle at 58% 76%, rgba(222, 86, 170, 0.08), transparent 28%),
+    linear-gradient(180deg, rgba(4, 13, 14, 0.98), rgba(2, 7, 8, 1));
+}
+
+.player-shell.theme-dark-ritual-swamp .image-depth-theme-scene {
+  background:
+    radial-gradient(circle at 18% 20%, rgba(0, 251, 255, 0.11), transparent 30%),
+    radial-gradient(circle at 68% 24%, rgba(166, 0, 255, 0.11), transparent 28%),
+    radial-gradient(circle at 52% 78%, rgba(30, 255, 0, 0.08), transparent 24%),
+    linear-gradient(180deg, rgba(3, 10, 18, 0.98), rgba(2, 7, 12, 1));
+}
+
+.player-shell.theme-energy-rift-swamp .image-depth-theme-scene {
   background:
     radial-gradient(circle at 24% 16%, rgba(255, 158, 214, 0.13), transparent 28%),
     radial-gradient(circle at 74% 22%, rgba(255, 214, 120, 0.1), transparent 26%),
@@ -56,74 +52,11 @@
     linear-gradient(180deg, rgba(24, 8, 20, 0.98), rgba(10, 4, 12, 1));
 }
 
-.player-shell.skin-acid-green {
-  --theme-background: #040d0e;
-  --theme-panel: rgba(8, 27, 29, 0.58);
-  --theme-panel-strong: rgba(6, 20, 22, 0.88);
-  --theme-border: rgba(123, 238, 201, 0.24);
-  --theme-accent: #7df6c3;
-  --theme-accent-secondary: #ffd84d;
-  --theme-text: #f1fff8;
-  --theme-text-secondary: rgba(230, 255, 244, 0.8);
-  --theme-muted: rgba(191, 233, 220, 0.68);
-  --theme-glow: rgba(30, 255, 162, 0.18);
-  --floating-panel-max-width: 430px;
-}
-
-.player-shell.skin-ember-orange {
-  --theme-background: #0c0906;
-  --theme-panel: rgba(22, 16, 12, 0.6);
-  --theme-panel-strong: rgba(18, 12, 9, 0.88);
-  --theme-border: rgba(255, 189, 144, 0.24);
-  --theme-accent: #ffbb7c;
-  --theme-accent-secondary: #70b8ff;
-  --theme-text: #fff2e8;
-  --theme-text-secondary: rgba(255, 242, 232, 0.78);
-  --theme-muted: rgba(246, 214, 188, 0.64);
-  --theme-glow: rgba(255, 161, 98, 0.19);
-  --floating-panel-max-width: 430px;
-}
-
-.player-shell.skin-deep-ocean {
-  --theme-background: #040b13;
-  --theme-panel: rgba(8, 18, 30, 0.58);
-  --theme-panel-strong: rgba(5, 13, 22, 0.88);
-  --theme-border: rgba(96, 238, 255, 0.24);
-  --theme-accent: #00fbff;
-  --theme-accent-secondary: #a600ff;
-  --theme-text: #eefcff;
-  --theme-text-secondary: rgba(221, 246, 255, 0.8);
-  --theme-muted: rgba(176, 220, 232, 0.7);
-  --theme-glow: rgba(0, 251, 255, 0.18);
-  --floating-panel-max-width: 430px;
-}
-
-.player-shell.skin-violet-cyan {
-  --theme-background: #120c1c;
-  --theme-panel: rgba(22, 16, 37, 0.58);
-  --theme-panel-strong: rgba(13, 9, 24, 0.88);
-  --theme-border: rgba(167, 201, 255, 0.24);
-  --theme-accent: #8bcfff;
-  --theme-accent-secondary: #ff78c2;
-  --theme-text: #f7f5ff;
-  --theme-text-secondary: rgba(232, 228, 255, 0.8);
-  --theme-muted: rgba(191, 184, 225, 0.7);
-  --theme-glow: rgba(139, 207, 255, 0.18);
-  --floating-panel-max-width: 430px;
-}
-
-.player-shell.skin-neon-pink {
-  --theme-background: #1a0d18;
-  --theme-panel: rgba(35, 14, 31, 0.58);
-  --theme-panel-strong: rgba(23, 8, 21, 0.88);
-  --theme-border: rgba(255, 166, 219, 0.24);
-  --theme-accent: #ff9ed6;
-  --theme-accent-secondary: #ffd678;
-  --theme-text: #fff4fb;
-  --theme-text-secondary: rgba(255, 229, 243, 0.8);
-  --theme-muted: rgba(228, 182, 211, 0.7);
-  --theme-glow: rgba(255, 158, 214, 0.18);
-  --floating-panel-max-width: 430px;
+.player-shell.theme-lost-relay-tower .image-depth-theme-scene {
+  background:
+    radial-gradient(circle at 12% 14%, rgba(255, 149, 96, 0.08), transparent 38%),
+    radial-gradient(circle at 78% 22%, rgba(83, 183, 255, 0.08), transparent 36%),
+    #0d0a07;
 }
 
 @media (prefers-reduced-motion: reduce) {

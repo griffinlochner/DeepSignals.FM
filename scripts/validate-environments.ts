@@ -3,10 +3,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import {
-  PLAYER_SKIN_IDS,
-  imageDepthEnvironmentCatalog,
-} from "../src/themes/image-depth/environmentCatalog.ts";
+import { imageDepthEnvironmentCatalog } from "../src/themes/image-depth/environmentCatalog.ts";
 
 type ImageDimensions = {
   width: number;
@@ -19,8 +16,6 @@ const PNG_SIGNATURE = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
 
 const scriptFilePath = fileURLToPath(import.meta.url);
 const repoRoot = path.resolve(path.dirname(scriptFilePath), "..");
-const knownSkinIds = new Set<string>(PLAYER_SKIN_IDS);
-
 function toPublicAssetFilePath(urlPath: string): string {
   const normalized = urlPath.replace(/^\//, "");
   return path.join(repoRoot, "public", normalized);
@@ -128,10 +123,6 @@ async function main() {
       environment.displayName,
       (displayNameCounts.get(environment.displayName) ?? 0) + 1,
     );
-
-    if (!knownSkinIds.has(environment.uiSkin)) {
-      errors.push(`${environment.id}: unknown uiSkin ${environment.uiSkin}.`);
-    }
 
     const colorPath = toPublicAssetFilePath(environment.asset.colorImageUrl);
     const depthPath = toPublicAssetFilePath(environment.asset.depthMapUrl);
