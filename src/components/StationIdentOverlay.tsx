@@ -12,6 +12,7 @@ type CellState = {
   glyph: string
   resolved: boolean
   flashing: boolean
+  scrambleTone: 'green' | 'cyan' | 'salmon' | 'white'
 }
 
 const TARGET_TEXT = 'DeepSignals.FM'
@@ -95,12 +96,42 @@ function randomGlyph() {
   return GLYPH_POOL[randomInt(GLYPH_POOL.length)]
 }
 
+function randomScrambleTone(): CellState['scrambleTone'] {
+  return ['green', 'cyan', 'salmon', 'white'][randomInt(4)] as CellState['scrambleTone']
+}
+
+function getResolvedToneClass(index: number) {
+  if (index <= 3) {
+    return 'station-ident-overlay__cell--deep'
+  }
+
+  if (index <= 10) {
+    return 'station-ident-overlay__cell--signals'
+  }
+
+  if (index === 11) {
+    return 'station-ident-overlay__cell--dot'
+  }
+
+  return 'station-ident-overlay__cell--fm'
+}
+
 function buildInitialCells(): CellState[] {
-  return TARGET_CHARS.map(() => ({ glyph: randomGlyph(), resolved: false, flashing: false }))
+  return TARGET_CHARS.map(() => ({
+    glyph: randomGlyph(),
+    resolved: false,
+    flashing: false,
+    scrambleTone: randomScrambleTone(),
+  }))
 }
 
 function buildResolvedCells(): CellState[] {
-  return TARGET_CHARS.map((char) => ({ glyph: char, resolved: true, flashing: false }))
+  return TARGET_CHARS.map((char) => ({
+    glyph: char,
+    resolved: true,
+    flashing: false,
+    scrambleTone: 'green',
+  }))
 }
 
 function shuffleIndices(length: number) {
@@ -335,6 +366,7 @@ function StationIdentOverlay({ isAudioPlaying }: StationIdentOverlayProps) {
                 : {
                     ...cell,
                     glyph: randomGlyph(),
+                    scrambleTone: randomScrambleTone(),
                   },
             ),
           )
@@ -355,6 +387,7 @@ function StationIdentOverlay({ isAudioPlaying }: StationIdentOverlayProps) {
                       glyph: TARGET_CHARS[index],
                       resolved: true,
                       flashing: true,
+                          scrambleTone: cell.scrambleTone,
                     }
                   : cell,
               ),
@@ -523,6 +556,8 @@ function StationIdentOverlay({ isAudioPlaying }: StationIdentOverlayProps) {
           const className = [
             'station-ident-overlay__cell',
             cell.resolved ? 'station-ident-overlay__cell--resolved' : 'station-ident-overlay__cell--scrambling',
+            cell.resolved ? getResolvedToneClass(index) : '',
+            !cell.resolved ? `station-ident-overlay__cell--${cell.scrambleTone}` : '',
             cell.flashing ? 'station-ident-overlay__cell--flash' : '',
           ]
             .filter(Boolean)

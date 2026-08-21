@@ -28,9 +28,9 @@
   --theme-panel: rgba(8, 25, 32, 0.72);
   --theme-panel-strong: rgba(5, 16, 22, 0.9);
   --theme-border: rgba(71, 247, 255, 0.3);
-  --theme-accent: #9cff57;
-  --theme-accent-secondary: #47f7ff;
-  --theme-accent-tertiary: #ff7fa1;
+  --theme-accent: var(--dsfm-brand-green, #9cff57);
+  --theme-accent-secondary: var(--dsfm-brand-cyan, #47f7ff);
+  --theme-accent-tertiary: var(--dsfm-brand-salmon, #ff7fa1);
   --theme-text: #effff5;
   --theme-text-secondary: rgba(226, 250, 246, 0.8);
   --theme-muted: rgba(188, 226, 218, 0.68);

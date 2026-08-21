@@ -14,8 +14,7 @@ A psychedelic trance radio experience built with React, TypeScript and Three.js.
 | --- | --- | --- |
 | DEEP / primary signal | Neon Green | `#9cff57` |
 | SIGNALS / transmission | Neon Cyan | `#47f7ff` |
-| Period / separator accent | Neon Pink | `#ff57b7` |
-| FM / broadcast accent | Neon Salmon | `#ff7fa1` |
+| .FM / broadcast accent | Neon Salmon | `#ff7fa1` |
 | Primary background | Signal Black | `#020202` |
 
 The wordmark colors come from the resolved decoder states in `src/components/publicBrandIdent.css`; Signal Black is the shared `html, body` background in `src/index.css`.

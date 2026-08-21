@@ -1186,10 +1186,10 @@ const MESSAGE_STREAM_GROUP = [
   { text: "WELCOME TO", color: "white", joinPrevious: false },
   { text: "DEEP", color: "green", joinPrevious: false },
   { text: "SIGNALS", color: "cyan", joinPrevious: true },
-  { text: ".FM", color: "pink", joinPrevious: true },
+  { text: ".FM", color: "salmon", joinPrevious: true },
   { text: "TUNE IN.", color: "green", joinPrevious: false },
   { text: "TRANSMIT.", color: "cyan", joinPrevious: false },
-  { text: "TRANSCEND.", color: "pink", joinPrevious: false },
+  { text: "TRANSCEND.", color: "salmon", joinPrevious: false },
 ] as const;
 
 function MessageStream({ blastOffVisible }: { blastOffVisible: boolean }) {

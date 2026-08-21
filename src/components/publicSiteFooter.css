@@ -60,11 +60,11 @@
 }
 
 .public-site-footer__dot {
-  color: #ff57b7;
+  color: var(--dsfm-brand-salmon, #ff7fa1);
 }
 
 .public-site-footer__fm {
-  color: #ff7fa1;
+  color: var(--dsfm-brand-salmon, #ff7fa1);
 }
 
 .public-site-footer__socials {
