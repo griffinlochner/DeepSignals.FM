@@ -9,7 +9,7 @@ const MinimalDefinition: ThemeDefinition = {
   className: "theme-minimal",
   performanceTier: "minimal",
   Scene: MinimalTheme,
-  supportsChroma: false,
+  supportsChroma: true,
   supportsMotion: false,
   supportsVisualFeed: true,
   supportsAudioReactiveBehavior: false,
