@@ -3,7 +3,6 @@ import {
   useEffect,
   useId,
   useRef,
-  useState,
   type CSSProperties,
   type RefObject,
 } from "react";
@@ -33,6 +32,7 @@ type FloatingPlayerPanelProps = {
   onEnvironmentChange: (id: ThemeId) => void;
   audioPlaybackStatus: AudioPlaybackStatus;
   audioReactiveSnapshot: AudioReactiveSnapshot;
+  getLatestAudioSnapshot: () => AudioReactiveSnapshot;
   audioCurrentTime: number;
   audioDuration: number;
   audioSeekable: boolean;
@@ -74,6 +74,7 @@ const FloatingPlayerPanel = forwardRef<HTMLElement, FloatingPlayerPanelProps>(fu
     onEnvironmentChange,
     audioPlaybackStatus,
     audioReactiveSnapshot,
+    getLatestAudioSnapshot,
     audioCurrentTime,
     audioDuration,
     audioSeekable,
@@ -120,33 +121,50 @@ const FloatingPlayerPanel = forwardRef<HTMLElement, FloatingPlayerPanelProps>(fu
     ? "Expand player panel"
     : "Collapse player panel";
   const chromaReactive = chromaEnabled && audioPlaybackStatus === "playing";
-  const [playerChromaHue, setPlayerChromaHue] = useState(0);
-  const playerChromaHueRef = useRef(0);
+  const panelElementRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
-    const targetHue = chromaReactive
-      ? mapSmoothedEnergyToHue(audioReactiveSnapshot.smoothedEnergy)
-      : 0;
-    const nextHue = applyChromaHueResponse(
-      playerChromaHueRef.current,
-      targetHue,
-    );
+    let frameId: number | null = null;
+    let currentHue = 0;
 
-    playerChromaHueRef.current = nextHue;
-    setPlayerChromaHue(nextHue);
-  }, [audioReactiveSnapshot.smoothedEnergy, chromaReactive]);
+    const updateHue = () => {
+      const targetHue = chromaReactive
+        ? mapSmoothedEnergyToHue(getLatestAudioSnapshot().smoothedEnergy)
+        : 0;
+      currentHue = applyChromaHueResponse(currentHue, targetHue);
+      panelElementRef.current?.style.setProperty(
+        "--player-chroma-hue",
+        `${currentHue}deg`,
+      );
+      frameId = window.requestAnimationFrame(updateHue);
+    };
+
+    updateHue();
+
+    return () => {
+      if (frameId !== null) {
+        window.cancelAnimationFrame(frameId);
+      }
+    };
+  }, [chromaReactive, getLatestAudioSnapshot]);
 
   const reactiveEnergy = chromaReactive
     ? Math.max(0, Math.min(1, audioReactiveSnapshot.smoothedEnergy))
     : 0;
   const panelStyle = {
     "--player-reactive-energy": reactiveEnergy,
-    "--player-chroma-hue": `${playerChromaHue}deg`,
   } as CSSProperties;
 
   return (
     <aside
-      ref={ref}
+      ref={(element) => {
+        panelElementRef.current = element;
+        if (typeof ref === "function") {
+          ref(element);
+        } else if (ref) {
+          ref.current = element;
+        }
+      }}
       className="floating-player-panel"
       data-collapsed={collapsed}
       data-chroma-reactive={chromaReactive}
