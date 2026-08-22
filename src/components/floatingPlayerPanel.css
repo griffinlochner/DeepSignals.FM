@@ -330,12 +330,6 @@
 }
 
 .floating-player-panel__switch {
-  --player-switch-card-height: 42px;
-  --player-switch-lamp-size: clamp(
-    24px,
-    calc(var(--player-switch-card-height) - 8px),
-    30px
-  );
   min-height: 42px;
   border: 1px solid rgba(165, 243, 234, 0.24);
   border-radius: 9px;
@@ -386,78 +380,48 @@
 
 .floating-player-panel__switch-track {
   flex-shrink: 0;
-  width: var(--player-switch-lamp-size);
-  height: var(--player-switch-lamp-size);
+  position: relative;
+  width: 42px;
+  height: 22px;
   box-sizing: border-box;
-  border-radius: 50%;
-  background:
-    radial-gradient(
-      circle at 34% 28%,
-      rgba(233, 248, 244, 0.12),
-      transparent 24%
-    ),
-    radial-gradient(
-      circle,
-      rgba(15, 34, 39, 0.96) 0 53%,
-      rgba(6, 15, 19, 0.98) 54% 100%
-    );
+  border-radius: 999px;
+  background: rgba(8, 21, 26, 0.9);
   border: 1px solid rgba(140, 188, 180, 0.34);
-  box-shadow:
-    inset 0 0 0 2px rgba(2, 8, 11, 0.76),
-    inset 0 1px 2px rgba(233, 248, 244, 0.12),
-    0 0 0 1px rgba(2, 8, 11, 0.7);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  box-shadow: inset 0 0 0 1px rgba(2, 8, 11, 0.72);
 }
 
 .floating-player-panel__switch-thumb {
-  width: min(18px, calc(var(--player-switch-lamp-size) - 10px));
-  height: min(18px, calc(var(--player-switch-lamp-size) - 10px));
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
-  background: radial-gradient(
-    circle at 34% 28%,
-    rgba(233, 248, 244, 0.2),
-    rgba(112, 145, 141, 0.3) 48%,
-    rgba(5, 13, 17, 0.9) 100%
-  );
-  border: 1px solid rgba(165, 243, 234, 0.2);
-  box-shadow: inset 0 1px 2px rgba(233, 248, 244, 0.12);
-  transition:
-    background 140ms ease,
-    box-shadow 140ms ease,
-    filter 140ms ease;
+  background: #effff5;
+  border: 1px solid rgba(2, 8, 11, 0.42);
+  box-shadow: 0 1px 2px rgba(2, 8, 11, 0.42);
+  transition: transform 140ms ease;
 }
 
 .floating-player-panel__switch-checkbox:checked
   + .floating-player-panel__switch-label
   + .floating-player-panel__switch-track {
-  border-color: var(--dsfm-brand-cyan, #47f7ff);
-  box-shadow:
-    inset 0 0 0 2px rgba(2, 8, 11, 0.72),
-    inset 0 1px 2px rgba(233, 248, 244, 0.18),
-    0 0 9px rgba(71, 247, 255, 0.22);
+  border-color: #47f7ff;
+  background: linear-gradient(90deg, #9cff57 0%, #47f7ff 50%, #ff7fa1 100%);
 }
 
 .floating-player-panel__switch-checkbox:checked
   + .floating-player-panel__switch-label
   + .floating-player-panel__switch-track
   .floating-player-panel__switch-thumb {
-  background: radial-gradient(
-    circle at 34% 28%,
-    #e9f8f4 0 12%,
-    var(--dsfm-brand-green, #9cff57) 44%,
-    var(--dsfm-brand-cyan, #47f7ff) 100%
-  );
-  border-color: var(--dsfm-brand-cyan, #47f7ff);
-  box-shadow:
-    0 0 8px rgba(156, 255, 87, 0.34),
-    inset 0 1px 2px rgba(255, 255, 255, 0.55);
+  transform: translateX(20px);
 }
 
-.floating-player-panel__switch:focus-within {
-  outline: 2px solid var(--dsfm-brand-salmon, #ff7fa1);
-  outline-offset: -2px;
+.floating-player-panel__switch:has(
+  .floating-player-panel__switch-checkbox:focus-visible
+) {
+  outline: 2px solid #ff7fa1;
+  outline-offset: 2px;
 }
 
 .floating-player-panel__switch:hover .floating-player-panel__switch-track {
@@ -487,21 +451,17 @@
   border-color: rgba(165, 243, 234, 0.12);
 }
 
-.floating-player-panel__switch--disabled:focus-within {
-  outline: none;
-}
-
 .floating-player-panel__switch--disabled .floating-player-panel__switch-label {
   color: rgba(189, 229, 223, 0.44);
 }
 
 .floating-player-panel__switch--disabled .floating-player-panel__switch-track {
-  background: rgba(112, 145, 141, 0.26);
+  background: rgba(47, 63, 66, 0.72);
   border-color: rgba(140, 188, 180, 0.24);
 }
 
 .floating-player-panel__switch--disabled .floating-player-panel__switch-thumb {
-  background: rgba(233, 248, 244, 0.48);
+  background: rgba(233, 248, 244, 0.42);
   transform: translateX(0);
 }
 
@@ -509,7 +469,7 @@
   .floating-player-panel__switch-checkbox:checked
   + .floating-player-panel__switch-label
   + .floating-player-panel__switch-track {
-  background: rgba(112, 145, 141, 0.26);
+  background: rgba(47, 63, 66, 0.72);
   border-color: rgba(140, 188, 180, 0.24);
   box-shadow: inset 0 0 0 2px rgba(2, 8, 11, 0.72);
 }
@@ -519,12 +479,7 @@
   + .floating-player-panel__switch-label
   + .floating-player-panel__switch-track
   .floating-player-panel__switch-thumb {
-  background: radial-gradient(
-    circle at 34% 28%,
-    rgba(233, 248, 244, 0.12),
-    rgba(112, 145, 141, 0.26) 48%,
-    rgba(5, 13, 17, 0.9) 100%
-  );
+  background: rgba(233, 248, 244, 0.42);
   border-color: rgba(165, 243, 234, 0.18);
   box-shadow: inset 0 1px 2px rgba(233, 248, 244, 0.12);
   transform: translateX(0);
@@ -561,10 +516,9 @@
   }
 
   .floating-player-panel__seek-row {
-    grid-template-columns: var(--player-label-col-width) minmax(
-        0,
-        1fr
-      ) max-content;
+    grid-template-columns:
+      var(--player-label-col-width) minmax(0, 1fr)
+      max-content;
     gap: 10px;
   }
 

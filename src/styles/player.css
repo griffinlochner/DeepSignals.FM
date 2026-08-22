@@ -648,12 +648,7 @@
 }
 
 .floating-player-panel__seek-slider::-webkit-slider-runnable-track {
-  background: linear-gradient(
-    90deg,
-    #ff7fa1 0%,
-    #47f7ff 50%,
-    #9cff57 100%
-  );
+  background: linear-gradient(90deg, #ff7fa1 0%, #47f7ff 50%, #9cff57 100%);
 }
 
 .volume-control__range::-webkit-slider-thumb,
@@ -695,12 +690,7 @@
 }
 
 .floating-player-panel__seek-slider::-moz-range-track {
-  background: linear-gradient(
-    90deg,
-    #ff7fa1 0%,
-    #47f7ff 50%,
-    #9cff57 100%
-  );
+  background: linear-gradient(90deg, #ff7fa1 0%, #47f7ff 50%, #9cff57 100%);
 }
 
 .volume-control__range::-moz-range-progress,
