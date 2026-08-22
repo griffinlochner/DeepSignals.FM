@@ -4,6 +4,7 @@ import {
   useId,
   useRef,
   type CSSProperties,
+  type ReactNode,
   type RefObject,
 } from "react";
 import type {
@@ -65,6 +66,55 @@ type FloatingPlayerPanelProps = {
   collapsed: boolean;
   onCollapsedChange: (collapsed: boolean) => void;
 };
+
+function SignalGutterRadar({
+  isPlaying,
+  energy,
+  kick,
+}: {
+  isPlaying: boolean;
+  energy: number;
+  kick: number;
+}) {
+  return (
+    <span
+      className="floating-player-panel__micro-widget floating-player-panel__micro-widget--radar"
+      data-playing={isPlaying}
+      style={
+        {
+          "--player-radar-energy": energy,
+          "--player-radar-kick": kick,
+        } as CSSProperties
+      }
+      aria-hidden="true"
+    >
+      <span className="floating-player-panel__radar-ring" />
+      <span className="floating-player-panel__radar-ring floating-player-panel__radar-ring--inner" />
+      <span className="floating-player-panel__radar-axis floating-player-panel__radar-axis--horizontal" />
+      <span className="floating-player-panel__radar-axis floating-player-panel__radar-axis--vertical" />
+      <span className="floating-player-panel__radar-sweep" />
+    </span>
+  );
+}
+
+function PlayerFieldLabel({
+  children,
+  widget,
+  tone,
+}: {
+  children: string;
+  widget?: ReactNode;
+  tone: "signal" | "transmission" | "volume" | "progress" | "environment";
+}) {
+  return (
+    <span className="floating-player-panel__label-cell">
+      {widget}
+      <span className={`floating-player-panel__label floating-player-panel__label--${tone}`}>
+        {children}
+      </span>
+    </span>
+  );
+}
 
 const FloatingPlayerPanel = forwardRef<HTMLElement, FloatingPlayerPanelProps>(
   function FloatingPlayerPanel(
@@ -194,7 +244,18 @@ const FloatingPlayerPanel = forwardRef<HTMLElement, FloatingPlayerPanelProps>(
         {collapsed ? (
           <div className="floating-player-panel__collapsed-body" id={contentId}>
             <div className="floating-player-panel__row floating-player-panel__signal-row">
-              <p className="floating-player-panel__label floating-player-panel__label--signal">Signal</p>
+              <PlayerFieldLabel
+                tone="signal"
+                widget={
+                  <SignalGutterRadar
+                    isPlaying={isPlaying}
+                    energy={audioReactiveSnapshot.smoothedEnergy}
+                    kick={audioReactiveSnapshot.kickPulse}
+                  />
+                }
+              >
+                Signal
+              </PlayerFieldLabel>
               <SignalSourceSelector
                 value={selectedSignalId || ""}
                 groups={signalGroups}
@@ -217,7 +278,18 @@ const FloatingPlayerPanel = forwardRef<HTMLElement, FloatingPlayerPanelProps>(
         ) : (
           <div className="floating-player-panel__body" id={contentId}>
             <div className="floating-player-panel__row floating-player-panel__signal-row">
-              <p className="floating-player-panel__label floating-player-panel__label--signal">Signal</p>
+              <PlayerFieldLabel
+                tone="signal"
+                widget={
+                  <SignalGutterRadar
+                    isPlaying={isPlaying}
+                    energy={audioReactiveSnapshot.smoothedEnergy}
+                    kick={audioReactiveSnapshot.kickPulse}
+                  />
+                }
+              >
+                Signal
+              </PlayerFieldLabel>
               <SignalSourceSelector
                 value={selectedSignalId || ""}
                 groups={signalGroups}
@@ -226,7 +298,7 @@ const FloatingPlayerPanel = forwardRef<HTMLElement, FloatingPlayerPanelProps>(
             </div>
 
             <div className="floating-player-panel__row floating-player-panel__transmission-row">
-              <p className="floating-player-panel__label floating-player-panel__label--transmission">Transmission</p>
+              <PlayerFieldLabel tone="transmission">Transmission</PlayerFieldLabel>
               <TrackMarquee
                 signalLabel={signalLabel}
                 marqueeState={marqueeState}
@@ -253,7 +325,11 @@ const FloatingPlayerPanel = forwardRef<HTMLElement, FloatingPlayerPanelProps>(
                 className="floating-player-panel__row"
                 aria-label="Volume control"
               >
-                <p className="floating-player-panel__label floating-player-panel__label--volume">Volume</p>
+                <PlayerFieldLabel
+                  tone="volume"
+                >
+                  Volume
+                </PlayerFieldLabel>
                 <VolumeControl value={volume} onChange={onVolumeChange} />
               </section>
 
@@ -265,7 +341,7 @@ const FloatingPlayerPanel = forwardRef<HTMLElement, FloatingPlayerPanelProps>(
                   className="floating-player-panel__seek-row"
                   aria-label="Playback progress"
                 >
-                  <p className="floating-player-panel__label floating-player-panel__label--progress">Progress</p>
+                  <PlayerFieldLabel tone="progress">Progress</PlayerFieldLabel>
                   <input
                     className="floating-player-panel__seek-slider"
                     type="range"
@@ -293,7 +369,7 @@ const FloatingPlayerPanel = forwardRef<HTMLElement, FloatingPlayerPanelProps>(
               ) : null}
 
               <div className="floating-player-panel__row">
-                <p className="floating-player-panel__label floating-player-panel__label--environment">Environment</p>
+                <PlayerFieldLabel tone="environment">Environment</PlayerFieldLabel>
                 <ThemeSelector
                   value={selectedEnvironmentId}
                   options={environmentOptions}
