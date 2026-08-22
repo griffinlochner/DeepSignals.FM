@@ -55,14 +55,9 @@ type FloatingPlayerPanelProps = {
   chromaEnabled: boolean;
   supportsChroma: boolean;
   onChromaToggle: (enabled: boolean) => void;
-  showSignalTelemetryControl: boolean;
-  signalTelemetryVisible: boolean;
-  onSignalTelemetryChange: (enabled: boolean) => void;
-  signalTelemetryToggleRef?: RefObject<HTMLInputElement | null>;
-  showVisualFeedControl: boolean;
-  visualFeedOpen: boolean;
-  onVisualFeedChange: (enabled: boolean) => void;
-  visualFeedToggleRef?: RefObject<HTMLInputElement | null>;
+  infoVisible: boolean;
+  onInfoChange: (enabled: boolean) => void;
+  infoToggleRef?: RefObject<HTMLInputElement | null>;
   collapsed: boolean;
   onCollapsedChange: (collapsed: boolean) => void;
 };
@@ -137,14 +132,9 @@ const FloatingPlayerPanel = forwardRef<HTMLElement, FloatingPlayerPanelProps>(
       chromaEnabled,
       supportsChroma,
       onChromaToggle,
-      showSignalTelemetryControl,
-      signalTelemetryVisible,
-      onSignalTelemetryChange,
-      signalTelemetryToggleRef,
-      showVisualFeedControl,
-      visualFeedOpen,
-      onVisualFeedChange,
-      visualFeedToggleRef,
+      infoVisible,
+      onInfoChange,
+      infoToggleRef,
       collapsed,
       onCollapsedChange,
     }: FloatingPlayerPanelProps,
@@ -437,63 +427,22 @@ const FloatingPlayerPanel = forwardRef<HTMLElement, FloatingPlayerPanelProps>(
                     <span className="floating-player-panel__switch-thumb" />
                   </span>
                 </label>
+
+                <label className="floating-player-panel__switch floating-player-panel__info-switch">
+                  <input
+                    ref={infoToggleRef}
+                    className="floating-player-panel__switch-checkbox"
+                    type="checkbox"
+                    checked={infoVisible}
+                    onChange={(event) => onInfoChange(event.target.checked)}
+                    aria-label="Toggle signal info"
+                  />
+                  <span className="floating-player-panel__switch-label">Info</span>
+                  <span className="floating-player-panel__switch-track" aria-hidden="true">
+                    <span className="floating-player-panel__switch-thumb" />
+                  </span>
+                </label>
               </div>
-
-              {showVisualFeedControl || showSignalTelemetryControl ? (
-                <div
-                  className="floating-player-panel__toggle-row"
-                  role="group"
-                  aria-label="Display controls"
-                >
-                  {showVisualFeedControl ? (
-                    <label className="floating-player-panel__switch floating-player-panel__visual-switch">
-                      <input
-                        ref={visualFeedToggleRef}
-                        className="floating-player-panel__switch-checkbox"
-                        type="checkbox"
-                        checked={visualFeedOpen}
-                        onChange={(event) =>
-                          onVisualFeedChange(event.target.checked)
-                        }
-                        aria-label="Toggle signal feed"
-                      />
-                      <span className="floating-player-panel__switch-label">
-                        Feed
-                      </span>
-                      <span
-                        className="floating-player-panel__switch-track"
-                        aria-hidden="true"
-                      >
-                        <span className="floating-player-panel__switch-thumb" />
-                      </span>
-                    </label>
-                  ) : null}
-
-                  {showSignalTelemetryControl ? (
-                    <label className="floating-player-panel__switch floating-player-panel__telemetry-switch">
-                      <input
-                        ref={signalTelemetryToggleRef}
-                        className="floating-player-panel__switch-checkbox"
-                        type="checkbox"
-                        checked={signalTelemetryVisible}
-                        onChange={(event) =>
-                          onSignalTelemetryChange(event.target.checked)
-                        }
-                        aria-label="Telemetry"
-                      />
-                      <span className="floating-player-panel__switch-label">
-                        Telemetry
-                      </span>
-                      <span
-                        className="floating-player-panel__switch-track"
-                        aria-hidden="true"
-                      >
-                        <span className="floating-player-panel__switch-thumb" />
-                      </span>
-                    </label>
-                  ) : null}
-                </div>
-              ) : null}
             </section>
           </div>
         )}

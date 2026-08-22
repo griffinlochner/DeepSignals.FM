@@ -22,7 +22,6 @@
     18px + env(safe-area-inset-bottom, 0px)
   );
   --player-edge-gap: clamp(12px, 2.2vw, 22px);
-  --player-feed-module-width: 240px;
   --attached-panel-header-height: 49px;
   --theme-background: #061014;
   --theme-panel: rgba(8, 25, 32, 0.72);
@@ -102,25 +101,26 @@
 
 .player-shell__dock--right {
   grid-template-columns:
-    minmax(
-      0,
-      var(
-        --player-panel-width,
-        min(
-          var(--floating-panel-max-width, 430px),
-          calc(100vw - (var(--player-edge-gap) * 2))
-        )
-      )
-    )
-    var(--player-feed-module-width);
+    minmax(0, var(--player-panel-width, 430px))
+    minmax(300px, 380px);
   grid-template-rows: auto;
   align-items: start;
 }
 
 .player-shell__dock--bottom {
-  grid-template-columns: minmax(0, var(--player-panel-width, 100%));
-  grid-template-rows: auto auto;
-  width: var(--player-panel-width, 100%);
+  grid-template-columns: minmax(
+    0,
+    min(
+      var(--floating-panel-max-width, 430px),
+      calc(100vw - (var(--player-edge-gap) * 2))
+    )
+  );
+  grid-template-rows: auto minmax(0, 1fr);
+  width: min(
+    var(--floating-panel-max-width, 430px),
+    calc(100vw - (var(--player-edge-gap) * 2))
+  );
+  max-height: calc(100dvh - (var(--player-edge-gap) * 2));
 }
 
 .player-shell__dock .floating-player-panel {
@@ -140,8 +140,8 @@
   grid-column: 2;
   grid-row: 1;
   box-sizing: border-box;
-  width: var(--player-feed-module-width);
-  height: auto;
+  width: 100%;
+  height: var(--player-panel-height, auto);
   min-height: auto;
   align-self: start;
 }
@@ -151,7 +151,15 @@
   grid-row: 2;
   box-sizing: border-box;
   width: 100%;
-  height: auto;
+  height: var(--player-panel-height, 100%);
+  min-height: 0;
+  align-self: stretch;
+}
+
+@media (min-width: 561px) {
+  .player-shell__dock--bottom .visual-feed-window {
+    height: var(--player-panel-height, auto);
+  }
 }
 
 .player-shell__dock--bottom .player-shell__primary-column {
@@ -159,18 +167,12 @@
   grid-row: 1;
 }
 
-.player-shell__primary-column .signal-telemetry-panel {
-  width: 100%;
-  min-width: 0;
-  align-self: start;
-}
-
-.player-shell__dock--telemetry-open .floating-player-panel {
+.player-shell__dock--info-open .floating-player-panel {
   border-bottom-left-radius: 0;
   border-bottom-right-radius: 0;
 }
 
-.player-shell__dock--telemetry-open .signal-telemetry-panel__surface {
+.player-shell__dock--info-open .visual-feed-window {
   border-top-left-radius: 0;
   border-top-right-radius: 0;
 }

@@ -1,7 +1,7 @@
 import { useEffect, useId, useState, type ComponentType } from 'react'
 import './visualFeedWindow.css'
 import { publicAssetUrl } from '../app/publicAssetUrl'
-import type { AudioSource } from '../app/playerTypes'
+import type { AudioReactiveSnapshot, AudioSource } from '../app/playerTypes'
 import type { TrackSignalMetadata } from '../app/trackSignalMetadata'
 import { useTrackSignalMetadata } from '../app/useTrackSignalMetadata'
 import type { ThemeVisualFeedFrameProps } from '../themes/themeTypes'
@@ -14,6 +14,10 @@ type VisualFeedWindowProps = {
   onClose: () => void
   selectedTrackSource: AudioSource | null
   metadataOverride?: TrackSignalMetadata | null
+  audioSnapshot?: AudioReactiveSnapshot
+  getLatestSnapshot?: () => AudioReactiveSnapshot
+  analysisStatus?: string
+  playbackStatus?: string
   Frame?: ComponentType<ThemeVisualFeedFrameProps>
   className?: string
 }
@@ -37,13 +41,28 @@ function VisualFeedWindow({
   onClose,
   selectedTrackSource,
   metadataOverride,
+  audioSnapshot,
+  getLatestSnapshot,
   Frame,
   className,
 }: VisualFeedWindowProps) {
   const contentId = useId()
   const [failedArtworkUrls, setFailedArtworkUrls] = useState<Set<string>>(() => new Set())
+  const [liveSnapshot, setLiveSnapshot] = useState(audioSnapshot)
   const FrameComponent = Frame ?? DefaultFrame
   const { status, metadata } = useTrackSignalMetadata(selectedTrackSource)
+
+  useEffect(() => {
+    if (!open || !getLatestSnapshot) {
+      return
+    }
+
+    const publish = () => setLiveSnapshot(getLatestSnapshot())
+    publish()
+    const intervalHandle = window.setInterval(publish, 100)
+
+    return () => window.clearInterval(intervalHandle)
+  }, [getLatestSnapshot, open])
 
   useEffect(() => {
     if (!open) {
@@ -106,28 +125,28 @@ function VisualFeedWindow({
   return (
     <section
       className={['visual-feed-window', `visual-feed-window--dock-${dockMode}`, className].filter(Boolean).join(' ')}
-      aria-label="Signal feed panel"
+      aria-label="Signal info panel"
       data-stage="open"
       aria-hidden="false"
     >
       <header className="visual-feed-window__header">
-        <p className="visual-feed-window__title">Feed</p>
+        <p className="visual-feed-window__title">SIGNAL INFO</p>
         <a
           className="visual-feed-window__about-link"
-          href={externalSourceUrl ?? '/about/'}
+          href="/about/"
           target="_blank"
           rel="noopener noreferrer"
-          aria-label={externalSourceUrl ? 'External signal source - opens in a new tab' : 'About DeepSignals.FM - opens in a new tab'}
+          aria-label="About DeepSignals.FM - opens in a new tab"
         >
-          <span>{externalSourceUrl ? 'Source' : 'About'}</span>
+          <span>About</span>
           <span aria-hidden="true">↗</span>
         </a>
         <button
           type="button"
           className="visual-feed-window__close"
           onClick={onClose}
-          aria-label="Close signal feed"
-          title="Close signal feed"
+          aria-label="Close signal info"
+          title="Close signal info"
         >
           <CloseIcon />
         </button>
@@ -135,7 +154,7 @@ function VisualFeedWindow({
 
       <div className="visual-feed-window__body" id={contentId}>
         <FrameComponent>
-          <div className="visual-feed-window__viewport" aria-label="Signal feed artwork">
+          <div className="visual-feed-window__viewport" aria-label="Signal artwork">
             <div className="visual-feed-window__artwork-shell">
               {artworkImage && externalSourceUrl ? (
                 <a
@@ -160,6 +179,33 @@ function VisualFeedWindow({
                 </div>
               )}
             </div>
+          </div>
+          <div className="visual-feed-window__details">
+            {externalSourceUrl ? (
+              <a className="visual-feed-window__source-link" href={externalSourceUrl} target="_blank" rel="noopener noreferrer">
+                Open source <span aria-hidden="true">↗</span>
+              </a>
+            ) : null}
+            <section className="visual-feed-window__meters" aria-label="Signal levels">
+              {[
+                ['Energy', liveSnapshot?.energy ?? 0],
+                ['Bass', liveSnapshot?.bass ?? 0],
+                ['Kick', liveSnapshot?.kickPulse ?? 0],
+                ['Mids', liveSnapshot?.mids ?? 0],
+                ['Highs', liveSnapshot?.highs ?? 0],
+              ].map(([label, value]) => {
+                const normalized = Math.min(1, Math.max(0, Number(value) || 0))
+                return (
+                  <div className="visual-feed-window__meter" key={label as string}>
+                    <span>{label}</span>
+                    <span className="visual-feed-window__meter-track" aria-hidden="true">
+                      <span style={{ width: `${normalized * 100}%` }} />
+                    </span>
+                    <span>{normalized.toFixed(3)}</span>
+                  </div>
+                )
+              })}
+            </section>
           </div>
         </FrameComponent>
       </div>

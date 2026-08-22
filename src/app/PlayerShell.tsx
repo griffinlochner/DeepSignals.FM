@@ -15,7 +15,6 @@ import {
 } from "./audioSources";
 import AudioAnalysisDiagnostics from "../components/AudioAnalysisDiagnostics";
 import FloatingPlayerPanel from "../components/FloatingPlayerPanel";
-import SignalTelemetryPanel from "../components/SignalTelemetryPanel";
 import StationIdentOverlay from "../components/StationIdentOverlay";
 import VisualFeedWindow from "../components/VisualFeedWindow";
 import { themeRegistry } from "../themes/themeRegistry";
@@ -59,7 +58,7 @@ type PlayerPreferences = {
   selectedAudioSourceId: string;
   volume: number;
   motionEnabled: boolean;
-  visualFeedOpen: boolean;
+  infoOpen: boolean;
   colorEnabled?: boolean;
 };
 
@@ -68,22 +67,11 @@ type PlayerPanelSize = {
   height: number;
 };
 
-type TelemetryLayoutMode = "tablet" | "compact-desktop" | "desktop";
-
-type TelemetryPanelMeasurement = {
-  height: number;
-  layoutMode: TelemetryLayoutMode | null;
-};
-
-type AuxPanelKey = "visual-feed" | "telemetry";
-
 const PLAYER_PANEL_SIZE_EPSILON = 0.75;
 
 type VisualFeedDockMode = "right" | "bottom";
 
 const PLAYER_PREFERENCES_STORAGE_KEY_V3 = "deepsignals.player.preferences.v3";
-const SIGNAL_TELEMETRY_VISIBLE_STORAGE_KEY_V2 =
-  "deepsignals.player.signal-telemetry.visible.v2";
 
 const DEFAULT_PLAYER_THEME_ID = "signal-runner";
 const DEFAULT_PLAYER_AUDIO_SOURCE_ID =
@@ -134,13 +122,8 @@ const PSYBRAZIL_NETWORK_GROUP_LABEL = "PSYBRAZIL ENTERTAINMENT NETWORK";
 const PLAYER_EDGE_GAP = 22;
 const PLAYER_PANEL_FALLBACK_WIDTH = 430;
 const PLAYER_PANEL_FALLBACK_HEIGHT = 560;
-const VISUAL_FEED_MODULE_WIDTH = 240;
-const VISUAL_FEED_ASPECT_RATIO = 9 / 16;
-const VISUAL_FEED_HEADER_HEIGHT = 52;
-const TELEMETRY_BOTTOM_DOCK_FALLBACK_HEIGHT = 224;
-const TELEMETRY_BOTTOM_DOCK_FALLBACK_HEIGHT_COMPACT = 210;
-const TELEMETRY_BOTTOM_DOCK_FALLBACK_HEIGHT_TABLET = 264;
-const TELEMETRY_VISIBILITY_HYSTERESIS_PX = 12;
+const SIGNAL_INFO_COMPACT_WIDTH = 380;
+const SIGNAL_INFO_COMPACT_HEIGHT = 360;
 
 const FULLON_STOP_SETTLE_DEPTH = 0.5;
 const FULLON_STOP_SETTLE_HUE_DEGREES = 0;
@@ -190,7 +173,7 @@ function readStoredPlayerPreferences(): PlayerPreferences {
     volume: 1,
     motionEnabled: true,
     colorEnabled: true,
-    visualFeedOpen: true,
+    infoOpen: true,
   };
 
   if (typeof window === "undefined") {
@@ -203,7 +186,9 @@ function readStoredPlayerPreferences(): PlayerPreferences {
     );
 
     if (rawV3) {
-      const parsed = JSON.parse(rawV3) as Partial<PlayerPreferences>;
+      const parsed = JSON.parse(rawV3) as Partial<PlayerPreferences> & {
+        visualFeedOpen?: unknown;
+      };
 
       return {
         selectedThemeId: sanitizeThemeId(parsed.selectedThemeId),
@@ -213,39 +198,11 @@ function readStoredPlayerPreferences(): PlayerPreferences {
         volume: 1,
         motionEnabled: sanitizeBoolean(parsed.motionEnabled, true),
         colorEnabled: sanitizeBoolean(parsed.colorEnabled, true),
-        visualFeedOpen: sanitizeBoolean(parsed.visualFeedOpen, true),
+        infoOpen: sanitizeBoolean(
+          parsed.infoOpen,
+          sanitizeBoolean(parsed.visualFeedOpen, true),
+        ),
       };
-    }
-
-    return fallback;
-  } catch {
-    return fallback;
-  }
-}
-
-function readStoredSignalTelemetryVisiblePreference() {
-  const fallback = false;
-
-  if (typeof window === "undefined") {
-    return fallback;
-  }
-
-  try {
-    const raw = window.localStorage.getItem(
-      SIGNAL_TELEMETRY_VISIBLE_STORAGE_KEY_V2,
-    );
-
-    if (!raw) {
-      return fallback;
-    }
-
-    const parsed = JSON.parse(raw) as { visible?: unknown } | unknown;
-
-    if (typeof parsed === "object" && parsed !== null && "visible" in parsed) {
-      return sanitizeBoolean(
-        (parsed as { visible?: unknown }).visible,
-        fallback,
-      );
     }
 
     return fallback;
@@ -272,49 +229,6 @@ function isIgnoreSourceBpmEnabled() {
   return searchParams.get("ignoreSourceBpm") === "1";
 }
 
-function estimateVisualFeedWidth() {
-  return VISUAL_FEED_MODULE_WIDTH;
-}
-
-function estimateVisualFeedHeight() {
-  return (
-    Math.round(
-      estimateVisualFeedWidth() * VISUAL_FEED_ASPECT_RATIO,
-    ) + VISUAL_FEED_HEADER_HEIGHT
-  );
-}
-
-function getTelemetryLayoutMode(
-  viewportWidth: number,
-  viewportHeight: number,
-): TelemetryLayoutMode {
-  if (viewportWidth <= 1024) {
-    return "tablet";
-  }
-
-  return viewportHeight <= 800 ? "compact-desktop" : "desktop";
-}
-
-function getTelemetryBottomDockHeight(
-  viewportWidth: number,
-  viewportHeight: number,
-  measurement: TelemetryPanelMeasurement,
-) {
-  const layoutMode = getTelemetryLayoutMode(viewportWidth, viewportHeight);
-
-  if (measurement.layoutMode === layoutMode && measurement.height > 0) {
-    return Math.ceil(measurement.height);
-  }
-
-  if (layoutMode === "tablet") {
-    return TELEMETRY_BOTTOM_DOCK_FALLBACK_HEIGHT_TABLET;
-  }
-
-  return layoutMode === "compact-desktop"
-    ? TELEMETRY_BOTTOM_DOCK_FALLBACK_HEIGHT_COMPACT
-    : TELEMETRY_BOTTOM_DOCK_FALLBACK_HEIGHT;
-}
-
 function getAvailabilityPlayerDimensions(
   viewportWidth: number,
   playerPanelSize: PlayerPanelSize,
@@ -339,89 +253,20 @@ function getVisualFeedFit(
 ) {
   const { width: playerWidth, height: playerHeight } =
     getAvailabilityPlayerDimensions(viewportWidth, playerPanelSize);
-  const rightFeedWidth = estimateVisualFeedWidth();
-  const rightFeedHeight = estimateVisualFeedHeight();
+  const rightInfoHeight = SIGNAL_INFO_COMPACT_HEIGHT;
   const bottomFeedHeight =
-    Math.round(playerWidth * VISUAL_FEED_ASPECT_RATIO) +
-    VISUAL_FEED_HEADER_HEIGHT;
+    Math.round(playerWidth * (9 / 16)) + 220;
 
   const right =
-    viewportWidth >= playerWidth + rightFeedWidth + PLAYER_EDGE_GAP * 2 &&
+    viewportWidth >=
+      playerWidth + SIGNAL_INFO_COMPACT_WIDTH + PLAYER_EDGE_GAP * 4 + 8 &&
     viewportHeight >=
-      Math.max(playerHeight, rightFeedHeight) + PLAYER_EDGE_GAP * 2;
+      Math.max(playerHeight, rightInfoHeight) + PLAYER_EDGE_GAP * 2;
   const bottom =
     viewportWidth >= playerWidth + PLAYER_EDGE_GAP * 2 &&
     viewportHeight >= playerHeight + bottomFeedHeight + PLAYER_EDGE_GAP * 2;
 
   return { right, bottom };
-}
-
-function canFitTelemetryBelowPlayer(
-  viewportWidth: number,
-  viewportHeight: number,
-  playerPanelSize: PlayerPanelSize,
-  telemetryPanelMeasurement: TelemetryPanelMeasurement,
-) {
-  const { width: playerWidth, height: playerHeight } =
-    getAvailabilityPlayerDimensions(viewportWidth, playerPanelSize);
-  const telemetryHeight = getTelemetryBottomDockHeight(
-    viewportWidth,
-    viewportHeight,
-    telemetryPanelMeasurement,
-  );
-
-  return (
-    viewportWidth >= playerWidth + PLAYER_EDGE_GAP * 2 &&
-    viewportHeight >=
-      Math.ceil(playerHeight) + telemetryHeight + PLAYER_EDGE_GAP * 2
-  );
-}
-
-function getTelemetryFitSlack(
-  viewportWidth: number,
-  viewportHeight: number,
-  playerPanelSize: PlayerPanelSize,
-  telemetryPanelMeasurement: TelemetryPanelMeasurement,
-) {
-  const { height: playerHeight } =
-    getAvailabilityPlayerDimensions(viewportWidth, playerPanelSize);
-  const telemetryHeight = getTelemetryBottomDockHeight(
-    viewportWidth,
-    viewportHeight,
-    telemetryPanelMeasurement,
-  );
-
-  return (
-    viewportHeight -
-    (Math.ceil(playerHeight) + telemetryHeight + PLAYER_EDGE_GAP * 2)
-  );
-}
-
-function canFitSharedBottomAuxSlot(
-  viewportWidth: number,
-  viewportHeight: number,
-  playerPanelSize: PlayerPanelSize,
-  supportsVisualFeed: boolean,
-  telemetryPanelMeasurement: TelemetryPanelMeasurement,
-) {
-  const { width: playerWidth, height: playerHeight } =
-    getAvailabilityPlayerDimensions(viewportWidth, playerPanelSize);
-  const telemetryHeight = getTelemetryBottomDockHeight(
-    viewportWidth,
-    viewportHeight,
-    telemetryPanelMeasurement,
-  );
-  const feedHeight = supportsVisualFeed
-    ? Math.round(playerWidth * VISUAL_FEED_ASPECT_RATIO) +
-      VISUAL_FEED_HEADER_HEIGHT
-    : 0;
-  const requiredAuxHeight = Math.max(telemetryHeight, feedHeight);
-
-  return (
-    viewportWidth >= playerWidth + PLAYER_EDGE_GAP * 2 &&
-    viewportHeight >=
-      Math.ceil(playerHeight) + requiredAuxHeight + PLAYER_EDGE_GAP * 2
-  );
 }
 
 const ZERO_REACTIVE_PREVIEW_TELEMETRY: ReactivePreviewTelemetry = {
@@ -525,35 +370,22 @@ function PlayerShell({ className }: PlayerShellProps) {
   const [chromaEnabled, setChromaEnabled] = useState(
     sanitizeBoolean(storedPreferences.colorEnabled, true),
   );
-  const [signalTelemetryVisible, setSignalTelemetryVisible] = useState(() =>
-    readStoredSignalTelemetryVisiblePreference(),
-  );
-  const [telemetryControlAvailable, setTelemetryControlAvailable] =
-    useState(true);
   const [viewportSize, setViewportSize] = useState(() => ({
     width: typeof window === "undefined" ? 1024 : window.innerWidth,
     height: typeof window === "undefined" ? 768 : window.innerHeight,
   }));
   const [panelCollapsed, setPanelCollapsed] = useState(false);
-  const [visualFeedOpen, setVisualFeedOpen] = useState(
-    storedPreferences.visualFeedOpen,
-  );
-  const [lastActiveAuxPanel, setLastActiveAuxPanel] =
-    useState<AuxPanelKey>("visual-feed");
+  const [infoOpen, setInfoOpen] = useState(storedPreferences.infoOpen);
   const [playerPanelSize, setPlayerPanelSize] = useState<PlayerPanelSize>({
     width: PLAYER_PANEL_FALLBACK_WIDTH,
     height: PLAYER_PANEL_FALLBACK_HEIGHT,
   });
-  const [telemetryPanelMeasurement, setTelemetryPanelMeasurement] =
-    useState<TelemetryPanelMeasurement>({ height: 0, layoutMode: null });
   const reactivePreviewTelemetryRef = useRef<ReactivePreviewTelemetry>(
     ZERO_REACTIVE_PREVIEW_TELEMETRY,
   );
   const playerPanelRef = useRef<HTMLElement | null>(null);
   const playerPanelMeasuredRef = useRef(false);
-  const telemetryPanelRef = useRef<HTMLElement | null>(null);
-  const signalTelemetryToggleRef = useRef<HTMLInputElement | null>(null);
-  const visualFeedToggleRef = useRef<HTMLInputElement | null>(null);
+  const infoToggleRef = useRef<HTMLInputElement | null>(null);
   const [sceneCounters, setSceneCounters] = useState<ImageDepthSceneCounters>(
     ZERO_IMAGE_DEPTH_SCENE_COUNTERS,
   );
@@ -718,98 +550,21 @@ function PlayerShell({ className }: PlayerShellProps) {
 
   const supportsChroma = activeTheme?.supportsChroma ?? true;
   const supportsMotion = activeTheme?.supportsMotion ?? true;
-  const supportsVisualFeed = activeTheme?.supportsVisualFeed ?? true;
   const supportsAudioReactiveBehavior =
     activeTheme?.supportsAudioReactiveBehavior ?? false;
   const productionFullOnActive = supportsAudioReactiveBehavior;
   const productionDepthMotionSuppressed =
     supportsAudioReactiveBehavior && !motionEnabled;
-  const visualFeedFit = supportsVisualFeed
-    ? getVisualFeedFit(viewportSize.width, viewportSize.height, playerPanelSize)
-    : { right: false, bottom: false };
-  const canFitTelemetryBottom = canFitTelemetryBelowPlayer(
+  const visualFeedFit = getVisualFeedFit(
     viewportSize.width,
     viewportSize.height,
     playerPanelSize,
-    telemetryPanelMeasurement,
   );
-  const canFitSharedBottomSlot = canFitSharedBottomAuxSlot(
-    viewportSize.width,
-    viewportSize.height,
-    playerPanelSize,
-    supportsVisualFeed,
-    telemetryPanelMeasurement,
-  );
-  const auxRightAvailable = supportsVisualFeed && visualFeedFit.right;
-  const auxBottomAvailable = canFitSharedBottomSlot;
-  const auxiliaryControlsVisible = auxRightAvailable || auxBottomAvailable;
-  const usingSharedBottomSlot = !auxRightAvailable && auxBottomAvailable;
-
-  const activeSharedAuxPanel: AuxPanelKey | null = !usingSharedBottomSlot
-    ? null
-    : visualFeedOpen && signalTelemetryVisible
-      ? lastActiveAuxPanel
-      : visualFeedOpen
-        ? "visual-feed"
-        : signalTelemetryVisible
-          ? "telemetry"
-          : null;
-
-  const renderVisualFeedRight =
-    supportsVisualFeed && visualFeedOpen && auxRightAvailable;
-  const renderVisualFeedBottom =
-    supportsVisualFeed &&
-    usingSharedBottomSlot &&
-    activeSharedAuxPanel === "visual-feed";
-  const renderTelemetryBottom = usingSharedBottomSlot
-    ? activeSharedAuxPanel === "telemetry"
-    : signalTelemetryVisible && canFitTelemetryBottom;
-
-  const effectiveVisualFeedOpen =
-    renderVisualFeedRight || renderVisualFeedBottom;
-  const effectiveSignalTelemetryVisible = renderTelemetryBottom;
-  const visualFeedDockMode: VisualFeedDockMode | null = renderVisualFeedRight
+  const auxRightAvailable = visualFeedFit.right;
+  const effectiveInfoOpen = infoOpen;
+  const visualFeedDockMode: VisualFeedDockMode = auxRightAvailable
     ? "right"
-    : renderVisualFeedBottom
-      ? "bottom"
-      : null;
-
-  const showVisualFeedControl = supportsVisualFeed && auxiliaryControlsVisible;
-  const showSignalTelemetryControl = telemetryControlAvailable;
-
-  const setVisualFeedOpenFromToggle = useCallback(
-    (enabled: boolean) => {
-      setVisualFeedOpen(enabled);
-
-      if (!enabled) {
-        return;
-      }
-
-      setLastActiveAuxPanel("visual-feed");
-
-      if (usingSharedBottomSlot) {
-        setSignalTelemetryVisible(false);
-      }
-    },
-    [usingSharedBottomSlot],
-  );
-
-  const setSignalTelemetryVisibleFromToggle = useCallback(
-    (enabled: boolean) => {
-      setSignalTelemetryVisible(enabled);
-
-      if (!enabled) {
-        return;
-      }
-
-      setLastActiveAuxPanel("telemetry");
-
-      if (usingSharedBottomSlot) {
-        setVisualFeedOpen(false);
-      }
-    },
-    [usingSharedBottomSlot],
-  );
+    : "bottom";
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -823,63 +578,7 @@ function PlayerShell({ className }: PlayerShellProps) {
       };
       setViewportSize(nextViewport);
 
-      const nextVisualFeedFit = supportsVisualFeed
-        ? getVisualFeedFit(
-            nextViewport.width,
-            nextViewport.height,
-            playerPanelSize,
-          )
-        : { right: false, bottom: false };
-      const nextCanFitTelemetry = canFitTelemetryBelowPlayer(
-        nextViewport.width,
-        nextViewport.height,
-        playerPanelSize,
-        telemetryPanelMeasurement,
-      );
-      const nextTelemetryFitSlack = getTelemetryFitSlack(
-        nextViewport.width,
-        nextViewport.height,
-        playerPanelSize,
-        telemetryPanelMeasurement,
-      );
-      setTelemetryControlAvailable((current) =>
-        current
-          ? nextTelemetryFitSlack >= -TELEMETRY_VISIBILITY_HYSTERESIS_PX
-          : nextTelemetryFitSlack >= TELEMETRY_VISIBILITY_HYSTERESIS_PX,
-      );
-      const nextSharedBottomSlot =
-        !nextVisualFeedFit.right &&
-        canFitSharedBottomAuxSlot(
-          nextViewport.width,
-          nextViewport.height,
-          playerPanelSize,
-          supportsVisualFeed,
-          telemetryPanelMeasurement,
-        );
-      const nextSignalTelemetryVisible =
-        signalTelemetryVisible &&
-        (!playerPanelMeasuredRef.current || nextCanFitTelemetry);
-
-      if (
-        playerPanelMeasuredRef.current &&
-        signalTelemetryVisible &&
-        !nextCanFitTelemetry
-      ) {
-        setSignalTelemetryVisible(false);
-      }
-
-      if (
-        !nextSharedBottomSlot ||
-        !(visualFeedOpen && nextSignalTelemetryVisible)
-      ) {
-        return;
-      }
-
-      if (lastActiveAuxPanel === "visual-feed") {
-        setSignalTelemetryVisible(false);
-      } else {
-        setVisualFeedOpen(false);
-      }
+      getVisualFeedFit(nextViewport.width, nextViewport.height, playerPanelSize);
     };
 
     handleViewportChange();
@@ -889,12 +588,8 @@ function PlayerShell({ className }: PlayerShellProps) {
       window.removeEventListener("resize", handleViewportChange);
     };
   }, [
-    lastActiveAuxPanel,
+    infoOpen,
     playerPanelSize,
-    signalTelemetryVisible,
-    supportsVisualFeed,
-    telemetryPanelMeasurement,
-    visualFeedOpen,
   ]);
 
   useEffect(() => {
@@ -914,18 +609,6 @@ function PlayerShell({ className }: PlayerShellProps) {
       const nextHeight = Math.round(nextRect.height * 100) / 100;
 
       playerPanelMeasuredRef.current = true;
-
-      if (
-        signalTelemetryVisible &&
-        !canFitTelemetryBelowPlayer(
-          window.innerWidth,
-          window.innerHeight,
-          { width: nextWidth, height: nextHeight },
-          telemetryPanelMeasurement,
-        )
-      ) {
-        setSignalTelemetryVisible(false);
-      }
 
       setPlayerPanelSize((current) => {
         const widthDelta = Math.abs(current.width - nextWidth);
@@ -966,66 +649,7 @@ function PlayerShell({ className }: PlayerShellProps) {
       window.removeEventListener("resize", updatePlayerPanelSize);
       observer.disconnect();
     };
-  }, [signalTelemetryVisible, telemetryPanelMeasurement]);
-
-  useEffect(() => {
-    const telemetryPanelElement = telemetryPanelRef.current;
-
-    if (!telemetryPanelElement) {
-      return;
-    }
-
-    const updateTelemetryPanelMeasurement = () => {
-      const nextRect = telemetryPanelElement.getBoundingClientRect();
-      const nextHeight = Math.round(nextRect.height * 100) / 100;
-      const layoutMode = getTelemetryLayoutMode(
-        window.innerWidth,
-        window.innerHeight,
-      );
-      const nextMeasurement = { height: nextHeight, layoutMode };
-
-      if (
-        signalTelemetryVisible &&
-        playerPanelRef.current &&
-        !canFitTelemetryBelowPlayer(
-          window.innerWidth,
-          window.innerHeight,
-          playerPanelRef.current.getBoundingClientRect(),
-          nextMeasurement,
-        )
-      ) {
-        setSignalTelemetryVisible(false);
-      }
-
-      setTelemetryPanelMeasurement((current) => {
-        if (
-          current.layoutMode === layoutMode &&
-          Math.abs(current.height - nextHeight) <= PLAYER_PANEL_SIZE_EPSILON
-        ) {
-          return current;
-        }
-
-        return nextMeasurement;
-      });
-    };
-
-    updateTelemetryPanelMeasurement();
-
-    if (typeof ResizeObserver === "undefined") {
-      window.addEventListener("resize", updateTelemetryPanelMeasurement);
-
-      return () => {
-        window.removeEventListener("resize", updateTelemetryPanelMeasurement);
-      };
-    }
-
-    const observer = new ResizeObserver(updateTelemetryPanelMeasurement);
-    observer.observe(telemetryPanelElement);
-
-    return () => {
-      observer.disconnect();
-    };
-  }, [effectiveSignalTelemetryVisible, signalTelemetryVisible]);
+  }, []);
 
   const handleSignalChange = (id: string) => {
     setSelectedSignalId(sanitizeAudioSourceId(id) || null);
@@ -1034,41 +658,21 @@ function PlayerShell({ className }: PlayerShellProps) {
   const handleThemeChange = (themeId: ThemeId) => {
     setSelectedThemeId(themeId);
 
-    const nextTheme = themeRegistry.find((theme) => theme.id === themeId);
-
-    if (!nextTheme?.supportsVisualFeed) {
-      setVisualFeedOpen(false);
-    }
   };
 
-  const focusSignalTelemetryToggle = () => {
+  const focusInfoToggle = () => {
     if (typeof window === "undefined") {
       return;
     }
 
     window.requestAnimationFrame(() => {
-      signalTelemetryToggleRef.current?.focus();
+      infoToggleRef.current?.focus();
     });
   };
 
-  const focusVisualFeedToggle = () => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    window.requestAnimationFrame(() => {
-      visualFeedToggleRef.current?.focus();
-    });
-  };
-
-  const handleSignalTelemetryClose = () => {
-    setSignalTelemetryVisible(false);
-    focusSignalTelemetryToggle();
-  };
-
-  const handleVisualFeedClose = () => {
-    setVisualFeedOpen(false);
-    focusVisualFeedToggle();
+  const handleInfoClose = () => {
+    setInfoOpen(false);
+    focusInfoToggle();
   };
 
   useEffect(() => {
@@ -1313,7 +917,7 @@ function PlayerShell({ className }: PlayerShellProps) {
         volume: sanitizeVolume(audioController.volume),
         motionEnabled,
         colorEnabled: chromaEnabled,
-        visualFeedOpen: visualFeedOpen && supportsVisualFeed,
+        infoOpen,
       };
 
       window.localStorage.setItem(
@@ -1329,24 +933,8 @@ function PlayerShell({ className }: PlayerShellProps) {
     motionEnabled,
     selectedSignalId,
     selectedThemeId,
-    supportsVisualFeed,
-    visualFeedOpen,
+    infoOpen,
   ]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    try {
-      window.localStorage.setItem(
-        SIGNAL_TELEMETRY_VISIBLE_STORAGE_KEY_V2,
-        JSON.stringify({ visible: signalTelemetryVisible }),
-      );
-    } catch {
-      // Gracefully ignore localStorage write failures.
-    }
-  }, [signalTelemetryVisible]);
 
   const transmissionLabel = useMemo(() => {
     if (externalNowPlaying?.artist && externalNowPlaying.title) {
@@ -1378,9 +966,6 @@ function PlayerShell({ className }: PlayerShellProps) {
     : audioController.playbackStatus === "playing"
       ? "playing"
       : "armed";
-  const dockStyle = {
-    "--player-panel-width": `${playerPanelSize.width}px`,
-  } as CSSProperties;
 
   return (
     <div
@@ -1422,13 +1007,17 @@ function PlayerShell({ className }: PlayerShellProps) {
         className={[
           "player-shell__dock",
           visualFeedDockMode ? `player-shell__dock--${visualFeedDockMode}` : "",
-          effectiveSignalTelemetryVisible
-            ? "player-shell__dock--telemetry-open"
+          effectiveInfoOpen
+            ? "player-shell__dock--info-open"
             : "",
         ]
           .filter(Boolean)
           .join(" ")}
-        style={dockStyle}
+        style={
+          {
+            "--player-panel-height": `${playerPanelSize.height}px`,
+          } as CSSProperties
+        }
       >
         <div className="player-shell__primary-column">
           <FloatingPlayerPanel
@@ -1461,38 +1050,27 @@ function PlayerShell({ className }: PlayerShellProps) {
             chromaEnabled={chromaEnabled}
             supportsChroma={supportsChroma}
             onChromaToggle={setChromaEnabled}
-            showSignalTelemetryControl={showSignalTelemetryControl}
-            signalTelemetryVisible={signalTelemetryVisible}
-            onSignalTelemetryChange={setSignalTelemetryVisibleFromToggle}
-            signalTelemetryToggleRef={signalTelemetryToggleRef}
-            showVisualFeedControl={showVisualFeedControl}
-            visualFeedOpen={supportsVisualFeed ? visualFeedOpen : false}
-            onVisualFeedChange={setVisualFeedOpenFromToggle}
-            visualFeedToggleRef={visualFeedToggleRef}
+            infoVisible={effectiveInfoOpen}
+            onInfoChange={setInfoOpen}
+            infoToggleRef={infoToggleRef}
             collapsed={panelCollapsed}
             onCollapsedChange={setPanelCollapsed}
           />
 
-          {!audioDebugEnabled && effectiveSignalTelemetryVisible ? (
-            <SignalTelemetryPanel
-              ref={telemetryPanelRef}
-              analysisStatus={audioAnalysis.status}
-              playbackStatus={audioController.playbackStatus}
-              getLatestSnapshot={audioAnalysis.getLatestSnapshot}
-              getLatestReactiveTelemetry={getReactivePreviewTelemetry}
-              onClose={handleSignalTelemetryClose}
-            />
-          ) : null}
         </div>
 
         <VisualFeedWindow
-          open={effectiveVisualFeedOpen && visualFeedDockMode !== null}
+          open={effectiveInfoOpen && visualFeedDockMode !== null}
           dockMode={visualFeedDockMode ?? "right"}
-          onClose={handleVisualFeedClose}
+          onClose={handleInfoClose}
           selectedTrackSource={
             selectedSignalId ? audioController.audioSource : null
           }
           metadataOverride={externalNowPlaying}
+          audioSnapshot={audioAnalysis.snapshot}
+          getLatestSnapshot={audioAnalysis.getLatestSnapshot}
+          analysisStatus={audioAnalysis.status}
+          playbackStatus={audioController.playbackStatus}
           Frame={activeTheme.VisualFeedFrame}
         />
       </div>
