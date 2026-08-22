@@ -4,6 +4,8 @@ type VolumeControlProps = {
 };
 
 function VolumeControl({ value, onChange }: VolumeControlProps) {
+  const volumePercent = `${Math.max(0, Math.min(value, 1)) * 100}%`;
+
   return (
     <label className="volume-control">
       <input
@@ -13,6 +15,7 @@ function VolumeControl({ value, onChange }: VolumeControlProps) {
         max="1"
         step="0.01"
         value={value}
+        style={{ "--volume-percent": volumePercent } as React.CSSProperties}
         onChange={(e) => onChange(parseFloat(e.target.value))}
         aria-label="Volume"
       />

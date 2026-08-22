@@ -489,13 +489,17 @@
 .player-shell.theme-cosmic-nexus .signal-source-selector__select:focus-visible,
 .player-shell.theme-cosmic-nexus .theme-selector__select:focus-visible,
 .player-shell.theme-cosmic-nexus .track-marquee:focus-visible,
-.player-shell.theme-cosmic-nexus .play-stop-button:focus-visible,
-.player-shell.theme-cosmic-nexus .volume-control__range:focus-visible {
+.player-shell.theme-cosmic-nexus .play-stop-button:focus-visible {
   outline: 2px solid var(--nexus-cyan);
   outline-offset: 3px;
   box-shadow:
     0 0 0 4px rgba(121, 255, 242, 0.1),
     0 0 18px rgba(121, 255, 242, 0.22);
+}
+
+.player-shell.theme-cosmic-nexus .volume-control__range:focus-visible {
+  outline: 1px solid #ff7fa1;
+  outline-offset: 3px;
 }
 
 .player-shell.theme-cosmic-nexus .track-marquee {
