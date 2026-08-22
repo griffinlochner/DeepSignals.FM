@@ -480,7 +480,6 @@ export function ImageDepthThemeScene({
     let disposed = false;
     let frameHandle: number | null = null;
     let readyFrameHandle: number | null = null;
-    let readyFallbackTimeoutHandle: number | null = null;
     const animationStartedAt = performance.now();
     const blendedPointer = new THREE.Vector2(0, 0);
     const autonomousPointer = new THREE.Vector2(0, 0);
@@ -576,12 +575,6 @@ export function ImageDepthThemeScene({
     resize();
     const resizeObserver = new ResizeObserver(resize);
     resizeObserver.observe(container);
-
-    readyFallbackTimeoutHandle = window.setTimeout(() => {
-      if (!disposed) {
-        renderer.domElement.style.opacity = "1";
-      }
-    }, 350);
 
     imageDepthSceneDevCounters.textureLoadCount += 1;
     publishImageDepthSceneDevCounters(devCountersCallbackRef.current);
@@ -1813,10 +1806,6 @@ export function ImageDepthThemeScene({
 
       if (readyFrameHandle !== null) {
         cancelAnimationFrame(readyFrameHandle);
-      }
-
-      if (readyFallbackTimeoutHandle !== null) {
-        window.clearTimeout(readyFallbackTimeoutHandle);
       }
 
       resizeObserver.disconnect();
