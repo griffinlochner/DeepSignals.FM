@@ -175,15 +175,14 @@
   display: grid;
   grid-template-columns: var(--player-label-col-width) minmax(0, 1fr);
   align-items: center;
-  gap: 6px 10px;
+  gap: 6px 14px;
 }
 
 .floating-player-panel__row > .floating-player-panel__label,
 .floating-player-panel__seek-row > .floating-player-panel__label {
   margin: 0;
-  padding-inline-start: 6px;
   box-sizing: border-box;
-  text-align: left;
+  text-align: right;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -295,7 +294,7 @@
   display: grid;
   grid-template-columns: var(--player-label-col-width) minmax(0, 1fr) auto;
   align-items: center;
-  gap: 10px;
+  gap: 14px;
 }
 
 .floating-player-panel__controls .floating-player-panel__seek-row {
