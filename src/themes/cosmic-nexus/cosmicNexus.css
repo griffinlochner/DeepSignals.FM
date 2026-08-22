@@ -5,7 +5,11 @@
   height: 100%;
   overflow: hidden;
   background:
-    radial-gradient(circle at 52% 48%, rgba(82, 24, 132, 0.18), transparent 38%),
+    radial-gradient(
+      circle at 52% 48%,
+      rgba(82, 24, 132, 0.18),
+      transparent 38%
+    ),
     radial-gradient(circle at 14% 16%, rgba(4, 7, 20, 0.64), transparent 40%),
     radial-gradient(circle at 86% 78%, rgba(4, 7, 20, 0.58), transparent 44%),
     #010104;
@@ -27,14 +31,23 @@
 }
 
 .player-shell.theme-cosmic-nexus::before {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0;
   z-index: 1;
   pointer-events: none;
   background:
-    radial-gradient(circle at 50% 48%, transparent 0 32%, rgba(1, 1, 4, 0.08) 56%, rgba(1, 1, 4, 0.54) 100%),
-    repeating-linear-gradient(0deg, transparent 0 4px, rgba(121, 255, 242, 0.018) 5px);
+    radial-gradient(
+      circle at 50% 48%,
+      transparent 0 32%,
+      rgba(1, 1, 4, 0.08) 56%,
+      rgba(1, 1, 4, 0.54) 100%
+    ),
+    repeating-linear-gradient(
+      0deg,
+      transparent 0 4px,
+      rgba(121, 255, 242, 0.018) 5px
+    );
 }
 
 /* ============================================================
@@ -55,7 +68,7 @@
 
 .cosmic-nexus-display-frame::before,
 .cosmic-nexus-display-frame::after {
-  content: '';
+  content: "";
   position: absolute;
   pointer-events: none;
   z-index: 4;
@@ -91,10 +104,14 @@
   inset: 5px;
   border: 1px solid rgba(57, 255, 20, 0.18);
   background:
-    linear-gradient(90deg, rgba(57, 255, 20, 0.7), transparent 13%) top left / 25% 1px no-repeat,
-    linear-gradient(270deg, rgba(255, 77, 122, 0.7), transparent 13%) top right / 25% 1px no-repeat,
-    linear-gradient(90deg, rgba(121, 255, 242, 0.55), transparent 13%) bottom left / 25% 1px no-repeat,
-    linear-gradient(270deg, rgba(255, 122, 0, 0.55), transparent 13%) bottom right / 25% 1px no-repeat;
+    linear-gradient(90deg, rgba(57, 255, 20, 0.7), transparent 13%) top left /
+      25% 1px no-repeat,
+    linear-gradient(270deg, rgba(255, 77, 122, 0.7), transparent 13%) top
+      right / 25% 1px no-repeat,
+    linear-gradient(90deg, rgba(121, 255, 242, 0.55), transparent 13%) bottom
+      left / 25% 1px no-repeat,
+    linear-gradient(270deg, rgba(255, 122, 0, 0.55), transparent 13%) bottom
+      right / 25% 1px no-repeat;
 }
 
 .cosmic-nexus-display-frame__content {
@@ -109,7 +126,11 @@
   border: 1px solid rgba(121, 255, 242, 0.34);
   border-radius: 3px;
   background:
-    radial-gradient(circle at 50% 52%, rgba(80, 28, 132, 0.14), transparent 46%),
+    radial-gradient(
+      circle at 50% 52%,
+      rgba(80, 28, 132, 0.14),
+      transparent 46%
+    ),
     linear-gradient(145deg, rgba(3, 5, 15, 0.96), rgba(0, 0, 4, 0.9));
   box-shadow:
     inset 0 0 48px rgba(121, 255, 242, 0.035),
@@ -119,15 +140,25 @@
 }
 
 .cosmic-nexus-display-frame__content::before {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0;
   z-index: -1;
   pointer-events: none;
   opacity: 0.38;
   background:
-    linear-gradient(90deg, transparent 49.8%, rgba(121, 255, 242, 0.055) 50%, transparent 50.2%),
-    linear-gradient(0deg, transparent 49.8%, rgba(121, 255, 242, 0.04) 50%, transparent 50.2%);
+    linear-gradient(
+      90deg,
+      transparent 49.8%,
+      rgba(121, 255, 242, 0.055) 50%,
+      transparent 50.2%
+    ),
+    linear-gradient(
+      0deg,
+      transparent 49.8%,
+      rgba(121, 255, 242, 0.04) 50%,
+      transparent 50.2%
+    );
 }
 
 .cosmic-nexus-display-frame__halo {
@@ -137,7 +168,11 @@
   pointer-events: none;
   opacity: 0.58;
   background:
-    radial-gradient(ellipse at center, rgba(164, 92, 255, 0.13) 0 28%, transparent 61%),
+    radial-gradient(
+      ellipse at center,
+      rgba(164, 92, 255, 0.13) 0 28%,
+      transparent 61%
+    ),
     conic-gradient(
       from 45deg,
       transparent,
@@ -310,7 +345,8 @@
   height: auto;
 }
 
-.cosmic-nexus-display-frame[data-playing='true'] .cosmic-nexus-display-frame__content {
+.cosmic-nexus-display-frame[data-playing="true"]
+  .cosmic-nexus-display-frame__content {
   border-color: rgba(57, 255, 20, 0.56);
   box-shadow:
     inset 0 0 54px rgba(121, 255, 242, 0.055),
@@ -319,21 +355,25 @@
     0 0 75px rgba(255, 77, 122, 0.045);
 }
 
-.cosmic-nexus-display-frame[data-playing='true'] .cosmic-nexus-display-frame__halo {
+.cosmic-nexus-display-frame[data-playing="true"]
+  .cosmic-nexus-display-frame__halo {
   opacity: 0.92;
   animation: nexus-aperture-breathe 3.1s ease-in-out infinite;
 }
 
-.cosmic-nexus-display-frame[data-playing='true'] .cosmic-nexus-display-frame__scan-beam {
+.cosmic-nexus-display-frame[data-playing="true"]
+  .cosmic-nexus-display-frame__scan-beam {
   opacity: 0.62;
   animation: nexus-aperture-scan 2.15s cubic-bezier(0.35, 0, 0.65, 1) infinite;
 }
 
-.cosmic-nexus-display-frame[data-playing='true'] .cosmic-nexus-display-frame__corner {
+.cosmic-nexus-display-frame[data-playing="true"]
+  .cosmic-nexus-display-frame__corner {
   animation: nexus-corner-charge 1.5s ease-in-out infinite alternate;
 }
 
-.cosmic-nexus-display-frame[data-playing='true'] .cosmic-nexus-display-frame__node {
+.cosmic-nexus-display-frame[data-playing="true"]
+  .cosmic-nexus-display-frame__node {
   animation: nexus-port-lock 1.05s ease-in-out infinite;
 }
 
@@ -377,7 +417,7 @@
 }
 
 .player-shell.theme-cosmic-nexus .transport-dock::before {
-  content: '';
+  content: "";
   position: absolute;
   top: -1px;
   left: 50%;
@@ -411,14 +451,16 @@
   box-shadow: 0 0 0 1px rgba(121, 255, 242, 0.24);
 }
 
-.player-shell.theme-cosmic-nexus .transport-dock__status-indicator[data-marquee-state='ready'] {
+.player-shell.theme-cosmic-nexus
+  .transport-dock__status-indicator[data-marquee-state="ready"] {
   background: rgba(121, 255, 242, 0.78);
   box-shadow:
     0 0 0 1px rgba(121, 255, 242, 0.34),
     0 0 7px rgba(121, 255, 242, 0.35);
 }
 
-.player-shell.theme-cosmic-nexus .transport-dock__status-indicator[data-marquee-state='playing'] {
+.player-shell.theme-cosmic-nexus
+  .transport-dock__status-indicator[data-marquee-state="playing"] {
   background: rgba(57, 255, 20, 0.95);
   box-shadow:
     0 0 0 1px rgba(57, 255, 20, 0.36),
@@ -460,11 +502,17 @@
   position: relative;
   isolation: isolate;
   color: rgba(216, 255, 247, 0.88);
-  border-image: linear-gradient(90deg, rgba(121, 255, 242, 0.5), rgba(164, 92, 255, 0.3), rgba(255, 77, 122, 0.45)) 1;
+  border-image: linear-gradient(
+      90deg,
+      rgba(121, 255, 242, 0.5),
+      rgba(164, 92, 255, 0.3),
+      rgba(255, 77, 122, 0.45)
+    )
+    1;
 }
 
 .player-shell.theme-cosmic-nexus .track-marquee::after {
-  content: '';
+  content: "";
   position: absolute;
   inset: 1px;
   pointer-events: none;
@@ -480,7 +528,8 @@
   transform: translateX(-130%);
 }
 
-.player-shell.theme-cosmic-nexus .track-marquee[data-marquee-state='playing']::after {
+.player-shell.theme-cosmic-nexus
+  .track-marquee[data-marquee-state="playing"]::after {
   opacity: 0.22;
   animation: nexus-marquee-sheen 2.9s linear infinite;
 }
@@ -488,21 +537,33 @@
 .player-shell.theme-cosmic-nexus .play-stop-button {
   position: relative;
   overflow: hidden;
-  border-color: rgba(57, 255, 20, 0.9);
-  background:
-    linear-gradient(135deg, rgba(57, 255, 20, 0.98), rgba(121, 255, 242, 0.88));
+  border-color: #9cff57;
+  background: #9cff57;
   color: #020407;
   box-shadow:
-    0 0 16px rgba(57, 255, 20, 0.18),
+    0 0 16px rgba(156, 255, 87, 0.18),
+    inset 0 0 12px rgba(255, 255, 255, 0.16);
+}
+
+.player-shell.theme-cosmic-nexus .play-stop-button[data-state="stop"] {
+  border-color: #ff7fa1;
+  background: #ff7fa1;
+  box-shadow:
+    0 0 16px rgba(255, 127, 161, 0.18),
     inset 0 0 12px rgba(255, 255, 255, 0.16);
 }
 
 .player-shell.theme-cosmic-nexus .play-stop-button::after {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: linear-gradient(105deg, transparent 20%, rgba(255, 255, 255, 0.32) 48%, transparent 75%);
+  background: linear-gradient(
+    105deg,
+    transparent 20%,
+    rgba(255, 255, 255, 0.32) 48%,
+    transparent 75%
+  );
   transform: translateX(-130%);
 }
 
@@ -519,8 +580,7 @@
 
 .player-shell.theme-cosmic-nexus .volume-control__range {
   accent-color: var(--nexus-green);
-  filter:
-    drop-shadow(0 0 3px rgba(57, 255, 20, 0.32))
+  filter: drop-shadow(0 0 3px rgba(57, 255, 20, 0.32))
     drop-shadow(0 0 7px rgba(121, 255, 242, 0.13));
 }
 
@@ -613,8 +673,10 @@
   }
 }
 
-.cosmic-nexus-display-frame[data-playing='true'] .cosmic-nexus-display-frame__node--top,
-.cosmic-nexus-display-frame[data-playing='true'] .cosmic-nexus-display-frame__node--bottom {
+.cosmic-nexus-display-frame[data-playing="true"]
+  .cosmic-nexus-display-frame__node--top,
+.cosmic-nexus-display-frame[data-playing="true"]
+  .cosmic-nexus-display-frame__node--bottom {
   animation-name: nexus-port-lock-horizontal;
 }
 
@@ -675,12 +737,18 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .cosmic-nexus-display-frame[data-playing='true'] .cosmic-nexus-display-frame__halo,
-  .cosmic-nexus-display-frame[data-playing='true'] .cosmic-nexus-display-frame__scan-beam,
-  .cosmic-nexus-display-frame[data-playing='true'] .cosmic-nexus-display-frame__corner,
-  .cosmic-nexus-display-frame[data-playing='true'] .cosmic-nexus-display-frame__node,
-  .player-shell.theme-cosmic-nexus .play-stop-button:hover:not(:disabled)::after,
-  .player-shell.theme-cosmic-nexus .track-marquee[data-marquee-state='playing']::after {
+  .cosmic-nexus-display-frame[data-playing="true"]
+    .cosmic-nexus-display-frame__halo,
+  .cosmic-nexus-display-frame[data-playing="true"]
+    .cosmic-nexus-display-frame__scan-beam,
+  .cosmic-nexus-display-frame[data-playing="true"]
+    .cosmic-nexus-display-frame__corner,
+  .cosmic-nexus-display-frame[data-playing="true"]
+    .cosmic-nexus-display-frame__node,
+  .player-shell.theme-cosmic-nexus
+    .play-stop-button:hover:not(:disabled)::after,
+  .player-shell.theme-cosmic-nexus
+    .track-marquee[data-marquee-state="playing"]::after {
     animation: none;
   }
 
@@ -688,7 +756,8 @@
     opacity: 0;
   }
 
-  .cosmic-nexus-display-frame[data-playing='true'] .cosmic-nexus-display-frame__scan-beam {
+  .cosmic-nexus-display-frame[data-playing="true"]
+    .cosmic-nexus-display-frame__scan-beam {
     top: 50%;
     opacity: 0.16;
   }

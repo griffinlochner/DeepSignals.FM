@@ -547,9 +547,9 @@
   height: var(--transport-control-height);
   padding: 0 16px;
   box-sizing: border-box;
-  background: var(--theme-accent, #39ff14);
-  color: var(--theme-background, #010104);
-  border: 1px solid var(--theme-accent, #39ff14);
+  background: #9cff57;
+  color: #010104;
+  border: 1px solid #9cff57;
   border-radius: 2px;
   font-weight: 700;
   font-size: 0.85rem;
@@ -560,9 +560,25 @@
   font-family: inherit;
 }
 
+.play-stop-button[data-state="play"] {
+  background: #9cff57;
+  border-color: #9cff57;
+  color: #010104;
+}
+
+.play-stop-button[data-state="stop"] {
+  background: #ff7fa1;
+  border-color: #ff7fa1;
+  color: #010104;
+}
+
 .play-stop-button:hover:not(:disabled) {
-  box-shadow: 0 0 12px var(--theme-glow, rgba(57, 255, 20, 0.5));
+  box-shadow: 0 0 12px rgba(156, 255, 87, 0.5);
   transform: scale(1.05);
+}
+
+.play-stop-button[data-state="stop"]:hover:not(:disabled) {
+  box-shadow: 0 0 12px rgba(255, 127, 161, 0.5);
 }
 
 .play-stop-button:active:not(:disabled) {
@@ -571,7 +587,11 @@
 
 .play-stop-button:focus {
   outline: none;
-  box-shadow: 0 0 8px var(--theme-accent, #39ff14);
+  box-shadow: 0 0 8px rgba(156, 255, 87, 0.7);
+}
+
+.play-stop-button[data-state="stop"]:focus {
+  box-shadow: 0 0 8px rgba(255, 127, 161, 0.7);
 }
 
 .play-stop-button:disabled {
