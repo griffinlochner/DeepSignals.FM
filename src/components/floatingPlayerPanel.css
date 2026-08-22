@@ -208,6 +208,19 @@
   text-transform: uppercase;
 }
 
+.floating-player-panel__label--signal,
+.floating-player-panel__label--volume {
+  color: var(--dsfm-brand-green, #9cff57);
+  text-shadow: 0 0 7px rgba(156, 255, 87, 0.28);
+}
+
+.floating-player-panel__label--transmission,
+.floating-player-panel__label--progress,
+.floating-player-panel__label--environment {
+  color: var(--dsfm-brand-cyan, #47f7ff);
+  text-shadow: 0 0 7px rgba(71, 247, 255, 0.24);
+}
+
 .floating-player-panel .signal-source-selector__select,
 .floating-player-panel .theme-selector__select,
 .floating-player-panel .track-marquee,

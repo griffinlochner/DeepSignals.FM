@@ -194,7 +194,7 @@ const FloatingPlayerPanel = forwardRef<HTMLElement, FloatingPlayerPanelProps>(
         {collapsed ? (
           <div className="floating-player-panel__collapsed-body" id={contentId}>
             <div className="floating-player-panel__row floating-player-panel__signal-row">
-              <p className="floating-player-panel__label">Signal</p>
+              <p className="floating-player-panel__label floating-player-panel__label--signal">Signal</p>
               <SignalSourceSelector
                 value={selectedSignalId || ""}
                 groups={signalGroups}
@@ -217,7 +217,7 @@ const FloatingPlayerPanel = forwardRef<HTMLElement, FloatingPlayerPanelProps>(
         ) : (
           <div className="floating-player-panel__body" id={contentId}>
             <div className="floating-player-panel__row floating-player-panel__signal-row">
-              <p className="floating-player-panel__label">Signal</p>
+              <p className="floating-player-panel__label floating-player-panel__label--signal">Signal</p>
               <SignalSourceSelector
                 value={selectedSignalId || ""}
                 groups={signalGroups}
@@ -226,7 +226,7 @@ const FloatingPlayerPanel = forwardRef<HTMLElement, FloatingPlayerPanelProps>(
             </div>
 
             <div className="floating-player-panel__row floating-player-panel__transmission-row">
-              <p className="floating-player-panel__label">Transmission</p>
+              <p className="floating-player-panel__label floating-player-panel__label--transmission">Transmission</p>
               <TrackMarquee
                 signalLabel={signalLabel}
                 marqueeState={marqueeState}
@@ -253,7 +253,7 @@ const FloatingPlayerPanel = forwardRef<HTMLElement, FloatingPlayerPanelProps>(
                 className="floating-player-panel__row"
                 aria-label="Volume control"
               >
-                <p className="floating-player-panel__label">Volume</p>
+                <p className="floating-player-panel__label floating-player-panel__label--volume">Volume</p>
                 <VolumeControl value={volume} onChange={onVolumeChange} />
               </section>
 
@@ -265,7 +265,7 @@ const FloatingPlayerPanel = forwardRef<HTMLElement, FloatingPlayerPanelProps>(
                   className="floating-player-panel__seek-row"
                   aria-label="Playback progress"
                 >
-                  <p className="floating-player-panel__label">Progress</p>
+                  <p className="floating-player-panel__label floating-player-panel__label--progress">Progress</p>
                   <input
                     className="floating-player-panel__seek-slider"
                     type="range"
@@ -293,7 +293,7 @@ const FloatingPlayerPanel = forwardRef<HTMLElement, FloatingPlayerPanelProps>(
               ) : null}
 
               <div className="floating-player-panel__row">
-                <p className="floating-player-panel__label">Environment</p>
+                <p className="floating-player-panel__label floating-player-panel__label--environment">Environment</p>
                 <ThemeSelector
                   value={selectedEnvironmentId}
                   options={environmentOptions}
