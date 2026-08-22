@@ -579,9 +579,7 @@
 }
 
 .player-shell.theme-cosmic-nexus .volume-control__range {
-  accent-color: var(--nexus-green);
-  filter: drop-shadow(0 0 3px rgba(57, 255, 20, 0.32))
-    drop-shadow(0 0 7px rgba(121, 255, 242, 0.13));
+  filter: drop-shadow(0 0 3px rgba(71, 247, 255, 0.2));
 }
 
 .player-shell.theme-cosmic-nexus option {

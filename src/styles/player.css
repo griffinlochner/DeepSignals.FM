@@ -614,12 +614,96 @@
 .volume-control__range {
   width: min(100%, 160px);
   cursor: pointer;
-  accent-color: var(--theme-accent-secondary);
-  background: var(--theme-accent-gradient);
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
 }
 
 .volume-control__range:focus {
   outline: none;
+}
+
+.volume-control__range::-webkit-slider-runnable-track,
+.floating-player-panel__seek-slider::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 2px;
+}
+
+.volume-control__range::-webkit-slider-runnable-track {
+  background: linear-gradient(
+    90deg,
+    #9cff57 0%,
+    #47f7ff 50%,
+    #ff7fa1 100%
+  );
+}
+
+.floating-player-panel__seek-slider::-webkit-slider-runnable-track {
+  background: linear-gradient(
+    90deg,
+    #ff7fa1 0%,
+    #47f7ff 50%,
+    #9cff57 100%
+  );
+}
+
+.volume-control__range::-webkit-slider-thumb,
+.floating-player-panel__seek-slider::-webkit-slider-thumb {
+  width: 14px;
+  height: 14px;
+  margin-top: -5px;
+  -webkit-appearance: none;
+  appearance: none;
+  border: 1px solid rgba(2, 8, 12, 0.72);
+  border-radius: 50%;
+  background: #47f7ff;
+  box-shadow: 0 0 0 1px rgba(233, 248, 244, 0.2);
+}
+
+.floating-player-panel__seek-slider {
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+}
+
+.volume-control__range::-moz-range-track,
+.floating-player-panel__seek-slider::-moz-range-track {
+  height: 4px;
+  border: 0;
+  border-radius: 2px;
+}
+
+.volume-control__range::-moz-range-track {
+  background: linear-gradient(
+    90deg,
+    #9cff57 0%,
+    #47f7ff 50%,
+    #ff7fa1 100%
+  );
+}
+
+.floating-player-panel__seek-slider::-moz-range-track {
+  background: linear-gradient(
+    90deg,
+    #ff7fa1 0%,
+    #47f7ff 50%,
+    #9cff57 100%
+  );
+}
+
+.volume-control__range::-moz-range-progress,
+.floating-player-panel__seek-slider::-moz-range-progress {
+  background: transparent;
+}
+
+.volume-control__range::-moz-range-thumb,
+.floating-player-panel__seek-slider::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border: 1px solid rgba(2, 8, 12, 0.72);
+  border-radius: 50%;
+  background: #47f7ff;
+  box-shadow: 0 0 0 1px rgba(233, 248, 244, 0.2);
 }
 
 /* ============================================================

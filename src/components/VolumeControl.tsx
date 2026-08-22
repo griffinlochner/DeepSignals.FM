@@ -1,7 +1,7 @@
 type VolumeControlProps = {
-  value: number
-  onChange: (value: number) => void
-}
+  value: number;
+  onChange: (value: number) => void;
+};
 
 function VolumeControl({ value, onChange }: VolumeControlProps) {
   return (
@@ -17,7 +17,7 @@ function VolumeControl({ value, onChange }: VolumeControlProps) {
         aria-label="Volume"
       />
     </label>
-  )
+  );
 }
 
-export default VolumeControl
+export default VolumeControl;

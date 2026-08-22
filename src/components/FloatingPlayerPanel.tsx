@@ -66,368 +66,379 @@ type FloatingPlayerPanelProps = {
   onCollapsedChange: (collapsed: boolean) => void;
 };
 
-const FloatingPlayerPanel = forwardRef<HTMLElement, FloatingPlayerPanelProps>(function FloatingPlayerPanel(
-  {
-    environmentName,
-    environmentOptions,
-    selectedEnvironmentId,
-    onEnvironmentChange,
-    audioPlaybackStatus,
-    audioReactiveSnapshot,
-    getLatestAudioSnapshot,
-    audioCurrentTime,
-    audioDuration,
-    audioSeekable,
-    audioMetadataLoaded,
-    audioErrorMessage,
-    audioIsSeeking,
-    onAudioTogglePlay,
-    onAudioSeek,
-    signalGroups,
-    selectedSignalId,
-    onSignalChange,
-    signalLabel,
-    isPlaying,
-    volume,
-    onVolumeChange,
-    motionEnabled,
-    supportsMotion,
-    onMotionToggle,
-    chromaEnabled,
-    supportsChroma,
-    onChromaToggle,
-    showSignalTelemetryControl,
-    signalTelemetryVisible,
-    onSignalTelemetryChange,
-    signalTelemetryToggleRef,
-    showVisualFeedControl,
-    visualFeedOpen,
-    onVisualFeedChange,
-    visualFeedToggleRef,
-    collapsed,
-    onCollapsedChange,
-  }: FloatingPlayerPanelProps,
-  ref,
-) {
-  const contentId = useId();
+const FloatingPlayerPanel = forwardRef<HTMLElement, FloatingPlayerPanelProps>(
+  function FloatingPlayerPanel(
+    {
+      environmentName,
+      environmentOptions,
+      selectedEnvironmentId,
+      onEnvironmentChange,
+      audioPlaybackStatus,
+      audioReactiveSnapshot,
+      getLatestAudioSnapshot,
+      audioCurrentTime,
+      audioDuration,
+      audioSeekable,
+      audioMetadataLoaded,
+      audioErrorMessage,
+      audioIsSeeking,
+      onAudioTogglePlay,
+      onAudioSeek,
+      signalGroups,
+      selectedSignalId,
+      onSignalChange,
+      signalLabel,
+      isPlaying,
+      volume,
+      onVolumeChange,
+      motionEnabled,
+      supportsMotion,
+      onMotionToggle,
+      chromaEnabled,
+      supportsChroma,
+      onChromaToggle,
+      showSignalTelemetryControl,
+      signalTelemetryVisible,
+      onSignalTelemetryChange,
+      signalTelemetryToggleRef,
+      showVisualFeedControl,
+      visualFeedOpen,
+      onVisualFeedChange,
+      visualFeedToggleRef,
+      collapsed,
+      onCollapsedChange,
+    }: FloatingPlayerPanelProps,
+    ref,
+  ) {
+    const contentId = useId();
 
-  const marqueeState: "no-signal" | "ready" | "playing" = !selectedSignalId
-    ? "no-signal"
-    : isPlaying
-      ? "playing"
-      : "ready";
+    const marqueeState: "no-signal" | "ready" | "playing" = !selectedSignalId
+      ? "no-signal"
+      : isPlaying
+        ? "playing"
+        : "ready";
 
-  const toggleLabel = collapsed
-    ? "Expand player panel"
-    : "Collapse player panel";
-  const chromaReactive = chromaEnabled && audioPlaybackStatus === "playing";
-  const panelElementRef = useRef<HTMLElement | null>(null);
+    const toggleLabel = collapsed
+      ? "Expand player panel"
+      : "Collapse player panel";
+    const chromaReactive = chromaEnabled && audioPlaybackStatus === "playing";
+    const panelElementRef = useRef<HTMLElement | null>(null);
 
-  useEffect(() => {
-    let frameId: number | null = null;
-    let currentHue = 0;
+    useEffect(() => {
+      let frameId: number | null = null;
+      let currentHue = 0;
 
-    const updateHue = () => {
-      const targetHue = chromaReactive
-        ? mapSmoothedEnergyToHue(getLatestAudioSnapshot().smoothedEnergy)
-        : 0;
-      currentHue = applyChromaHueResponse(currentHue, targetHue);
-      panelElementRef.current?.style.setProperty(
-        "--player-chroma-hue",
-        `${currentHue}deg`,
-      );
-      frameId = window.requestAnimationFrame(updateHue);
-    };
+      const updateHue = () => {
+        const targetHue = chromaReactive
+          ? mapSmoothedEnergyToHue(getLatestAudioSnapshot().smoothedEnergy)
+          : 0;
+        currentHue = applyChromaHueResponse(currentHue, targetHue);
+        panelElementRef.current?.style.setProperty(
+          "--player-chroma-hue",
+          `${currentHue}deg`,
+        );
+        frameId = window.requestAnimationFrame(updateHue);
+      };
 
-    updateHue();
+      updateHue();
 
-    return () => {
-      if (frameId !== null) {
-        window.cancelAnimationFrame(frameId);
-      }
-    };
-  }, [chromaReactive, getLatestAudioSnapshot]);
-
-  const reactiveEnergy = chromaReactive
-    ? Math.max(0, Math.min(1, audioReactiveSnapshot.smoothedEnergy))
-    : 0;
-  const panelStyle = {
-    "--player-reactive-energy": reactiveEnergy,
-  } as CSSProperties;
-
-  return (
-    <aside
-      ref={(element) => {
-        panelElementRef.current = element;
-        if (typeof ref === "function") {
-          ref(element);
-        } else if (ref) {
-          ref.current = element;
+      return () => {
+        if (frameId !== null) {
+          window.cancelAnimationFrame(frameId);
         }
-      }}
-      className="floating-player-panel"
-      data-collapsed={collapsed}
-      data-chroma-reactive={chromaReactive}
-      style={panelStyle}
-      aria-label={`${environmentName} controls`}
-    >
-      <header className="floating-player-panel__header">
-        <PublicBrandIdent
-          as="span"
-          className="floating-player-panel__brand-ident"
-        />
+      };
+    }, [chromaReactive, getLatestAudioSnapshot]);
 
-        <button
-          type="button"
-          className="floating-player-panel__toggle"
-          onClick={() => onCollapsedChange(!collapsed)}
-          aria-controls={contentId}
-          aria-expanded={!collapsed}
-          aria-label={toggleLabel}
-          title={toggleLabel}
-        >
-          <PanelChevronIcon collapsed={collapsed} expandDirection="down" />
-        </button>
-      </header>
+    const reactiveEnergy = chromaReactive
+      ? Math.max(0, Math.min(1, audioReactiveSnapshot.smoothedEnergy))
+      : 0;
+    const panelStyle = {
+      "--player-reactive-energy": reactiveEnergy,
+    } as CSSProperties;
 
-      {collapsed ? (
-        <div className="floating-player-panel__collapsed-body" id={contentId}>
-          <div className="floating-player-panel__row floating-player-panel__signal-row">
-            <p className="floating-player-panel__label">Signal</p>
-            <SignalSourceSelector
-              value={selectedSignalId || ""}
-              groups={signalGroups}
-              onChange={onSignalChange}
-            />
-          </div>
-
-          <TrackMarquee signalLabel={signalLabel} marqueeState={marqueeState} />
-
-          <PlayStopButton
-            isPlaying={audioPlaybackStatus === "playing"}
-            isLoading={audioPlaybackStatus === "loading"}
-            isDisabled={!selectedSignalId}
-            onToggle={() => void onAudioTogglePlay()}
+    return (
+      <aside
+        ref={(element) => {
+          panelElementRef.current = element;
+          if (typeof ref === "function") {
+            ref(element);
+          } else if (ref) {
+            ref.current = element;
+          }
+        }}
+        className="floating-player-panel"
+        data-collapsed={collapsed}
+        data-chroma-reactive={chromaReactive}
+        style={panelStyle}
+        aria-label={`${environmentName} controls`}
+      >
+        <header className="floating-player-panel__header">
+          <PublicBrandIdent
+            as="span"
+            className="floating-player-panel__brand-ident"
           />
-        </div>
-      ) : (
-        <div className="floating-player-panel__body" id={contentId}>
-          <div className="floating-player-panel__row floating-player-panel__signal-row">
-            <p className="floating-player-panel__label">Signal</p>
-            <SignalSourceSelector
-              value={selectedSignalId || ""}
-              groups={signalGroups}
-              onChange={onSignalChange}
-            />
-          </div>
 
-          <div className="floating-player-panel__row floating-player-panel__transmission-row">
-            <p className="floating-player-panel__label">Transmission</p>
+          <button
+            type="button"
+            className="floating-player-panel__toggle"
+            onClick={() => onCollapsedChange(!collapsed)}
+            aria-controls={contentId}
+            aria-expanded={!collapsed}
+            aria-label={toggleLabel}
+            title={toggleLabel}
+          >
+            <PanelChevronIcon collapsed={collapsed} expandDirection="down" />
+          </button>
+        </header>
+
+        {collapsed ? (
+          <div className="floating-player-panel__collapsed-body" id={contentId}>
+            <div className="floating-player-panel__row floating-player-panel__signal-row">
+              <p className="floating-player-panel__label">Signal</p>
+              <SignalSourceSelector
+                value={selectedSignalId || ""}
+                groups={signalGroups}
+                onChange={onSignalChange}
+              />
+            </div>
+
             <TrackMarquee
               signalLabel={signalLabel}
               marqueeState={marqueeState}
             />
-          </div>
-          {audioErrorMessage ? (
-            <p className="floating-player-panel__audio-error" role="status">
-              {audioErrorMessage}
-            </p>
-          ) : null}
 
-          <section
-            className="floating-player-panel__controls"
-            aria-label="Main controls"
-          >
             <PlayStopButton
               isPlaying={audioPlaybackStatus === "playing"}
               isLoading={audioPlaybackStatus === "loading"}
               isDisabled={!selectedSignalId}
               onToggle={() => void onAudioTogglePlay()}
             />
-
-            <section
-              className="floating-player-panel__row"
-              aria-label="Volume control"
-            >
-              <p className="floating-player-panel__label">Volume</p>
-              <VolumeControl value={volume} onChange={onVolumeChange} />
-            </section>
-
-            {audioSeekable &&
-            audioMetadataLoaded &&
-            Number.isFinite(audioDuration) &&
-            audioDuration > 0 ? (
-              <section
-                className="floating-player-panel__seek-row"
-                aria-label="Playback progress"
-              >
-                <p className="floating-player-panel__label">Progress</p>
-                <input
-                  className="floating-player-panel__seek-slider"
-                  type="range"
-                  min={0}
-                  max={Math.max(audioDuration, 1)}
-                  step="0.01"
-                  value={Math.min(
-                    audioCurrentTime,
-                    audioDuration || audioCurrentTime,
-                  )}
-                  onChange={(event) => onAudioSeek(Number(event.target.value))}
-                  disabled={
-                    audioIsSeeking || !audioMetadataLoaded || audioDuration <= 0
-                  }
-                  aria-label="Seek playback"
-                />
-                <p className="floating-player-panel__seek-time">
-                  {formatTime(audioCurrentTime)} / {formatTime(audioDuration)}
-                </p>
-              </section>
-            ) : null}
-
-            <div className="floating-player-panel__row">
-              <p className="floating-player-panel__label">Environment</p>
-              <ThemeSelector
-                value={selectedEnvironmentId}
-                options={environmentOptions}
-                onChange={onEnvironmentChange}
+          </div>
+        ) : (
+          <div className="floating-player-panel__body" id={contentId}>
+            <div className="floating-player-panel__row floating-player-panel__signal-row">
+              <p className="floating-player-panel__label">Signal</p>
+              <SignalSourceSelector
+                value={selectedSignalId || ""}
+                groups={signalGroups}
+                onChange={onSignalChange}
               />
             </div>
 
-            <div
-              className="floating-player-panel__toggle-row"
-              role="group"
-              aria-label="Environment controls"
-            >
-              <label
-                className={[
-                  "floating-player-panel__switch",
-                  "floating-player-panel__chroma-switch",
-                  !supportsChroma
-                    ? "floating-player-panel__switch--disabled"
-                    : "",
-                ]
-                  .filter(Boolean)
-                  .join(" ")}
-                title={
-                  !supportsChroma
-                    ? "Chroma is not available for this environment."
-                    : undefined
-                }
-              >
-                <input
-                  className="floating-player-panel__switch-checkbox"
-                  type="checkbox"
-                  checked={chromaEnabled}
-                  disabled={!supportsChroma}
-                  onChange={(event) => onChromaToggle(event.target.checked)}
-                  aria-label="Toggle environment chroma effects"
-                />
-                <span className="floating-player-panel__switch-label">
-                  Chroma
-                </span>
-                <span
-                  className="floating-player-panel__switch-track"
-                  aria-hidden="true"
-                >
-                  <span className="floating-player-panel__switch-thumb" />
-                </span>
-              </label>
-
-              <label
-                className={[
-                  "floating-player-panel__switch",
-                  "floating-player-panel__motion-switch",
-                  !supportsMotion
-                    ? "floating-player-panel__switch--disabled"
-                    : "",
-                ]
-                  .filter(Boolean)
-                  .join(" ")}
-                title={
-                  !supportsMotion
-                    ? "Motion is not available for this environment."
-                    : undefined
-                }
-              >
-                <input
-                  className="floating-player-panel__switch-checkbox"
-                  type="checkbox"
-                  checked={motionEnabled}
-                  disabled={!supportsMotion}
-                  onChange={(event) => onMotionToggle(event.target.checked)}
-                  aria-label="Motion"
-                />
-                <span className="floating-player-panel__switch-label">
-                  Motion
-                </span>
-                <span
-                  className="floating-player-panel__switch-track"
-                  aria-hidden="true"
-                >
-                  <span className="floating-player-panel__switch-thumb" />
-                </span>
-              </label>
+            <div className="floating-player-panel__row floating-player-panel__transmission-row">
+              <p className="floating-player-panel__label">Transmission</p>
+              <TrackMarquee
+                signalLabel={signalLabel}
+                marqueeState={marqueeState}
+              />
             </div>
+            {audioErrorMessage ? (
+              <p className="floating-player-panel__audio-error" role="status">
+                {audioErrorMessage}
+              </p>
+            ) : null}
 
-            {showVisualFeedControl || showSignalTelemetryControl ? (
+            <section
+              className="floating-player-panel__controls"
+              aria-label="Main controls"
+            >
+              <PlayStopButton
+                isPlaying={audioPlaybackStatus === "playing"}
+                isLoading={audioPlaybackStatus === "loading"}
+                isDisabled={!selectedSignalId}
+                onToggle={() => void onAudioTogglePlay()}
+              />
+
+              <section
+                className="floating-player-panel__row"
+                aria-label="Volume control"
+              >
+                <p className="floating-player-panel__label">Volume</p>
+                <VolumeControl value={volume} onChange={onVolumeChange} />
+              </section>
+
+              {audioSeekable &&
+              audioMetadataLoaded &&
+              Number.isFinite(audioDuration) &&
+              audioDuration > 0 ? (
+                <section
+                  className="floating-player-panel__seek-row"
+                  aria-label="Playback progress"
+                >
+                  <p className="floating-player-panel__label">Progress</p>
+                  <input
+                    className="floating-player-panel__seek-slider"
+                    type="range"
+                    min={0}
+                    max={Math.max(audioDuration, 1)}
+                    step="0.01"
+                    value={Math.min(
+                      audioCurrentTime,
+                      audioDuration || audioCurrentTime,
+                    )}
+                    onChange={(event) =>
+                      onAudioSeek(Number(event.target.value))
+                    }
+                    disabled={
+                      audioIsSeeking ||
+                      !audioMetadataLoaded ||
+                      audioDuration <= 0
+                    }
+                    aria-label="Seek playback"
+                  />
+                  <p className="floating-player-panel__seek-time">
+                    {formatTime(audioCurrentTime)} / {formatTime(audioDuration)}
+                  </p>
+                </section>
+              ) : null}
+
+              <div className="floating-player-panel__row">
+                <p className="floating-player-panel__label">Environment</p>
+                <ThemeSelector
+                  value={selectedEnvironmentId}
+                  options={environmentOptions}
+                  onChange={onEnvironmentChange}
+                />
+              </div>
+
               <div
                 className="floating-player-panel__toggle-row"
                 role="group"
-                aria-label="Display controls"
+                aria-label="Environment controls"
               >
-                {showVisualFeedControl ? (
-                  <label className="floating-player-panel__switch floating-player-panel__visual-switch">
-                    <input
-                      ref={visualFeedToggleRef}
-                      className="floating-player-panel__switch-checkbox"
-                      type="checkbox"
-                      checked={visualFeedOpen}
-                      onChange={(event) => onVisualFeedChange(event.target.checked)}
-                      aria-label="Toggle signal feed"
-                    />
-                    <span className="floating-player-panel__switch-label">
-                      Feed
-                    </span>
-                    <span
-                      className="floating-player-panel__switch-track"
-                      aria-hidden="true"
-                    >
-                      <span className="floating-player-panel__switch-thumb" />
-                    </span>
-                  </label>
-                ) : null}
+                <label
+                  className={[
+                    "floating-player-panel__switch",
+                    "floating-player-panel__chroma-switch",
+                    !supportsChroma
+                      ? "floating-player-panel__switch--disabled"
+                      : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
+                  title={
+                    !supportsChroma
+                      ? "Chroma is not available for this environment."
+                      : undefined
+                  }
+                >
+                  <input
+                    className="floating-player-panel__switch-checkbox"
+                    type="checkbox"
+                    checked={chromaEnabled}
+                    disabled={!supportsChroma}
+                    onChange={(event) => onChromaToggle(event.target.checked)}
+                    aria-label="Toggle environment chroma effects"
+                  />
+                  <span className="floating-player-panel__switch-label">
+                    Chroma
+                  </span>
+                  <span
+                    className="floating-player-panel__switch-track"
+                    aria-hidden="true"
+                  >
+                    <span className="floating-player-panel__switch-thumb" />
+                  </span>
+                </label>
 
-                {showSignalTelemetryControl ? (
-                  <label className="floating-player-panel__switch floating-player-panel__telemetry-switch">
-                    <input
-                      ref={signalTelemetryToggleRef}
-                      className="floating-player-panel__switch-checkbox"
-                      type="checkbox"
-                      checked={signalTelemetryVisible}
-                      onChange={(event) =>
-                        onSignalTelemetryChange(event.target.checked)
-                      }
-                      aria-label="Telemetry"
-                    />
-                    <span className="floating-player-panel__switch-label">
-                      Telemetry
-                    </span>
-                    <span
-                      className="floating-player-panel__switch-track"
-                      aria-hidden="true"
-                    >
-                      <span className="floating-player-panel__switch-thumb" />
-                    </span>
-                  </label>
-                ) : null}
+                <label
+                  className={[
+                    "floating-player-panel__switch",
+                    "floating-player-panel__motion-switch",
+                    !supportsMotion
+                      ? "floating-player-panel__switch--disabled"
+                      : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
+                  title={
+                    !supportsMotion
+                      ? "Motion is not available for this environment."
+                      : undefined
+                  }
+                >
+                  <input
+                    className="floating-player-panel__switch-checkbox"
+                    type="checkbox"
+                    checked={motionEnabled}
+                    disabled={!supportsMotion}
+                    onChange={(event) => onMotionToggle(event.target.checked)}
+                    aria-label="Motion"
+                  />
+                  <span className="floating-player-panel__switch-label">
+                    Motion
+                  </span>
+                  <span
+                    className="floating-player-panel__switch-track"
+                    aria-hidden="true"
+                  >
+                    <span className="floating-player-panel__switch-thumb" />
+                  </span>
+                </label>
               </div>
-            ) : null}
-          </section>
-        </div>
-      )}
-    </aside>
-  );
-});
+
+              {showVisualFeedControl || showSignalTelemetryControl ? (
+                <div
+                  className="floating-player-panel__toggle-row"
+                  role="group"
+                  aria-label="Display controls"
+                >
+                  {showVisualFeedControl ? (
+                    <label className="floating-player-panel__switch floating-player-panel__visual-switch">
+                      <input
+                        ref={visualFeedToggleRef}
+                        className="floating-player-panel__switch-checkbox"
+                        type="checkbox"
+                        checked={visualFeedOpen}
+                        onChange={(event) =>
+                          onVisualFeedChange(event.target.checked)
+                        }
+                        aria-label="Toggle signal feed"
+                      />
+                      <span className="floating-player-panel__switch-label">
+                        Feed
+                      </span>
+                      <span
+                        className="floating-player-panel__switch-track"
+                        aria-hidden="true"
+                      >
+                        <span className="floating-player-panel__switch-thumb" />
+                      </span>
+                    </label>
+                  ) : null}
+
+                  {showSignalTelemetryControl ? (
+                    <label className="floating-player-panel__switch floating-player-panel__telemetry-switch">
+                      <input
+                        ref={signalTelemetryToggleRef}
+                        className="floating-player-panel__switch-checkbox"
+                        type="checkbox"
+                        checked={signalTelemetryVisible}
+                        onChange={(event) =>
+                          onSignalTelemetryChange(event.target.checked)
+                        }
+                        aria-label="Telemetry"
+                      />
+                      <span className="floating-player-panel__switch-label">
+                        Telemetry
+                      </span>
+                      <span
+                        className="floating-player-panel__switch-track"
+                        aria-hidden="true"
+                      >
+                        <span className="floating-player-panel__switch-thumb" />
+                      </span>
+                    </label>
+                  ) : null}
+                </div>
+              ) : null}
+            </section>
+          </div>
+        )}
+      </aside>
+    );
+  },
+);
 
 function formatTime(seconds: number) {
   if (!Number.isFinite(seconds) || seconds < 0) {
