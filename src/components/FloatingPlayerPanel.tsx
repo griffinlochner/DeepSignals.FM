@@ -69,26 +69,16 @@ type FloatingPlayerPanelProps = {
 
 function SignalGutterRadar({
   isPlaying,
-  energy,
-  kick,
 }: {
   isPlaying: boolean;
-  energy: number;
-  kick: number;
 }) {
   return (
     <span
       className="floating-player-panel__micro-widget floating-player-panel__micro-widget--radar"
       data-playing={isPlaying}
-      style={
-        {
-          "--player-radar-energy": energy,
-          "--player-radar-kick": kick,
-        } as CSSProperties
-      }
       aria-hidden="true"
     >
-      <span className="floating-player-panel__radar-ring" />
+      <span className="floating-player-panel__radar-ring floating-player-panel__radar-ring--middle" />
       <span className="floating-player-panel__radar-ring floating-player-panel__radar-ring--inner" />
       <span className="floating-player-panel__radar-axis floating-player-panel__radar-axis--horizontal" />
       <span className="floating-player-panel__radar-axis floating-player-panel__radar-axis--vertical" />
@@ -249,8 +239,6 @@ const FloatingPlayerPanel = forwardRef<HTMLElement, FloatingPlayerPanelProps>(
                 widget={
                   <SignalGutterRadar
                     isPlaying={isPlaying}
-                    energy={audioReactiveSnapshot.smoothedEnergy}
-                    kick={audioReactiveSnapshot.kickPulse}
                   />
                 }
               >
@@ -283,8 +271,6 @@ const FloatingPlayerPanel = forwardRef<HTMLElement, FloatingPlayerPanelProps>(
                 widget={
                   <SignalGutterRadar
                     isPlaying={isPlaying}
-                    energy={audioReactiveSnapshot.smoothedEnergy}
-                    kick={audioReactiveSnapshot.kickPulse}
                   />
                 }
               >
