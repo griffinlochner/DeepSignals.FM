@@ -485,7 +485,7 @@ The player controls define a shared semantic contract across all environments:
 | **MOTION OFF** | Spatial scene animation frozen; other effects may continue               |
 | **CHROMA ON**  | Dynamic color/hue/palette behavior permitted                             |
 | **CHROMA OFF** | Stable authored palette; audio-driven color changes suppressed           |
-| **SURGE**      | Rare qualified high-energy event used by the Race environment             |
+| **SURGE**      | Rare qualified high-energy event used by the Race environment            |
 
 ### Family-Specific State Behavior Notes
 
