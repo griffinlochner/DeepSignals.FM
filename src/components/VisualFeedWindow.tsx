@@ -258,7 +258,16 @@ function VisualFeedWindow({
                 ["kick", "⊙↯", "Kick", liveSnapshot?.kickPulse ?? 0],
                 ["mids", "∷≈", "Mids", liveSnapshot?.mids ?? 0],
                 ["highs", "⋰⌁", "Highs", liveSnapshot?.highs ?? 0],
-              ].map(([signalId, glyph, semanticName, rawValue]) => {
+              ]
+                .filter((meter) => {
+                  // In collapsed mode, show only Energy and Kick
+                  if (playerCollapsed) {
+                    const signalId = meter[0] as string;
+                    return signalId === "energy" || signalId === "kick";
+                  }
+                  return true;
+                })
+                .map(([signalId, glyph, semanticName, rawValue]) => {
                 const normalized = Math.min(
                   1,
                   Math.max(0, Number(rawValue) || 0),
