@@ -1,21 +1,15 @@
-import type { AudioReactiveSnapshot } from '../../app/playerTypes'
-import {
-  clampUnit,
-  mapSignalTarget,
-  resolveShortestHueDeltaDegrees,
-  wrapSignedDegrees,
-} from '../../app/reactiveBehaviorMapping'
+import type { AudioReactiveSnapshot } from "../../app/playerTypes";
+import { clampUnit } from "../../app/reactiveBehaviorMapping";
 
 export type SignalNexusReactiveState = {
-  globalIntensity: number
-  corePulse: number
-  kickImpulse: number
-  orbitIntensity: number
-  particleIntensity: number
-  hueOffset: number
-  saturation: number
-  emissiveIntensity: number
-}
+  globalIntensity: number;
+  corePulse: number;
+  kickImpulse: number;
+  orbitIntensity: number;
+  particleIntensity: number;
+  saturation: number;
+  emissiveIntensity: number;
+};
 
 export const SIGNAL_NEXUS_REACTIVITY = {
   energy: {
@@ -47,14 +41,11 @@ export const SIGNAL_NEXUS_REACTIVITY = {
     emissiveWeight: 0.08,
   },
   chroma: {
-    hueRangeDegrees: 15,
-    hueBiasTowardWarmRatio: 0.18,
     saturationBase: 1,
     saturationEnergyWeight: 0.1,
     emissiveBase: 1,
     emissiveEnergyWeight: 0.14,
     emissiveKickWeight: 0.1,
-    hueSmoothing: 0.2,
   },
   motion: {
     travelerBaseRateScale: 1.05,
@@ -90,30 +81,29 @@ export const SIGNAL_NEXUS_REACTIVITY = {
     kickImpulse: { min: 0, max: 1 },
     orbitIntensity: { min: 0, max: 1 },
     particleIntensity: { min: 0, max: 1 },
-    hueOffset: { min: -15, max: 15 },
     saturation: { min: 1, max: 1.42 },
     emissiveIntensity: { min: 1, max: 1.26 },
   },
   epsilon: 0.0005,
-} as const
+} as const;
 
 function finite(value: number) {
-  return Number.isFinite(value) ? value : 0
+  return Number.isFinite(value) ? value : 0;
 }
 
 function clamp(value: number, minimum: number, maximum: number) {
-  return Math.min(maximum, Math.max(minimum, finite(value)))
+  return Math.min(maximum, Math.max(minimum, finite(value)));
 }
 
 function normalizeWithFloor(value: number, floor: number) {
-  const safeFloor = clamp(floor, 0, 0.99)
-  const safeValue = finite(value)
-  const denominator = Math.max(1 - safeFloor, 0.0001)
-  return clamp((safeValue - safeFloor) / denominator, 0, 1)
+  const safeFloor = clamp(floor, 0, 0.99);
+  const safeValue = finite(value);
+  const denominator = Math.max(1 - safeFloor, 0.0001);
+  return clamp((safeValue - safeFloor) / denominator, 0, 1);
 }
 
 function shapeCurve(value: number, exponent: number) {
-  return Math.pow(clamp(value, 0, 1), Math.max(exponent, 0.0001))
+  return Math.pow(clamp(value, 0, 1), Math.max(exponent, 0.0001));
 }
 
 function stepExp(
@@ -123,12 +113,15 @@ function stepExp(
   attackPerSecond: number,
   releasePerSecond: number,
 ) {
-  const safeCurrent = finite(current)
-  const safeTarget = finite(target)
-  const safeDelta = Math.max(0, finite(deltaSeconds))
-  const rate = safeTarget > safeCurrent ? Math.max(0, attackPerSecond) : Math.max(0, releasePerSecond)
-  const blend = 1 - Math.exp(-rate * safeDelta)
-  return safeCurrent + (safeTarget - safeCurrent) * blend
+  const safeCurrent = finite(current);
+  const safeTarget = finite(target);
+  const safeDelta = Math.max(0, finite(deltaSeconds));
+  const rate =
+    safeTarget > safeCurrent
+      ? Math.max(0, attackPerSecond)
+      : Math.max(0, releasePerSecond);
+  const blend = 1 - Math.exp(-rate * safeDelta);
+  return safeCurrent + (safeTarget - safeCurrent) * blend;
 }
 
 export function createNeutralSignalNexusReactiveState(): SignalNexusReactiveState {
@@ -138,48 +131,67 @@ export function createNeutralSignalNexusReactiveState(): SignalNexusReactiveStat
     kickImpulse: 0,
     orbitIntensity: 0,
     particleIntensity: 0,
-    hueOffset: 0,
     saturation: SIGNAL_NEXUS_REACTIVITY.chroma.saturationBase,
     emissiveIntensity: SIGNAL_NEXUS_REACTIVITY.chroma.emissiveBase,
-  }
+  };
 }
 
 export function resolveSignalNexusReactiveTarget(params: {
-  isPlaying: boolean
-  chromaEnabled: boolean
-  snapshot: AudioReactiveSnapshot | null
-  kickImpulseSeed: number
+  isPlaying: boolean;
+  chromaEnabled: boolean;
+  snapshot: AudioReactiveSnapshot | null;
+  kickImpulseSeed: number;
 }): SignalNexusReactiveState {
-  const neutral = createNeutralSignalNexusReactiveState()
+  const neutral = createNeutralSignalNexusReactiveState();
 
-  if (!params.isPlaying || !params.snapshot || params.snapshot.isActive !== true) {
-    return neutral
+  if (
+    !params.isPlaying ||
+    !params.snapshot ||
+    params.snapshot.isActive !== true
+  ) {
+    return neutral;
   }
 
   const energy = shapeCurve(
-    normalizeWithFloor(params.snapshot.smoothedEnergy, SIGNAL_NEXUS_REACTIVITY.energy.floor),
+    normalizeWithFloor(
+      params.snapshot.smoothedEnergy,
+      SIGNAL_NEXUS_REACTIVITY.energy.floor,
+    ),
     SIGNAL_NEXUS_REACTIVITY.energy.curve,
-  )
+  );
   const bass = shapeCurve(
-    normalizeWithFloor(params.snapshot.bass, SIGNAL_NEXUS_REACTIVITY.bass.floor),
+    normalizeWithFloor(
+      params.snapshot.bass,
+      SIGNAL_NEXUS_REACTIVITY.bass.floor,
+    ),
     SIGNAL_NEXUS_REACTIVITY.bass.curve,
-  )
+  );
   const mids = shapeCurve(
-    normalizeWithFloor(params.snapshot.mids, SIGNAL_NEXUS_REACTIVITY.mids.floor),
+    normalizeWithFloor(
+      params.snapshot.mids,
+      SIGNAL_NEXUS_REACTIVITY.mids.floor,
+    ),
     SIGNAL_NEXUS_REACTIVITY.mids.curve,
-  )
+  );
   const highs = shapeCurve(
-    normalizeWithFloor(params.snapshot.highs, SIGNAL_NEXUS_REACTIVITY.highs.floor),
+    normalizeWithFloor(
+      params.snapshot.highs,
+      SIGNAL_NEXUS_REACTIVITY.highs.floor,
+    ),
     SIGNAL_NEXUS_REACTIVITY.highs.curve,
-  )
+  );
   const kickPulse = shapeCurve(
-    normalizeWithFloor(params.snapshot.kickPulse, SIGNAL_NEXUS_REACTIVITY.kick.floor),
+    normalizeWithFloor(
+      params.snapshot.kickPulse,
+      SIGNAL_NEXUS_REACTIVITY.kick.floor,
+    ),
     SIGNAL_NEXUS_REACTIVITY.kick.curve,
-  )
+  );
 
   const kickImpulse = clampUnit(
-    Math.max(kickPulse, clamp(params.kickImpulseSeed, 0, 1)) * SIGNAL_NEXUS_REACTIVITY.kick.impulseWeight,
-  )
+    Math.max(kickPulse, clamp(params.kickImpulseSeed, 0, 1)) *
+      SIGNAL_NEXUS_REACTIVITY.kick.impulseWeight,
+  );
 
   const globalIntensity = clampUnit(
     energy * SIGNAL_NEXUS_REACTIVITY.energy.weight +
@@ -187,38 +199,27 @@ export function resolveSignalNexusReactiveTarget(params: {
       mids * 0.15 +
       highs * 0.09 +
       kickImpulse * 0.06,
-  )
+  );
 
   const corePulse = clampUnit(
     bass * SIGNAL_NEXUS_REACTIVITY.bass.coreWeight +
       energy * 0.28 +
       kickImpulse * 0.12,
-  )
+  );
 
   const orbitIntensity = clampUnit(
     mids * SIGNAL_NEXUS_REACTIVITY.mids.orbitWeight +
       energy * 0.24 +
       kickImpulse * SIGNAL_NEXUS_REACTIVITY.kick.orbitWeight,
-  )
+  );
 
   const particleIntensity = clampUnit(
     highs * SIGNAL_NEXUS_REACTIVITY.highs.particleWeight +
       energy * 0.16 +
       kickImpulse * 0.04,
-  )
+  );
 
-  const chromaTargetEnabled = params.chromaEnabled === true
-  const hueSignal = clampUnit(mids * 0.56 + highs * 0.44)
-  const warmBias = SIGNAL_NEXUS_REACTIVITY.chroma.hueBiasTowardWarmRatio * kickImpulse
-  const hueOffset = chromaTargetEnabled
-    ? clamp(
-        mapSignalTarget(hueSignal, -SIGNAL_NEXUS_REACTIVITY.chroma.hueRangeDegrees, SIGNAL_NEXUS_REACTIVITY.chroma.hueRangeDegrees) +
-          warmBias,
-        SIGNAL_NEXUS_REACTIVITY.bounds.hueOffset.min,
-        SIGNAL_NEXUS_REACTIVITY.bounds.hueOffset.max,
-      )
-    : 0
-
+  const chromaTargetEnabled = params.chromaEnabled === true;
   const saturation = chromaTargetEnabled
     ? clamp(
         SIGNAL_NEXUS_REACTIVITY.chroma.saturationBase +
@@ -227,7 +228,7 @@ export function resolveSignalNexusReactiveTarget(params: {
         SIGNAL_NEXUS_REACTIVITY.bounds.saturation.min,
         SIGNAL_NEXUS_REACTIVITY.bounds.saturation.max,
       )
-    : SIGNAL_NEXUS_REACTIVITY.chroma.saturationBase
+    : SIGNAL_NEXUS_REACTIVITY.chroma.saturationBase;
 
   const emissiveIntensity = chromaTargetEnabled
     ? clamp(
@@ -238,7 +239,7 @@ export function resolveSignalNexusReactiveTarget(params: {
         SIGNAL_NEXUS_REACTIVITY.bounds.emissiveIntensity.min,
         SIGNAL_NEXUS_REACTIVITY.bounds.emissiveIntensity.max,
       )
-    : SIGNAL_NEXUS_REACTIVITY.chroma.emissiveBase
+    : SIGNAL_NEXUS_REACTIVITY.chroma.emissiveBase;
 
   return {
     globalIntensity,
@@ -246,10 +247,9 @@ export function resolveSignalNexusReactiveTarget(params: {
     kickImpulse,
     orbitIntensity,
     particleIntensity,
-    hueOffset,
     saturation,
     emissiveIntensity,
-  }
+  };
 }
 
 export function stepSignalNexusReactiveState(
@@ -257,71 +257,119 @@ export function stepSignalNexusReactiveState(
   target: SignalNexusReactiveState,
   deltaSeconds: number,
 ): SignalNexusReactiveState {
-  const s = SIGNAL_NEXUS_REACTIVITY.smoothingPerSecond
-  const bounds = SIGNAL_NEXUS_REACTIVITY.bounds
-
-  const nextHue = wrapSignedDegrees(
-    current.hueOffset +
-      resolveShortestHueDeltaDegrees(current.hueOffset, target.hueOffset) *
-        SIGNAL_NEXUS_REACTIVITY.chroma.hueSmoothing,
-  )
+  const s = SIGNAL_NEXUS_REACTIVITY.smoothingPerSecond;
+  const bounds = SIGNAL_NEXUS_REACTIVITY.bounds;
 
   const next: SignalNexusReactiveState = {
     globalIntensity: clamp(
-      stepExp(current.globalIntensity, target.globalIntensity, deltaSeconds, s.globalIntensity.attack, s.globalIntensity.release),
+      stepExp(
+        current.globalIntensity,
+        target.globalIntensity,
+        deltaSeconds,
+        s.globalIntensity.attack,
+        s.globalIntensity.release,
+      ),
       bounds.globalIntensity.min,
       bounds.globalIntensity.max,
     ),
     corePulse: clamp(
-      stepExp(current.corePulse, target.corePulse, deltaSeconds, s.corePulse.attack, s.corePulse.release),
+      stepExp(
+        current.corePulse,
+        target.corePulse,
+        deltaSeconds,
+        s.corePulse.attack,
+        s.corePulse.release,
+      ),
       bounds.corePulse.min,
       bounds.corePulse.max,
     ),
     kickImpulse: clamp(
-      stepExp(current.kickImpulse, target.kickImpulse, deltaSeconds, s.kickImpulse.attack, s.kickImpulse.release),
+      stepExp(
+        current.kickImpulse,
+        target.kickImpulse,
+        deltaSeconds,
+        s.kickImpulse.attack,
+        s.kickImpulse.release,
+      ),
       bounds.kickImpulse.min,
       bounds.kickImpulse.max,
     ),
     orbitIntensity: clamp(
-      stepExp(current.orbitIntensity, target.orbitIntensity, deltaSeconds, s.orbitIntensity.attack, s.orbitIntensity.release),
+      stepExp(
+        current.orbitIntensity,
+        target.orbitIntensity,
+        deltaSeconds,
+        s.orbitIntensity.attack,
+        s.orbitIntensity.release,
+      ),
       bounds.orbitIntensity.min,
       bounds.orbitIntensity.max,
     ),
     particleIntensity: clamp(
-      stepExp(current.particleIntensity, target.particleIntensity, deltaSeconds, s.particleIntensity.attack, s.particleIntensity.release),
+      stepExp(
+        current.particleIntensity,
+        target.particleIntensity,
+        deltaSeconds,
+        s.particleIntensity.attack,
+        s.particleIntensity.release,
+      ),
       bounds.particleIntensity.min,
       bounds.particleIntensity.max,
     ),
-    hueOffset: clamp(nextHue, bounds.hueOffset.min, bounds.hueOffset.max),
     saturation: clamp(
-      stepExp(current.saturation, target.saturation, deltaSeconds, s.saturation.attack, s.saturation.release),
+      stepExp(
+        current.saturation,
+        target.saturation,
+        deltaSeconds,
+        s.saturation.attack,
+        s.saturation.release,
+      ),
       bounds.saturation.min,
       bounds.saturation.max,
     ),
     emissiveIntensity: clamp(
-      stepExp(current.emissiveIntensity, target.emissiveIntensity, deltaSeconds, s.emissiveIntensity.attack, s.emissiveIntensity.release),
+      stepExp(
+        current.emissiveIntensity,
+        target.emissiveIntensity,
+        deltaSeconds,
+        s.emissiveIntensity.attack,
+        s.emissiveIntensity.release,
+      ),
       bounds.emissiveIntensity.min,
       bounds.emissiveIntensity.max,
     ),
-  }
+  };
 
   if (
-    Math.abs(next.globalIntensity - target.globalIntensity) <= SIGNAL_NEXUS_REACTIVITY.epsilon &&
-    Math.abs(next.corePulse - target.corePulse) <= SIGNAL_NEXUS_REACTIVITY.epsilon &&
-    Math.abs(next.kickImpulse - target.kickImpulse) <= SIGNAL_NEXUS_REACTIVITY.epsilon &&
-    Math.abs(next.orbitIntensity - target.orbitIntensity) <= SIGNAL_NEXUS_REACTIVITY.epsilon &&
-    Math.abs(next.particleIntensity - target.particleIntensity) <= SIGNAL_NEXUS_REACTIVITY.epsilon &&
-    Math.abs(next.saturation - target.saturation) <= SIGNAL_NEXUS_REACTIVITY.epsilon &&
-    Math.abs(resolveShortestHueDeltaDegrees(next.hueOffset, target.hueOffset)) <= 0.05 &&
-    Math.abs(next.emissiveIntensity - target.emissiveIntensity) <= SIGNAL_NEXUS_REACTIVITY.epsilon
+    Math.abs(next.globalIntensity - target.globalIntensity) <=
+      SIGNAL_NEXUS_REACTIVITY.epsilon &&
+    Math.abs(next.corePulse - target.corePulse) <=
+      SIGNAL_NEXUS_REACTIVITY.epsilon &&
+    Math.abs(next.kickImpulse - target.kickImpulse) <=
+      SIGNAL_NEXUS_REACTIVITY.epsilon &&
+    Math.abs(next.orbitIntensity - target.orbitIntensity) <=
+      SIGNAL_NEXUS_REACTIVITY.epsilon &&
+    Math.abs(next.particleIntensity - target.particleIntensity) <=
+      SIGNAL_NEXUS_REACTIVITY.epsilon &&
+    Math.abs(next.saturation - target.saturation) <=
+      SIGNAL_NEXUS_REACTIVITY.epsilon &&
+    Math.abs(next.emissiveIntensity - target.emissiveIntensity) <=
+      SIGNAL_NEXUS_REACTIVITY.epsilon
   ) {
     return {
       ...target,
-      hueOffset: clamp(target.hueOffset, bounds.hueOffset.min, bounds.hueOffset.max),
-      saturation: clamp(target.saturation, bounds.saturation.min, bounds.saturation.max),
-      emissiveIntensity: clamp(target.emissiveIntensity, bounds.emissiveIntensity.min, bounds.emissiveIntensity.max),
-    }
+      saturation: clamp(
+        target.saturation,
+        bounds.saturation.min,
+        bounds.saturation.max,
+      ),
+      emissiveIntensity: clamp(
+        target.emissiveIntensity,
+        bounds.emissiveIntensity.min,
+        bounds.emissiveIntensity.max,
+      ),
+    };
   }
 
-  return next
+  return next;
 }
