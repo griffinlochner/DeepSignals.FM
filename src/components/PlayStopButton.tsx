@@ -14,9 +14,15 @@ function PlayStopButton({ isPlaying, isLoading = false, isDisabled, onToggle }: 
       data-state={isLoading ? "loading" : isPlaying ? "stop" : "play"}
       disabled={isButtonDisabled}
       onClick={onToggle}
-      aria-label={isLoading ? 'Loading playback' : isPlaying ? 'Stop playback' : 'Start playback'}
+      aria-label={isLoading ? "Loading playback" : isPlaying ? "Pause" : "Play"}
     >
-      {isLoading ? 'LOAD' : isPlaying ? 'STOP' : 'PLAY'}
+      {isLoading ? (
+        "LOAD"
+      ) : (
+        <span className="play-stop-button__icon" aria-hidden="true">
+          {isPlaying ? "❚❚" : "▶"}
+        </span>
+      )}
     </button>
   )
 }

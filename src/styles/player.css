@@ -582,6 +582,13 @@
   font-family: inherit;
 }
 
+.play-stop-button__icon {
+  display: inline-block;
+  font-size: 1.35em;
+  line-height: 1;
+  letter-spacing: 0;
+}
+
 .play-stop-button[data-state="play"] {
   background: #9cff57;
   border-color: #9cff57;
