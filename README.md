@@ -38,7 +38,7 @@ Built primarily as a learning project and a love letter to psychedelic trance.
 
 ## E2E Testing
 
-The Phase 1 Playwright suite tests the production build through Vite preview, not the Vite development server.
+The 27-test Playwright regression suite tests the production build through Vite preview, not the Vite development server.
 
 Install the browser once with `npx playwright install chromium`, then run `npm run test:e2e`. The HTML report is written to `playwright-report/` and can be opened with `npx playwright show-report`. Run one spec with `npx playwright test tests/smoke/player.spec.ts`.
 
@@ -57,8 +57,8 @@ The player is designed to be extended through well-defined audio signal contract
 **Three.js Environments (3):**
 
 - **Signal Runner**: Audio-reactive signal flight with sustained-energy travel
-- **Race to the Signal Nexus** (Neon Hyper-Racer): High-performance travel track with smooth energy-based speed
-- **The Signal Nexus** (Cosmic Nexus): Standalone complex reactive scene with orbital/particle systems
+- **Race to the Signal Nexus**: High-performance travel track with smooth energy-based speed
+- **The Signal Nexus**: Standalone complex reactive scene with orbital/particle systems
 
 **Minimal Environment (1):**
 
@@ -128,14 +128,14 @@ The analyser examines audio **before** the speaker output volume control.
 
 **Current volume behavior by environment:**
 
-- **Signal Runner**: Travel does **not** explicitly multiply its speed by `state.volume`. The scene includes a small base/idle velocity (`travelVelocity = 2.2 + normalizedSpeed² * 86`), so it can retain slow forward/coasting movement even when musical travel energy approaches zero. In browser testing, changing player volume appears to change Signal Runner visual reactivity, but the exact analyzer-level mechanism has not been conclusively established.
+- **Signal Runner**: Volume is not part of the environment's explicit travel mapping. It uses its own audio-driven travel behavior and may retain slow forward/coasting movement as musical energy approaches zero.
 - **Image-Depth scenes**: Do NOT apply volume to snapshot signals
-- **Race to the Signal Nexus**: **Does** explicitly multiply travel speed by `state.volume` for direct player control; complete stop when volume = 0
+- **Race to the Signal Nexus**: Volume participates in the environment's travel mapping, so volume zero settles primary travel to a stop.
 
 **Current presentation difference**:
 
-- **Race to the Signal Nexus** can reach a complete stop at volume zero because it explicitly scales target speed by player volume.
-- **Signal Runner** retains a small idle/coasting velocity even when energy approaches zero. Both behaviors are currently acceptable; they do not need normalization unless future design/testing gives a reason to change them.
+- **Race to the Signal Nexus** can reach a complete stop at volume zero because volume participates in its primary travel mapping.
+- **Signal Runner** may retain slow idle/coasting movement even when energy approaches zero. These family-specific behaviors are intentional and do not need normalization unless future design/testing gives a reason to change them.
 
 **Future implementations**: Avoid accidentally applying volume twice (once in analysis gain, once in the scene). Use current code patterns as reference.
 
@@ -196,7 +196,7 @@ fast → slow → fast → slow → fast
 
 pumping, especially noticeable during kick-heavy music. Smooth energy preserves musical alignment without distraction.
 
-**Volume in Hyper-Racer:** The one exception: `targetSpeed = volume * travelEnergy * scaleFactor`. This explicit multiplier gives the player direct volume-based control of scene energy. Do NOT replicate this in Signal Runner style scenes without an explicit design decision.
+**Volume in Race to the Signal Nexus:** Volume participates explicitly in the travel mapping and gives the player direct control over that environment's primary travel energy. Do NOT assume the same volume semantics for Signal Runner without an explicit design decision.
 
 **Motion/CHROMA behavior:**
 
@@ -224,7 +224,7 @@ Standalone older implementation with richer local reactive mappings:
 
 This environment does not yet represent the finalized modern Three.js pattern. It can later be deliberately migrated to use shared signals.
 
-**Current status**: Functional; do not use as template for new environments. Reference Signal Runner / Hyper-Racer instead.
+**Current status**: Functional; do not use as template for new environments. Reference Signal Runner / Race to the Signal Nexus instead.
 
 ### Minimal Environment
 
@@ -306,7 +306,7 @@ Discrete accepted beat event detection.
 **Important clarification:**
 
 ```
-acceptedKickEvent ≠ SURGE / BLAST OFF
+acceptedKickEvent ≠ SURGE
 ```
 
 Multiple accepted kicks occur continuously without triggering a SURGE. The kick event provides the raw beat information; SURGE is a separate qualified state machine.
@@ -339,15 +339,13 @@ Authored material colors should be **rotated** by the shared hue offset rather t
 
 ---
 
-## Shared SURGE / BLAST OFF Semantics
+## Shared SURGE Semantics
 
 A shared qualification algorithm in `sharedSurgeQualification.ts` provides a qualified high-energy event.
 
 ### Current Architecture
 
-**Signal Runner** and **Race to the Signal Nexus** maintain **separate per-environment qualification state machines** using the same shared algorithm.
-
-They do **NOT** share a centralized event instance; they use the same thresholds/semantics independently.
+**Race to the Signal Nexus** currently consumes this shared qualifier. Signal Runner does not currently consume qualified SURGE state.
 
 ### Qualification Semantics
 
@@ -365,7 +363,7 @@ They do **NOT** share a centralized event instance; they use the same thresholds
 ```
 accepted kick event (continuous)
 ≠
-SURGE / BLAST OFF (rare qualified burst)
+SURGE (rare qualified burst)
 ```
 
 Multiple kicks occur without triggering SURGE. SURGE is the qualified state transition, not every beat.
@@ -374,7 +372,6 @@ Multiple kicks occur without triggering SURGE. SURGE is the qualified state tran
 
 Each environment decides how to visualize the same semantic event:
 
-- **Signal Runner** → BLAST OFF display overlay
 - **Race to the Signal Nexus** → Nexus/starfield overload with surge waves and bolts
 
 This separation of **shared semantics** (when the event occurs) from **family-specific visualization** (how it looks) is the key pattern.
@@ -488,7 +485,7 @@ The player controls define a shared semantic contract across all environments:
 | **MOTION OFF** | Spatial scene animation frozen; other effects may continue               |
 | **CHROMA ON**  | Dynamic color/hue/palette behavior permitted                             |
 | **CHROMA OFF** | Stable authored palette; audio-driven color changes suppressed           |
-| **SURGE**      | Rare qualified high-energy event occurs (both environments)              |
+| **SURGE**      | Rare qualified high-energy event used by the Race environment             |
 
 ### Family-Specific State Behavior Notes
 
@@ -513,7 +510,7 @@ The player controls define a shared semantic contract across all environments:
 
 - Travel and spatial movement freeze
 - Star spatial movement stops completely
-- Current CSS HUD remains independent (will be removed/refactored in future)
+- The environment uses a Three.js viewscreen; no large CSS/DOM control panel is part of the current player
 
 **STOPPED:**
 
