@@ -180,6 +180,12 @@
   transform: translate3d(0, 12px, 0);
 }
 
+@media ((max-width: 950px) and (max-height: 500px)) {
+  .visual-feed-window--dock-bottom {
+    width: min(430px, 100%);
+  }
+}
+
 .visual-feed-window--dock-bottom .visual-feed-window__body {
   display: grid;
   grid-template-columns: minmax(0, 58%) minmax(0, 42%);

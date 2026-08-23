@@ -275,7 +275,7 @@
   box-sizing: border-box;
 }
 
-@media (max-width: 480px) {
+@media (max-width: 480px), ((max-width: 950px) and (max-height: 500px)) {
   .player-shell {
     position: relative;
     height: auto;
@@ -316,6 +316,14 @@
     grid-column: 1;
     grid-row: 1;
     width: 100%;
+  }
+}
+
+@media ((max-width: 950px) and (max-height: 500px)) {
+  .player-shell__dock--right .visual-feed-window,
+  .player-shell__dock--bottom .visual-feed-window {
+    width: min(430px, 100%);
+    justify-self: start;
   }
 }
 
@@ -864,7 +872,7 @@
   }
 }
 
-@media (max-width: 480px) {
+@media (max-width: 480px), ((max-width: 950px) and (max-height: 500px)) {
   .transport-dock {
     padding: 12px 10px var(--transport-dock-padding-bottom);
   }
