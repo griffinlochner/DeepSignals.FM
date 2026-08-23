@@ -1,10 +1,12 @@
-import LandingNexusScene from '../scenes/landing-nexus/LandingNexusScene'
-import PublicBrandIdent from '../components/PublicBrandIdent'
-import PublicSocialLinks from '../components/PublicSocialLinks'
-import '../styles/landingPage.css'
+import LandingNexusScene from "../scenes/landing-nexus/LandingNexusScene";
+import PublicBrandIdent from "../components/PublicBrandIdent";
+import PublicSocialLinks from "../components/PublicSocialLinks";
+import "../styles/landingPage.css";
 
 function LandingPage() {
-  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  const reducedMotion = window.matchMedia(
+    "(prefers-reduced-motion: reduce)",
+  ).matches;
 
   return (
     <div className="landing-page">
@@ -14,12 +16,19 @@ function LandingPage() {
       <div className="landing-nexus-scene__scanlines" aria-hidden="true" />
 
       <main className="transmission-overlay">
-        <p className="transmission-overlay__acquired">░▒▓ SIGNAL ACQUIRED ▓▒░</p>
+        <p className="transmission-overlay__acquired">
+          ░▒▓ SIGNAL ACQUIRED ▓▒░
+        </p>
 
         <h1 className="transmission-overlay__title">
           <span className="transmission-overlay__title-prefix">::</span>
-          <PublicBrandIdent as="span" className="transmission-overlay__brand-ident" />
-          <span className="transmission-overlay__title-initializing">TRANSMISSION INITIALIZING</span>
+          <PublicBrandIdent
+            as="span"
+            className="transmission-overlay__brand-ident"
+          />
+          <span className="transmission-overlay__title-initializing">
+            TRANSMISSION INITIALIZING
+          </span>
           <span className="transmission-overlay__title-suffix">::</span>
         </h1>
 
@@ -29,17 +38,42 @@ function LandingPage() {
           <p>[ searching for hidden wavelengths... ]</p>
         </div>
 
-        <p className="transmission-overlay__message">
-          A new psychedelic trance radio experience is awakening...
-        </p>
+        <div className="transmission-overlay__player-cta">
+          <div className="player-cta__header">
+            <span className="player-cta__led" aria-hidden="true" />
+            <span className="player-cta__status">
+              EXPERIMENTAL SIGNAL ONLINE
+            </span>
+          </div>
 
-        <div className="transmission-overlay__socials" aria-label="social links">
+          <a href="/player/" className="player-cta__link">
+            <span className="player-cta__link-text">TUNE INTO THE PLAYER</span>
+            <span className="player-cta__arrow" aria-hidden="true">
+              →
+            </span>
+          </a>
+
+          <p className="player-cta__support">
+            Live stations · reactive visuals · telemetry
+          </p>
+          <p className="player-cta__disclaimer">
+            Experimental transmission — expect anomalies.
+          </p>
+        </div>
+
+        <div
+          className="transmission-overlay__socials"
+          aria-label="social links"
+        >
           <p className="transmission-overlay__social-label">Stay connected:</p>
-          <PublicSocialLinks className="transmission-overlay__social-links" ariaLabel="social links" />
+          <PublicSocialLinks
+            className="transmission-overlay__social-links"
+            ariaLabel="social links"
+          />
         </div>
       </main>
     </div>
-  )
+  );
 }
 
-export default LandingPage
+export default LandingPage;
