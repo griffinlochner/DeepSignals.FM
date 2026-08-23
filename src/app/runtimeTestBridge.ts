@@ -20,6 +20,8 @@ export type RuntimeTestSnapshot = {
     motionSpeed: number | null;
     travelPosition: number | null;
     hue: number | null;
+    surgeCount: number;
+    lastSurgeAt: number | null;
   };
 };
 
@@ -40,6 +42,8 @@ const initialSnapshot: RuntimeTestSnapshot = {
     motionSpeed: null,
     travelPosition: null,
     hue: null,
+    surgeCount: 0,
+    lastSurgeAt: null,
   },
 };
 

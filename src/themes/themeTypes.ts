@@ -33,6 +33,8 @@ export type ThemeSceneProps = {
     motionSpeed?: number;
     travelPosition?: number;
     hue?: number;
+    surgeCount?: number;
+    lastSurgeAt?: number;
   }) => void;
 };
 

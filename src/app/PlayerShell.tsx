@@ -912,6 +912,8 @@ function PlayerShell({ className }: PlayerShellProps) {
           motionSpeed: telemetry.motionSpeed ?? null,
           travelPosition: telemetry.travelPosition ?? null,
           hue: telemetry.hue ?? null,
+          surgeCount: telemetry.surgeCount ?? 0,
+          lastSurgeAt: telemetry.lastSurgeAt ?? null,
         },
       });
     },

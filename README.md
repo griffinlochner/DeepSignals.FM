@@ -44,6 +44,8 @@ Install the browser once with `npx playwright install chromium`, then run `npm r
 
 The behavior spec also runs against the bundled `Biomekanik — Fragments of Reality` demo track, so it does not depend on live radio or metadata services. Run it with `npx playwright test tests/behavior/motion-chroma.spec.ts`.
 
+Phase 2B also covers Race volume-zero and volume-ramp behavior, qualified SURGE near the deterministic demo reference, and the shared qualifier's arm/cooldown semantics. Run `npx playwright test tests/behavior/volume-surge.spec.ts tests/behavior/surge-qualification.spec.ts`.
+
 ## Player Architecture
 
 DeepSignals.FM currently features **19 registered environments** across several distinct families, each with different audio-reactivity contracts and visual semantics.

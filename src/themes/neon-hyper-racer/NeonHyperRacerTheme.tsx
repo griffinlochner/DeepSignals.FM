@@ -734,6 +734,8 @@ function NeonHyperRacerTheme({
     let accumulatedTravel = 0;
     let smoothedChromaHueOffset = 0;
     let lastTelemetryPublishedAt = 0;
+    let surgeCount = 0;
+    let lastSurgeAt: number | undefined;
     let animationFrame = 0;
     const surgeQualificationRef = {
       current: createSharedSurgeQualificationState(),
@@ -875,6 +877,8 @@ function NeonHyperRacerTheme({
       surgeQualificationRef.current = qualification.state;
       const surgeTriggered = motionActive && qualification.triggered;
       if (surgeTriggered) {
+        surgeCount += 1;
+        lastSurgeAt = performance.now();
         triggerSurge(qualification.sequence, elapsed);
       }
 
@@ -926,6 +930,8 @@ function NeonHyperRacerTheme({
           motionSpeed: currentTravelSpeed,
           travelPosition: accumulatedTravel,
           hue: smoothedChromaHueOffset,
+          surgeCount,
+          lastSurgeAt,
         });
       }
       const starChromaEnabled = state.chromaEnabled;
