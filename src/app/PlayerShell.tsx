@@ -660,21 +660,6 @@ function PlayerShell({ className }: PlayerShellProps) {
 
   };
 
-  const focusInfoToggle = () => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    window.requestAnimationFrame(() => {
-      infoToggleRef.current?.focus();
-    });
-  };
-
-  const handleInfoClose = () => {
-    setInfoOpen(false);
-    focusInfoToggle();
-  };
-
   useEffect(() => {
     const resetFullOnOverrides = () => {
       if (
@@ -1063,7 +1048,6 @@ function PlayerShell({ className }: PlayerShellProps) {
           open={effectiveInfoOpen && visualFeedDockMode !== null}
           dockMode={visualFeedDockMode ?? "right"}
           playerCollapsed={panelCollapsed}
-          onClose={handleInfoClose}
           selectedTrackSource={
             selectedSignalId ? audioController.audioSource : null
           }
@@ -1072,6 +1056,7 @@ function PlayerShell({ className }: PlayerShellProps) {
           getLatestSnapshot={audioAnalysis.getLatestSnapshot}
           analysisStatus={audioAnalysis.status}
           playbackStatus={audioController.playbackStatus}
+          chromaEnabled={chromaEnabled}
           Frame={activeTheme.VisualFeedFrame}
         />
       </div>

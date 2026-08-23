@@ -1,6 +1,17 @@
-import { useEffect, useId, useState, type ComponentType } from "react";
+import {
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type ComponentType,
+  type CSSProperties,
+} from "react";
 import "./visualFeedWindow.css";
 import { publicAssetUrl } from "../app/publicAssetUrl";
+import {
+  applyChromaHueResponse,
+  mapSmoothedEnergyToHue,
+} from "../app/sharedChroma";
 import type { AudioReactiveSnapshot, AudioSource } from "../app/playerTypes";
 import type { TrackSignalMetadata } from "../app/trackSignalMetadata";
 import { useTrackSignalMetadata } from "../app/useTrackSignalMetadata";
@@ -14,25 +25,16 @@ type VisualFeedWindowProps = {
   open: boolean;
   dockMode: "right" | "bottom";
   playerCollapsed?: boolean;
-  onClose: () => void;
   selectedTrackSource: AudioSource | null;
   metadataOverride?: TrackSignalMetadata | null;
   audioSnapshot?: AudioReactiveSnapshot;
   getLatestSnapshot?: () => AudioReactiveSnapshot;
   analysisStatus?: string;
   playbackStatus?: string;
+  chromaEnabled?: boolean;
   Frame?: ComponentType<ThemeVisualFeedFrameProps>;
   className?: string;
 };
-
-function CloseIcon() {
-  return (
-    <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
-      <path d="M3.25 3.25L12.75 12.75" />
-      <path d="M12.75 3.25L3.25 12.75" />
-    </svg>
-  );
-}
 
 function DefaultFrame({ children }: ThemeVisualFeedFrameProps) {
   return <>{children}</>;
@@ -82,11 +84,12 @@ function VisualFeedWindow({
   open,
   dockMode,
   playerCollapsed,
-  onClose,
   selectedTrackSource,
   metadataOverride,
   audioSnapshot,
   getLatestSnapshot,
+  playbackStatus,
+  chromaEnabled,
   Frame,
   className,
 }: VisualFeedWindowProps) {
@@ -95,8 +98,10 @@ function VisualFeedWindow({
     () => new Set(),
   );
   const [liveSnapshot, setLiveSnapshot] = useState(audioSnapshot);
+  const panelElementRef = useRef<HTMLElement | null>(null);
   const FrameComponent = Frame ?? DefaultFrame;
   const { status, metadata } = useTrackSignalMetadata(selectedTrackSource);
+  const chromaReactive = chromaEnabled === true && playbackStatus === "playing";
 
   useEffect(() => {
     if (!open || !getLatestSnapshot) {
@@ -111,21 +116,31 @@ function VisualFeedWindow({
   }, [getLatestSnapshot, open]);
 
   useEffect(() => {
-    if (!open) {
-      return;
-    }
+    let frameId: number | null = null;
+    let currentHue = 0;
 
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        onClose();
+    const updateHue = () => {
+      const targetHue = chromaReactive
+        ? mapSmoothedEnergyToHue(
+            getLatestSnapshot?.().smoothedEnergy ?? 0,
+          )
+        : 0;
+      currentHue = applyChromaHueResponse(currentHue, targetHue);
+      panelElementRef.current?.style.setProperty(
+        "--visual-feed-chroma-hue",
+        `${currentHue}deg`,
+      );
+      frameId = window.requestAnimationFrame(updateHue);
+    };
+
+    updateHue();
+
+    return () => {
+      if (frameId !== null) {
+        window.cancelAnimationFrame(frameId);
       }
     };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [open, onClose]);
+  }, [chromaReactive, getLatestSnapshot]);
 
   if (!open) {
     return null;
@@ -188,32 +203,30 @@ function VisualFeedWindow({
       aria-label="Signal info panel"
       data-stage="open"
       data-player-collapsed={playerCollapsed ? "true" : "false"}
+      data-chroma-reactive={chromaReactive}
+      style={
+        {
+          "--visual-feed-reactive-energy": chromaReactive
+            ? Math.max(0, Math.min(1, liveSnapshot?.smoothedEnergy ?? 0))
+            : 0,
+        } as CSSProperties
+      }
       aria-hidden="false"
+      ref={panelElementRef}
     >
       <header className="visual-feed-window__header">
         <p className="visual-feed-window__title">INFO</p>
-        <div className="visual-feed-window__header-actions">
-          {externalSourceUrl ? (
-            <a
-              className="visual-feed-window__source-link"
-              href={externalSourceUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label={`Open source for ${resolvedTitle}`}
-            >
-              SOURCE <span aria-hidden="true">↗</span>
-            </a>
-          ) : null}
-          <button
-            type="button"
-            className="visual-feed-window__close"
-            onClick={onClose}
-            aria-label="Close signal info"
-            title="Close signal info"
+        {externalSourceUrl ? (
+          <a
+            className="visual-feed-window__source-link"
+            href={externalSourceUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={`Open source for ${resolvedTitle}`}
           >
-            <CloseIcon />
-          </button>
-        </div>
+            SOURCE <span aria-hidden="true">↗</span>
+          </a>
+        ) : null}
       </header>
 
       <div className="visual-feed-window__body" id={contentId}>
