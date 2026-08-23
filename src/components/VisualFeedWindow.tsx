@@ -54,11 +54,32 @@ function SignalInfoMarquee() {
   const renderMessage = (copyIndex: number) => (
     <span className="visual-feed-window__marquee-group" key={copyIndex}>
       {SIGNAL_RUNNER_MESSAGES.map((message) => (
-        <span
-          className={`visual-feed-window__marquee-part visual-feed-window__marquee-part--${message.color}${message.joined ? " visual-feed-window__marquee-part--joined" : ""}`}
-          key={`${copyIndex}-${message.text}`}
-        >
-          {message.text}
+        <span key={`${copyIndex}-${message.text}`}>
+          <span
+            className={`visual-feed-window__marquee-part visual-feed-window__marquee-part--${message.color}${message.joined ? " visual-feed-window__marquee-part--joined" : ""}`}
+          >
+            {message.text}
+          </span>
+          {message.text === ".FM" ? (
+            <span
+              className="visual-feed-window__marquee-spacer"
+              aria-hidden="true"
+            />
+          ) : null}
+          {message.text === "TRANSCEND." ? (
+            <>
+              <span
+                className="visual-feed-window__marquee-spacer visual-feed-window__marquee-spacer--cluster"
+                aria-hidden="true"
+              />
+              <span
+                className="visual-feed-window__marquee-cluster"
+                aria-hidden="true"
+              >
+                👽 🚀 🪐 ✦ ⌁ ∆
+              </span>
+            </>
+          ) : null}
         </span>
       ))}
     </span>
@@ -74,7 +95,8 @@ function SignalInfoMarquee() {
         {renderMessage(1)}
       </div>
       <span className="visual-feed-window__marquee-live" aria-live="polite">
-        WELCOME TO DEEPSIGNALS.FM // TUNE IN. TRANSMIT. TRANSCEND.
+        WELCOME TO DEEPSIGNALS.FM // TUNE IN. TRANSMIT. TRANSCEND. // Alien,
+        rocket, planet, star, signal, delta.
       </span>
     </div>
   );

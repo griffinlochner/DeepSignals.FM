@@ -546,6 +546,24 @@
   color: #ff7fa1;
 }
 
+.visual-feed-window__marquee-spacer {
+  display: inline-block;
+  width: 4.5em;
+  flex: 0 0 4.5em;
+}
+
+.visual-feed-window__marquee-spacer--cluster {
+  width: 4em;
+  flex-basis: 4em;
+}
+
+.visual-feed-window__marquee-cluster {
+  color: var(--theme-accent-secondary, #80d8ff);
+  letter-spacing: 0.04em;
+  text-shadow: 0 0 5px currentColor;
+  white-space: nowrap;
+}
+
 .visual-feed-window__marquee-live {
   position: absolute;
   width: 1px;

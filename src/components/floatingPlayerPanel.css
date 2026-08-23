@@ -556,6 +556,7 @@
 .floating-player-panel__switch-label {
   flex: 1 1 auto;
   min-width: 0;
+  padding-left: 8px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
