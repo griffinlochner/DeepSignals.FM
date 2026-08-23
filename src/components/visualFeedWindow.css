@@ -245,7 +245,7 @@
   font-size: 0.72rem;
   letter-spacing: 0.11em;
   text-transform: uppercase;
-  color: var(--visual-feed-title, var(--theme-accent, #7bf2d9));
+  color: var(--visual-feed-title, var(--dsfm-brand-salmon, #ff7fa1));
 }
 
 .visual-feed-window__about-link {
