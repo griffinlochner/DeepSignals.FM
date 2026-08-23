@@ -10,12 +10,12 @@ A psychedelic trance radio experience built with React, TypeScript and Three.js.
 
 **TUNE IN. TRANSMIT. TRANSCEND.**
 
-| Role | Color | Hex |
-| --- | --- | --- |
-| DEEP / primary signal | Neon Green | `#9cff57` |
-| SIGNALS / transmission | Neon Cyan | `#47f7ff` |
-| .FM / broadcast accent | Neon Salmon | `#ff7fa1` |
-| Primary background | Signal Black | `#020202` |
+| Role                   | Color        | Hex       |
+| ---------------------- | ------------ | --------- |
+| DEEP / primary signal  | Neon Green   | `#9cff57` |
+| SIGNALS / transmission | Neon Cyan    | `#47f7ff` |
+| .FM / broadcast accent | Neon Salmon  | `#ff7fa1` |
+| Primary background     | Signal Black | `#020202` |
 
 The wordmark colors come from the resolved decoder states in `src/components/publicBrandIdent.css`; Signal Black is the shared `html, body` background in `src/index.css`.
 
@@ -36,6 +36,12 @@ The current public site is a "coming soon" experience while the player is being 
 
 Built primarily as a learning project and a love letter to psychedelic trance.
 
+## E2E Testing
+
+The Phase 1 Playwright suite tests the production build through Vite preview, not the Vite development server.
+
+Install the browser once with `npx playwright install chromium`, then run `npm run test:e2e`. The HTML report is written to `playwright-report/` and can be opened with `npx playwright show-report`. Run one spec with `npx playwright test tests/smoke/player.spec.ts`.
+
 ## Player Architecture
 
 DeepSignals.FM currently features **19 registered environments** across several distinct families, each with different audio-reactivity contracts and visual semantics.
@@ -45,14 +51,17 @@ The player is designed to be extended through well-defined audio signal contract
 ### Environment Inventory
 
 **Three.js Environments (3):**
+
 - **Signal Runner**: Audio-reactive signal flight with sustained-energy travel
 - **Race to the Signal Nexus** (Neon Hyper-Racer): High-performance travel track with smooth energy-based speed
 - **The Signal Nexus** (Cosmic Nexus): Standalone complex reactive scene with orbital/particle systems
 
 **Minimal Environment (1):**
+
 - CSS-based fallback, no audio reactivity
 
 **2.5D Image-Depth Environments (15):**
+
 - Production-preset environments (7): UV Reactive Jungle, Analog Signal Laboratory, Bioluminescent Psy Forest, Bioluminescent Psy Reef, Crystal Cavern, Slime Cavern, Female DJ 1
 - Additional registered environments (8): Psychedelic Temple, Alien DJ 1, Dark Psy Temple, Dark Ritual Swamp, Energy Rift Swamp, Female Meditation 1, Lost Relay Tower, Psy Swamp Citadel
 
@@ -67,6 +76,7 @@ The player provides four control dimensions: **PLAY/STOP**, **MOTION**, **CHROMA
 **PLAYING** state enables audio analysis and audio-driven reactivity.
 
 **STOPPED** state:
+
 - Audio-derived values return toward neutral (zero energy, zero frequency data, etc.)
 - Audio-driven scene behavior stops
 - Some environments may retain **authored** or **procedural** non-audio visuals while stopped
@@ -76,12 +86,14 @@ Do NOT assume every visual effect freezes on STOP. For example, some Three.js en
 ### MOTION
 
 **MOTION ON** (default) permits:
+
 - Spatial animation: travel, parallax, camera/world movement
 - Geometric animation: rotations, scale changes, object motion
 - Time-based scene evolution where applicable
 - SURGE geometry movement
 
 **MOTION OFF** freezes all spatial/time-based animation specific to motion, but:
+
 - CHROMA/color response may continue
 - Procedural time-independent effects may continue
 - Lighting may respond to audio if environment design allows
@@ -91,6 +103,7 @@ MOTION is **independent** from CHROMA. Disabling motion should not disable color
 ### CHROMA
 
 **CHROMA ON** (default) enables:
+
 - Dynamic hue/palette behavior
 - Shared mapped chroma hue (if environment uses it)
 - Audio-driven color reactivity
@@ -110,11 +123,13 @@ The analyser examines audio **before** the speaker output volume control.
 **Important**: Audio-analysis snapshots use the analyzer connected directly to the media source (`source → analyser → destination`), so they are **NOT automatically volume-attenuated** by the player output level. Scenes that want direct player volume control must apply it explicitly.
 
 **Current volume behavior by environment:**
+
 - **Signal Runner**: Travel does **not** explicitly multiply its speed by `state.volume`. The scene includes a small base/idle velocity (`travelVelocity = 2.2 + normalizedSpeed² * 86`), so it can retain slow forward/coasting movement even when musical travel energy approaches zero. In browser testing, changing player volume appears to change Signal Runner visual reactivity, but the exact analyzer-level mechanism has not been conclusively established.
 - **Image-Depth scenes**: Do NOT apply volume to snapshot signals
 - **Race to the Signal Nexus**: **Does** explicitly multiply travel speed by `state.volume` for direct player control; complete stop when volume = 0
 
 **Current presentation difference**:
+
 - **Race to the Signal Nexus** can reach a complete stop at volume zero because it explicitly scales target speed by player volume.
 - **Signal Runner** retains a small idle/coasting velocity even when energy approaches zero. Both behaviors are currently acceptable; they do not need normalization unless future design/testing gives a reason to change them.
 
@@ -127,6 +142,7 @@ The analyser examines audio **before** the speaker output volume control.
 These scenes use a parallax depth-map approach with strong beat/depth relationships.
 
 **Audio signal consumption:**
+
 - `bass` → primary parallax depth influence (sustained low-frequency motion)
 - Accepted kick / kick envelope → discrete depth-envelope responses (thumps/pulses)
 - `smoothedEnergy` → sustained lighting/glow intensity
@@ -136,6 +152,7 @@ These scenes use a parallax depth-map approach with strong beat/depth relationsh
 **Important semantic distinction**: Beat-driven depth thumping is **intentional** for this family and should NOT be treated as a mistake. Depth-map scenes benefit from perceptible kick response for visual rhythm. This is different from the anti-pumping rule for Three.js travel scenes (see below).
 
 **Motion gating behavior:**
+
 - MOTION OFF: Depth parallax and autonomous breathing freeze; lighting/CHROMA reactivity continues
 - Reactive depth envelopes: Controlled by geometry-motion gating, not independently available while motion is off
 
@@ -160,6 +177,7 @@ smoothedEnergy (sustained audio envelope)
 This produces smooth acceleration/deceleration, not tick-by-tick pumping.
 
 **Beat detail** uses `kick` and `transient` for:
+
 - Localized reactor pulses
 - Short accent geometry
 - Discrete visual detail, not large-scale motion
@@ -167,14 +185,17 @@ This produces smooth acceleration/deceleration, not tick-by-tick pumping.
 **Why not use raw kick for travel?**
 
 Direct kick/transient usage causes undesirable:
+
 ```
 fast → slow → fast → slow → fast
 ```
+
 pumping, especially noticeable during kick-heavy music. Smooth energy preserves musical alignment without distraction.
 
 **Volume in Hyper-Racer:** The one exception: `targetSpeed = volume * travelEnergy * scaleFactor`. This explicit multiplier gives the player direct volume-based control of scene energy. Do NOT replicate this in Signal Runner style scenes without an explicit design decision.
 
 **Motion/CHROMA behavior:**
+
 - MOTION OFF: All spatial travel and world animation freezes; procedural twinkle and CHROMA may continue
 - CHROMA ON: Shared mapped hue affects environment colors while playback is active; hue resets when stopped
 - SURGE: Rare qualified burst event (see below) may temporarily override normal behavior
@@ -182,6 +203,7 @@ pumping, especially noticeable during kick-heavy music. Smooth energy preserves 
 #### Implementation pattern
 
 New Three.js travel environments should:
+
 1. Consume `smoothedEnergy` for travel/locomotion semantics
 2. Use `kick`/`transient` for localized short-lived detail only
 3. Implement shared CHROMA hue mapping rather than custom color analysis
@@ -191,6 +213,7 @@ New Three.js travel environments should:
 ### The Signal Nexus
 
 Standalone older implementation with richer local reactive mappings:
+
 - Mapped from `smoothedEnergy`, `bass`, `mids`, `highs`, `kick` into multiple reactive dimensions
 - Orbital/particle/lane reactivity with independent intensity states
 - Local smoothing envelopes per dimension
@@ -219,6 +242,7 @@ The audio-analysis pipeline produces these signals available to environments via
 **Temporal behavior:** Attack ≈0.2/sec, Release ≈0.04/sec (exponential envelope).
 
 **Good for:**
+
 - Travel speed / locomotion semantics
 - Large-scale scene intensity
 - Sustained visual state
@@ -226,6 +250,7 @@ The audio-analysis pipeline produces these signals available to environments via
 - Overall energy/presence
 
 **Avoid for:**
+
 - Short-lived visual detail
 - Beat-by-beat thumping (use `kickPulse` instead)
 
@@ -236,12 +261,14 @@ The audio-analysis pipeline produces these signals available to environments via
 **Temporal behavior:** Attack ≈0.78/sec, Release ≈0.16/sec; cooldown 205ms between detected events.
 
 **Good for:**
+
 - Depth thumps (image-depth scenes)
 - Localized reactor/core pulses
 - Discrete beat details
 - Short accent lighting
 
 **Avoid for:**
+
 - Primary vehicle speed (causes pumping)
 - Sustained motion
 
@@ -252,6 +279,7 @@ The audio-analysis pipeline produces these signals available to environments via
 **Temporal behavior:** Fast attack ≈0.48/sec, moderate release ≈0.16/sec, cooldown 95ms.
 
 **Good for:**
+
 - Sparkle/accent effects
 - Short hi-hat response
 - Localized flashes
@@ -260,6 +288,7 @@ The audio-analysis pipeline produces these signals available to environments via
 ### `bass`, `mids`, `highs`
 
 Frequency-band-separated energy:
+
 - `bass`: 30–220 Hz (kick, sub-bass)
 - `mids`: 180–2000 Hz (vocals, snare, mid-range synths)
 - `highs`: 2–10 kHz (cymbals, presence, sparkle)
@@ -271,6 +300,7 @@ Frequency-band-separated energy:
 Discrete accepted beat event detection.
 
 **Important clarification:**
+
 ```
 acceptedKickEvent ≠ SURGE / BLAST OFF
 ```
@@ -284,16 +314,17 @@ Multiple accepted kicks occur continuously without triggering a SURGE. The kick 
 Environments that support CHROMA (all except Minimal) use a shared hue mapping:
 
 ```typescript
-targetHue = mapSignalToHueDegrees(smoothedEnergy)
+targetHue = mapSignalToHueDegrees(smoothedEnergy);
 
-currentHue += (targetHue - currentHue) * temporalSmoothingResponse
+currentHue += (targetHue - currentHue) * temporalSmoothingResponse;
 ```
 
 **Key pattern:**
 
 Do NOT use:
+
 ```typescript
-lerp(0, targetHue, response)
+lerp(0, targetHue, response);
 ```
 
 That scales/compresses the target. Instead, temporally smooth **toward** the target, preserving its magnitude.
@@ -317,6 +348,7 @@ They do **NOT** share a centralized event instance; they use the same thresholds
 ### Qualification Semantics
 
 **State machine behavior:**
+
 1. **Arm** when `smoothedEnergy` ≤ 68% for ≥400ms
 2. **Trigger** when energy rises above 99% while armed
 3. **Cooldown** for 1500ms before next possible trigger
@@ -337,6 +369,7 @@ Multiple kicks occur without triggering SURGE. SURGE is the qualified state tran
 ### Visual interpretation
 
 Each environment decides how to visualize the same semantic event:
+
 - **Signal Runner** → BLAST OFF display overlay
 - **Race to the Signal Nexus** → Nexus/starfield overload with surge waves and bolts
 
@@ -443,27 +476,29 @@ The environment validator derives its total count from the catalog automatically
 
 The player controls define a shared semantic contract across all environments:
 
-| State | Intended Meaning |
-| --- | --- |
-| **PLAYING** | Audio analysis and audio-driven reactivity available |
-| **STOPPED** | Audio-derived values return toward neutral; audio-driven behavior pauses |
-| **MOTION ON** | Spatial/time-based scene animation permitted |
-| **MOTION OFF** | Spatial scene animation frozen; other effects may continue |
-| **CHROMA ON** | Dynamic color/hue/palette behavior permitted |
-| **CHROMA OFF** | Stable authored palette; audio-driven color changes suppressed |
-| **SURGE** | Rare qualified high-energy event occurs (both environments) |
+| State          | Intended Meaning                                                         |
+| -------------- | ------------------------------------------------------------------------ |
+| **PLAYING**    | Audio analysis and audio-driven reactivity available                     |
+| **STOPPED**    | Audio-derived values return toward neutral; audio-driven behavior pauses |
+| **MOTION ON**  | Spatial/time-based scene animation permitted                             |
+| **MOTION OFF** | Spatial scene animation frozen; other effects may continue               |
+| **CHROMA ON**  | Dynamic color/hue/palette behavior permitted                             |
+| **CHROMA OFF** | Stable authored palette; audio-driven color changes suppressed           |
+| **SURGE**      | Rare qualified high-energy event occurs (both environments)              |
 
 ### Family-Specific State Behavior Notes
 
 #### 2.5D Image-Depth Scenes
 
 **MOTION OFF:**
+
 - Depth parallax geometry freezes
 - Autonomous depth breathing stops
 - Lighting/CHROMA reactivity continues unaffected
 - Result: Static depth with active color response
 
 **STOPPED:**
+
 - Grayscale filter animates in
 - Audio-driven lighting stops
 - Non-audio color effects may persist depending on implementation
@@ -471,11 +506,13 @@ The player controls define a shared semantic contract across all environments:
 #### Signal Runner
 
 **MOTION OFF:**
+
 - Travel and spatial movement freeze
 - Star spatial movement stops completely
 - Current CSS HUD remains independent (will be removed/refactored in future)
 
 **STOPPED:**
+
 - Travel speed becomes zero
 - Audio signals drop to zero baseline
 - Visual elements render at reduced opacity
@@ -483,6 +520,7 @@ The player controls define a shared semantic contract across all environments:
 #### Race to the Signal Nexus
 
 **MOTION OFF:**
+
 - Track travel freezes
 - Nexus spatial rotation/scale animation stops
 - SURGE-driven geometry movement suppressed
@@ -490,6 +528,7 @@ The player controls define a shared semantic contract across all environments:
 - Shared hue mapping continues if CHROMA ON
 
 **STOPPED + CHROMA ON:**
+
 - Star procedural twinkle **may continue** (intentional for testability)
 - Shared audio-driven hue resets because analysis is not available while stopped
 - Result: Procedural animation without audio color response
@@ -499,6 +538,7 @@ The player controls define a shared semantic contract across all environments:
 #### The Signal Nexus
 
 **MOTION OFF:**
+
 - Scene elapsed-time completely freezes (unlike modern travel scenes which may continue procedural detail)
 - Orbital motion, rotations, traveler movement all stop
 - Lighting/color response continues
