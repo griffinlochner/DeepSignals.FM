@@ -648,6 +648,21 @@
   aspect-ratio: 1 / 1;
 }
 
+@media (max-width: 420px) {
+  .visual-feed-window--dock-right .visual-feed-window__artwork-shell,
+  .visual-feed-window--dock-bottom .visual-feed-window__artwork-shell {
+    width: min(100%, 100px);
+    height: auto;
+    aspect-ratio: 1 / 1;
+  }
+
+  .visual-feed-window__meters [data-testid="signal-meter-bass"],
+  .visual-feed-window__meters [data-testid="signal-meter-mids"],
+  .visual-feed-window__meters [data-testid="signal-meter-highs"] {
+    display: none;
+  }
+}
+
 @media (max-width: 560px) {
   .visual-feed-window--dock-bottom {
     width: min(var(--player-panel-width, 100%), 100%);

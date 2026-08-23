@@ -65,6 +65,22 @@ body {
   background: #020202;
 }
 
+@media (max-width: 420px) {
+  html,
+  body {
+    height: auto;
+    min-height: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  #root {
+    height: auto;
+    min-height: 100svh;
+    overflow: visible;
+  }
+}
+
 html.reactivity-lab-page,
 html.about-page,
 html.not-found-page,

@@ -275,6 +275,50 @@
   box-sizing: border-box;
 }
 
+@media (max-width: 420px) {
+  .player-shell {
+    position: relative;
+    height: auto;
+    min-height: 100svh;
+    overflow: visible;
+  }
+
+  .player-shell__dock {
+    position: relative;
+    inset: auto;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto;
+    width: auto;
+    max-height: none;
+    margin: var(--player-edge-gap);
+  }
+
+  .player-shell__dock--right,
+  .player-shell__dock--bottom {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto;
+    width: auto;
+  }
+
+  .player-shell__dock--right .visual-feed-window,
+  .player-shell__dock--bottom .visual-feed-window {
+    grid-column: 1;
+    grid-row: 2;
+    width: 100%;
+    height: auto;
+    min-height: 0;
+    align-self: start;
+  }
+
+  .player-shell__dock--right .player-shell__primary-column,
+  .player-shell__dock--bottom .player-shell__primary-column {
+    grid-column: 1;
+    grid-row: 1;
+    width: 100%;
+  }
+}
+
 .transport-dock__inner {
   width: min(100%, 1440px);
   display: grid;
