@@ -613,6 +613,9 @@
   height: var(--transport-control-height);
   padding: 0 16px;
   box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: #9cff57;
   color: #010104;
   border: 1px solid #9cff57;
@@ -627,10 +630,10 @@
 }
 
 .play-stop-button__icon {
-  display: inline-block;
-  font-size: 1.35em;
-  line-height: 1;
-  letter-spacing: 0;
+  display: block;
+  width: 28px;
+  height: 28px;
+  color: currentColor;
 }
 
 .play-stop-button[data-state="play"] {

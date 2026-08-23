@@ -5,6 +5,22 @@ type PlayStopButtonProps = {
   onToggle: () => void
 }
 
+function PlayIcon() {
+  return (
+    <svg className="play-stop-button__icon" viewBox="0 0 28 28" aria-hidden="true" focusable="false">
+      <path fill="currentColor" d="M6 3.5 24 14 6 24.5Z" />
+    </svg>
+  )
+}
+
+function PauseIcon() {
+  return (
+    <svg className="play-stop-button__icon" viewBox="0 0 28 28" aria-hidden="true" focusable="false">
+      <path fill="currentColor" d="M5 4h6v20H5zM17 4h6v20h-6z" />
+    </svg>
+  )
+}
+
 function PlayStopButton({ isPlaying, isLoading = false, isDisabled, onToggle }: PlayStopButtonProps) {
   const isButtonDisabled = isDisabled || isLoading
 
@@ -19,9 +35,7 @@ function PlayStopButton({ isPlaying, isLoading = false, isDisabled, onToggle }: 
       {isLoading ? (
         "LOAD"
       ) : (
-        <span className="play-stop-button__icon" aria-hidden="true">
-          {isPlaying ? "❚❚" : "▶"}
-        </span>
+        isPlaying ? <PauseIcon /> : <PlayIcon />
       )}
     </button>
   )
