@@ -188,7 +188,18 @@ function VisualFeedWindow({
       aria-hidden="false"
     >
       <header className="visual-feed-window__header">
-        <p className="visual-feed-window__title">SIGNAL INFO</p>
+        <p className="visual-feed-window__title">INFO</p>
+        {externalSourceUrl ? (
+          <a
+            className="visual-feed-window__source-link"
+            href={externalSourceUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={`Open source for ${resolvedTitle}`}
+          >
+            SOURCE <span aria-hidden="true">↗</span>
+          </a>
+        ) : null}
         <button
           type="button"
           className="visual-feed-window__close"
@@ -232,17 +243,6 @@ function VisualFeedWindow({
             </div>
           </div>
           <div className="visual-feed-window__details">
-            {externalSourceUrl ? (
-              <a
-                className="visual-feed-window__source-link"
-                href={externalSourceUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label={`Open source for ${resolvedTitle}`}
-              >
-                SOURCE <span aria-hidden="true">↗</span>
-              </a>
-            ) : null}
             <section
               className="visual-feed-window__meters"
               aria-label="Signal levels"

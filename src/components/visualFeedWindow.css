@@ -150,7 +150,7 @@
 
 .visual-feed-window__header {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 30px;
+  grid-template-columns: minmax(0, 1fr) auto 30px;
   align-items: center;
   gap: 8px;
   height: var(--attached-panel-header-height);
@@ -251,7 +251,7 @@
 @media (min-width: 1025px) and (max-height: 800px),
   (max-height: 800px) and (hover: hover) and (pointer: fine) {
   .visual-feed-window__header {
-    grid-template-columns: minmax(0, 1fr) 28px;
+    grid-template-columns: minmax(0, 1fr) auto 28px;
     gap: 6px;
     padding: 6px 8px 5px;
   }
@@ -299,7 +299,7 @@
 .visual-feed-window__source-link {
   display: inline-flex;
   gap: 4px;
-  margin-top: 4px;
+  margin-top: 0;
   text-decoration: none;
 }
 

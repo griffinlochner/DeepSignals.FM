@@ -77,7 +77,7 @@
   display: inline-grid;
   align-items: start;
   justify-content: start;
-  gap: 8px;
+  gap: 0;
   pointer-events: none;
 }
 
@@ -168,11 +168,31 @@
 }
 
 .player-shell__dock--info-open .floating-player-panel {
+  border-radius: var(--floating-panel-border-radius, 14px);
+}
+
+.player-shell__dock--info-open .visual-feed-window {
+  border-radius: var(--visual-feed-border-radius, 12px);
+}
+
+.player-shell__dock--right.player-shell__dock--info-open
+  .floating-player-panel {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.player-shell__dock--right.player-shell__dock--info-open .visual-feed-window {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+.player-shell__dock--bottom.player-shell__dock--info-open
+  .floating-player-panel {
   border-bottom-left-radius: 0;
   border-bottom-right-radius: 0;
 }
 
-.player-shell__dock--info-open .visual-feed-window {
+.player-shell__dock--bottom.player-shell__dock--info-open .visual-feed-window {
   border-top-left-radius: 0;
   border-top-right-radius: 0;
 }
