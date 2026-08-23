@@ -275,7 +275,7 @@
   box-sizing: border-box;
 }
 
-@media (max-width: 420px) {
+@media (max-width: 480px) {
   .player-shell {
     position: relative;
     height: auto;

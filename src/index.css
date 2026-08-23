@@ -65,7 +65,7 @@ body {
   background: #020202;
 }
 
-@media (max-width: 420px) {
+@media (max-width: 480px) {
   html,
   body {
     height: auto;

@@ -277,7 +277,7 @@
   outline-offset: 2px;
 }
 
-@media (max-width: 420px) {
+@media (max-width: 480px) {
   .visual-feed-window__header {
     padding-inline: 10px;
   }
@@ -648,7 +648,7 @@
   aspect-ratio: 1 / 1;
 }
 
-@media (max-width: 420px) {
+@media (max-width: 480px) {
   .visual-feed-window--dock-right .visual-feed-window__artwork-shell,
   .visual-feed-window--dock-bottom .visual-feed-window__artwork-shell {
     width: min(100%, 100px);
