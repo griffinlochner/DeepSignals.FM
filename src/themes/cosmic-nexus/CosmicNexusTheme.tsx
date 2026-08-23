@@ -6,6 +6,10 @@ import {
   SIGNAL_RUNNER_CHROMA_HUE_RESPONSE,
 } from "../../app/sharedChroma";
 import {
+  createSharedSurgeQualificationState,
+  updateSharedSurgeQualification,
+} from "../../app/sharedSurgeQualification";
+import {
   SIGNAL_NEXUS_REACTIVITY,
   createNeutralSignalNexusReactiveState,
   resolveSignalNexusReactiveTarget,
@@ -97,6 +101,17 @@ type ActivationWave = {
   mesh: THREE.Mesh;
   material: THREE.MeshBasicMaterial;
   delay: number;
+};
+
+type SupernovaWave = {
+  mesh: THREE.Mesh;
+  material: THREE.MeshBasicMaterial;
+  delay: number;
+};
+
+type StarLayer = {
+  points: THREE.Points;
+  material: THREE.ShaderMaterial;
 };
 
 type SweepBeam = {
@@ -237,8 +252,13 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
       minZ: number,
       maxZ: number,
       respectQuietZones: boolean,
-    ) => {
+    ): StarLayer => {
       const positions = new Float32Array(count * 3);
+      const sizes = new Float32Array(count);
+      const phases = new Float32Array(count);
+      const brightness = new Float32Array(count);
+      const colors = new Float32Array(count * 3);
+      const baseColor = new THREE.Color(color);
 
       for (let i = 0; i < count; i += 1) {
         let x: number;
@@ -254,6 +274,19 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
         positions[i * 3] = x;
         positions[i * 3 + 1] = y;
         positions[i * 3 + 2] = minZ + Math.random() * (maxZ - minZ);
+        sizes[i] = size * (0.62 + Math.random() * 0.38);
+        phases[i] = Math.random() * Math.PI * 2;
+        brightness[i] = 0.55 + Math.random() * 0.45;
+        const starColor = baseColor
+          .clone()
+          .offsetHSL(
+            (Math.random() - 0.5) * 0.035,
+            (Math.random() - 0.5) * 0.12,
+            (Math.random() - 0.5) * 0.12,
+          );
+        colors[i * 3] = starColor.r;
+        colors[i * 3 + 1] = starColor.g;
+        colors[i * 3 + 2] = starColor.b;
       }
 
       const geometry = trackGeometry(new THREE.BufferGeometry());
@@ -261,29 +294,93 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
         "position",
         new THREE.Float32BufferAttribute(positions, 3),
       );
+      geometry.setAttribute(
+        "aSize",
+        new THREE.Float32BufferAttribute(sizes, 1),
+      );
+      geometry.setAttribute(
+        "aPhase",
+        new THREE.Float32BufferAttribute(phases, 1),
+      );
+      geometry.setAttribute(
+        "aBrightness",
+        new THREE.Float32BufferAttribute(brightness, 1),
+      );
+      geometry.setAttribute(
+        "aColor",
+        new THREE.Float32BufferAttribute(colors, 3),
+      );
 
       const material = trackMaterial(
-        new THREE.PointsMaterial({
-          color,
-          size,
-          sizeAttenuation: true,
+        new THREE.ShaderMaterial({
           transparent: true,
-          opacity,
           depthWrite: false,
           blending: THREE.AdditiveBlending,
+          uniforms: {
+            uTime: { value: 0 },
+            uOpacity: { value: opacity },
+            uHueShift: { value: 0 },
+            uTwinkle: { value: 1 },
+            uSurge: { value: 0 },
+            uSizeScale: { value: 1 },
+            uLayerTint: { value: baseColor.clone() },
+          },
+          vertexShader: `
+            attribute float aSize;
+            attribute float aPhase;
+            attribute float aBrightness;
+            attribute vec3 aColor;
+            uniform float uTime;
+            uniform float uSurge;
+            uniform float uSizeScale;
+            varying vec3 vColor;
+            varying float vAlpha;
+            void main() {
+              vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+              float pulse = 0.84 + 0.16 * sin(uTime * (0.7 + aBrightness) + aPhase);
+              vec3 adjusted = position + normalize(position + vec3(0.01)) * uSurge * 0.7;
+              mvPosition = modelViewMatrix * vec4(adjusted, 1.0);
+              gl_Position = projectionMatrix * mvPosition;
+              gl_PointSize = max(1.0, aSize * uSizeScale * pulse * (180.0 / max(1.0, -mvPosition.z)));
+              vColor = aColor;
+              vAlpha = aBrightness * pulse;
+            }
+          `,
+          fragmentShader: `
+            uniform float uOpacity;
+            uniform float uHueShift;
+            uniform float uTwinkle;
+            uniform vec3 uLayerTint;
+            varying vec3 vColor;
+            varying float vAlpha;
+            void main() {
+              vec2 point = gl_PointCoord - 0.5;
+              float distanceToCenter = length(point);
+              float alpha = 1.0 - smoothstep(0.22, 0.5, distanceToCenter);
+              if (alpha <= 0.0) discard;
+              vec3 hueTint = vec3(
+                0.5 + 0.5 * sin(uHueShift * 6.283 + 0.0),
+                0.5 + 0.5 * sin(uHueShift * 6.283 + 2.094),
+                0.5 + 0.5 * sin(uHueShift * 6.283 + 4.188)
+              );
+              vec3 color = mix(vColor, hueTint, min(0.28, abs(uHueShift) * 0.18));
+              color = mix(color, uLayerTint, 0.16);
+              gl_FragColor = vec4(color, alpha * uOpacity * vAlpha * uTwinkle);
+            }
+          `,
         }),
       );
 
       const points = new THREE.Points(geometry, material);
       world.add(points);
-      return points;
+      return { points, material };
     };
 
     const distantStars = createStarLayer(
-      1650,
+      3800,
       74,
       42,
-      0.02,
+      0.62,
       0xffffff,
       0.56,
       -42,
@@ -291,39 +388,45 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
       false,
     );
     const accentStars = createStarLayer(
-      340,
+      1200,
       66,
       32,
-      0.045,
-      COLORS.violet,
-      0.36,
+      0.82,
+      0xffffff,
+      0.28,
       -28,
       -2,
       true,
     );
     const brightStars = createStarLayer(
-      110,
+      260,
       60,
       28,
-      0.075,
-      COLORS.cyan,
-      0.56,
+      1.25,
+      0xd9fffb,
+      0.42,
       -18,
       0,
       true,
     );
-    const distantStarsMaterial = distantStars.material as THREE.PointsMaterial;
-    const accentStarsMaterial = accentStars.material as THREE.PointsMaterial;
-    const brightStarsMaterial = brightStars.material as THREE.PointsMaterial;
+    const distantStarsMaterial = distantStars.material;
+    const accentStarsMaterial = accentStars.material;
+    const brightStarsMaterial = brightStars.material;
     const starBaseOpacity = {
-      distant: distantStarsMaterial.opacity,
-      accent: accentStarsMaterial.opacity,
-      bright: brightStarsMaterial.opacity,
+      distant: distantStarsMaterial.uniforms.uOpacity.value as number,
+      accent: accentStarsMaterial.uniforms.uOpacity.value as number,
+      bright: brightStarsMaterial.uniforms.uOpacity.value as number,
     };
     const starBaseColors = {
-      distant: distantStarsMaterial.color.clone(),
-      accent: accentStarsMaterial.color.clone(),
-      bright: brightStarsMaterial.color.clone(),
+      distant: (
+        distantStarsMaterial.uniforms.uLayerTint.value as THREE.Color
+      ).clone(),
+      accent: (
+        accentStarsMaterial.uniforms.uLayerTint.value as THREE.Color
+      ).clone(),
+      bright: (
+        brightStarsMaterial.uniforms.uLayerTint.value as THREE.Color
+      ).clone(),
     };
 
     const nexusCenter = new THREE.Vector3(0.35, 0.05, -0.15);
@@ -339,6 +442,7 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
     const railShots: RailShot[] = [];
     const lightningArcs: LightningArc[] = [];
     const activationWaves: ActivationWave[] = [];
+    const supernovaWaves: SupernovaWave[] = [];
     const sweepBeams: SweepBeam[] = [];
     const floatingGlyphs: FloatingGlyph[] = [];
 
@@ -371,6 +475,35 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
     nexusGroup.add(coreSolid);
     const coreGlowBaseColor = coreGlowMaterial.color.clone();
     const coreSolidBaseColor = coreSolidMaterial.color.clone();
+
+    const coreEnergyMaterial = trackMaterial(
+      new THREE.MeshBasicMaterial({
+        color: COLORS.white,
+        transparent: true,
+        opacity: 0.96,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+      }),
+    );
+    const coreEnergy = new THREE.Mesh(
+      trackGeometry(new THREE.SphereGeometry(0.2, 18, 12)),
+      coreEnergyMaterial,
+    );
+    nexusGroup.add(coreEnergy);
+    const coreEnergyHaloMaterial = trackMaterial(
+      new THREE.MeshBasicMaterial({
+        color: COLORS.cyan,
+        transparent: true,
+        opacity: 0.22,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+      }),
+    );
+    const coreEnergyHalo = new THREE.Mesh(
+      trackGeometry(new THREE.SphereGeometry(0.46, 20, 14)),
+      coreEnergyHaloMaterial,
+    );
+    nexusGroup.add(coreEnergyHalo);
 
     const shellSpecs = [
       {
@@ -569,6 +702,33 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
     const pulseGlowGeometry = trackGeometry(
       new THREE.SphereGeometry(0.14, 12, 10),
     );
+    const nexusPulseCoreMaterial = trackMaterial(
+      new THREE.MeshBasicMaterial({
+        color: COLORS.pink,
+        transparent: true,
+        opacity: 0.9,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+      }),
+    );
+    const nexusPulseCore = new THREE.Mesh(
+      trackGeometry(new THREE.SphereGeometry(0.22, 20, 14)),
+      nexusPulseCoreMaterial,
+    );
+    const nexusPulseGlowMaterial = trackMaterial(
+      new THREE.MeshBasicMaterial({
+        color: COLORS.violet,
+        transparent: true,
+        opacity: 0.24,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+      }),
+    );
+    const nexusPulseGlow = new THREE.Mesh(
+      trackGeometry(new THREE.SphereGeometry(0.5, 20, 14)),
+      nexusPulseGlowMaterial,
+    );
+    nexusGroup.add(nexusPulseGlow, nexusPulseCore);
 
     const createInboundLane = (
       curve: THREE.Curve<THREE.Vector3>,
@@ -661,9 +821,9 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
 
     const edgeSpecs = [
       {
-        edge: new THREE.Vector3(-11.8, 3.6, -4.8),
-        controlA: new THREE.Vector3(-8.6, 3.3, -2.2),
-        controlB: new THREE.Vector3(-4.2, 2.5, -0.7),
+        edge: new THREE.Vector3(-20, 4.8, -4.8),
+        controlA: new THREE.Vector3(-12.5, 3.3, -2.2),
+        controlB: new THREE.Vector3(-5.2, 2.5, -0.7),
         port: new THREE.Vector3(-1.45, 1.1, -0.08).add(nexusCenter),
         color: COLORS.cyan,
         radius: 0.012,
@@ -672,9 +832,9 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
         pulseBoost: 1,
       },
       {
-        edge: new THREE.Vector3(-12.4, 0.5, -4.2),
-        controlA: new THREE.Vector3(-8.7, 0.75, -2.3),
-        controlB: new THREE.Vector3(-4.6, 0.8, -0.75),
+        edge: new THREE.Vector3(-20, 0.8, -4.2),
+        controlA: new THREE.Vector3(-13, 0.75, -2.3),
+        controlB: new THREE.Vector3(-5.6, 0.8, -0.75),
         port: new THREE.Vector3(-1.55, 0.12, -0.05).add(nexusCenter),
         color: COLORS.green,
         radius: 0.011,
@@ -683,9 +843,9 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
         pulseBoost: 0.92,
       },
       {
-        edge: new THREE.Vector3(-11.9, -3.4, -4.8),
-        controlA: new THREE.Vector3(-8.3, -2.8, -2.1),
-        controlB: new THREE.Vector3(-4.0, -1.85, -0.65),
+        edge: new THREE.Vector3(-20, -4.8, -4.8),
+        controlA: new THREE.Vector3(-12.5, -3.1, -2.1),
+        controlB: new THREE.Vector3(-5.0, -1.85, -0.65),
         port: new THREE.Vector3(-1.35, -1.05, -0.05).add(nexusCenter),
         color: COLORS.pink,
         radius: 0.012,
@@ -694,9 +854,9 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
         pulseBoost: 1,
       },
       {
-        edge: new THREE.Vector3(-5.8, 8.9, -4.1),
-        controlA: new THREE.Vector3(-4.8, 5.8, -2.2),
-        controlB: new THREE.Vector3(-3.0, 3.4, -0.8),
+        edge: new THREE.Vector3(-8.5, 15, -4.1),
+        controlA: new THREE.Vector3(-6.0, 8.2, -2.2),
+        controlB: new THREE.Vector3(-3.2, 3.8, -0.8),
         port: new THREE.Vector3(-0.55, 1.62, -0.02).add(nexusCenter),
         color: COLORS.orange,
         radius: 0.01,
@@ -705,9 +865,9 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
         pulseBoost: 0.82,
       },
       {
-        edge: new THREE.Vector3(0.5, 9.2, -4.2),
-        controlA: new THREE.Vector3(0.4, 6.2, -2.3),
-        controlB: new THREE.Vector3(0.25, 3.7, -0.86),
+        edge: new THREE.Vector3(0.7, 15, -4.2),
+        controlA: new THREE.Vector3(0.5, 8.4, -2.3),
+        controlB: new THREE.Vector3(0.25, 4.0, -0.86),
         port: new THREE.Vector3(0.1, 1.82, -0.02).add(nexusCenter),
         color: COLORS.violet,
         radius: 0.01,
@@ -716,9 +876,9 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
         pulseBoost: 0.8,
       },
       {
-        edge: new THREE.Vector3(7.8, 7.8, -4.5),
-        controlA: new THREE.Vector3(6.5, 5.2, -2.4),
-        controlB: new THREE.Vector3(4.0, 3.0, -0.9),
+        edge: new THREE.Vector3(16, 14, -4.5),
+        controlA: new THREE.Vector3(10.5, 8.0, -2.4),
+        controlB: new THREE.Vector3(4.8, 3.5, -0.9),
         port: new THREE.Vector3(1.15, 1.22, -0.02).add(nexusCenter),
         color: COLORS.orange,
         radius: 0.01,
@@ -727,9 +887,9 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
         pulseBoost: 0.84,
       },
       {
-        edge: new THREE.Vector3(8.3, -5.0, -4.5),
-        controlA: new THREE.Vector3(6.7, -3.6, -2.4),
-        controlB: new THREE.Vector3(4.1, -2.1, -0.9),
+        edge: new THREE.Vector3(18, -7.2, -4.5),
+        controlA: new THREE.Vector3(11.2, -5.0, -2.4),
+        controlB: new THREE.Vector3(5.0, -2.5, -0.9),
         port: new THREE.Vector3(1.2, -1.15, -0.02).add(nexusCenter),
         color: COLORS.violet,
         radius: 0.01,
@@ -738,9 +898,9 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
         pulseBoost: 0.86,
       },
       {
-        edge: new THREE.Vector3(0.6, -9.2, -4.0),
-        controlA: new THREE.Vector3(0.42, -6.15, -2.2),
-        controlB: new THREE.Vector3(0.25, -3.6, -0.8),
+        edge: new THREE.Vector3(0.7, -15, -4.0),
+        controlA: new THREE.Vector3(0.5, -8.2, -2.2),
+        controlB: new THREE.Vector3(0.25, -3.9, -0.8),
         port: new THREE.Vector3(0.05, -1.9, -0.02).add(nexusCenter),
         color: COLORS.pink,
         radius: 0.01,
@@ -758,6 +918,69 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
         spec.speed,
         spec.offset,
         spec.pulseBoost,
+      );
+    });
+
+    // Helical signal paths use the same lane and pulse materials as the primary transmissions.
+    const createHelixSignalCurve = (
+      start: THREE.Vector3,
+      end: THREE.Vector3,
+      turns: number,
+      radius: number,
+    ) => {
+      const forward = end.clone().sub(start).normalize();
+      const axis =
+        Math.abs(forward.y) < 0.9
+          ? new THREE.Vector3(0, 1, 0)
+          : new THREE.Vector3(1, 0, 0);
+      const side = new THREE.Vector3().crossVectors(forward, axis).normalize();
+      const up = new THREE.Vector3().crossVectors(side, forward).normalize();
+      const points: THREE.Vector3[] = [];
+      for (let index = 0; index <= 72; index += 1) {
+        const t = index / 72;
+        const point = start.clone().lerp(end, t);
+        const phase = t * Math.PI * 2 * turns;
+        const taper = THREE.MathUtils.lerp(radius, radius * 0.18, t);
+        point.addScaledVector(side, Math.cos(phase) * taper);
+        point.addScaledVector(up, Math.sin(phase) * taper);
+        points.push(point);
+      }
+      return new THREE.CatmullRomCurve3(points);
+    };
+
+    [
+      {
+        start: new THREE.Vector3(-17, 6.2, -3.6),
+        end: new THREE.Vector3(-0.72, 1.45, -0.12).add(nexusCenter),
+        color: COLORS.cyan,
+        offset: 0.08,
+      },
+      {
+        start: new THREE.Vector3(16.5, 5.4, -4.1),
+        end: new THREE.Vector3(0.72, 1.5, -0.12).add(nexusCenter),
+        color: COLORS.orange,
+        offset: 0.31,
+      },
+      {
+        start: new THREE.Vector3(-15.8, -6.1, -4.4),
+        end: new THREE.Vector3(-0.72, -1.5, -0.12).add(nexusCenter),
+        color: COLORS.pink,
+        offset: 0.55,
+      },
+      {
+        start: new THREE.Vector3(17.2, -5.8, -3.8),
+        end: new THREE.Vector3(0.72, -1.45, -0.12).add(nexusCenter),
+        color: COLORS.violet,
+        offset: 0.78,
+      },
+    ].forEach((spec) => {
+      createInboundLane(
+        createHelixSignalCurve(spec.start, spec.end, 4.6, 0.26),
+        spec.color,
+        0.012,
+        0.18,
+        spec.offset,
+        0.92,
       );
     });
 
@@ -784,6 +1007,27 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
       mesh.visible = false;
       world.add(mesh);
       activationWaves.push({ mesh, material, delay });
+    });
+
+    const supernovaWaveGeometry = trackGeometry(
+      new THREE.TorusGeometry(1, 0.045, 10, 160),
+    );
+    [COLORS.violet, COLORS.cyan, COLORS.pink].forEach((color, index) => {
+      const material = trackMaterial(
+        new THREE.MeshBasicMaterial({
+          color,
+          transparent: true,
+          opacity: 0,
+          depthWrite: false,
+          blending: THREE.AdditiveBlending,
+        }),
+      );
+      const mesh = new THREE.Mesh(supernovaWaveGeometry, material);
+      mesh.position.copy(nexusCenter);
+      mesh.rotation.x = Math.PI / 2;
+      mesh.visible = false;
+      world.add(mesh);
+      supernovaWaves.push({ mesh, material, delay: index * 0.1 });
     });
 
     const buildHelixCurve = (
@@ -1170,6 +1414,8 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
       if (!chromaReactiveActive) {
         coreGlowMaterial.color.copy(coreGlowBaseColor);
         coreSolidMaterial.color.copy(coreSolidBaseColor);
+        coreEnergyMaterial.color.set(COLORS.white);
+        coreEnergyHaloMaterial.color.set(COLORS.cyan);
 
         nexusShells.forEach(({ material, baseColor }) => {
           material.color.copy(baseColor);
@@ -1215,9 +1461,15 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
           glyph.material.color.copy(glyph.baseColor);
         });
 
-        distantStarsMaterial.color.copy(starBaseColors.distant);
-        accentStarsMaterial.color.copy(starBaseColors.accent);
-        brightStarsMaterial.color.copy(starBaseColors.bright);
+        (distantStarsMaterial.uniforms.uLayerTint.value as THREE.Color).copy(
+          starBaseColors.distant,
+        );
+        (accentStarsMaterial.uniforms.uLayerTint.value as THREE.Color).copy(
+          starBaseColors.accent,
+        );
+        (brightStarsMaterial.uniforms.uLayerTint.value as THREE.Color).copy(
+          starBaseColors.bright,
+        );
         return;
       }
 
@@ -1248,6 +1500,16 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
         colorScratchC
           .copy(coreSolidBaseColor)
           .lerpHSL(paletteViolet, energyLift * 0.12),
+      );
+      coreEnergyMaterial.color.copy(
+        colorScratchA
+          .copy(paletteAuthoredWhite)
+          .lerpHSL(paletteCyan, kickSignalLift * 0.08),
+      );
+      coreEnergyHaloMaterial.color.copy(
+        colorScratchB
+          .copy(coreEnergyHaloMaterial.color)
+          .lerpHSL(paletteViolet, auraBassLift * 0.3),
       );
 
       // Ring family: slower mids-driven cycle through cyan, violet, salmon, green.
@@ -1432,7 +1694,7 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
         ringDriftPhase * 0.34 + starHighLift * 0.2,
         colorScratchA,
       );
-      distantStarsMaterial.color.copy(
+      (distantStarsMaterial.uniforms.uLayerTint.value as THREE.Color).copy(
         colorScratchB
           .copy(starBaseColors.distant)
           .lerpHSL(colorScratchA, starMix * 0.5),
@@ -1442,7 +1704,7 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
         ringDriftPhase * 0.51 + globalLift * 0.14,
         colorScratchB,
       );
-      accentStarsMaterial.color.copy(
+      (accentStarsMaterial.uniforms.uLayerTint.value as THREE.Color).copy(
         colorScratchC
           .copy(starBaseColors.accent)
           .lerpHSL(colorScratchB, starMix),
@@ -1452,7 +1714,7 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
         ringDriftPhase * 0.68 + reactiveParticles * 0.22,
         colorScratchC,
       );
-      brightStarsMaterial.color.copy(
+      (brightStarsMaterial.uniforms.uLayerTint.value as THREE.Color).copy(
         colorScratchA
           .copy(starBaseColors.bright)
           .lerpHSL(colorScratchC, starMix * 0.9),
@@ -1508,6 +1770,10 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
     let chromaStarHigh = 0;
     let chromaRingDriftPhase = 0;
     let sharedHueOffsetDegrees = 0;
+    const surgeQualificationRef = {
+      current: createSharedSurgeQualificationState(),
+    };
+    let supernovaAge = -1;
 
     const stepChromaEnvelope = (
       current: number,
@@ -1627,6 +1893,29 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
       if (!chromaReactiveActive && Math.abs(sharedHueOffsetDegrees) < 0.05) {
         sharedHueOffsetDegrees = 0;
       }
+
+      const qualification = updateSharedSurgeQualification(
+        surgeQualificationRef.current,
+        {
+          nowMs: performance.now(),
+          smoothedEnergy: energySignal,
+          acceptedSequence: activeSnapshot?.kickPulseAcceptedEventSequence ?? 0,
+          isPlaying,
+          motionEnabled,
+        },
+      );
+      surgeQualificationRef.current = qualification.state;
+      if (motionActive && qualification.triggered) {
+        supernovaAge = 0;
+      }
+      if (motionActive && supernovaAge >= 0) {
+        supernovaAge += delta;
+        if (supernovaAge >= 2.4) supernovaAge = -1;
+      }
+      const supernovaProgress =
+        supernovaAge < 0 ? 0 : Math.min(1, supernovaAge / 2.4);
+      const supernovaEnvelope =
+        supernovaAge < 0 ? 0 : Math.pow(1 - supernovaProgress, 1.35);
 
       if (isPlaying) {
         chromaRingDriftPhase =
@@ -1753,6 +2042,10 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
         previousPlaying = isPlaying;
         activationProgress = 1;
         activationStrength = 0;
+        supernovaWaves.forEach(({ mesh, material }) => {
+          mesh.visible = false;
+          material.opacity = 0;
+        });
 
         // Freeze transforms/phases in-place. Only color/presentation may continue reacting while playing.
         if (isPlaying) {
@@ -1778,15 +2071,28 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
           });
         }
 
-        distantStarsMaterial.opacity =
+        distantStarsMaterial.uniforms.uOpacity.value =
           starBaseOpacity.distant *
           (isPlaying ? 1 + reactiveParticles * 0.1 : 1);
-        accentStarsMaterial.opacity =
+        accentStarsMaterial.uniforms.uOpacity.value =
           starBaseOpacity.accent *
           (isPlaying ? 1 + reactiveParticles * 0.16 : 1);
-        brightStarsMaterial.opacity =
+        brightStarsMaterial.uniforms.uOpacity.value =
           starBaseOpacity.bright *
           (isPlaying ? 1 + reactiveParticles * 0.22 : 1);
+        [
+          distantStarsMaterial,
+          accentStarsMaterial,
+          brightStarsMaterial,
+        ].forEach((material) => {
+          material.uniforms.uTime.value = elapsed;
+          material.uniforms.uHueShift.value = chromaReactiveActive
+            ? sharedHueOffsetDegrees / 360
+            : 0;
+          material.uniforms.uTwinkle.value = chromaReactiveActive ? 1 : 0.82;
+          material.uniforms.uSurge.value = 0;
+          material.uniforms.uSizeScale.value = 1;
+        });
 
         renderer.render(scene, camera);
         return;
@@ -1844,7 +2150,67 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
       coreGlowMaterial.opacity =
         (isPlaying
           ? 0.36 + reactiveGlobal * 0.08 + reactiveKick * 0.05
-          : 0.07) * volumeScale;
+          : 0.07) *
+          volumeScale +
+        supernovaEnvelope * 0.42;
+      const coreEnergyPulse = Math.max(
+        corePulse,
+        reactiveCore * 0.82,
+        reactiveKick * 0.92,
+      );
+      const coreEnergyBurst = supernovaEnvelope + reactiveKick * 0.72;
+      coreEnergy.scale.setScalar(
+        (isPlaying ? 1 : 0.72) +
+          coreEnergyPulse * (isPlaying ? 0.34 : 0.08) +
+          supernovaEnvelope * 0.82,
+      );
+      coreEnergyHalo.scale.setScalar(
+        (isPlaying ? 1 : 0.72) +
+          coreEnergyPulse * 0.42 +
+          supernovaEnvelope * 1.8,
+      );
+      coreEnergyMaterial.opacity = THREE.MathUtils.clamp(
+        (isPlaying ? 0.9 + coreEnergyPulse * 0.1 : 0.52) * volumeScale +
+          coreEnergyBurst * 0.18,
+        0,
+        1,
+      );
+      coreEnergyHaloMaterial.opacity = THREE.MathUtils.clamp(
+        (isPlaying ? 0.18 + coreEnergyPulse * 0.12 : 0.08) * volumeScale +
+          supernovaEnvelope * 0.46,
+        0,
+        0.82,
+      );
+      colorScratchA
+        .copy(paletteSalmon)
+        .offsetHSL(
+          chromaReactiveActive ? sharedHueOffsetDegrees / 360 : 0,
+          0,
+          supernovaEnvelope * 0.08,
+        );
+      nexusPulseCoreMaterial.color.copy(colorScratchA);
+      colorScratchB
+        .copy(paletteViolet)
+        .offsetHSL(
+          chromaReactiveActive ? sharedHueOffsetDegrees / 360 : 0,
+          0,
+          supernovaEnvelope * 0.05,
+        );
+      nexusPulseGlowMaterial.color.copy(colorScratchB);
+      nexusPulseCore.scale.setScalar(
+        1 + kickSignal * 0.35 + supernovaEnvelope * 1.7,
+      );
+      nexusPulseGlow.scale.setScalar(
+        1 + nexusIntensity * 0.4 + supernovaEnvelope * 3.2,
+      );
+      nexusPulseCoreMaterial.opacity = Math.min(
+        1,
+        0.78 + supernovaEnvelope * 0.22,
+      );
+      nexusPulseGlowMaterial.opacity = Math.min(
+        0.82,
+        0.18 + supernovaEnvelope * 0.58,
+      );
 
       nexusShells.forEach(({ mesh, material, spin, wobble }, index) => {
         const spinFactor =
@@ -1882,7 +2248,8 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
         const ringScale =
           1 +
           (isPlaying ? nexusIntensity * 0.035 + kickSignal * 0.06 : 0) *
-            ringPulse;
+            ringPulse +
+          supernovaEnvelope * 0.9;
         mesh.scale.setScalar(ringScale);
         material.opacity =
           (isPlaying ? 0.38 + reactiveGlobal * 0.08 : 0.12) +
@@ -1944,6 +2311,7 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
             lane.travelRate *
             (isPlaying ? motionTuning.travelerBaseRateScale : 0.15) *
             trafficScale *
+            (1 + supernovaEnvelope * 1.1) *
             (1 +
               reactiveOrbit * motionTuning.travelerOrbitInfluence +
               reactiveGlobal * motionTuning.travelerGlobalInfluence);
@@ -1973,7 +2341,9 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
             : 0.25;
           coreMaterial.opacity = THREE.MathUtils.clamp(boost, 0.15, 1);
           glowMaterial.opacity =
-            (isPlaying ? 0.3 + reactiveParticles * 0.1 : 0.03) * volumeScale;
+            (isPlaying ? 0.3 + reactiveParticles * 0.1 : 0.03) *
+            volumeScale *
+            (1 + supernovaEnvelope * 1.4);
         },
       );
 
@@ -2002,6 +2372,18 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
           activationStrength *
           (0.38 + reactiveKick * 0.18) *
           volumeScale;
+      });
+
+      supernovaWaves.forEach(({ mesh, material, delay }) => {
+        if (supernovaAge < 0 || !motionActive || supernovaAge < delay) {
+          mesh.visible = false;
+          material.opacity = 0;
+          return;
+        }
+        const localProgress = Math.min(1, (supernovaAge - delay) / 1.7);
+        mesh.visible = true;
+        mesh.scale.setScalar(0.55 + localProgress * 4.8);
+        material.opacity = (1 - localProgress) * 0.72 * (1 - delay * 0.8);
       });
 
       railShots.forEach((shot) => {
@@ -2128,15 +2510,39 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
 
       const starDriftScale =
         0.42 + reactiveParticles * 0.95 + reactiveGlobal * 0.16;
-      distantStars.rotation.y += 0.0012 * delta * kineticScale * starDriftScale;
-      accentStars.rotation.z -= 0.0018 * delta * kineticScale * starDriftScale;
-      brightStars.rotation.y -= 0.0024 * delta * kineticScale * starDriftScale;
-      distantStarsMaterial.opacity =
+      distantStars.points.rotation.y +=
+        0.0012 * delta * kineticScale * starDriftScale;
+      accentStars.points.rotation.z -=
+        0.0018 * delta * kineticScale * starDriftScale;
+      brightStars.points.rotation.y -=
+        0.0024 * delta * kineticScale * starDriftScale;
+      distantStarsMaterial.uniforms.uOpacity.value =
         starBaseOpacity.distant * (1 + reactiveParticles * 0.1);
-      accentStarsMaterial.opacity =
+      accentStarsMaterial.uniforms.uOpacity.value =
         starBaseOpacity.accent * (1 + reactiveParticles * 0.16);
-      brightStarsMaterial.opacity =
+      brightStarsMaterial.uniforms.uOpacity.value =
         starBaseOpacity.bright * (1 + reactiveParticles * 0.22);
+      if (supernovaEnvelope > 0) {
+        accentStars.points.scale.setScalar(1 + supernovaEnvelope * 0.08);
+        brightStars.points.scale.setScalar(1 + supernovaEnvelope * 0.14);
+        accentStarsMaterial.uniforms.uOpacity.value += supernovaEnvelope * 0.18;
+        brightStarsMaterial.uniforms.uOpacity.value += supernovaEnvelope * 0.3;
+      } else {
+        accentStars.points.scale.setScalar(1);
+        brightStars.points.scale.setScalar(1);
+      }
+
+      [distantStarsMaterial, accentStarsMaterial, brightStarsMaterial].forEach(
+        (material) => {
+          material.uniforms.uTime.value = elapsed;
+          material.uniforms.uHueShift.value = chromaReactiveActive
+            ? sharedHueOffsetDegrees / 360
+            : 0;
+          material.uniforms.uTwinkle.value = chromaReactiveActive ? 1 : 0.82;
+          material.uniforms.uSurge.value = supernovaEnvelope;
+          material.uniforms.uSizeScale.value = 1 + supernovaEnvelope * 0.16;
+        },
+      );
 
       renderer.render(scene, camera);
     };
