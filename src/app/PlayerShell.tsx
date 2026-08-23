@@ -1062,6 +1062,7 @@ function PlayerShell({ className }: PlayerShellProps) {
         <VisualFeedWindow
           open={effectiveInfoOpen && visualFeedDockMode !== null}
           dockMode={visualFeedDockMode ?? "right"}
+          playerCollapsed={panelCollapsed}
           onClose={handleInfoClose}
           selectedTrackSource={
             selectedSignalId ? audioController.audioSource : null

@@ -13,6 +13,7 @@ const BRAND_FALLBACK_ARTWORK_URL = publicAssetUrl(
 type VisualFeedWindowProps = {
   open: boolean;
   dockMode: "right" | "bottom";
+  playerCollapsed?: boolean;
   onClose: () => void;
   selectedTrackSource: AudioSource | null;
   metadataOverride?: TrackSignalMetadata | null;
@@ -80,6 +81,7 @@ function SignalInfoMarquee() {
 function VisualFeedWindow({
   open,
   dockMode,
+  playerCollapsed,
   onClose,
   selectedTrackSource,
   metadataOverride,
@@ -185,30 +187,33 @@ function VisualFeedWindow({
         .join(" ")}
       aria-label="Signal info panel"
       data-stage="open"
+      data-player-collapsed={playerCollapsed ? "true" : "false"}
       aria-hidden="false"
     >
       <header className="visual-feed-window__header">
         <p className="visual-feed-window__title">INFO</p>
-        {externalSourceUrl ? (
-          <a
-            className="visual-feed-window__source-link"
-            href={externalSourceUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label={`Open source for ${resolvedTitle}`}
+        <div className="visual-feed-window__header-actions">
+          {externalSourceUrl ? (
+            <a
+              className="visual-feed-window__source-link"
+              href={externalSourceUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={`Open source for ${resolvedTitle}`}
+            >
+              SOURCE <span aria-hidden="true">↗</span>
+            </a>
+          ) : null}
+          <button
+            type="button"
+            className="visual-feed-window__close"
+            onClick={onClose}
+            aria-label="Close signal info"
+            title="Close signal info"
           >
-            SOURCE <span aria-hidden="true">↗</span>
-          </a>
-        ) : null}
-        <button
-          type="button"
-          className="visual-feed-window__close"
-          onClick={onClose}
-          aria-label="Close signal info"
-          title="Close signal info"
-        >
-          <CloseIcon />
-        </button>
+            <CloseIcon />
+          </button>
+        </div>
       </header>
 
       <div className="visual-feed-window__body" id={contentId}>
