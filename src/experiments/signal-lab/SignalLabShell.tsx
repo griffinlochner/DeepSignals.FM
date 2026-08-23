@@ -314,7 +314,7 @@ function SignalLabShell() {
             <div>
               <p>NATIVE ENVIRONMENT</p>
               <h2 id="signal-lab-environment-title">
-                {signalRunnerSelected ? "SIGNAL RUNNER" : "COSMIC SIGNAL NEXUS"}
+                {signalRunnerSelected ? "SIGNAL RUNNER" : "THE SIGNAL NEXUS"}
               </h2>
             </div>
             <label className="signal-lab__environment-select">
@@ -327,7 +327,7 @@ function SignalLabShell() {
                   )
                 }
               >
-                <option value="cosmic-nexus">Cosmic Signal Nexus</option>
+                <option value="cosmic-nexus">The Signal Nexus</option>
                 <option value="signal-runner">Signal Runner</option>
               </select>
             </label>

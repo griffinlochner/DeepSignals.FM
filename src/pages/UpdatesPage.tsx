@@ -144,7 +144,7 @@ function UpdatesPage() {
                 <span className="about-associated-gradient-text">
                   Some environments use generated imagery and depth information
                   to create reactive three-dimensional scenes, while others —
-                  such as the Cosmic Signal Nexus — use their own real-time
+                  such as The Signal Nexus — use their own real-time
                   visual systems.
                 </span>
               </p>

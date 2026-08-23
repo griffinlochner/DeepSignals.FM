@@ -3,7 +3,7 @@ import NeonHyperRacerTheme from "./NeonHyperRacerTheme";
 
 const NeonHyperRacerDefinition: ThemeDefinition = {
   id: "neon-hyper-racer",
-  name: "Neon Hyper-Racer",
+  name: "Race to the Signal Nexus",
   description: "A high-speed neon flythrough across a futuristic night corridor.",
   className: "theme-neon-hyper-racer",
   performanceTier: "standard",

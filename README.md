@@ -115,7 +115,7 @@ The analyser examines audio **before** the speaker output volume control.
 - **Race to the Signal Nexus**: **Does** explicitly multiply travel speed by `state.volume` for direct player control; complete stop when volume = 0
 
 **Current presentation difference**:
-- **Hyper-Racer** can reach a complete stop at volume zero because it explicitly scales target speed by player volume.
+- **Race to the Signal Nexus** can reach a complete stop at volume zero because it explicitly scales target speed by player volume.
 - **Signal Runner** retains a small idle/coasting velocity even when energy approaches zero. Both behaviors are currently acceptable; they do not need normalization unless future design/testing gives a reason to change them.
 
 **Future implementations**: Avoid accidentally applying volume twice (once in analysis gain, once in the scene). Use current code patterns as reference.
@@ -188,7 +188,7 @@ New Three.js travel environments should:
 4. Respect MOTION and CHROMA gates
 5. Create artistic interpretation of signals, not duplicate analysis
 
-### The Signal Nexus (Cosmic Nexus)
+### The Signal Nexus
 
 Standalone older implementation with richer local reactive mappings:
 - Mapped from `smoothedEnergy`, `bass`, `mids`, `highs`, `kick` into multiple reactive dimensions
@@ -480,7 +480,7 @@ The player controls define a shared semantic contract across all environments:
 - Audio signals drop to zero baseline
 - Visual elements render at reduced opacity
 
-#### Race to the Signal Nexus (Neon Hyper-Racer)
+#### Race to the Signal Nexus
 
 **MOTION OFF:**
 - Track travel freezes
@@ -496,7 +496,7 @@ The player controls define a shared semantic contract across all environments:
 
 **Note:** This star-twinkle behavior is intentional and provides a way to observe procedural animation independent of playback state.
 
-#### The Signal Nexus (Cosmic Nexus)
+#### The Signal Nexus
 
 **MOTION OFF:**
 - Scene elapsed-time completely freezes (unlike modern travel scenes which may continue procedural detail)

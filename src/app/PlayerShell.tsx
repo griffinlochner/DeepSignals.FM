@@ -95,7 +95,7 @@ const publicPlayerEnvironmentIds = new Set<string>(
 const HIDDEN_ENVIRONMENT_DROPDOWN_IDS = new Set<string>(["slime-cavern"]);
 // Short, user-facing labels for the Environment dropdown; underlying theme names/ids are unchanged.
 const PUBLIC_ENVIRONMENT_DISPLAY_NAME_OVERRIDES: Record<string, string> = {
-  "cosmic-nexus": "Nexus",
+  "cosmic-nexus": "The Signal Nexus",
   "uv-reactive-jungle": "Psy Jungle",
   "analog-signal-laboratory": "Analog Lab",
   "bioluminescent-psy-reef": "Psy Reef",
