@@ -42,6 +42,8 @@ The Phase 1 Playwright suite tests the production build through Vite preview, no
 
 Install the browser once with `npx playwright install chromium`, then run `npm run test:e2e`. The HTML report is written to `playwright-report/` and can be opened with `npx playwright show-report`. Run one spec with `npx playwright test tests/smoke/player.spec.ts`.
 
+The behavior spec also runs against the bundled `Biomekanik — Fragments of Reality` demo track, so it does not depend on live radio or metadata services. Run it with `npx playwright test tests/behavior/motion-chroma.spec.ts`.
+
 ## Player Architecture
 
 DeepSignals.FM currently features **19 registered environments** across several distinct families, each with different audio-reactivity contracts and visual semantics.

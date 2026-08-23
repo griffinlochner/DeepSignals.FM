@@ -28,6 +28,12 @@ export type ThemeSceneProps = {
   manualDepthOverride?: number;
   manualHueShiftOverrideDegrees?: number | null;
   manualSaturationOverrideMultiplier?: number | null;
+  onRuntimeTelemetry?: (telemetry: {
+    motionTargetSpeed?: number;
+    motionSpeed?: number;
+    travelPosition?: number;
+    hue?: number;
+  }) => void;
 };
 
 export type ThemeVisualFeedFrameProps = {

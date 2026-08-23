@@ -13,6 +13,8 @@ export type SignalRunnerDriveTelemetry = {
   smoothedEnergy: number;
   targetSpeed: number;
   actualSpeed: number;
+  travelVelocity: number;
+  hue: number;
 };
 
 type SignalRunnerSceneProps = {
@@ -118,11 +120,11 @@ function SignalRunnerScene(props: SignalRunnerSceneProps) {
     for (let index = 0; index < STAR_COUNT; index += 1) {
       const spawnDepth = 28 + Math.random() * (FLIGHT_DEPTH - 28);
       resetStar(index, spawnDepth);
-      pointPositions[index * 3 + 2] =
-        -(8 + Math.random() * (spawnDepth - 8));
+      pointPositions[index * 3 + 2] = -(8 + Math.random() * (spawnDepth - 8));
 
       const colorRoll = Math.random();
-      starColorIndices[index] = colorRoll > 0.86 ? 2 : colorRoll > 0.66 ? 1 : colorRoll > 0.48 ? 3 : 0;
+      starColorIndices[index] =
+        colorRoll > 0.86 ? 2 : colorRoll > 0.66 ? 1 : colorRoll > 0.48 ? 3 : 0;
     }
 
     const starColorScratch = new THREE.Color();
@@ -138,7 +140,11 @@ function SignalRunnerScene(props: SignalRunnerSceneProps) {
       for (let index = 0; index < STAR_COUNT; index += 1) {
         const color = starColorScratch
           .copy(starColors[starColorIndices[index]])
-          .offsetHSL(hueOffset, saturationLift, chromaEnabled ? energy * 0.04 : 0)
+          .offsetHSL(
+            hueOffset,
+            saturationLift,
+            chromaEnabled ? energy * 0.04 : 0,
+          )
           .multiplyScalar(brightness);
         const pointOffset = index * 3;
         const streakOffset = index * 6;
@@ -178,7 +184,10 @@ function SignalRunnerScene(props: SignalRunnerSceneProps) {
     flightWorld.add(stars);
 
     const streakGeometry = new THREE.BufferGeometry();
-    const streakPositionAttribute = new THREE.BufferAttribute(streakPositions, 3);
+    const streakPositionAttribute = new THREE.BufferAttribute(
+      streakPositions,
+      3,
+    );
     streakPositionAttribute.setUsage(THREE.DynamicDrawUsage);
     streakGeometry.setAttribute("position", streakPositionAttribute);
     const streakColorAttribute = new THREE.BufferAttribute(streakColors, 3);
@@ -202,7 +211,8 @@ function SignalRunnerScene(props: SignalRunnerSceneProps) {
         const angle = progress * Math.PI * 4.4 + phase;
         const offset = index * 3;
         positions[offset] = Math.cos(angle) * radius * (0.72 + progress * 0.28);
-        positions[offset + 1] = Math.sin(angle) * radius * (0.72 + progress * 0.28);
+        positions[offset + 1] =
+          Math.sin(angle) * radius * (0.72 + progress * 0.28);
         positions[offset + 2] = -24 + progress * 48;
       }
       return positions;
@@ -210,7 +220,10 @@ function SignalRunnerScene(props: SignalRunnerSceneProps) {
 
     const createPhenomenonRail = (positions: Float32Array, color: number) => {
       const geometry = new THREE.BufferGeometry();
-      geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+      geometry.setAttribute(
+        "position",
+        new THREE.BufferAttribute(positions, 3),
+      );
       const glowMaterial = new THREE.LineBasicMaterial({
         color,
         transparent: true,
@@ -230,8 +243,14 @@ function SignalRunnerScene(props: SignalRunnerSceneProps) {
       return { geometry, glowMaterial, coreMaterial, glow, core };
     };
 
-    const railGreen = createPhenomenonRail(createHelixPositions(0, 4.2), 0x9cff57);
-    const railCyan = createPhenomenonRail(createHelixPositions(Math.PI, 3.6), 0x47f7ff);
+    const railGreen = createPhenomenonRail(
+      createHelixPositions(0, 4.2),
+      0x9cff57,
+    );
+    const railCyan = createPhenomenonRail(
+      createHelixPositions(Math.PI, 3.6),
+      0x47f7ff,
+    );
     const railGroup = new THREE.Group();
     railGroup.add(railGreen.glow, railGreen.core, railCyan.glow, railCyan.core);
 
@@ -241,11 +260,15 @@ function SignalRunnerScene(props: SignalRunnerSceneProps) {
       const angle = progress * Math.PI * 4.4 + 0.22;
       const offset = index * 3;
       nodePositions[offset] = Math.cos(angle) * 4.35 * (0.72 + progress * 0.28);
-      nodePositions[offset + 1] = Math.sin(angle) * 4.35 * (0.72 + progress * 0.28);
+      nodePositions[offset + 1] =
+        Math.sin(angle) * 4.35 * (0.72 + progress * 0.28);
       nodePositions[offset + 2] = -24 + progress * 48;
     }
     const nodeGeometry = new THREE.BufferGeometry();
-    nodeGeometry.setAttribute("position", new THREE.BufferAttribute(nodePositions, 3));
+    nodeGeometry.setAttribute(
+      "position",
+      new THREE.BufferAttribute(nodePositions, 3),
+    );
     const nodeMaterial = new THREE.PointsMaterial({
       color: 0xff7fa1,
       size: 0.62,
@@ -278,7 +301,10 @@ function SignalRunnerScene(props: SignalRunnerSceneProps) {
       arcPositions[offset + 11] = -24 + progress * 48;
     }
     const arcGeometry = new THREE.BufferGeometry();
-    arcGeometry.setAttribute("position", new THREE.BufferAttribute(arcPositions, 3));
+    arcGeometry.setAttribute(
+      "position",
+      new THREE.BufferAttribute(arcPositions, 3),
+    );
     const arcMaterial = new THREE.LineBasicMaterial({
       color: 0xff7fa1,
       transparent: true,
@@ -456,7 +482,8 @@ function SignalRunnerScene(props: SignalRunnerSceneProps) {
 
       if (frequencyGate.position.z > NEAR_PLANE) {
         frequencyGate.position.z = -(
-          GATE_RECYCLE_DEPTH + Math.random() * GATE_RECYCLE_VARIANCE
+          GATE_RECYCLE_DEPTH +
+          Math.random() * GATE_RECYCLE_VARIANCE
         );
         previousPhenomenonZ = frequencyGate.position.z;
       }
@@ -468,33 +495,50 @@ function SignalRunnerScene(props: SignalRunnerSceneProps) {
       if (state.motionEnabled) {
         steeringElapsed = Math.min(steeringDuration, steeringElapsed + delta);
         const steeringProgress = steeringElapsed / steeringDuration;
-        const steeringBuild = THREE.MathUtils.smoothstep(steeringProgress, 0, 0.72);
-        const steeringRelease = 1 - THREE.MathUtils.smoothstep(steeringProgress, 0.84, 1);
+        const steeringBuild = THREE.MathUtils.smoothstep(
+          steeringProgress,
+          0,
+          0.72,
+        );
+        const steeringRelease =
+          1 - THREE.MathUtils.smoothstep(steeringProgress, 0.84, 1);
         const steeringWeight = Math.min(steeringBuild, steeringRelease);
         const steeringSmoothing = 1 - Math.exp(-delta * 1.8);
         flightWorld.rotation.y +=
-          (steeringYaw * steeringWeight - flightWorld.rotation.y) * steeringSmoothing;
+          (steeringYaw * steeringWeight - flightWorld.rotation.y) *
+          steeringSmoothing;
         flightWorld.rotation.x +=
-          (steeringPitch * steeringWeight - flightWorld.rotation.x) * steeringSmoothing;
+          (steeringPitch * steeringWeight - flightWorld.rotation.x) *
+          steeringSmoothing;
         flightWorld.rotation.z +=
-          (steeringRoll * steeringWeight - flightWorld.rotation.z) * steeringSmoothing;
+          (steeringRoll * steeringWeight - flightWorld.rotation.z) *
+          steeringSmoothing;
       }
 
       const targetChromaHueOffset = state.chromaEnabled
         ? mapSignalRunnerChromaHue(smoothedEnergy)
         : 0;
       smoothedChromaHueOffset +=
-        (targetChromaHueOffset - smoothedChromaHueOffset) * SIGNAL_RUNNER_CHROMA_HUE_RESPONSE;
+        (targetChromaHueOffset - smoothedChromaHueOffset) *
+        SIGNAL_RUNNER_CHROMA_HUE_RESPONSE;
 
       const chromaAmount = state.chromaEnabled
-        ? THREE.MathUtils.clamp(smoothedEnergy * 0.58 + (snapshot?.kickPulse ?? 0) * 0.22, 0, 1)
+        ? THREE.MathUtils.clamp(
+            smoothedEnergy * 0.58 + (snapshot?.kickPulse ?? 0) * 0.22,
+            0,
+            1,
+          )
         : 0;
       if (
         state.chromaEnabled !== previousChromaEnabled ||
         Math.abs(smoothedChromaHueOffset - previousRenderedHueOffset) > 0.001 ||
         Math.abs(smoothedEnergy - previousRenderedEnergy) > 0.001
       ) {
-        updateStarColors(state.chromaEnabled, smoothedChromaHueOffset, smoothedEnergy);
+        updateStarColors(
+          state.chromaEnabled,
+          smoothedChromaHueOffset,
+          smoothedEnergy,
+        );
         pointColorAttribute.needsUpdate = true;
         streakColorAttribute.needsUpdate = true;
         previousChromaEnabled = state.chromaEnabled;
@@ -518,20 +562,34 @@ function SignalRunnerScene(props: SignalRunnerSceneProps) {
         : 0;
 
       if (state.chromaEnabled) {
-        phenomenonColorScratch.copy(gateGreen).lerp(gateCyan, chromaAmount * 0.28);
+        phenomenonColorScratch
+          .copy(gateGreen)
+          .lerp(gateCyan, chromaAmount * 0.28);
         railGreen.coreMaterial.color.copy(phenomenonColorScratch);
-        phenomenonColorScratch.copy(gateGreen).lerp(gateCyan, chromaAmount * 0.24);
+        phenomenonColorScratch
+          .copy(gateGreen)
+          .lerp(gateCyan, chromaAmount * 0.24);
         railGreen.glowMaterial.color.copy(phenomenonColorScratch);
-        phenomenonColorScratch.copy(gateCyan).lerp(gateSalmon, chromaAmount * 0.22);
+        phenomenonColorScratch
+          .copy(gateCyan)
+          .lerp(gateSalmon, chromaAmount * 0.22);
         railCyan.coreMaterial.color.copy(phenomenonColorScratch);
-        phenomenonColorScratch.copy(gateCyan).lerp(gateSalmon, chromaAmount * 0.16);
+        phenomenonColorScratch
+          .copy(gateCyan)
+          .lerp(gateSalmon, chromaAmount * 0.16);
         railCyan.glowMaterial.color.copy(phenomenonColorScratch);
-        phenomenonColorScratch.copy(gateSalmon).lerp(gateCyan, chromaAmount * 0.24);
+        phenomenonColorScratch
+          .copy(gateSalmon)
+          .lerp(gateCyan, chromaAmount * 0.24);
         nodeMaterial.color.copy(phenomenonColorScratch);
         arcMaterial.color.copy(phenomenonColorScratch);
-        phenomenonColorScratch.copy(orbCoreBaseColor).lerp(gateSalmon, chromaAmount * 0.22);
+        phenomenonColorScratch
+          .copy(orbCoreBaseColor)
+          .lerp(gateSalmon, chromaAmount * 0.22);
         orbCoreMaterial.color.copy(phenomenonColorScratch);
-        phenomenonColorScratch.copy(orbShellBaseColor).lerp(gateCyan, chromaAmount * 0.2);
+        phenomenonColorScratch
+          .copy(orbShellBaseColor)
+          .lerp(gateCyan, chromaAmount * 0.2);
         orbShellMaterial.color.copy(phenomenonColorScratch);
       } else {
         railGreen.coreMaterial.color.copy(restrainedGreen);
@@ -576,7 +634,11 @@ function SignalRunnerScene(props: SignalRunnerSceneProps) {
       }
 
       pointMaterial.opacity = THREE.MathUtils.clamp(
-        THREE.MathUtils.lerp(state.chromaEnabled ? 1 : 0.72, state.chromaEnabled ? 0.54 : 0.42, streakMix),
+        THREE.MathUtils.lerp(
+          state.chromaEnabled ? 1 : 0.72,
+          state.chromaEnabled ? 0.54 : 0.42,
+          streakMix,
+        ),
         0,
         1,
       );
@@ -595,6 +657,8 @@ function SignalRunnerScene(props: SignalRunnerSceneProps) {
           smoothedEnergy,
           targetSpeed,
           actualSpeed: smoothedSpeed,
+          travelVelocity,
+          hue: smoothedChromaHueOffset,
         });
       }
 
@@ -635,7 +699,9 @@ function SignalRunnerScene(props: SignalRunnerSceneProps) {
     };
   }, []);
 
-  return <div className="signal-runner__space" ref={mountRef} aria-hidden="true" />;
+  return (
+    <div className="signal-runner__space" ref={mountRef} aria-hidden="true" />
+  );
 }
 
 export default SignalRunnerScene;

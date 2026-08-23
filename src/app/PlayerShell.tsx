@@ -37,6 +37,7 @@ import { usePsyBrazilLoFiNowPlaying } from "./usePsyBrazilLoFiNowPlaying";
 import { usePsyBrazilLowBpmNowPlaying } from "./usePsyBrazilLowBpmNowPlaying";
 import { usePsyBrazilElectroNowPlaying } from "./usePsyBrazilElectroNowPlaying";
 import { useDeepTripNowPlaying } from "./useDeepTripNowPlaying";
+import { publishRuntimeTestSnapshot } from "./runtimeTestBridge";
 import {
   mapSignalTarget,
   resolveShortestHueDeltaDegrees,
@@ -254,8 +255,7 @@ function getVisualFeedFit(
   const { width: playerWidth, height: playerHeight } =
     getAvailabilityPlayerDimensions(viewportWidth, playerPanelSize);
   const rightInfoHeight = SIGNAL_INFO_COMPACT_HEIGHT;
-  const bottomFeedHeight =
-    Math.round(playerWidth * (9 / 16)) + 220;
+  const bottomFeedHeight = Math.round(playerWidth * (9 / 16)) + 220;
 
   const right =
     viewportWidth >=
@@ -411,8 +411,10 @@ function PlayerShell({ className }: PlayerShellProps) {
   const psyBrazilProgressiveNowPlaying =
     usePsyBrazilProgressiveNowPlaying(selectedSignalId);
   const psyBrazilLoFiNowPlaying = usePsyBrazilLoFiNowPlaying(selectedSignalId);
-  const psyBrazilLowBpmNowPlaying = usePsyBrazilLowBpmNowPlaying(selectedSignalId);
-  const psyBrazilElectroNowPlaying = usePsyBrazilElectroNowPlaying(selectedSignalId);
+  const psyBrazilLowBpmNowPlaying =
+    usePsyBrazilLowBpmNowPlaying(selectedSignalId);
+  const psyBrazilElectroNowPlaying =
+    usePsyBrazilElectroNowPlaying(selectedSignalId);
   const deepTripNowPlaying = useDeepTripNowPlaying(selectedSignalId);
   const externalNowPlaying =
     psyStreamNowPlaying ??
@@ -435,6 +437,34 @@ function PlayerShell({ className }: PlayerShellProps) {
     sourceBpm: effectiveReactiveBpm,
     publishDiagnostics: audioDebugEnabled,
   });
+
+  useEffect(() => {
+    const snapshot = audioAnalysis.snapshot;
+    publishRuntimeTestSnapshot({
+      playback: audioController.playbackStatus,
+      audio: {
+        energy: snapshot.energy,
+        bass: snapshot.bass,
+        kickPulse: snapshot.kickPulse,
+        mids: snapshot.mids,
+        highs: snapshot.highs,
+        smoothedEnergy: snapshot.smoothedEnergy,
+      },
+      controls: {
+        chroma: chromaEnabled,
+        motion: motionEnabled,
+        volume: audioController.volume,
+      },
+      environment: { id: selectedThemeId },
+    });
+  }, [
+    audioAnalysis.snapshot,
+    audioController.playbackStatus,
+    audioController.volume,
+    chromaEnabled,
+    motionEnabled,
+    selectedThemeId,
+  ]);
 
   const imageDepthAssetsByThemeId = useMemo(
     () =>
@@ -497,8 +527,9 @@ function PlayerShell({ className }: PlayerShellProps) {
       },
       {
         label: "EXTERNAL SIGNALS",
-        signals: PUBLIC_EXTERNAL_AUDIO_SOURCES
-          .filter((source) => !PSYBRAZIL_NETWORK_SOURCE_ID_SET.has(source.id))
+        signals: PUBLIC_EXTERNAL_AUDIO_SOURCES.filter(
+          (source) => !PSYBRAZIL_NETWORK_SOURCE_ID_SET.has(source.id),
+        )
           .map((source) => ({
             id: source.id,
             label: formatAudioSourceLabel(source),
@@ -507,8 +538,9 @@ function PlayerShell({ className }: PlayerShellProps) {
       },
       {
         label: "DEMO TRANSMISSIONS",
-        signals: DEMO_AUDIO_SOURCES
-          .filter((source) => !PUBLIC_DEMO_SOURCE_EXCLUSIONS.has(source.id))
+        signals: DEMO_AUDIO_SOURCES.filter(
+          (source) => !PUBLIC_DEMO_SOURCE_EXCLUSIONS.has(source.id),
+        )
           .map((source) => ({
             id: source.id,
             label: formatAudioSourceLabel(source),
@@ -530,12 +562,16 @@ function PlayerShell({ className }: PlayerShellProps) {
           return [];
         }
 
-        const theme = themeRegistry.find((candidate) => candidate.id === themeId);
+        const theme = themeRegistry.find(
+          (candidate) => candidate.id === themeId,
+        );
         return theme
           ? [
               {
                 id: theme.id,
-                name: PUBLIC_ENVIRONMENT_DISPLAY_NAME_OVERRIDES[theme.id] ?? theme.name,
+                name:
+                  PUBLIC_ENVIRONMENT_DISPLAY_NAME_OVERRIDES[theme.id] ??
+                  theme.name,
               },
             ]
           : [];
@@ -578,7 +614,11 @@ function PlayerShell({ className }: PlayerShellProps) {
       };
       setViewportSize(nextViewport);
 
-      getVisualFeedFit(nextViewport.width, nextViewport.height, playerPanelSize);
+      getVisualFeedFit(
+        nextViewport.width,
+        nextViewport.height,
+        playerPanelSize,
+      );
     };
 
     handleViewportChange();
@@ -587,10 +627,7 @@ function PlayerShell({ className }: PlayerShellProps) {
     return () => {
       window.removeEventListener("resize", handleViewportChange);
     };
-  }, [
-    infoOpen,
-    playerPanelSize,
-  ]);
+  }, [infoOpen, playerPanelSize]);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -657,7 +694,6 @@ function PlayerShell({ className }: PlayerShellProps) {
 
   const handleThemeChange = (themeId: ThemeId) => {
     setSelectedThemeId(themeId);
-
   };
 
   useEffect(() => {
@@ -853,6 +889,32 @@ function PlayerShell({ className }: PlayerShellProps) {
       ? fullOnSaturationOverrideMultiplier
       : null,
     onDevSceneCountersChange: handleSceneCountersChange,
+    onRuntimeTelemetry: (telemetry) => {
+      const snapshot = audioAnalysis.getLatestSnapshot();
+      publishRuntimeTestSnapshot({
+        playback: audioController.playbackStatus,
+        audio: {
+          energy: snapshot.energy,
+          bass: snapshot.bass,
+          kickPulse: snapshot.kickPulse,
+          mids: snapshot.mids,
+          highs: snapshot.highs,
+          smoothedEnergy: snapshot.smoothedEnergy,
+        },
+        controls: {
+          chroma: chromaEnabled,
+          motion: motionEnabled,
+          volume: audioController.volume,
+        },
+        environment: {
+          id: selectedThemeId,
+          motionTargetSpeed: telemetry.motionTargetSpeed ?? null,
+          motionSpeed: telemetry.motionSpeed ?? null,
+          travelPosition: telemetry.travelPosition ?? null,
+          hue: telemetry.hue ?? null,
+        },
+      });
+    },
     onReactivePreviewTelemetry: (telemetry) => {
       reactivePreviewTelemetryRef.current = productionFullOnActive
         ? {
@@ -992,9 +1054,7 @@ function PlayerShell({ className }: PlayerShellProps) {
         className={[
           "player-shell__dock",
           visualFeedDockMode ? `player-shell__dock--${visualFeedDockMode}` : "",
-          effectiveInfoOpen
-            ? "player-shell__dock--info-open"
-            : "",
+          effectiveInfoOpen ? "player-shell__dock--info-open" : "",
         ]
           .filter(Boolean)
           .join(" ")}
@@ -1041,7 +1101,6 @@ function PlayerShell({ className }: PlayerShellProps) {
             collapsed={panelCollapsed}
             onCollapsedChange={setPanelCollapsed}
           />
-
         </div>
 
         <VisualFeedWindow

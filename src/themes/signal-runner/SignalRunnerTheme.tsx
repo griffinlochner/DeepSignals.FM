@@ -10,6 +10,7 @@ function SignalRunnerTheme({
   motionEnabled = true,
   chromaEnabled = true,
   getLatestAudioSnapshot,
+  onRuntimeTelemetry,
 }: ThemeSceneProps) {
   return (
     <SignalRunnerExperience
@@ -22,6 +23,13 @@ function SignalRunnerTheme({
       motionEnabled={motionEnabled}
       chromaEnabled={chromaEnabled}
       getLatestAudioSnapshot={getLatestAudioSnapshot}
+      onDriveTelemetry={(telemetry) =>
+        onRuntimeTelemetry?.({
+          motionTargetSpeed: telemetry.targetSpeed,
+          motionSpeed: telemetry.travelVelocity,
+          hue: telemetry.hue,
+        })
+      }
     />
   );
 }

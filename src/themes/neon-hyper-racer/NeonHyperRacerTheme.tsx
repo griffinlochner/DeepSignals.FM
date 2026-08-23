@@ -62,6 +62,7 @@ function NeonHyperRacerTheme({
   motionEnabled = true,
   chromaEnabled = true,
   getLatestAudioSnapshot,
+  onRuntimeTelemetry,
 }: ThemeSceneProps) {
   const mountRef = useRef<HTMLDivElement | null>(null);
   const propsRef = useRef({
@@ -71,6 +72,7 @@ function NeonHyperRacerTheme({
     motionEnabled,
     chromaEnabled,
     getLatestAudioSnapshot,
+    onRuntimeTelemetry,
   });
 
   useEffect(() => {
@@ -81,6 +83,7 @@ function NeonHyperRacerTheme({
       motionEnabled,
       chromaEnabled,
       getLatestAudioSnapshot,
+      onRuntimeTelemetry,
     };
   }, [
     chromaEnabled,
@@ -89,6 +92,7 @@ function NeonHyperRacerTheme({
     motionEnabled,
     reducedMotion,
     volume,
+    onRuntimeTelemetry,
   ]);
 
   useEffect(() => {
@@ -729,6 +733,7 @@ function NeonHyperRacerTheme({
     let currentTravelSpeed = 0;
     let accumulatedTravel = 0;
     let smoothedChromaHueOffset = 0;
+    let lastTelemetryPublishedAt = 0;
     let animationFrame = 0;
     const surgeQualificationRef = {
       current: createSharedSurgeQualificationState(),
@@ -910,6 +915,19 @@ function NeonHyperRacerTheme({
         (targetHueDegrees - smoothedChromaHueOffset) *
         SIGNAL_RUNNER_CHROMA_HUE_RESPONSE;
       const hueOffset = chromaActive ? smoothedChromaHueOffset / 360 : 0;
+      const telemetryNow = performance.now();
+      if (
+        state.onRuntimeTelemetry &&
+        telemetryNow - lastTelemetryPublishedAt >= 100
+      ) {
+        lastTelemetryPublishedAt = telemetryNow;
+        state.onRuntimeTelemetry({
+          motionTargetSpeed: targetTravelSpeed,
+          motionSpeed: currentTravelSpeed,
+          travelPosition: accumulatedTravel,
+          hue: smoothedChromaHueOffset,
+        });
+      }
       const starChromaEnabled = state.chromaEnabled;
       const surgeAge = surgeStateRef.active
         ? elapsed - surgeStateRef.beganAt
