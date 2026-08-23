@@ -16,12 +16,7 @@ function LandingPage() {
       <div className="landing-nexus-scene__scanlines" aria-hidden="true" />
 
       <main className="transmission-overlay">
-        <p className="transmission-overlay__acquired">
-          ░▒▓ SIGNAL ACQUIRED ▓▒░
-        </p>
-
         <h1 className="transmission-overlay__title">
-          <span className="transmission-overlay__title-prefix">::</span>
           <PublicBrandIdent
             as="span"
             className="transmission-overlay__brand-ident"
@@ -29,13 +24,10 @@ function LandingPage() {
           <span className="transmission-overlay__title-initializing">
             TRANSMISSION INITIALIZING
           </span>
-          <span className="transmission-overlay__title-suffix">::</span>
         </h1>
 
         <div className="transmission-overlay__status">
           <p>[ calibrating frequencies... ]</p>
-          <p>[ tuning cosmic bandwidth... ]</p>
-          <p>[ searching for hidden wavelengths... ]</p>
         </div>
 
         <div className="transmission-overlay__player-cta">
@@ -54,10 +46,7 @@ function LandingPage() {
           </a>
 
           <p className="player-cta__support">
-            Live stations · reactive visuals · telemetry
-          </p>
-          <p className="player-cta__disclaimer">
-            Experimental transmission — expect anomalies.
+            live stations · reactive visuals · telemetry · early preview
           </p>
         </div>
 
