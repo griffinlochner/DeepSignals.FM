@@ -40,6 +40,21 @@ function DefaultFrame({ children }: ThemeVisualFeedFrameProps) {
   return <>{children}</>;
 }
 
+function ExternalLinkIcon() {
+  return (
+    <svg
+      className="visual-feed-window__external-link-icon"
+      viewBox="0 0 16 16"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path d="M9 2h5v5" />
+      <path d="M14 2 8 8" />
+      <path d="M13 9v4a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h4" />
+    </svg>
+  );
+}
+
 const SIGNAL_RUNNER_MESSAGES = [
   { text: "WELCOME TO", color: "white", joined: false },
   { text: "DEEP", color: "green", joined: false },
@@ -246,7 +261,7 @@ function VisualFeedWindow({
             rel="noopener noreferrer"
             aria-label={`Open source for ${resolvedTitle}`}
           >
-            SOURCE <span aria-hidden="true">↗</span>
+            SOURCE <ExternalLinkIcon />
           </a>
         ) : null}
       </header>
@@ -354,7 +369,7 @@ function VisualFeedWindow({
           aria-label="About DeepSignals.FM - opens in a new tab"
         >
           <span>ABOUT</span>
-          <span aria-hidden="true">↗</span>
+          <ExternalLinkIcon />
         </a>
       </footer>
     </section>
