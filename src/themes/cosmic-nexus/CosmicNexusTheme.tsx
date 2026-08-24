@@ -465,13 +465,15 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
       new THREE.MeshBasicMaterial({
         color: 0x05060f,
         transparent: true,
-        opacity: 0.95,
+        opacity: 0.72,
+        depthWrite: false,
       }),
     );
     const coreSolid = new THREE.Mesh(
       trackGeometry(new THREE.IcosahedronGeometry(0.86, 2)),
       coreSolidMaterial,
     );
+    coreSolid.renderOrder = 2;
     nexusGroup.add(coreSolid);
     const coreGlowBaseColor = coreGlowMaterial.color.clone();
     const coreSolidBaseColor = coreSolidMaterial.color.clone();
@@ -486,9 +488,10 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
       }),
     );
     const coreEnergy = new THREE.Mesh(
-      trackGeometry(new THREE.SphereGeometry(0.2, 18, 12)),
+      trackGeometry(new THREE.SphereGeometry(0.3, 18, 12)),
       coreEnergyMaterial,
     );
+    coreEnergy.renderOrder = 5;
     nexusGroup.add(coreEnergy);
     const coreEnergyHaloMaterial = trackMaterial(
       new THREE.MeshBasicMaterial({
@@ -500,10 +503,13 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
       }),
     );
     const coreEnergyHalo = new THREE.Mesh(
-      trackGeometry(new THREE.SphereGeometry(0.46, 20, 14)),
+      trackGeometry(new THREE.SphereGeometry(0.62, 20, 14)),
       coreEnergyHaloMaterial,
     );
+    coreEnergyHalo.renderOrder = 4;
     nexusGroup.add(coreEnergyHalo);
+    const coreEnergyBaseColor = coreEnergyMaterial.color.clone();
+    const coreEnergyHaloBaseColor = coreEnergyHaloMaterial.color.clone();
 
     const shellSpecs = [
       {
@@ -1414,8 +1420,8 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
       if (!chromaReactiveActive) {
         coreGlowMaterial.color.copy(coreGlowBaseColor);
         coreSolidMaterial.color.copy(coreSolidBaseColor);
-        coreEnergyMaterial.color.set(COLORS.white);
-        coreEnergyHaloMaterial.color.set(COLORS.cyan);
+        coreEnergyMaterial.color.copy(coreEnergyBaseColor);
+        coreEnergyHaloMaterial.color.copy(coreEnergyHaloBaseColor);
 
         nexusShells.forEach(({ material, baseColor }) => {
           material.color.copy(baseColor);
@@ -1503,12 +1509,12 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
       );
       coreEnergyMaterial.color.copy(
         colorScratchA
-          .copy(paletteAuthoredWhite)
+          .copy(coreEnergyBaseColor)
           .lerpHSL(paletteCyan, kickSignalLift * 0.08),
       );
       coreEnergyHaloMaterial.color.copy(
         colorScratchB
-          .copy(coreEnergyHaloMaterial.color)
+          .copy(coreEnergyHaloBaseColor)
           .lerpHSL(paletteViolet, auraBassLift * 0.3),
       );
 
