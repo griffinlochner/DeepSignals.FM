@@ -703,10 +703,10 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
       );
 
     const pulseCoreGeometry = trackGeometry(
-      new THREE.SphereGeometry(0.052, 10, 8),
+      new THREE.SphereGeometry(0.13, 10, 8),
     );
     const pulseGlowGeometry = trackGeometry(
-      new THREE.SphereGeometry(0.14, 12, 10),
+      new THREE.SphereGeometry(0.35, 12, 10),
     );
     const nexusPulseCoreMaterial = trackMaterial(
       new THREE.MeshBasicMaterial({
