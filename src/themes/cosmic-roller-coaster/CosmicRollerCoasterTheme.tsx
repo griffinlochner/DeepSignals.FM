@@ -7,13 +7,13 @@ import type { ThemeSceneProps } from "../themeTypes";
 const STAR_COUNT = 1400;
 const TRACK_DIVISIONS = 1500;
 // Traversal speed range (progress units per second along coaster spline)
-const SPEED_MIN = 0.005; // near-stop for quiet audio
-const SPEED_MAX = 0.105; // provisional high-energy peak (current known-good rate)
+const SPEED_MIN = 0; // complete stop for silence/zero analyzer energy
+const SPEED_MAX = 0.020; // high-energy peak for comfortable viewing through sharp turns/dips
 // Audio energy normalization thresholds (matching DeepSignals.FM conventions)
 const AUDIO_ENERGY_FLOOR = 0.04;
 const AUDIO_ENERGY_CEILING = 0.72;
 // Speed smoothing responsiveness (exponential decay rate per second)
-const SPEED_EASING_PER_SECOND = 2.2;
+const SPEED_EASING_PER_SECOND = 1.8;
 const TELEMETRY_INTERVAL_MS = 100;
 
 function clamp(value: number) {
