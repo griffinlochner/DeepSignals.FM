@@ -8,7 +8,7 @@ const STAR_COUNT = 1400;
 const TRACK_DIVISIONS = 1500;
 // Traversal speed range (progress units per second along coaster spline)
 const SPEED_MIN = 0; // complete stop for silence/zero analyzer energy
-const SPEED_MAX = 0.014; // high-energy peak for comfortable viewing through sharp turns/dips
+const SPEED_MAX = 0.012; // high-energy peak for comfortable viewing through sharp turns/dips
 // Audio energy normalization thresholds (matching DeepSignals.FM conventions)
 const AUDIO_ENERGY_FLOOR = 0.04;
 const AUDIO_ENERGY_CEILING = 0.72;
