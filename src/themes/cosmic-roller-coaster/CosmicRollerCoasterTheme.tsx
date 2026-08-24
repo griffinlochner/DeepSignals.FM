@@ -16,6 +16,21 @@ const AUDIO_ENERGY_CEILING = 0.72;
 const SPEED_EASING_PER_SECOND = 1.8;
 const TELEMETRY_INTERVAL_MS = 100;
 
+// DSFM brand colors for track zones (CHROMA OFF baseline)
+const DSFM_COLORS = {
+  rails: new THREE.Color(0x74fff0),    // cyan/aqua
+  spine: new THREE.Color(0xff9eaa),    // salmon/pink
+  ties: new THREE.Color(0xb2ff86),     // neon green
+};
+
+// RollerCoasterGeometry vertex structure per division: 114 vertices
+// - ties (cross ties, step shape): 12 vertices (0-11)
+// - spine (center tube1): 30 vertices (12-41)
+// - rails (tube2 left + tube2 right): 72 vertices (42-113)
+const VERTICES_PER_DIVISION = 114;
+const TIES_VERTICES_PER_DIV = 12;      // 2 * step.length (step has 6 elements)
+const SPINE_VERTICES_PER_DIV = 30;     // 5 * 6 (tube1 has 5 elements)
+
 function clamp(value: number) {
   return THREE.MathUtils.clamp(value, 0, 1);
 }
@@ -85,6 +100,53 @@ function CosmicRollerCoasterTheme({ isPlaying, reducedMotion, motionEnabled = tr
     const trackMaterial = new THREE.MeshBasicMaterial({ color: 0xb6d7d5, vertexColors: true });
     const track = new THREE.Mesh(new RollerCoasterGeometry(curve, TRACK_DIVISIONS), trackMaterial);
     scene.add(track);
+    
+    // Initialize vertex colors: assign DSFM base palette by structural zone
+    const colorAttribute = track.geometry.getAttribute('color') as THREE.BufferAttribute;
+    const colorArray = colorAttribute.array as Float32Array;
+    
+    // Create immutable copy of base colors for CHROMA reactivity calculations
+    const baseColorArray = new Float32Array(colorArray.length);
+    
+    // Assign DSFM colors to each vertex based on zone (within each division)
+    for (let div = 0; div < TRACK_DIVISIONS; div++) {
+      const divBaseIndex = div * VERTICES_PER_DIVISION;
+      
+      // Ties: vertices 0-11 of this division
+      for (let v = 0; v < TIES_VERTICES_PER_DIV; v++) {
+        const colorIndex = (divBaseIndex + v) * 3;
+        colorArray[colorIndex] = DSFM_COLORS.ties.r;
+        colorArray[colorIndex + 1] = DSFM_COLORS.ties.g;
+        colorArray[colorIndex + 2] = DSFM_COLORS.ties.b;
+        baseColorArray[colorIndex] = DSFM_COLORS.ties.r;
+        baseColorArray[colorIndex + 1] = DSFM_COLORS.ties.g;
+        baseColorArray[colorIndex + 2] = DSFM_COLORS.ties.b;
+      }
+      
+      // Spine: vertices 12-41 of this division
+      for (let v = TIES_VERTICES_PER_DIV; v < TIES_VERTICES_PER_DIV + SPINE_VERTICES_PER_DIV; v++) {
+        const colorIndex = (divBaseIndex + v) * 3;
+        colorArray[colorIndex] = DSFM_COLORS.spine.r;
+        colorArray[colorIndex + 1] = DSFM_COLORS.spine.g;
+        colorArray[colorIndex + 2] = DSFM_COLORS.spine.b;
+        baseColorArray[colorIndex] = DSFM_COLORS.spine.r;
+        baseColorArray[colorIndex + 1] = DSFM_COLORS.spine.g;
+        baseColorArray[colorIndex + 2] = DSFM_COLORS.spine.b;
+      }
+      
+      // Rails: vertices 42-113 of this division (both left and right rails)
+      for (let v = TIES_VERTICES_PER_DIV + SPINE_VERTICES_PER_DIV; v < VERTICES_PER_DIVISION; v++) {
+        const colorIndex = (divBaseIndex + v) * 3;
+        colorArray[colorIndex] = DSFM_COLORS.rails.r;
+        colorArray[colorIndex + 1] = DSFM_COLORS.rails.g;
+        colorArray[colorIndex + 2] = DSFM_COLORS.rails.b;
+        baseColorArray[colorIndex] = DSFM_COLORS.rails.r;
+        baseColorArray[colorIndex + 1] = DSFM_COLORS.rails.g;
+        baseColorArray[colorIndex + 2] = DSFM_COLORS.rails.b;
+      }
+    }
+    
+    colorAttribute.needsUpdate = true;
     const timer = new THREE.Timer();
     timer.connect(document);
     const position = new THREE.Vector3();
@@ -147,12 +209,31 @@ function CosmicRollerCoasterTheme({ isPlaying, reducedMotion, motionEnabled = tr
       bankQuaternion.setFromAxisAngle(tangent, -Math.atan(headingChange * 8) * 0.5);
       train.up.applyQuaternion(bankQuaternion);
       train.lookAt(lookAt.copy(position).sub(tangent));
-      const hue = props.chromaEnabled && energy > 0 ? mapSmoothedEnergyToHue(energy) : 0;
-      trackMaterial.color.setHex(0xb6d7d5).offsetHSL(hue / 360, 0, energy * 0.12);
+      
+      // Apply CHROMA reactivity: hue shift base colors or restore them
+      const hueOffset = props.chromaEnabled && energy > 0 ? mapSmoothedEnergyToHue(energy) / 360 : 0;
+      const chromaActive = props.chromaEnabled && energy > 0;
+      
+      if (chromaActive) {
+        // Apply hue rotation + enhanced saturation/lightness to immutable base colors each frame
+        const tempColor = new THREE.Color();
+        for (let i = 0; i < baseColorArray.length; i += 3) {
+          tempColor.setRGB(baseColorArray[i], baseColorArray[i + 1], baseColorArray[i + 2]);
+          tempColor.offsetHSL(hueOffset, 0.10, 0.02);  // hue + saturation boost + lightness boost
+          colorArray[i] = tempColor.r;
+          colorArray[i + 1] = tempColor.g;
+          colorArray[i + 2] = tempColor.b;
+        }
+      } else {
+        // Restore stable DSFM base colors
+        colorArray.set(baseColorArray);
+      }
+      colorAttribute.needsUpdate = true;
+      
       (stars.material as THREE.PointsMaterial).opacity = 0.7 + energy * 0.16;
       if (props.onRuntimeTelemetry && performance.now() - lastTelemetry > TELEMETRY_INTERVAL_MS) {
         lastTelemetry = performance.now();
-        props.onRuntimeTelemetry({ motionTargetSpeed: targetSpeed, motionSpeed: rideSpeed, travelPosition: progress, hue });
+        props.onRuntimeTelemetry({ motionTargetSpeed: targetSpeed, motionSpeed: rideSpeed, travelPosition: progress, hue: hueOffset * 360 });
       }
       renderer.render(scene, camera);
       animationFrame = requestAnimationFrame(render);
