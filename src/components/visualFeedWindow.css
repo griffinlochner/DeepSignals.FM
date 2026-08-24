@@ -230,7 +230,7 @@
 .visual-feed-window__header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   height: var(--attached-panel-header-height);
   box-sizing: border-box;
   padding: 10px 11px 8px;
@@ -238,8 +238,22 @@
 }
 
 .visual-feed-window__source-link {
-  margin-left: 0;
+  margin-left: auto;
   flex-shrink: 0;
+}
+
+.visual-feed-window__fps {
+  flex: 0 0 auto;
+  width: 4.6rem;
+  margin-left: 0.7rem;
+  color: var(--theme-text-secondary, rgba(216, 255, 247, 0.82));
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  line-height: 1;
+  text-align: left;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .visual-feed-window__title {

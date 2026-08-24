@@ -32,6 +32,7 @@ type VisualFeedWindowProps = {
   analysisStatus?: string;
   playbackStatus?: string;
   chromaEnabled?: boolean;
+  fps?: number | null;
   Frame?: ComponentType<ThemeVisualFeedFrameProps>;
   className?: string;
 };
@@ -127,6 +128,7 @@ function VisualFeedWindow({
   getLatestSnapshot,
   playbackStatus,
   chromaEnabled,
+  fps,
   Frame,
   className,
 }: VisualFeedWindowProps) {
@@ -253,6 +255,9 @@ function VisualFeedWindow({
     >
       <header className="visual-feed-window__header">
         <p className="visual-feed-window__title">INFO</p>
+        <span className="visual-feed-window__fps" aria-label="Frames per second">
+          FPS {typeof fps === "number" ? fps : "---"}
+        </span>
         {externalSourceUrl ? (
           <a
             className="visual-feed-window__source-link"

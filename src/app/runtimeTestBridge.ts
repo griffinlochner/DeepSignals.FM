@@ -1,6 +1,7 @@
 import type { AudioPlaybackStatus, AudioReactiveSnapshot } from "./playerTypes";
 
 export type RuntimeSceneTelemetry = {
+  renderFps?: number;
   motionTargetSpeed?: number;
   motionSpeed?: number;
   travelPosition?: number;
@@ -16,6 +17,7 @@ export type RuntimeTestSnapshot = {
   controls: { chroma: boolean; motion: boolean; volume: number };
   environment: {
     id: string;
+    renderFps: number | null;
     motionTargetSpeed: number | null;
     motionSpeed: number | null;
     travelPosition: number | null;
@@ -38,6 +40,7 @@ const initialSnapshot: RuntimeTestSnapshot = {
   controls: { chroma: true, motion: true, volume: 1 },
   environment: {
     id: "",
+    renderFps: null,
     motionTargetSpeed: null,
     motionSpeed: null,
     travelPosition: null,

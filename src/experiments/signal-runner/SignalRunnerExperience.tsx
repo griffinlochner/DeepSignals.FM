@@ -16,6 +16,7 @@ type SignalRunnerExperienceProps = {
   chromaEnabled: boolean;
   getLatestAudioSnapshot?: (() => AudioReactiveSnapshot) | null;
   onDriveTelemetry?: (telemetry: SignalRunnerDriveTelemetry) => void;
+  onRenderFps?: (fps: number) => void;
 };
 
 function SignalRunnerExperience({
@@ -29,6 +30,7 @@ function SignalRunnerExperience({
   chromaEnabled,
   getLatestAudioSnapshot,
   onDriveTelemetry,
+  onRenderFps,
 }: SignalRunnerExperienceProps) {
   const handleDriveTelemetry = (telemetry: SignalRunnerDriveTelemetry) => {
     onDriveTelemetry?.(telemetry);
@@ -54,6 +56,7 @@ function SignalRunnerExperience({
           chromaEnabled={chromaEnabled}
           getLatestAudioSnapshot={getLatestAudioSnapshot}
           onDriveTelemetry={handleDriveTelemetry}
+          onRenderFps={onRenderFps}
         />
       </div>
 

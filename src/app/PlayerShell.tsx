@@ -378,6 +378,10 @@ function PlayerShell({ className }: PlayerShellProps) {
   }));
   const [panelCollapsed, setPanelCollapsed] = useState(false);
   const [infoOpen, setInfoOpen] = useState(storedPreferences.infoOpen);
+  const [renderFps, setRenderFps] = useState<{
+    themeId: ThemeId;
+    value: number | null;
+  }>({ themeId: selectedThemeId, value: null });
   const [playerPanelSize, setPlayerPanelSize] = useState<PlayerPanelSize>({
     width: PLAYER_PANEL_FALLBACK_WIDTH,
     height: PLAYER_PANEL_FALLBACK_HEIGHT,
@@ -388,6 +392,8 @@ function PlayerShell({ className }: PlayerShellProps) {
   const playerPanelRef = useRef<HTMLElement | null>(null);
   const playerPanelMeasuredRef = useRef(false);
   const infoToggleRef = useRef<HTMLInputElement | null>(null);
+  const sceneThemeIdRef = useRef(selectedThemeId);
+  const hiddenRef = useRef(false);
   const [sceneCounters, setSceneCounters] = useState<ImageDepthSceneCounters>(
     ZERO_IMAGE_DEPTH_SCENE_COUNTERS,
   );
@@ -695,6 +701,8 @@ function PlayerShell({ className }: PlayerShellProps) {
   };
 
   const handleThemeChange = (themeId: ThemeId) => {
+    sceneThemeIdRef.current = themeId;
+    setRenderFps({ themeId, value: null });
     setSelectedThemeId(themeId);
   };
 
@@ -869,6 +877,20 @@ function PlayerShell({ className }: PlayerShellProps) {
     [],
   );
 
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      hiddenRef.current = document.hidden;
+      if (document.hidden) {
+        setRenderFps({ themeId: sceneThemeIdRef.current, value: null });
+      }
+    };
+
+    hiddenRef.current = document.hidden;
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () =>
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, []);
+
   const sceneProps: ThemeSceneProps = {
     isPlaying: audioController.playbackStatus === "playing",
     volume: audioController.volume,
@@ -892,6 +914,17 @@ function PlayerShell({ className }: PlayerShellProps) {
       : null,
     onDevSceneCountersChange: handleSceneCountersChange,
     onRuntimeTelemetry: (telemetry) => {
+      if (
+        selectedThemeId !== sceneThemeIdRef.current ||
+        hiddenRef.current
+      ) {
+        return;
+      }
+
+      if (typeof telemetry.renderFps === "number") {
+        setRenderFps({ themeId: selectedThemeId, value: telemetry.renderFps });
+      }
+
       const snapshot = audioAnalysis.getLatestSnapshot();
       publishRuntimeTestSnapshot({
         playback: audioController.playbackStatus,
@@ -910,6 +943,7 @@ function PlayerShell({ className }: PlayerShellProps) {
         },
         environment: {
           id: selectedThemeId,
+          renderFps: telemetry.renderFps ?? null,
           motionTargetSpeed: telemetry.motionTargetSpeed ?? null,
           motionSpeed: telemetry.motionSpeed ?? null,
           travelPosition: telemetry.travelPosition ?? null,
@@ -1120,6 +1154,7 @@ function PlayerShell({ className }: PlayerShellProps) {
           analysisStatus={audioAnalysis.status}
           playbackStatus={audioController.playbackStatus}
           chromaEnabled={chromaEnabled}
+          fps={renderFps.themeId === selectedThemeId ? renderFps.value : null}
           Frame={activeTheme.VisualFeedFrame}
         />
       </div>

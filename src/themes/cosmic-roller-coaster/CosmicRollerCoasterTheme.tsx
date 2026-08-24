@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { RollerCoasterGeometry } from "three/examples/jsm/misc/RollerCoaster.js";
 import { mapSmoothedEnergyToHue } from "../../app/sharedChroma";
+import { createRenderFpsSampler } from "../../app/renderFpsTelemetry";
 import type { ThemeSceneProps } from "../themeTypes";
 
 const STAR_COUNT = 1400;
@@ -159,6 +160,9 @@ function CosmicRollerCoasterTheme({ isPlaying, reducedMotion, motionEnabled = tr
     let rideSpeed = 0;
     let lastTelemetry = 0;
     let animationFrame = 0;
+    const renderFpsSampler = createRenderFpsSampler((renderFps) => {
+      propsRef.current.onRuntimeTelemetry?.({ renderFps });
+    });
     const resize = () => {
       const width = mount.clientWidth || 1;
       const height = mount.clientHeight || 1;
@@ -236,11 +240,13 @@ function CosmicRollerCoasterTheme({ isPlaying, reducedMotion, motionEnabled = tr
         props.onRuntimeTelemetry({ motionTargetSpeed: targetSpeed, motionSpeed: rideSpeed, travelPosition: progress, hue: hueOffset * 360 });
       }
       renderer.render(scene, camera);
+      renderFpsSampler.sample(performance.now());
       animationFrame = requestAnimationFrame(render);
     };
     render();
     return () => {
       cancelAnimationFrame(animationFrame);
+      renderFpsSampler.dispose();
       resizeObserver.disconnect();
       scene.traverse((object) => {
         const disposable = object as THREE.Mesh;

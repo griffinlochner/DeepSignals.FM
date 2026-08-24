@@ -3,6 +3,7 @@ import type { CSSProperties } from "react";
 import * as THREE from "three";
 import type { AudioReactiveSnapshot } from "../../app/playerTypes";
 import type { ThemeSceneProps } from "../themeTypes";
+import { createRenderFpsSampler } from "../../app/renderFpsTelemetry";
 import {
   formatImageDepthPlaybackFilter,
   resolveImageDepthChromaValues,
@@ -218,6 +219,7 @@ export function ImageDepthThemeScene({
   reactiveBehavior = "chill",
   reactiveDepthMode = "default",
   onReactivePreviewTelemetry,
+  onRuntimeTelemetry,
   sceneId,
   sceneBackdrop,
   asset,
@@ -247,6 +249,7 @@ export function ImageDepthThemeScene({
     reactiveBehavior,
     reactiveDepthMode,
     onReactivePreviewTelemetry,
+    onRuntimeTelemetry,
     manualHueShiftOverrideDegrees,
     manualSaturationOverrideMultiplier,
     preserveColorWhenStopped,
@@ -326,6 +329,7 @@ export function ImageDepthThemeScene({
       reactiveBehavior,
       reactiveDepthMode,
       onReactivePreviewTelemetry,
+      onRuntimeTelemetry,
       manualHueShiftOverrideDegrees,
       manualSaturationOverrideMultiplier,
       preserveColorWhenStopped,
@@ -338,6 +342,7 @@ export function ImageDepthThemeScene({
     motionEnabled,
     chromaEnabled,
     onReactivePreviewTelemetry,
+    onRuntimeTelemetry,
     reactivePreviewEnabled,
     reactiveBehavior,
     reactiveDepthMode,
@@ -480,6 +485,9 @@ export function ImageDepthThemeScene({
     let disposed = false;
     let frameHandle: number | null = null;
     let readyFrameHandle: number | null = null;
+    const renderFpsSampler = createRenderFpsSampler((renderFps) => {
+      visualStateRef.current.onRuntimeTelemetry?.({ renderFps });
+    });
     const animationStartedAt = performance.now();
     const blendedPointer = new THREE.Vector2(0, 0);
     const autonomousPointer = new THREE.Vector2(0, 0);
@@ -1781,6 +1789,7 @@ export function ImageDepthThemeScene({
         }
 
         renderer.render(scene, camera);
+        renderFpsSampler.sample(timestamp);
       } catch (error) {
         const visualState = visualStateRef.current;
         renderer.domElement.style.filter = visualState.isPlaying
@@ -1799,6 +1808,7 @@ export function ImageDepthThemeScene({
 
     return () => {
       disposed = true;
+      renderFpsSampler.dispose();
 
       if (frameHandle !== null) {
         cancelAnimationFrame(frameHandle);

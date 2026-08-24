@@ -30,6 +30,7 @@ function SignalRunnerTheme({
           hue: telemetry.hue,
         })
       }
+      onRenderFps={(renderFps) => onRuntimeTelemetry?.({ renderFps })}
     />
   );
 }

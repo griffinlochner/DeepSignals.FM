@@ -9,6 +9,7 @@ import {
   mapSignalRunnerChromaHue,
   SIGNAL_RUNNER_CHROMA_HUE_RESPONSE,
 } from "../../app/sharedChroma";
+import { createRenderFpsSampler } from "../../app/renderFpsTelemetry";
 import type { ThemeSceneProps } from "../themeTypes";
 import "./neonHyperRacer.css";
 
@@ -735,6 +736,9 @@ function NeonHyperRacerTheme({
     let smoothedChromaHueOffset = 0;
     let lastTelemetryPublishedAt = 0;
     let surgeCount = 0;
+    const renderFpsSampler = createRenderFpsSampler((renderFps) => {
+      propsRef.current.onRuntimeTelemetry?.({ renderFps });
+    });
     let lastSurgeAt: number | undefined;
     let animationFrame = 0;
     const surgeQualificationRef = {
@@ -1116,12 +1120,14 @@ function NeonHyperRacerTheme({
       camera.lookAt(0, 0.8, -28);
       camera.updateProjectionMatrix();
       renderer.render(scene, camera);
+      renderFpsSampler.sample(performance.now());
       animationFrame = window.requestAnimationFrame(render);
     };
     render();
 
     return () => {
       window.cancelAnimationFrame(animationFrame);
+      renderFpsSampler.dispose();
       timer.disconnect();
       resizeObserver.disconnect();
       geometries.forEach((value) => value.dispose());

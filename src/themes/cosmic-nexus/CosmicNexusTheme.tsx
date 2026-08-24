@@ -15,6 +15,7 @@ import {
   resolveSignalNexusReactiveTarget,
   stepSignalNexusReactiveState,
 } from "./signalNexusReactivity";
+import { createRenderFpsSampler } from "../../app/renderFpsTelemetry";
 import "./cosmicNexus.css";
 
 type NexusShell = {
@@ -1777,6 +1778,9 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
     let previousHasSignal = Boolean(visualStateRef.current.signalId);
     let previousPlaying = visualStateRef.current.isPlaying;
     let previousReactiveSignalId = visualStateRef.current.signalId;
+    const renderFpsSampler = createRenderFpsSampler((renderFps) => {
+      visualStateRef.current.onRuntimeTelemetry?.({ renderFps });
+    });
     let previousKickAcceptedCount = 0;
     let previousKickAcceptedSequence = 0;
     let reactiveState = createNeutralSignalNexusReactiveState();
@@ -2112,6 +2116,7 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
         });
 
         renderer.render(scene, camera);
+        renderFpsSampler.sample(performance.now());
         return;
       }
 
@@ -2563,6 +2568,7 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
       );
 
       renderer.render(scene, camera);
+      renderFpsSampler.sample(performance.now());
     };
 
     animate();
@@ -2580,6 +2586,7 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
 
     return () => {
       timer.disconnect();
+      renderFpsSampler.dispose();
       window.cancelAnimationFrame(frameId);
       window.removeEventListener("pointermove", handlePointerMove);
       window.removeEventListener("resize", handleResize);

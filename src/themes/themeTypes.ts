@@ -29,6 +29,7 @@ export type ThemeSceneProps = {
   manualHueShiftOverrideDegrees?: number | null;
   manualSaturationOverrideMultiplier?: number | null;
   onRuntimeTelemetry?: (telemetry: {
+    renderFps?: number;
     motionTargetSpeed?: number;
     motionSpeed?: number;
     travelPosition?: number;

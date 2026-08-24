@@ -5,6 +5,7 @@ import {
   mapSignalRunnerChromaHue,
   SIGNAL_RUNNER_CHROMA_HUE_RESPONSE,
 } from "../../app/sharedChroma";
+import { createRenderFpsSampler } from "../../app/renderFpsTelemetry";
 
 export type SignalRunnerControlMode = "manual" | "audio";
 
@@ -27,6 +28,7 @@ type SignalRunnerSceneProps = {
   chromaEnabled: boolean;
   getLatestAudioSnapshot?: (() => AudioReactiveSnapshot) | null;
   onDriveTelemetry?: (telemetry: SignalRunnerDriveTelemetry) => void;
+  onRenderFps?: (fps: number) => void;
 };
 
 const STAR_COUNT = 900;
@@ -88,6 +90,9 @@ function SignalRunnerScene(props: SignalRunnerSceneProps) {
     const renderer = new THREE.WebGLRenderer({
       antialias: true,
       powerPreference: "high-performance",
+    });
+    const renderFpsSampler = createRenderFpsSampler((renderFps) => {
+      visualStateRef.current.onRenderFps?.(renderFps);
     });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -663,6 +668,7 @@ function SignalRunnerScene(props: SignalRunnerSceneProps) {
       }
 
       renderer.render(scene, camera);
+      renderFpsSampler.sample(frameTime);
       frameId = window.requestAnimationFrame(animate);
     };
 
@@ -670,6 +676,7 @@ function SignalRunnerScene(props: SignalRunnerSceneProps) {
 
     return () => {
       window.cancelAnimationFrame(frameId);
+      renderFpsSampler.dispose();
       resizeObserver.disconnect();
       pointGeometry.dispose();
       pointMaterial.dispose();
