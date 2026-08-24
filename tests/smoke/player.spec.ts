@@ -27,6 +27,55 @@ test("desktop player exposes critical controls", async ({ page }) => {
   );
 });
 
+test("fresh player defaults apply without replacing persisted choices", async ({
+  page,
+}) => {
+  await page.evaluate(() => window.localStorage.clear());
+  await page.reload();
+
+  await expect(page.getByLabel("Signal source")).toHaveValue(
+    "demo-psychedelic-experience",
+  );
+  await expect(page.getByLabel("Visual environment")).toHaveValue(
+    "cosmic-nexus",
+  );
+  await expect(
+    page.getByRole("button", { name: "Play", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByLabel("Toggle environment chroma effects"),
+  ).toBeChecked();
+  await expect(page.getByLabel("Motion")).toBeChecked();
+  await expect(page.locator(".visual-feed-window")).toBeVisible();
+  await expect(page.locator(".floating-player-panel")).toBeVisible();
+
+  await page
+    .getByLabel("Signal source")
+    .selectOption("demo-modular-dimensions");
+  await page.getByLabel("Visual environment").selectOption("neon-hyper-racer");
+  await page
+    .locator("label")
+    .filter({ hasText: /^Chroma$/ })
+    .click();
+  await page
+    .locator("label")
+    .filter({ hasText: /^Info$/ })
+    .click();
+  await expect(page.locator(".visual-feed-window")).toBeHidden();
+
+  await page.reload();
+  await expect(page.getByLabel("Signal source")).toHaveValue(
+    "demo-modular-dimensions",
+  );
+  await expect(page.getByLabel("Visual environment")).toHaveValue(
+    "neon-hyper-racer",
+  );
+  await expect(
+    page.getByLabel("Toggle environment chroma effects"),
+  ).not.toBeChecked();
+  await expect(page.locator(".visual-feed-window")).toBeHidden();
+});
+
 test("INFO can close, reopen, and exposes stable signal content", async ({
   page,
 }) => {

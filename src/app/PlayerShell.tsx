@@ -9,7 +9,7 @@ import {
 import {
   AUDIO_SOURCES,
   DEMO_AUDIO_SOURCES,
-  GLOBULAR_FOR_THE_TIME_BEING_AUDIO_SOURCE,
+  DEMO_PSYCHEDELIC_EXPERIENCE_AUDIO_SOURCE,
   PUBLIC_EXTERNAL_AUDIO_SOURCES,
   formatAudioSourceLabel,
 } from "./audioSources";
@@ -74,9 +74,9 @@ type VisualFeedDockMode = "right" | "bottom";
 
 const PLAYER_PREFERENCES_STORAGE_KEY_V3 = "deepsignals.player.preferences.v3";
 
-const DEFAULT_PLAYER_THEME_ID = "signal-runner";
+const DEFAULT_PLAYER_THEME_ID = "cosmic-nexus";
 const DEFAULT_PLAYER_AUDIO_SOURCE_ID =
-  GLOBULAR_FOR_THE_TIME_BEING_AUDIO_SOURCE.id;
+  DEMO_PSYCHEDELIC_EXPERIENCE_AUDIO_SOURCE.id;
 const PUBLIC_PLAYER_ENVIRONMENT_IDS = [
   "signal-runner",
   "minimal",
