@@ -1,7 +1,6 @@
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { RollerCoasterGeometry } from "three/examples/jsm/misc/RollerCoaster.js";
-import { mapSmoothedEnergyToHue } from "../../app/sharedChroma";
 import { createRenderFpsSampler } from "../../app/renderFpsTelemetry";
 import type { ThemeSceneProps } from "../themeTypes";
 
@@ -106,9 +105,6 @@ function CosmicRollerCoasterTheme({ isPlaying, reducedMotion, motionEnabled = tr
     const colorAttribute = track.geometry.getAttribute('color') as THREE.BufferAttribute;
     const colorArray = colorAttribute.array as Float32Array;
     
-    // Create immutable copy of base colors for CHROMA reactivity calculations
-    const baseColorArray = new Float32Array(colorArray.length);
-    
     // Assign DSFM colors to each vertex based on zone (within each division)
     for (let div = 0; div < TRACK_DIVISIONS; div++) {
       const divBaseIndex = div * VERTICES_PER_DIVISION;
@@ -119,9 +115,6 @@ function CosmicRollerCoasterTheme({ isPlaying, reducedMotion, motionEnabled = tr
         colorArray[colorIndex] = DSFM_COLORS.ties.r;
         colorArray[colorIndex + 1] = DSFM_COLORS.ties.g;
         colorArray[colorIndex + 2] = DSFM_COLORS.ties.b;
-        baseColorArray[colorIndex] = DSFM_COLORS.ties.r;
-        baseColorArray[colorIndex + 1] = DSFM_COLORS.ties.g;
-        baseColorArray[colorIndex + 2] = DSFM_COLORS.ties.b;
       }
       
       // Spine: vertices 12-41 of this division
@@ -130,9 +123,6 @@ function CosmicRollerCoasterTheme({ isPlaying, reducedMotion, motionEnabled = tr
         colorArray[colorIndex] = DSFM_COLORS.spine.r;
         colorArray[colorIndex + 1] = DSFM_COLORS.spine.g;
         colorArray[colorIndex + 2] = DSFM_COLORS.spine.b;
-        baseColorArray[colorIndex] = DSFM_COLORS.spine.r;
-        baseColorArray[colorIndex + 1] = DSFM_COLORS.spine.g;
-        baseColorArray[colorIndex + 2] = DSFM_COLORS.spine.b;
       }
       
       // Rails: vertices 42-113 of this division (both left and right rails)
@@ -141,9 +131,6 @@ function CosmicRollerCoasterTheme({ isPlaying, reducedMotion, motionEnabled = tr
         colorArray[colorIndex] = DSFM_COLORS.rails.r;
         colorArray[colorIndex + 1] = DSFM_COLORS.rails.g;
         colorArray[colorIndex + 2] = DSFM_COLORS.rails.b;
-        baseColorArray[colorIndex] = DSFM_COLORS.rails.r;
-        baseColorArray[colorIndex + 1] = DSFM_COLORS.rails.g;
-        baseColorArray[colorIndex + 2] = DSFM_COLORS.rails.b;
       }
     }
     
@@ -214,30 +201,10 @@ function CosmicRollerCoasterTheme({ isPlaying, reducedMotion, motionEnabled = tr
       train.up.applyQuaternion(bankQuaternion);
       train.lookAt(lookAt.copy(position).sub(tangent));
       
-      // Apply CHROMA reactivity: hue shift base colors or restore them
-      const hueOffset = props.chromaEnabled && energy > 0 ? mapSmoothedEnergyToHue(energy) / 360 : 0;
-      const chromaActive = props.chromaEnabled && energy > 0;
-      
-      if (chromaActive) {
-        // Apply hue rotation + enhanced saturation/lightness to immutable base colors each frame
-        const tempColor = new THREE.Color();
-        for (let i = 0; i < baseColorArray.length; i += 3) {
-          tempColor.setRGB(baseColorArray[i], baseColorArray[i + 1], baseColorArray[i + 2]);
-          tempColor.offsetHSL(hueOffset, 0.10, 0.02);  // hue + saturation boost + lightness boost
-          colorArray[i] = tempColor.r;
-          colorArray[i + 1] = tempColor.g;
-          colorArray[i + 2] = tempColor.b;
-        }
-      } else {
-        // Restore stable DSFM base colors
-        colorArray.set(baseColorArray);
-      }
-      colorAttribute.needsUpdate = true;
-      
       (stars.material as THREE.PointsMaterial).opacity = 0.7 + energy * 0.16;
       if (props.onRuntimeTelemetry && performance.now() - lastTelemetry > TELEMETRY_INTERVAL_MS) {
         lastTelemetry = performance.now();
-        props.onRuntimeTelemetry({ motionTargetSpeed: targetSpeed, motionSpeed: rideSpeed, travelPosition: progress, hue: hueOffset * 360 });
+        props.onRuntimeTelemetry({ motionTargetSpeed: targetSpeed, motionSpeed: rideSpeed, travelPosition: progress });
       }
       renderer.render(scene, camera);
       renderFpsSampler.sample(performance.now());
