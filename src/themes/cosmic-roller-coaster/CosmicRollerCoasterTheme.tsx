@@ -6,9 +6,14 @@ import type { ThemeSceneProps } from "../themeTypes";
 
 const STAR_COUNT = 1400;
 const TRACK_DIVISIONS = 1500;
-const BASE_RIDE_SPEED = 0.038;
-const PEAK_RIDE_SPEED = 0.105;
-const SPEED_RESPONSE = 1.45;
+// Traversal speed range (progress units per second along coaster spline)
+const SPEED_MIN = 0.005; // near-stop for quiet audio
+const SPEED_MAX = 0.105; // provisional high-energy peak (current known-good rate)
+// Audio energy normalization thresholds (matching DeepSignals.FM conventions)
+const AUDIO_ENERGY_FLOOR = 0.04;
+const AUDIO_ENERGY_CEILING = 0.72;
+// Speed smoothing responsiveness (exponential decay rate per second)
+const SPEED_EASING_PER_SECOND = 2.2;
 const TELEMETRY_INTERVAL_MS = 100;
 
 function clamp(value: number) {
@@ -108,9 +113,26 @@ function CosmicRollerCoasterTheme({ isPlaying, reducedMotion, motionEnabled = tr
       const props = propsRef.current;
       const snapshot = props.getLatestAudioSnapshot?.() ?? { smoothedEnergy: 0 };
       const energy = clamp(snapshot.smoothedEnergy);
-      const targetSpeed = props.isPlaying && props.motionEnabled && !props.reducedMotion ? BASE_RIDE_SPEED + Math.pow(energy, 0.72) * (PEAK_RIDE_SPEED - BASE_RIDE_SPEED) : 0;
-      rideSpeed = THREE.MathUtils.damp(rideSpeed, targetSpeed, SPEED_RESPONSE, delta);
-      if (props.isPlaying && props.motionEnabled && !props.reducedMotion) progress = (progress + rideSpeed * delta) % 1;
+      
+      // Normalize energy between floor and ceiling to 0-1 range
+      const normalizedEnergy = clamp(
+        (energy - AUDIO_ENERGY_FLOOR) / (AUDIO_ENERGY_CEILING - AUDIO_ENERGY_FLOOR)
+      );
+      
+      // Target speed interpolates between SPEED_MIN and SPEED_MAX based on normalized energy
+      const targetSpeed = props.isPlaying && props.motionEnabled && !props.reducedMotion
+        ? SPEED_MIN + normalizedEnergy * (SPEED_MAX - SPEED_MIN)
+        : 0;
+      
+      // Smooth speed transitions with exponential easing
+      const speedEase = 1 - Math.exp(-delta * SPEED_EASING_PER_SECOND);
+      rideSpeed = THREE.MathUtils.lerp(rideSpeed, targetSpeed, speedEase);
+      
+      // Update spline progress only when motion is active
+      if (props.isPlaying && props.motionEnabled && !props.reducedMotion) {
+        progress = (progress + rideSpeed * delta) % 1;
+      }
+      
       position.copy(curve.getPointAt(progress));
       position.y += 0.3;
       train.position.copy(position);
