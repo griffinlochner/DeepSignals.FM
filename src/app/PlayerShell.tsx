@@ -88,6 +88,7 @@ const PUBLIC_PLAYER_ENVIRONMENT_IDS = [
   "crystal-cavern",
   "slime-cavern",
   "dark-psy-temple",
+  "cosmic-roller-coaster",
 ] as const;
 const publicPlayerEnvironmentIds = new Set<string>(
   PUBLIC_PLAYER_ENVIRONMENT_IDS,
@@ -100,6 +101,7 @@ const PUBLIC_ENVIRONMENT_DISPLAY_NAME_OVERRIDES: Record<string, string> = {
   "uv-reactive-jungle": "Psy Jungle",
   "analog-signal-laboratory": "Analog Lab",
   "bioluminescent-psy-reef": "Psy Reef",
+  "cosmic-roller-coaster": "Cosmic Roller Coaster",
 };
 const PUBLIC_DEMO_SOURCE_EXCLUSIONS = new Set([
   "demo-dfectv-spcyht-no-name",
