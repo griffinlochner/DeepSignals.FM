@@ -182,6 +182,17 @@ const COSMIC_NEXUS_CHROMA_TUNING = {
   },
 } as const;
 
+const COSMIC_NEXUS_TRAVEL_SPEED_SOFT_LIMIT = 0.32;
+
+function softenTravelSpeed(speed: number) {
+  const magnitude = Math.abs(speed);
+  return (
+    Math.sign(speed) *
+    COSMIC_NEXUS_TRAVEL_SPEED_SOFT_LIMIT *
+    Math.tanh(magnitude / COSMIC_NEXUS_TRAVEL_SPEED_SOFT_LIMIT)
+  );
+}
+
 function inQuietZone(x: number, y: number) {
   const upperLeftConsoleZone = x < -2.2 && y > 1.4;
   const lowerRightFeedZone = x > 3.6 && y < -1.1;
@@ -2321,7 +2332,8 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
             (1 +
               reactiveOrbit * motionTuning.travelerOrbitInfluence +
               reactiveGlobal * motionTuning.travelerGlobalInfluence);
-          const progress = (elapsed * speed + offset) % 1;
+          const finalSpeed = softenTravelSpeed(speed);
+          const progress = (elapsed * finalSpeed + offset) % 1;
           const point = lane.curve.getPointAt(progress);
           core.position.copy(point);
           glow.position.copy(point);
