@@ -343,7 +343,7 @@
   font-family: inherit;
   font-size: clamp(1.05rem, 1.03rem + 0.25vw, 1.24rem);
   font-weight: 400;
-  line-height: 1.72;
+  line-height: 1.6;
   letter-spacing: 0;
 }
 
@@ -401,7 +401,7 @@
 
 .about-section__copy {
   display: grid;
-  gap: 18px;
+  gap: clamp(1.2rem, 1.5vw, 1.5rem);
   width: 100%;
   max-width: 100%;
   min-width: 0;
@@ -448,7 +448,7 @@
 }
 
 .submissions-page .about-section__copy {
-  gap: 0.9rem;
+  gap: clamp(1.2rem, 1.5vw, 1.5rem);
 }
 
 .submissions-page .about-hero__content > .about-section__copy {
@@ -491,7 +491,7 @@
 }
 
 .updates-page__entry-copy {
-  gap: 0.9rem;
+  gap: clamp(1.2rem, 1.5vw, 1.5rem);
 }
 
 .updates-page__entry-copy .about-transmission-copy {
@@ -505,9 +505,13 @@
 .updates-page__list {
   box-sizing: border-box;
   display: grid;
-  gap: 0.65rem;
+  gap: 0.7rem;
   margin-block: 0;
   padding-left: 1.4rem;
+}
+
+.updates-page__list li {
+  line-height: 1.6;
 }
 
 .updates-page__list li::marker {
