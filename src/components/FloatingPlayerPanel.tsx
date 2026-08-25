@@ -26,9 +26,15 @@ import TrackMarquee from "./TrackMarquee";
 import VolumeControl from "./VolumeControl";
 import "./floatingPlayerPanel.css";
 
+type EnvironmentOptionItem = { id: ThemeId; name: string };
+type EnvironmentOptionGroup = {
+  groupName: string;
+  options: EnvironmentOptionItem[];
+};
+
 type FloatingPlayerPanelProps = {
   environmentName: string;
-  environmentOptions: Array<{ id: ThemeId; name: string }>;
+  environmentOptions: EnvironmentOptionGroup[];
   selectedEnvironmentId: ThemeId;
   onEnvironmentChange: (id: ThemeId) => void;
   audioPlaybackStatus: AudioPlaybackStatus;

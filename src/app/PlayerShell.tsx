@@ -103,7 +103,43 @@ const PUBLIC_ENVIRONMENT_DISPLAY_NAME_OVERRIDES: Record<string, string> = {
   "analog-signal-laboratory": "Analog Lab",
   "bioluminescent-psy-reef": "Psy Reef",
   "cosmic-roller-coaster": "Cosmic Roller Coaster",
+  "minimal": "Black",
 };
+
+// Environment dropdown organization by category
+type EnvironmentGroup = {
+  groupName: string;
+  environmentIds: ThemeId[];
+};
+const ENVIRONMENT_GROUPS: EnvironmentGroup[] = [
+  {
+    groupName: "MINIMAL",
+    environmentIds: ["minimal"],
+  },
+  {
+    groupName: "DEPTH WORLDS",
+    environmentIds: [
+      "analog-signal-laboratory",
+      "crystal-cavern",
+      "dark-psy-temple",
+      "uv-reactive-jungle",
+      "bioluminescent-psy-reef",
+    ],
+  },
+  {
+    groupName: "STATION ENVIRONMENTS",
+    environmentIds: ["psybrazil"],
+  },
+  {
+    groupName: "3D EXPERIENCES",
+    environmentIds: [
+      "cosmic-nexus",
+      "signal-runner",
+      "neon-hyper-racer",
+      "cosmic-roller-coaster",
+    ],
+  },
+];
 const PUBLIC_DEMO_SOURCE_EXCLUSIONS = new Set([
   "demo-dfectv-spcyht-no-name",
   "demo-dfectv-the-maze",
@@ -564,27 +600,37 @@ function PlayerShell({ className }: PlayerShellProps) {
     return themeRegistry.find((theme) => theme.id === selectedThemeId);
   }, [selectedThemeId]);
 
-  const themeOptions = useMemo(
-    () =>
-      PUBLIC_PLAYER_ENVIRONMENT_IDS.flatMap((themeId) => {
-        if (HIDDEN_ENVIRONMENT_DROPDOWN_IDS.has(themeId)) {
-          return [];
-        }
+  type EnvironmentOptionItem = { id: ThemeId; name: string };
+  type EnvironmentOptionGroup = {
+    groupName: string;
+    options: EnvironmentOptionItem[];
+  };
 
-        const theme = themeRegistry.find(
-          (candidate) => candidate.id === themeId,
-        );
-        return theme
-          ? [
-              {
-                id: theme.id,
-                name:
-                  PUBLIC_ENVIRONMENT_DISPLAY_NAME_OVERRIDES[theme.id] ??
-                  theme.name,
-              },
-            ]
-          : [];
-      }).sort((left, right) => left.name.localeCompare(right.name)),
+  const themeOptions: EnvironmentOptionGroup[] = useMemo(
+    () =>
+      ENVIRONMENT_GROUPS.map((group) => ({
+        groupName: group.groupName,
+        options: group.environmentIds
+          .flatMap((themeId) => {
+            if (HIDDEN_ENVIRONMENT_DROPDOWN_IDS.has(themeId)) {
+              return [];
+            }
+
+            const theme = themeRegistry.find(
+              (candidate) => candidate.id === themeId,
+            );
+            return theme
+              ? [
+                  {
+                    id: theme.id,
+                    name:
+                      PUBLIC_ENVIRONMENT_DISPLAY_NAME_OVERRIDES[theme.id] ??
+                      theme.name,
+                  },
+                ]
+              : [];
+          }),
+      })),
     [],
   );
 
