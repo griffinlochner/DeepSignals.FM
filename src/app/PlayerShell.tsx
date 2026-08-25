@@ -88,6 +88,7 @@ const PUBLIC_PLAYER_ENVIRONMENT_IDS = [
   "crystal-cavern",
   "slime-cavern",
   "dark-psy-temple",
+  "psybrazil",
   "cosmic-roller-coaster",
 ] as const;
 const publicPlayerEnvironmentIds = new Set<string>(

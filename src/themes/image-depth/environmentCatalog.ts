@@ -260,6 +260,10 @@ export const imageDepthEnvironmentRegistrationSeeds: EnvironmentCatalogSeed[] = 
     colorImageUrl: "/environments/psy-swamp-citadel/psy-swamp-citadel.webp",
     depthMapUrl: "/environments/psy-swamp-citadel/psy-swamp-citadel.png",
   },
+  {
+    id: "psybrazil",
+    displayName: "PsyBrazil",
+  },
 ];
 
 export const imageDepthEnvironmentCatalog: EnvironmentCatalogEntry[] =
