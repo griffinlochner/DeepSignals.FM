@@ -28,7 +28,7 @@ const SLOGAN_BILLBOARD_SPECS = [
   },
   {
     text: "Transcend.",
-    progress: 0.83,
+    progress: 0.86,
     color: "#ff9eaa",
     glow: "#b2ff86",
   },
@@ -299,9 +299,9 @@ function CosmicRollerCoasterTheme({
           side: THREE.DoubleSide,
         }),
     );
-    const sloganGeometry = new THREE.PlaneGeometry(22, 5.5);
-    const squareGateFrameGeometry = new THREE.BoxGeometry(22, 1.4, 1.2);
-    const squareGateSideGeometry = new THREE.BoxGeometry(1.4, 22, 1.2);
+    const sloganGeometry = new THREE.PlaneGeometry(24, 6);
+    const squareGateFrameGeometry = new THREE.BoxGeometry(19, 1.4, 1.2);
+    const squareGateSideGeometry = new THREE.BoxGeometry(1.4, 19, 1.2);
     const squareGateMaterials = [
       DSFM_COLORS.ties,
       DSFM_COLORS.rails,
@@ -360,28 +360,28 @@ function CosmicRollerCoasterTheme({
         squareGateFrameGeometry,
         squareGateMaterials[index],
       );
-      squareGateTop.position.y = 11;
+      squareGateTop.position.y = 9.5;
       squareGate.add(squareGateTop);
       const squareGateBottom = new THREE.Mesh(
         squareGateFrameGeometry,
         squareGateMaterials[index],
       );
-      squareGateBottom.position.y = -11;
+      squareGateBottom.position.y = -9.5;
       squareGate.add(squareGateBottom);
       const squareGateLeft = new THREE.Mesh(
         squareGateSideGeometry,
         squareGateMaterials[index],
       );
-      squareGateLeft.position.x = -11;
+      squareGateLeft.position.x = -9.5;
       squareGate.add(squareGateLeft);
       const squareGateRight = new THREE.Mesh(
         squareGateSideGeometry,
         squareGateMaterials[index],
       );
-      squareGateRight.position.x = 11;
+      squareGateRight.position.x = 9.5;
       squareGate.add(squareGateRight);
       const sign = new THREE.Mesh(sloganGeometry, sloganMaterials[index]);
-      sign.position.set(0, 15, -0.75);
+      sign.position.set(0, 13.5, -0.75);
       sign.rotation.y = Math.PI;
       squareGate.add(sign);
       scene.add(squareGate);
