@@ -14,8 +14,11 @@ const HERO_SIGN_WIDTH = 7.4;
 const HERO_SIGN_HEIGHT = 3.7;
 const SLOGAN_BILLBOARD_SPECS = [
   { text: "Tune in.", progress: 0.36, color: "#74fff0", glow: "#b2ff86" },
-  { text: "Transmit.", progress: 0.52, color: "#ff9eaa", glow: "#74fff0" },
-  { text: "Transcend.", progress: 0.68, color: "#b2ff86", glow: "#ff9eaa" },
+  { text: "Transmit.", progress: 0.48, color: "#ff9eaa", glow: "#74fff0" },
+  { text: "Transcend.", progress: 0.56, color: "#b2ff86", glow: "#ff9eaa" },
+  { text: "Tune in.", progress: 0.72, color: "#74fff0", glow: "#b2ff86" },
+  { text: "Transmit.", progress: 0.76, color: "#ff9eaa", glow: "#74fff0" },
+  { text: "Transcend.", progress: 0.84, color: "#b2ff86", glow: "#ff9eaa" },
 ] as const;
 // Traversal speed range (progress units per second along coaster spline)
 const SPEED_MIN = 0; // complete stop for silence/zero analyzer energy
@@ -307,7 +310,7 @@ function CosmicRollerCoasterTheme({
           side: THREE.DoubleSide,
         }),
     );
-    const sloganGeometry = new THREE.PlaneGeometry(16, 4);
+    const sloganGeometry = new THREE.PlaneGeometry(18, 4.5);
     const sloganPoint = new THREE.Vector3();
     const sloganTangent = new THREE.Vector3();
     const sloganLateral = new THREE.Vector3();
