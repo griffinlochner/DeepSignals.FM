@@ -8,8 +8,10 @@ const STAR_COUNT = 2400;
 const TRACK_DIVISIONS = 1500;
 const HERO_GATE_PROGRESS = [0.22, 0.285];
 const HERO_GATE_RADIUS = 10.5;
-const HERO_GATE_DEPTH = 5.6;
+const HERO_GATE_DEPTH = 11.2;
 const HERO_GATE_ROTATION_SPEED = 0.2;
+const TUNNEL_RING_COUNT = 6;
+const TUNNEL_RING_STEP_SECONDS = 0.5;
 const HERO_SIGN_WIDTH = 7.4;
 const HERO_SIGN_HEIGHT = 3.7;
 const SLOGAN_BILLBOARD_SPECS = [
@@ -222,7 +224,7 @@ function CosmicRollerCoasterTheme({
     const stars = createStarfield();
     scene.add(stars);
     const gateFrameMaterial = new THREE.MeshBasicMaterial({
-      color: DSFM_COLORS.rails,
+      color: 0x24404d,
       side: THREE.DoubleSide,
     });
     const gateStripeMaterials = [
@@ -239,36 +241,33 @@ function CosmicRollerCoasterTheme({
         side: THREE.DoubleSide,
       }),
     ];
-    const gateAccentMaterial = new THREE.MeshBasicMaterial({
-      color: DSFM_COLORS.spine,
-      transparent: true,
-      opacity: 0.92,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false,
-    });
-    const gateInnerStripeMaterial = new THREE.MeshBasicMaterial({
-      color: DSFM_COLORS.ties,
-      transparent: true,
-      opacity: 0.86,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false,
-    });
-    const gateAccentGeometry = new THREE.TorusGeometry(
-      HERO_GATE_RADIUS - 2,
-      0.24,
-      8,
-      64,
-    );
     const gateStripeGeometry = new THREE.BoxGeometry(
-      1.2,
       0.5,
-      HERO_GATE_DEPTH * 2 + 0.4,
+      0.5,
+      HERO_GATE_DEPTH * 1.65,
     );
     const gateInnerStripeGeometry = new THREE.TorusGeometry(
       HERO_GATE_RADIUS - 3.2,
-      0.16,
+      0.2,
       8,
       64,
+    );
+    const tunnelRingMaterials = [
+      DSFM_COLORS.ties,
+      DSFM_COLORS.rails,
+      DSFM_COLORS.spine,
+      DSFM_COLORS.ties,
+      DSFM_COLORS.rails,
+      DSFM_COLORS.spine,
+    ].map(
+      (color) =>
+        new THREE.MeshBasicMaterial({
+          color,
+          transparent: true,
+          opacity: 0.18,
+          blending: THREE.AdditiveBlending,
+          depthWrite: false,
+        }),
     );
     const gateLabelTextures = [
       createGateLabelTexture("420"),
@@ -334,24 +333,21 @@ function CosmicRollerCoasterTheme({
         );
         const angle = (stripeIndex / 8) * Math.PI * 2;
         stripe.position.set(
-          Math.cos(angle) * (HERO_GATE_RADIUS - 0.05),
-          Math.sin(angle) * (HERO_GATE_RADIUS - 0.05),
+          Math.cos(angle) * (HERO_GATE_RADIUS + 0.3),
+          Math.sin(angle) * (HERO_GATE_RADIUS + 0.3),
           0,
         );
         stripe.rotation.z = angle;
         gate.add(stripe);
       }
-      for (const offset of [-HERO_GATE_DEPTH * 0.75, HERO_GATE_DEPTH * 0.75]) {
-        const accent = new THREE.Mesh(gateAccentGeometry, gateAccentMaterial);
-        accent.position.z = offset;
-        gate.add(accent);
-      }
-      for (const offset of [-4.2, 0, 4.2]) {
+      for (let ringIndex = 0; ringIndex < TUNNEL_RING_COUNT; ringIndex += 1) {
         const innerStripe = new THREE.Mesh(
           gateInnerStripeGeometry,
-          gateInnerStripeMaterial,
+          tunnelRingMaterials[ringIndex],
         );
-        innerStripe.position.z = offset;
+        innerStripe.position.z =
+          -HERO_GATE_DEPTH * 0.78 +
+          (ringIndex / (TUNNEL_RING_COUNT - 1)) * HERO_GATE_DEPTH * 1.56;
         gate.add(innerStripe);
       }
       const gateLabelMaterial = gateLabelMaterials[index];
@@ -456,6 +452,7 @@ function CosmicRollerCoasterTheme({
     let progress = 0;
     let rideSpeed = 0;
     let labelPulseTime = 0;
+    let tunnelLightTime = 0;
     let lastTelemetry = 0;
     let animationFrame = 0;
     const renderFpsSampler = createRenderFpsSampler((renderFps) => {
@@ -483,7 +480,6 @@ function CosmicRollerCoasterTheme({
       };
       const energy = clamp(snapshot.energy);
       const smoothedEnergy = clamp(snapshot.smoothedEnergy);
-      const bass = clamp(snapshot.bass);
 
       // Normalize energy between floor and ceiling to 0-1 range
       const normalizedEnergy = clamp(
@@ -534,37 +530,15 @@ function CosmicRollerCoasterTheme({
           gate.rotateZ(delta * HERO_GATE_ROTATION_SPEED);
         }
         labelPulseTime += delta;
+        tunnelLightTime += delta;
+      }
+      const activeTunnelRing = Math.floor(
+        tunnelLightTime / TUNNEL_RING_STEP_SECONDS,
+      ) % TUNNEL_RING_COUNT;
+      for (const [ringIndex, material] of tunnelRingMaterials.entries()) {
+        material.opacity = ringIndex === activeTunnelRing ? 1 : 0.18;
       }
       if (props.chromaEnabled) {
-        gateFrameMaterial.color.setHSL(
-          0.6 + normalizedEnergy * 0.08,
-          0.62,
-          0.16 + normalizedEnergy * 0.08,
-        );
-        gateAccentMaterial.color.setHSL(
-          (0.92 + bass * 0.7 + normalizedEnergy * 0.12) % 1,
-          0.92,
-          0.58 + bass * 0.18,
-        );
-        gateAccentMaterial.opacity = 0.86 + bass * 0.12;
-        gateInnerStripeMaterial.color.setHSL(
-          (0.18 + bass * 0.56 + normalizedEnergy * 0.1) % 1,
-          0.9,
-          0.46 + bass * 0.2,
-        );
-        gateInnerStripeMaterial.opacity =
-          0.8 + bass * 0.16 + normalizedEnergy * 0.08;
-        for (const [stripeIndex, material] of gateStripeMaterials.entries()) {
-          material.color.setHSL(
-            (0.48 +
-              stripeIndex * 0.17 +
-              bass * 0.72 +
-              normalizedEnergy * 0.08) %
-              1,
-            0.94,
-            0.54 + bass * 0.16,
-          );
-        }
         for (const gateLabelMaterial of gateLabelMaterials) {
           if (!gateLabelMaterial) continue;
           gateLabelMaterial.color.setHSL(
@@ -578,14 +552,6 @@ function CosmicRollerCoasterTheme({
             Math.sin(labelPulseTime * 2.4) * 0.06;
         }
       } else {
-        gateFrameMaterial.color.copy(DSFM_COLORS.rails);
-        gateAccentMaterial.color.copy(DSFM_COLORS.spine);
-        gateAccentMaterial.opacity = 0.92;
-        gateInnerStripeMaterial.color.copy(DSFM_COLORS.ties);
-        gateInnerStripeMaterial.opacity = 0.86;
-        gateStripeMaterials[0].color.copy(DSFM_COLORS.rails);
-        gateStripeMaterials[1].color.copy(DSFM_COLORS.spine);
-        gateStripeMaterials[2].color.copy(DSFM_COLORS.ties);
         for (const gateLabelMaterial of gateLabelMaterials) {
           if (!gateLabelMaterial) continue;
           gateLabelMaterial.color.copy(DSFM_COLORS.spine);
@@ -623,6 +589,7 @@ function CosmicRollerCoasterTheme({
         else disposable.material?.dispose();
       });
       for (const texture of gateLabelTextures) texture?.dispose();
+      for (const material of tunnelRingMaterials) material.dispose();
       for (const sign of entranceSigns) sign.removeFromParent();
       for (const texture of sloganTextures) texture?.dispose();
       for (const sign of sloganSigns) sign.removeFromParent();
