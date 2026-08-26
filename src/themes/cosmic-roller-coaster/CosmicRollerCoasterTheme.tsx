@@ -13,9 +13,25 @@ const HERO_GATE_ROTATION_SPEED = 0.2;
 const TUNNEL_RING_COUNT = 6;
 const TUNNEL_RING_STEP_SECONDS = 0.5;
 const INITIAL_RIDE_PROGRESS = 0.14;
-const SQUARE_GATE_PROGRESS = 0.65;
 const SLOGAN_BILLBOARD_SPECS = [
-  { text: "Tune in.", color: "#b2ff86", glow: "#74fff0" },
+  {
+    text: "Tune in.",
+    progress: 0.65,
+    color: "#b2ff86",
+    glow: "#74fff0",
+  },
+  {
+    text: "Transmit.",
+    progress: 0.74,
+    color: "#74fff0",
+    glow: "#ff9eaa",
+  },
+  {
+    text: "Transcend.",
+    progress: 0.83,
+    color: "#ff9eaa",
+    glow: "#b2ff86",
+  },
 ] as const;
 // Traversal speed range (progress units per second along coaster spline)
 const SPEED_MIN = 0; // complete stop for silence/zero analyzer energy
@@ -284,12 +300,19 @@ function CosmicRollerCoasterTheme({
         }),
     );
     const sloganGeometry = new THREE.PlaneGeometry(22, 5.5);
-    const squareGateMaterial = new THREE.MeshBasicMaterial({
-      color: DSFM_COLORS.ties,
-      side: THREE.DoubleSide,
-    });
     const squareGateFrameGeometry = new THREE.BoxGeometry(22, 1.4, 1.2);
     const squareGateSideGeometry = new THREE.BoxGeometry(1.4, 22, 1.2);
+    const squareGateMaterials = [
+      DSFM_COLORS.ties,
+      DSFM_COLORS.rails,
+      DSFM_COLORS.spine,
+    ].map(
+      (color) =>
+        new THREE.MeshBasicMaterial({
+          color,
+          side: THREE.DoubleSide,
+        }),
+    );
     const gates = HERO_GATE_PROGRESS.map((progress, index) => {
       const gate = new THREE.Group();
       curve.getPointAt(progress, gatePosition);
@@ -326,44 +349,43 @@ function CosmicRollerCoasterTheme({
       scene.add(gate);
       return gate;
     });
-    const squareGate = new THREE.Group();
-    curve.getPointAt(SQUARE_GATE_PROGRESS, gatePosition);
-    curve.getTangentAt(SQUARE_GATE_PROGRESS, gateTangent);
-    gateOrientation.setFromUnitVectors(gateNormal, gateTangent);
-    squareGate.position.copy(gatePosition);
-    squareGate.quaternion.copy(gateOrientation);
-    const squareGateTop = new THREE.Mesh(
-      squareGateFrameGeometry,
-      squareGateMaterial,
-    );
-    squareGateTop.position.y = 11;
-    squareGate.add(squareGateTop);
-    const squareGateBottom = new THREE.Mesh(
-      squareGateFrameGeometry,
-      squareGateMaterial,
-    );
-    squareGateBottom.position.y = -11;
-    squareGate.add(squareGateBottom);
-    const squareGateLeft = new THREE.Mesh(
-      squareGateSideGeometry,
-      squareGateMaterial,
-    );
-    squareGateLeft.position.x = -11;
-    squareGate.add(squareGateLeft);
-    const squareGateRight = new THREE.Mesh(
-      squareGateSideGeometry,
-      squareGateMaterial,
-    );
-    squareGateRight.position.x = 11;
-    squareGate.add(squareGateRight);
-    const sloganSigns = SLOGAN_BILLBOARD_SPECS.map((_, index) => {
+    SLOGAN_BILLBOARD_SPECS.forEach(({ progress }, index) => {
+      const squareGate = new THREE.Group();
+      curve.getPointAt(progress, gatePosition);
+      curve.getTangentAt(progress, gateTangent);
+      gateOrientation.setFromUnitVectors(gateNormal, gateTangent);
+      squareGate.position.copy(gatePosition);
+      squareGate.quaternion.copy(gateOrientation);
+      const squareGateTop = new THREE.Mesh(
+        squareGateFrameGeometry,
+        squareGateMaterials[index],
+      );
+      squareGateTop.position.y = 11;
+      squareGate.add(squareGateTop);
+      const squareGateBottom = new THREE.Mesh(
+        squareGateFrameGeometry,
+        squareGateMaterials[index],
+      );
+      squareGateBottom.position.y = -11;
+      squareGate.add(squareGateBottom);
+      const squareGateLeft = new THREE.Mesh(
+        squareGateSideGeometry,
+        squareGateMaterials[index],
+      );
+      squareGateLeft.position.x = -11;
+      squareGate.add(squareGateLeft);
+      const squareGateRight = new THREE.Mesh(
+        squareGateSideGeometry,
+        squareGateMaterials[index],
+      );
+      squareGateRight.position.x = 11;
+      squareGate.add(squareGateRight);
       const sign = new THREE.Mesh(sloganGeometry, sloganMaterials[index]);
       sign.position.set(0, 15, -0.75);
       sign.rotation.y = Math.PI;
       squareGate.add(sign);
-      return sign;
+      scene.add(squareGate);
     });
-    scene.add(squareGate);
     const trackMaterial = new THREE.MeshBasicMaterial({
       color: 0xb6d7d5,
       vertexColors: true,
@@ -538,7 +560,6 @@ function CosmicRollerCoasterTheme({
       });
       for (const material of tunnelRingMaterials) material.dispose();
       for (const texture of sloganTextures) texture?.dispose();
-      for (const sign of sloganSigns) sign.removeFromParent();
       renderer.dispose();
       renderer.domElement.remove();
     };
