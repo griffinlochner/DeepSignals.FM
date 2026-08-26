@@ -2,6 +2,10 @@ import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { RollerCoasterGeometry } from "three/examples/jsm/misc/RollerCoaster.js";
 import { createRenderFpsSampler } from "../../app/renderFpsTelemetry";
+import {
+  applyChromaHueResponse,
+  mapSmoothedEnergyToHue,
+} from "../../app/sharedChroma";
 import type { ThemeSceneProps } from "../themeTypes";
 
 const STAR_COUNT = 2400;
@@ -17,6 +21,10 @@ const TUNNEL_RING_STEP_SECONDS = 0.5;
 const INITIAL_RIDE_PROGRESS = HERO_GATE_PROGRESS[0] - 0.01;
 const PORTAL_RESIDUE_DURATION = 1.8;
 const PORTAL_RESIDUE_COUNT = 8;
+// Faster than the ambient CHROMA_HUE_RESPONSE so kick hits read as erratic, not a slow drift
+const PORTAL_HUE_KICK_RESPONSE = 0.35;
+// Per-portal degree offset so the three panes never land on the same hue at once
+const PORTAL_HUE_DESYNC_DEGREES = 137;
 const SLOGAN_BILLBOARD_SPECS = [
   {
     text: "Tune in.",
@@ -320,11 +328,6 @@ function CosmicRollerCoasterTheme({
           side: THREE.DoubleSide,
         }),
     );
-    const squareGateSeparatorMaterial = new THREE.MeshBasicMaterial({
-      color: 0x010207,
-      depthWrite: true,
-      side: THREE.DoubleSide,
-    });
     const portalResidueMaterials = [
       DSFM_COLORS.ties,
       DSFM_COLORS.rails,
@@ -381,6 +384,9 @@ function CosmicRollerCoasterTheme({
       frameMaterial: THREE.MeshBasicMaterial;
       remaining: number;
       phase: number;
+      separatorMaterial: THREE.MeshBasicMaterial;
+      separatorBaseColor: THREE.Color;
+      hueOffsetDegrees: number;
     }> = [];
     SLOGAN_BILLBOARD_SPECS.forEach(({ progress }, index) => {
       const squareGate = new THREE.Group();
@@ -413,6 +419,12 @@ function CosmicRollerCoasterTheme({
       );
       squareGateRight.position.x = 8.5;
       squareGate.add(squareGateRight);
+      const separatorBaseColor = squareGateMaterials[index].color.clone();
+      const squareGateSeparatorMaterial = new THREE.MeshBasicMaterial({
+        color: separatorBaseColor.clone(),
+        depthWrite: true,
+        side: THREE.DoubleSide,
+      });
       const squareGateSeparator = new THREE.Mesh(
         squareGateSeparatorGeometry,
         squareGateSeparatorMaterial,
@@ -453,6 +465,9 @@ function CosmicRollerCoasterTheme({
         frameMaterial: squareGateMaterials[index],
         remaining: 0,
         phase: index * 0.8,
+        separatorMaterial: squareGateSeparatorMaterial,
+        separatorBaseColor: separatorBaseColor,
+        hueOffsetDegrees: 0,
       });
     });
     const trackMaterial = new THREE.MeshBasicMaterial({
@@ -609,7 +624,24 @@ function CosmicRollerCoasterTheme({
       for (const [ringIndex, material] of tunnelRingMaterials.entries()) {
         material.opacity = ringIndex === activeTunnelRing ? 1 : 0.18;
       }
-      for (const residue of squareGateResidue) {
+      const portalChromaActive = props.chromaEnabled && props.isPlaying;
+      for (const [portalIndex, residue] of squareGateResidue.entries()) {
+        if (portalChromaActive) {
+          const targetHueDegrees =
+            mapSmoothedEnergyToHue(snapshot.kickPulse) +
+            portalIndex * PORTAL_HUE_DESYNC_DEGREES;
+          residue.hueOffsetDegrees = applyChromaHueResponse(
+            residue.hueOffsetDegrees,
+            targetHueDegrees,
+            PORTAL_HUE_KICK_RESPONSE,
+          );
+          residue.separatorMaterial.color
+            .copy(residue.separatorBaseColor)
+            .offsetHSL(residue.hueOffsetDegrees / 360, 0, 0);
+        } else if (residue.hueOffsetDegrees !== 0) {
+          residue.hueOffsetDegrees = 0;
+          residue.separatorMaterial.color.copy(residue.separatorBaseColor);
+        }
         if (residue.remaining <= 0) {
           residue.frameMaterial.opacity = 1;
           for (const streak of residue.streaks) streak.visible = false;
