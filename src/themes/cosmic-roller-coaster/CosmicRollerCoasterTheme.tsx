@@ -12,7 +12,9 @@ const HERO_GATE_DEPTH = 11.2;
 const HERO_GATE_ROTATION_SPEED = 0.2;
 const TUNNEL_RING_COUNT = 6;
 const TUNNEL_RING_STEP_SECONDS = 0.5;
-const INITIAL_RIDE_PROGRESS = 0.14;
+// Start the ride just before the first donut/tunnel gate, looking straight through
+// its rings so only the dark void of space shows through the far opening
+const INITIAL_RIDE_PROGRESS = HERO_GATE_PROGRESS[0] - 0.01;
 const PORTAL_RESIDUE_DURATION = 1.8;
 const PORTAL_RESIDUE_COUNT = 8;
 const SLOGAN_BILLBOARD_SPECS = [
