@@ -62,6 +62,12 @@ const DSFM_COLORS = {
   ties: new THREE.Color(0xb2ff86), // neon green
 };
 
+// CHROMA sky breathing: quiet sections reveal a deep indigo atmosphere, full-energy sinks toward black
+const SKY_COLOR_BASE = new THREE.Color(0x010207); // baseline near-black (CHROMA off, and high-energy floor)
+const SKY_COLOR_QUIET = new THREE.Color(0x140b33); // dark indigo/violet cosmic atmosphere
+const SKY_ENERGY_CURVE_POWER = 1.6; // pushes sustained high energy more decisively toward black
+const SKY_EASING_PER_SECOND = 1.2; // slow atmospheric breathing, avoids flicker
+
 // RollerCoasterGeometry vertex structure per division: 114 vertices
 // - ties (cross ties, step shape): 12 vertices (0-11)
 // - spine (center tube1): 30 vertices (12-41)
@@ -230,7 +236,8 @@ function CosmicRollerCoasterTheme({
     if (!mount) return undefined;
     const curve = new CosmicRollerCoasterCurve();
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x010207);
+    const skyBackgroundColor = SKY_COLOR_BASE.clone();
+    scene.background = skyBackgroundColor;
     scene.fog = new THREE.FogExp2(0x010207, 0.003);
     const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 500);
     const train = new THREE.Object3D();
@@ -534,6 +541,7 @@ function CosmicRollerCoasterTheme({
     const bankQuaternion = new THREE.Quaternion();
     let progress = INITIAL_RIDE_PROGRESS;
     let rideSpeed = 0;
+    let skyEnergyEase = 0;
     let tunnelLightTime = 0;
     let lastTelemetry = 0;
     let animationFrame = 0;
@@ -566,6 +574,24 @@ function CosmicRollerCoasterTheme({
         (smoothedEnergy - AUDIO_ENERGY_FLOOR) /
           (AUDIO_ENERGY_CEILING - AUDIO_ENERGY_FLOOR),
       );
+
+      // CHROMA sky breathing: eased smoothed energy, nonlinear so high energy sinks decisively to black
+      if (props.chromaEnabled) {
+        const skyEase = 1 - Math.exp(-delta * SKY_EASING_PER_SECOND);
+        skyEnergyEase = THREE.MathUtils.lerp(
+          skyEnergyEase,
+          normalizedSmoothedEnergy,
+          skyEase,
+        );
+        const skyDarkness = Math.pow(
+          clamp(skyEnergyEase),
+          SKY_ENERGY_CURVE_POWER,
+        );
+        skyBackgroundColor.lerpColors(SKY_COLOR_QUIET, SKY_COLOR_BASE, skyDarkness);
+      } else if (skyEnergyEase !== 0 || !skyBackgroundColor.equals(SKY_COLOR_BASE)) {
+        skyEnergyEase = 0;
+        skyBackgroundColor.copy(SKY_COLOR_BASE);
+      }
 
       // Target speed interpolates between SPEED_MIN and SPEED_MAX based on normalized energy
       const targetSpeed =
