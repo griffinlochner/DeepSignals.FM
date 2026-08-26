@@ -13,6 +13,8 @@ const HERO_GATE_ROTATION_SPEED = 0.2;
 const TUNNEL_RING_COUNT = 6;
 const TUNNEL_RING_STEP_SECONDS = 0.5;
 const INITIAL_RIDE_PROGRESS = 0.14;
+const PORTAL_RESIDUE_DURATION = 1.8;
+const PORTAL_RESIDUE_COUNT = 8;
 const SLOGAN_BILLBOARD_SPECS = [
   {
     text: "Tune in.",
@@ -296,11 +298,12 @@ function CosmicRollerCoasterTheme({
           opacity: 0.92,
           blending: THREE.AdditiveBlending,
           depthWrite: false,
-          side: THREE.DoubleSide,
+          side: THREE.FrontSide,
         }),
     );
     const sloganGeometry = new THREE.PlaneGeometry(25, 6.25);
-    const squareGatePaneGeometry = new THREE.PlaneGeometry(16, 16);
+    const squareGateSeparatorGeometry = new THREE.PlaneGeometry(15.6, 15.6);
+    const portalResidueGeometry = new THREE.PlaneGeometry(9, 0.16);
     const squareGateFrameGeometry = new THREE.BoxGeometry(17, 1.4, 1.2);
     const squareGateSideGeometry = new THREE.BoxGeometry(1.4, 17, 1.2);
     const squareGateMaterials = [
@@ -311,10 +314,16 @@ function CosmicRollerCoasterTheme({
       (color) =>
         new THREE.MeshBasicMaterial({
           color,
+          transparent: true,
           side: THREE.DoubleSide,
         }),
     );
-    const squareGatePaneMaterials = [
+    const squareGateSeparatorMaterial = new THREE.MeshBasicMaterial({
+      color: 0x010207,
+      depthWrite: true,
+      side: THREE.DoubleSide,
+    });
+    const portalResidueMaterials = [
       DSFM_COLORS.ties,
       DSFM_COLORS.rails,
       DSFM_COLORS.spine,
@@ -323,7 +332,7 @@ function CosmicRollerCoasterTheme({
         new THREE.MeshBasicMaterial({
           color,
           transparent: true,
-          opacity: 0.1,
+          opacity: 0,
           blending: THREE.AdditiveBlending,
           depthWrite: false,
           side: THREE.DoubleSide,
@@ -365,6 +374,12 @@ function CosmicRollerCoasterTheme({
       scene.add(gate);
       return gate;
     });
+    const squareGateResidue: Array<{
+      streaks: THREE.Mesh[];
+      frameMaterial: THREE.MeshBasicMaterial;
+      remaining: number;
+      phase: number;
+    }> = [];
     SLOGAN_BILLBOARD_SPECS.forEach(({ progress }, index) => {
       const squareGate = new THREE.Group();
       curve.getPointAt(progress, gatePosition);
@@ -396,17 +411,47 @@ function CosmicRollerCoasterTheme({
       );
       squareGateRight.position.x = 8.5;
       squareGate.add(squareGateRight);
-      const squareGatePane = new THREE.Mesh(
-        squareGatePaneGeometry,
-        squareGatePaneMaterials[index],
+      const squareGateSeparator = new THREE.Mesh(
+        squareGateSeparatorGeometry,
+        squareGateSeparatorMaterial,
       );
-      squareGatePane.position.z = 0;
-      squareGate.add(squareGatePane);
-      const sign = new THREE.Mesh(sloganGeometry, sloganMaterials[index]);
-      sign.position.set(0, 12.75, -0.75);
-      sign.rotation.y = Math.PI;
-      squareGate.add(sign);
+      squareGateSeparator.position.z = 0;
+      squareGate.add(squareGateSeparator);
+      const signFront = new THREE.Mesh(
+        sloganGeometry,
+        sloganMaterials[index],
+      );
+      signFront.position.set(0, 12.75, -0.85);
+      signFront.rotation.y = Math.PI;
+      squareGate.add(signFront);
+      const signBack = new THREE.Mesh(sloganGeometry, sloganMaterials[index]);
+      signBack.position.set(0, 12.75, 0.85);
+      squareGate.add(signBack);
+      const residueStreaks = Array.from(
+        { length: PORTAL_RESIDUE_COUNT },
+        (_, residueIndex) => {
+          const streak = new THREE.Mesh(
+            portalResidueGeometry,
+            portalResidueMaterials[index],
+          );
+          streak.position.set(
+            (residueIndex % 4) * 3 - 4.5,
+            Math.floor(residueIndex / 4) * 4 - 2,
+            -1.1,
+          );
+          streak.rotation.z = residueIndex % 2 === 0 ? 0.04 : -0.04;
+          streak.visible = false;
+          squareGate.add(streak);
+          return streak;
+        },
+      );
       scene.add(squareGate);
+      squareGateResidue.push({
+        streaks: residueStreaks,
+        frameMaterial: squareGateMaterials[index],
+        remaining: 0,
+        phase: index * 0.8,
+      });
     });
     const trackMaterial = new THREE.MeshBasicMaterial({
       color: 0xb6d7d5,
@@ -517,7 +562,18 @@ function CosmicRollerCoasterTheme({
 
       // Update spline progress only when motion is active
       if (props.isPlaying && props.motionEnabled && !props.reducedMotion) {
-        progress = (progress + rideSpeed * delta) % 1;
+        const nextProgress = (progress + rideSpeed * delta) % 1;
+        const wrapped = nextProgress < progress;
+        for (const [gateIndex, residue] of squareGateResidue.entries()) {
+          const gateProgress = SLOGAN_BILLBOARD_SPECS[gateIndex].progress;
+          const crossed = wrapped
+            ? gateProgress >= progress || gateProgress <= nextProgress
+            : gateProgress >= progress && gateProgress <= nextProgress;
+          if (crossed && residue.remaining <= 0) {
+            residue.remaining = PORTAL_RESIDUE_DURATION;
+          }
+        }
+        progress = nextProgress;
       }
 
       position.copy(curve.getPointAt(progress));
@@ -550,6 +606,27 @@ function CosmicRollerCoasterTheme({
       ) % TUNNEL_RING_COUNT;
       for (const [ringIndex, material] of tunnelRingMaterials.entries()) {
         material.opacity = ringIndex === activeTunnelRing ? 1 : 0.18;
+      }
+      for (const residue of squareGateResidue) {
+        if (residue.remaining <= 0) {
+          residue.frameMaterial.opacity = 1;
+          for (const streak of residue.streaks) streak.visible = false;
+          continue;
+        }
+        residue.remaining = Math.max(0, residue.remaining - delta);
+        const fade = residue.remaining / PORTAL_RESIDUE_DURATION;
+        const pulse =
+          0.7 +
+          Math.sin(
+            (PORTAL_RESIDUE_DURATION - residue.remaining) * 9 + residue.phase,
+          ) *
+            0.3;
+        residue.frameMaterial.opacity = 0.76 + fade * 0.24 * pulse;
+        for (const [streakIndex, streak] of residue.streaks.entries()) {
+          streak.visible = true;
+          streak.position.z = -1.1 - (1 - fade) * 2.5;
+          streak.scale.x = 0.7 + (1 - fade) * 0.8 + (streakIndex % 3) * 0.08;
+        }
       }
       (stars.material as THREE.PointsMaterial).opacity =
         0.7 + smoothedEnergy * 0.16;
