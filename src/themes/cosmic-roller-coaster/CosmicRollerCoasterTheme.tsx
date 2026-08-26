@@ -12,6 +12,11 @@ const HERO_GATE_DEPTH = 5.6;
 const HERO_GATE_ROTATION_SPEED = 0.2;
 const HERO_SIGN_WIDTH = 7.4;
 const HERO_SIGN_HEIGHT = 3.7;
+const SLOGAN_BILLBOARD_SPECS = [
+  { text: "Tune in.", progress: 0.36, color: "#74fff0", glow: "#b2ff86" },
+  { text: "Transmit.", progress: 0.52, color: "#ff9eaa", glow: "#74fff0" },
+  { text: "Transcend.", progress: 0.68, color: "#b2ff86", glow: "#ff9eaa" },
+] as const;
 // Traversal speed range (progress units per second along coaster spline)
 const SPEED_MIN = 0; // complete stop for silence/zero analyzer energy
 const SPEED_MAX = 0.012; // high-energy peak for comfortable viewing through sharp turns/dips
@@ -92,9 +97,13 @@ function createStarfield() {
   );
 }
 
-function createGateLabelTexture(text: string) {
+function createGateLabelTexture(
+  text: string,
+  primaryColor = "#ffffff",
+  glowColor = "#ff9eaa",
+) {
   const canvas = document.createElement("canvas");
-  canvas.width = 1024;
+  canvas.width = 2048;
   canvas.height = 512;
   const context = canvas.getContext("2d");
   if (!context) return undefined;
@@ -102,12 +111,12 @@ function createGateLabelTexture(text: string) {
   context.textAlign = "center";
   context.textBaseline = "middle";
   context.font = "900 320px Chakra Petch, sans-serif";
-  context.shadowColor = "#74fff0";
+  context.shadowColor = glowColor;
   context.shadowBlur = 34;
-  context.fillStyle = "#ffffff";
+  context.fillStyle = primaryColor;
   context.fillText(text, canvas.width / 2, canvas.height / 2);
   context.shadowBlur = 12;
-  context.shadowColor = "#ff9eaa";
+  context.shadowColor = primaryColor;
   context.fillText(text, canvas.width / 2, canvas.height / 2);
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
@@ -284,6 +293,28 @@ function CosmicRollerCoasterTheme({
     const gateTangent = new THREE.Vector3();
     const gateOrientation = new THREE.Quaternion();
     const entranceSigns: THREE.Mesh[] = [];
+    const sloganTextures = SLOGAN_BILLBOARD_SPECS.map(({ text, color, glow }) =>
+      createGateLabelTexture(text, color, glow),
+    );
+    const sloganMaterials = sloganTextures.map(
+      (texture) =>
+        new THREE.MeshBasicMaterial({
+          map: texture,
+          transparent: true,
+          opacity: 0.92,
+          blending: THREE.AdditiveBlending,
+          depthWrite: false,
+          side: THREE.DoubleSide,
+        }),
+    );
+    const sloganGeometry = new THREE.PlaneGeometry(16, 4);
+    const sloganPoint = new THREE.Vector3();
+    const sloganTangent = new THREE.Vector3();
+    const sloganLateral = new THREE.Vector3();
+    const sloganNormal = new THREE.Vector3();
+    const sloganOffset = new THREE.Vector3();
+    const sloganOrientation = new THREE.Quaternion();
+    const worldUp = new THREE.Vector3(0, 1, 0);
     const gates = HERO_GATE_PROGRESS.map((progress, index) => {
       const gate = new THREE.Group();
       curve.getPointAt(progress, gatePosition);
@@ -336,6 +367,26 @@ function CosmicRollerCoasterTheme({
       }
       scene.add(gate);
       return gate;
+    });
+    const sloganSigns = SLOGAN_BILLBOARD_SPECS.map(({ progress }, index) => {
+      curve.getPointAt(progress, sloganPoint);
+      curve.getTangentAt(progress, sloganTangent);
+      sloganLateral.crossVectors(sloganTangent, worldUp).normalize();
+      sloganOffset
+        .copy(sloganLateral)
+        .multiplyScalar(index % 2 === 0 ? 16 : -16);
+      sloganOffset.y = 7 + (index === 1 ? 2 : 0);
+      sloganPoint.add(sloganOffset);
+      sloganNormal.copy(sloganTangent).negate();
+      sloganOrientation.setFromUnitVectors(
+        new THREE.Vector3(0, 0, 1),
+        sloganNormal,
+      );
+      const sign = new THREE.Mesh(sloganGeometry, sloganMaterials[index]);
+      sign.position.copy(sloganPoint);
+      sign.quaternion.copy(sloganOrientation);
+      scene.add(sign);
+      return sign;
     });
     const trackMaterial = new THREE.MeshBasicMaterial({
       color: 0xb6d7d5,
@@ -422,20 +473,29 @@ function CosmicRollerCoasterTheme({
       const delta = Math.min(timer.getDelta(), 0.05);
       const props = propsRef.current;
       const snapshot = props.getLatestAudioSnapshot?.() ?? {
+        energy: 0,
         smoothedEnergy: 0,
+        bass: 0,
+        kickPulse: 0,
       };
-      const energy = clamp(snapshot.smoothedEnergy);
+      const energy = clamp(snapshot.energy);
+      const smoothedEnergy = clamp(snapshot.smoothedEnergy);
+      const bass = clamp(snapshot.bass);
 
       // Normalize energy between floor and ceiling to 0-1 range
       const normalizedEnergy = clamp(
         (energy - AUDIO_ENERGY_FLOOR) /
           (AUDIO_ENERGY_CEILING - AUDIO_ENERGY_FLOOR),
       );
+      const normalizedSmoothedEnergy = clamp(
+        (smoothedEnergy - AUDIO_ENERGY_FLOOR) /
+          (AUDIO_ENERGY_CEILING - AUDIO_ENERGY_FLOOR),
+      );
 
       // Target speed interpolates between SPEED_MIN and SPEED_MAX based on normalized energy
       const targetSpeed =
         props.isPlaying && props.motionEnabled && !props.reducedMotion
-          ? SPEED_MIN + normalizedEnergy * (SPEED_MAX - SPEED_MIN)
+          ? SPEED_MIN + normalizedSmoothedEnergy * (SPEED_MAX - SPEED_MIN)
           : 0;
 
       // Smooth speed transitions with exponential easing
@@ -474,34 +534,34 @@ function CosmicRollerCoasterTheme({
       }
       if (props.chromaEnabled) {
         gateFrameMaterial.color.setHSL(
-          (0.5 + normalizedEnergy * 0.12) % 1,
-          0.86,
-          0.48 + normalizedEnergy * 0.16,
+          0.6 + normalizedEnergy * 0.08,
+          0.62,
+          0.16 + normalizedEnergy * 0.08,
         );
         gateAccentMaterial.color.setHSL(
-          (0.96 + normalizedEnergy * 0.22) % 1,
-          0.86,
-          0.56 + normalizedEnergy * 0.16,
+          (0.92 + bass * 0.7 + normalizedEnergy * 0.12) % 1,
+          0.92,
+          0.58 + bass * 0.18,
         );
-        gateAccentMaterial.opacity = 0.86 + normalizedEnergy * 0.12;
+        gateAccentMaterial.opacity = 0.86 + bass * 0.12;
         gateInnerStripeMaterial.color.setHSL(
-          (0.28 + normalizedEnergy * 0.12) % 1,
-          0.82,
-          0.42 + normalizedEnergy * 0.12,
+          (0.18 + bass * 0.56 + normalizedEnergy * 0.1) % 1,
+          0.9,
+          0.46 + bass * 0.2,
         );
-        gateInnerStripeMaterial.opacity = 0.8 + normalizedEnergy * 0.12;
+        gateInnerStripeMaterial.opacity =
+          0.8 + bass * 0.16 + normalizedEnergy * 0.08;
         for (const [stripeIndex, material] of gateStripeMaterials.entries()) {
           material.color.setHSL(
-            (0.48 + stripeIndex * 0.14 + normalizedEnergy * 0.08) % 1,
-            0.82,
-            0.42 + normalizedEnergy * 0.1,
+            (0.48 +
+              stripeIndex * 0.17 +
+              bass * 0.72 +
+              normalizedEnergy * 0.08) %
+              1,
+            0.94,
+            0.54 + bass * 0.16,
           );
         }
-        gateFrameMaterial.color.setHSL(
-          (0.5 + normalizedEnergy * 0.12) % 1,
-          0.86,
-          0.38 + normalizedEnergy * 0.1,
-        );
         for (const gateLabelMaterial of gateLabelMaterials) {
           if (!gateLabelMaterial) continue;
           gateLabelMaterial.color.setHSL(
@@ -511,7 +571,7 @@ function CosmicRollerCoasterTheme({
           );
           gateLabelMaterial.opacity =
             0.82 +
-            normalizedEnergy * 0.1 +
+            normalizedSmoothedEnergy * 0.1 +
             Math.sin(labelPulseTime * 2.4) * 0.06;
         }
       } else {
@@ -530,7 +590,8 @@ function CosmicRollerCoasterTheme({
         }
       }
 
-      (stars.material as THREE.PointsMaterial).opacity = 0.7 + energy * 0.16;
+      (stars.material as THREE.PointsMaterial).opacity =
+        0.7 + smoothedEnergy * 0.16;
       if (
         props.onRuntimeTelemetry &&
         performance.now() - lastTelemetry > TELEMETRY_INTERVAL_MS
@@ -560,6 +621,8 @@ function CosmicRollerCoasterTheme({
       });
       for (const texture of gateLabelTextures) texture?.dispose();
       for (const sign of entranceSigns) sign.removeFromParent();
+      for (const texture of sloganTextures) texture?.dispose();
+      for (const sign of sloganSigns) sign.removeFromParent();
       renderer.dispose();
       renderer.domElement.remove();
     };
