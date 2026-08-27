@@ -6,6 +6,10 @@ import {
   applyChromaHueResponse,
   mapSmoothedEnergyToHue,
 } from "../../app/sharedChroma";
+import {
+  createSharedSurgeQualificationState,
+  updateSharedSurgeQualification,
+} from "../../app/sharedSurgeQualification";
 import type { ThemeSceneProps } from "../themeTypes";
 
 const STAR_COUNT = 2400;
@@ -54,6 +58,20 @@ const AUDIO_ENERGY_CEILING = 0.72;
 // Speed smoothing responsiveness (exponential decay rate per second)
 const SPEED_EASING_PER_SECOND = 1.8;
 const TELEMETRY_INTERVAL_MS = 100;
+
+// SURGE: brief cosmic-radiation streak field + temporary speed ceiling unlock
+const SURGE_STREAK_COUNT = 90;
+const SURGE_DURATION_MS = 1750; // ~1.75s, within 1.5-2.0s target window
+const SURGE_SPEED_MAX_BOOST = 0.15; // temporary +15% ceiling during SURGE
+const SURGE_STREAK_FAR_Z = -42; // spawn depth (camera-local, far ahead)
+const SURGE_STREAK_NEAR_Z = 2; // depth once a streak has rushed past the rider
+const SURGE_STREAK_RADIUS_MIN = 0.4;
+const SURGE_STREAK_RADIUS_MAX = 9;
+const SURGE_STREAK_TAIL_FRACTION = 0.06; // elongation of each streak along its travel path
+const SURGE_STREAK_COLORS = [0xcdfaff, 0xb98bff, 0xff9eaa, 0xb2ff86].map(
+  (color) => new THREE.Color(color),
+);
+const SURGE_STREAK_MAX_OPACITY = 0.85;
 
 // DSFM brand colors for track zones (CHROMA OFF baseline)
 const DSFM_COLORS = {
@@ -243,6 +261,56 @@ function CosmicRollerCoasterTheme({
     const train = new THREE.Object3D();
     train.add(camera);
     scene.add(train);
+
+    // SURGE streak field: charged-particle/solar-wind streaks anchored to the camera's
+    // travel corridor. Buffers/material are built once; only positions/opacity animate.
+    const surgeStreakPositions = new Float32Array(SURGE_STREAK_COUNT * 2 * 3);
+    const surgeStreakColors = new Float32Array(SURGE_STREAK_COUNT * 2 * 3);
+    const surgeStreakDirX = new Float32Array(SURGE_STREAK_COUNT);
+    const surgeStreakDirY = new Float32Array(SURGE_STREAK_COUNT);
+    const surgeStreakSpeed = new Float32Array(SURGE_STREAK_COUNT);
+    const surgeStreakDistance = new Float32Array(SURGE_STREAK_COUNT);
+    for (let index = 0; index < SURGE_STREAK_COUNT; index += 1) {
+      const angle = Math.random() * Math.PI * 2;
+      surgeStreakDirX[index] = Math.cos(angle);
+      surgeStreakDirY[index] = Math.sin(angle);
+      surgeStreakSpeed[index] = 0.4 + Math.random() * 0.5;
+      surgeStreakDistance[index] = Math.random();
+      const color =
+        SURGE_STREAK_COLORS[index % SURGE_STREAK_COLORS.length];
+      const colorIndex = index * 6;
+      surgeStreakColors[colorIndex] = color.r;
+      surgeStreakColors[colorIndex + 1] = color.g;
+      surgeStreakColors[colorIndex + 2] = color.b;
+      surgeStreakColors[colorIndex + 3] = color.r;
+      surgeStreakColors[colorIndex + 4] = color.g;
+      surgeStreakColors[colorIndex + 5] = color.b;
+    }
+    const surgeStreakGeometry = new THREE.BufferGeometry();
+    const surgeStreakPositionAttribute = new THREE.BufferAttribute(
+      surgeStreakPositions,
+      3,
+    );
+    surgeStreakGeometry.setAttribute("position", surgeStreakPositionAttribute);
+    surgeStreakGeometry.setAttribute(
+      "color",
+      new THREE.BufferAttribute(surgeStreakColors, 3),
+    );
+    const surgeStreakMaterial = new THREE.LineBasicMaterial({
+      vertexColors: true,
+      transparent: true,
+      opacity: 0,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      fog: false,
+    });
+    const surgeStreaks = new THREE.LineSegments(
+      surgeStreakGeometry,
+      surgeStreakMaterial,
+    );
+    surgeStreaks.visible = false;
+    surgeStreaks.frustumCulled = false;
+    camera.add(surgeStreaks);
     const renderer = new THREE.WebGLRenderer({
       antialias: true,
       powerPreference: "high-performance",
@@ -545,6 +613,9 @@ function CosmicRollerCoasterTheme({
     let tunnelLightTime = 0;
     let lastTelemetry = 0;
     let animationFrame = 0;
+    let surgeQualificationState = createSharedSurgeQualificationState();
+    let surgeActive = false;
+    let surgeBeganAtMs = 0;
     const renderFpsSampler = createRenderFpsSampler((renderFps) => {
       propsRef.current.onRuntimeTelemetry?.({ renderFps });
     });
@@ -567,6 +638,7 @@ function CosmicRollerCoasterTheme({
         smoothedEnergy: 0,
         bass: 0,
         kickPulse: 0,
+        kickPulseAcceptedEventSequence: 0,
       };
       const smoothedEnergy = clamp(snapshot.smoothedEnergy);
 
@@ -574,6 +646,85 @@ function CosmicRollerCoasterTheme({
         (smoothedEnergy - AUDIO_ENERGY_FLOOR) /
           (AUDIO_ENERGY_CEILING - AUDIO_ENERGY_FLOOR),
       );
+
+      const motionActive =
+        props.isPlaying && props.motionEnabled && !props.reducedMotion;
+      const nowMs = performance.now();
+      const qualification = updateSharedSurgeQualification(
+        surgeQualificationState,
+        {
+          nowMs,
+          smoothedEnergy,
+          acceptedSequence: snapshot.kickPulseAcceptedEventSequence ?? 0,
+          isPlaying: props.isPlaying,
+          motionEnabled: props.motionEnabled,
+        },
+      );
+      surgeQualificationState = qualification.state;
+      if (motionActive && qualification.triggered) {
+        surgeActive = true;
+        surgeBeganAtMs = nowMs;
+      }
+
+      let surgeEnvelope = 0;
+      if (surgeActive) {
+        const surgeAge = nowMs - surgeBeganAtMs;
+        if (surgeAge >= SURGE_DURATION_MS) {
+          surgeActive = false;
+        } else {
+          const surgeT = surgeAge / SURGE_DURATION_MS;
+          if (surgeT < 0.12) surgeEnvelope = surgeT / 0.12;
+          else if (surgeT < 0.65) surgeEnvelope = 1;
+          else surgeEnvelope = Math.max(0, 1 - (surgeT - 0.65) / 0.35);
+        }
+      }
+
+      if (surgeEnvelope > 0.001) {
+        surgeStreaks.visible = true;
+        surgeStreakMaterial.opacity = surgeEnvelope * SURGE_STREAK_MAX_OPACITY;
+        for (let index = 0; index < SURGE_STREAK_COUNT; index += 1) {
+          surgeStreakDistance[index] =
+            (surgeStreakDistance[index] + delta * surgeStreakSpeed[index]) % 1;
+          const distance = surgeStreakDistance[index];
+          const tailDistance = Math.max(
+            0,
+            distance - SURGE_STREAK_TAIL_FRACTION,
+          );
+          const headZ = THREE.MathUtils.lerp(
+            SURGE_STREAK_FAR_Z,
+            SURGE_STREAK_NEAR_Z,
+            distance,
+          );
+          const headRadius = THREE.MathUtils.lerp(
+            SURGE_STREAK_RADIUS_MIN,
+            SURGE_STREAK_RADIUS_MAX,
+            distance,
+          );
+          const tailZ = THREE.MathUtils.lerp(
+            SURGE_STREAK_FAR_Z,
+            SURGE_STREAK_NEAR_Z,
+            tailDistance,
+          );
+          const tailRadius = THREE.MathUtils.lerp(
+            SURGE_STREAK_RADIUS_MIN,
+            SURGE_STREAK_RADIUS_MAX,
+            tailDistance,
+          );
+          const dirX = surgeStreakDirX[index];
+          const dirY = surgeStreakDirY[index];
+          const vertexIndex = index * 6;
+          surgeStreakPositions[vertexIndex] = dirX * headRadius;
+          surgeStreakPositions[vertexIndex + 1] = dirY * headRadius;
+          surgeStreakPositions[vertexIndex + 2] = headZ;
+          surgeStreakPositions[vertexIndex + 3] = dirX * tailRadius;
+          surgeStreakPositions[vertexIndex + 4] = dirY * tailRadius;
+          surgeStreakPositions[vertexIndex + 5] = tailZ;
+        }
+        surgeStreakPositionAttribute.needsUpdate = true;
+      } else if (surgeStreaks.visible) {
+        surgeStreaks.visible = false;
+        surgeStreakMaterial.opacity = 0;
+      }
 
       // CHROMA sky breathing: eased smoothed energy, nonlinear so high energy sinks decisively to black
       if (props.chromaEnabled) {
@@ -593,11 +744,13 @@ function CosmicRollerCoasterTheme({
         skyBackgroundColor.copy(SKY_COLOR_BASE);
       }
 
-      // Target speed interpolates between SPEED_MIN and SPEED_MAX based on normalized energy
-      const targetSpeed =
-        props.isPlaying && props.motionEnabled && !props.reducedMotion
-          ? SPEED_MIN + normalizedSmoothedEnergy * (SPEED_MAX - SPEED_MIN)
-          : 0;
+      // Target speed interpolates between SPEED_MIN and the effective ceiling based on
+      // normalized energy; SURGE temporarily raises the ceiling without touching SPEED_MAX.
+      const effectiveSpeedMax =
+        SPEED_MAX * (1 + SURGE_SPEED_MAX_BOOST * surgeEnvelope);
+      const targetSpeed = motionActive
+        ? SPEED_MIN + normalizedSmoothedEnergy * (effectiveSpeedMax - SPEED_MIN)
+        : 0;
 
       // Smooth speed transitions with exponential easing
       const speedEase = 1 - Math.exp(-delta * SPEED_EASING_PER_SECOND);
