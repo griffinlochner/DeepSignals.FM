@@ -62,10 +62,10 @@ const DSFM_COLORS = {
   ties: new THREE.Color(0xb2ff86), // neon green
 };
 
-// CHROMA sky breathing: quiet sections reveal a deep indigo atmosphere, full-energy sinks toward black
+// CHROMA sky breathing: quiet sections reveal a rich indigo atmosphere, full-energy sinks toward black
 const SKY_COLOR_BASE = new THREE.Color(0x010207); // baseline near-black (CHROMA off, and high-energy floor)
-const SKY_COLOR_QUIET = new THREE.Color(0x140b33); // dark indigo/violet cosmic atmosphere
-const SKY_ENERGY_CURVE_POWER = 1.6; // pushes sustained high energy more decisively toward black
+const SKY_COLOR_QUIET = new THREE.Color(0x21104a); // visible dark indigo/violet cosmic atmosphere
+const SKY_ENERGY_CURVE_POWER = 2; // holds quiet color longer, then sinks sustained high energy decisively to black
 const SKY_EASING_PER_SECOND = 1.2; // slow atmospheric breathing, avoids flicker
 
 // RollerCoasterGeometry vertex structure per division: 114 vertices
