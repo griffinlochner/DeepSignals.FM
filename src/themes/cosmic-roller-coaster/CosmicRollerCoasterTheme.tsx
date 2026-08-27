@@ -44,7 +44,7 @@ const SLOGAN_BILLBOARD_SPECS = [
   },
   {
     text: "Transcend.",
-    progress: 0.76,
+    progress: 0.8,
     color: "#ff9eaa",
     glow: "#b2ff86",
   },
