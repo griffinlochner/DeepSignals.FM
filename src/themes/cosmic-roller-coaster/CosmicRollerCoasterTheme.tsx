@@ -62,7 +62,8 @@ const TELEMETRY_INTERVAL_MS = 100;
 // SURGE: brief cosmic-radiation streak field + temporary speed ceiling unlock
 const SURGE_STREAK_COUNT = 90;
 const SURGE_DURATION_MS = 1750; // ~1.75s, within 1.5-2.0s target window
-const SURGE_SPEED_MAX_BOOST = 0.15; // temporary +15% ceiling during SURGE
+const SURGE_SPEED_MAX_BOOST = 0.18; // temporary +18% ceiling during SURGE
+const SURGE_THRUST_AMOUNT = 0.08; // additional target speed at full envelope, as a fraction of SPEED_MAX
 const SURGE_STREAK_FAR_Z = -42; // spawn depth (camera-local, far ahead)
 const SURGE_STREAK_NEAR_Z = 2; // depth once a streak has rushed past the rider
 const SURGE_STREAK_RADIUS_MIN = 0.4;
@@ -748,8 +749,14 @@ function CosmicRollerCoasterTheme({
       // normalized energy; SURGE temporarily raises the ceiling without touching SPEED_MAX.
       const effectiveSpeedMax =
         SPEED_MAX * (1 + SURGE_SPEED_MAX_BOOST * surgeEnvelope);
+      const normalTargetSpeed = motionActive
+        ? SPEED_MIN + normalizedSmoothedEnergy * (SPEED_MAX - SPEED_MIN)
+        : 0;
+      // SURGE adds a real forward thrust impulse on top of the normal target, clamped to the
+      // temporary ceiling so the boosted ceiling always translates into felt acceleration.
+      const surgeThrust = SPEED_MAX * SURGE_THRUST_AMOUNT * surgeEnvelope;
       const targetSpeed = motionActive
-        ? SPEED_MIN + normalizedSmoothedEnergy * (effectiveSpeedMax - SPEED_MIN)
+        ? Math.min(normalTargetSpeed + surgeThrust, effectiveSpeedMax)
         : 0;
 
       // Smooth speed transitions with exponential easing
