@@ -74,7 +74,7 @@ type VisualFeedDockMode = "right" | "bottom";
 
 const PLAYER_PREFERENCES_STORAGE_KEY_V3 = "deepsignals.player.preferences.v3";
 
-const DEFAULT_PLAYER_THEME_ID = "cosmic-nexus";
+const DEFAULT_PLAYER_THEME_ID = "cosmic-roller-coaster";
 const DEFAULT_PLAYER_AUDIO_SOURCE_ID =
   DEMO_PSYCHEDELIC_EXPERIENCE_AUDIO_SOURCE.id;
 const PUBLIC_PLAYER_ENVIRONMENT_IDS = [
@@ -102,7 +102,7 @@ const PUBLIC_ENVIRONMENT_DISPLAY_NAME_OVERRIDES: Record<string, string> = {
   "uv-reactive-jungle": "Psy Jungle",
   "analog-signal-laboratory": "Analog Lab",
   "bioluminescent-psy-reef": "Psy Reef",
-  "cosmic-roller-coaster": "Cosmic Roller Coaster",
+  "cosmic-roller-coaster": "Cosmic Coaster",
   "minimal": "Black",
 };
 
