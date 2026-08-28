@@ -14,6 +14,9 @@ function PublicSiteNav({ currentPage }: PublicSiteNavProps) {
         </div>
 
         <div className="public-site-nav__links">
+          <a className="public-site-nav__link" href="/player/">
+            PLAYER
+          </a>
           <a
             className={`public-site-nav__link${currentPage === 'about' ? ' public-site-nav__link--active' : ''}`}
             href="/about/"

@@ -48,6 +48,27 @@ function LandingPage() {
           <p className="player-cta__support">
             live stations · reactive visuals · telemetry · early preview
           </p>
+
+          <nav
+            className="secondary-nav"
+            aria-label="Informational pages"
+          >
+            <a href="/about/" className="secondary-nav__link secondary-nav__link--about">
+              ABOUT
+            </a>
+            <a
+              href="/submissions/"
+              className="secondary-nav__link secondary-nav__link--submissions"
+            >
+              SUBMISSIONS
+            </a>
+            <a
+              href="/updates/"
+              className="secondary-nav__link secondary-nav__link--updates"
+            >
+              UPDATES
+            </a>
+          </nav>
         </div>
 
         <div
