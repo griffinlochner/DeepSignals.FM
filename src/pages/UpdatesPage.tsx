@@ -49,6 +49,166 @@ function UpdatesPage() {
             </div>
           </section>
 
+          <section className="about-section" aria-labelledby="update-03-title">
+            <h2
+              className="about-page__section-label about-page__transmission-heading about-page__label-pulse about-page__label-pulse--zero"
+              id="update-03-title"
+            >
+              <TransmissionHeading
+                sequence="03"
+                metadata="2026-08-27"
+                title="NEW SIGNAL // PSYBRAZIL ENTERTAINMENT NETWORK"
+              />
+            </h2>
+            <div className="about-section__copy updates-page__entry-copy">
+              <p className="about-transmission-copy">
+                <span className="about-associated-gradient-text">
+                  A new group of signals has joined DeepSignals.FM.
+                </span>
+              </p>
+              <p className="about-transmission-copy">
+                <span className="about-associated-gradient-text">
+                  We&apos;re very happy to now feature selections from the{" "}
+                  <strong className="updates-page__accent-green">
+                    PsyBrazil Entertainment Network
+                  </strong>
+                  , an independent Brazilian radio project broadcasting online
+                  since <strong className="updates-page__accent-cyan">2002</strong>.
+                </span>
+              </p>
+              <p className="about-transmission-copy">
+                <span className="about-associated-gradient-text">
+                  For more than two decades, PsyBrazil has been transmitting
+                  psychedelic and electronic music from Brazil to listeners
+                  around the world. Today its network spans multiple stations
+                  covering psychedelic, progressive, electronic, lo-fi,
+                  low-BPM and other frequencies, alongside its own live
+                  metadata, radio statistics and music-visualization
+                  experiments.
+                </span>
+              </p>
+              <p className="about-transmission-copy">
+                <span className="about-associated-gradient-text">
+                  Several PsyBrazil stations can now be tuned directly from
+                  the DeepSignals.FM player:
+                </span>
+              </p>
+              <ul className="updates-page__station-array">
+                <li className="updates-page__station-card">
+                  <div className="updates-page__station-art">
+                    <img
+                      src="/images/stations/psybr.jpg"
+                      alt="PsyBrazil station artwork"
+                      loading="lazy"
+                      width={600}
+                      height={600}
+                    />
+                  </div>
+                  <p className="updates-page__station-name">PSYBRAZIL</p>
+                  <p className="updates-page__station-descriptor">
+                    The network&apos;s primary psychedelic transmission.
+                  </p>
+                </li>
+                <li className="updates-page__station-card">
+                  <div className="updates-page__station-art">
+                    <img
+                      src="/images/stations/psybrazil-dumangue.jpg"
+                      alt="Dumangue station artwork"
+                      loading="lazy"
+                      width={600}
+                      height={600}
+                    />
+                  </div>
+                  <p className="updates-page__station-name">DUMANGUE</p>
+                  <p className="updates-page__station-descriptor">
+                    A psychedelic signal with its own identity inside the
+                    PsyBrazil network.
+                  </p>
+                </li>
+                <li className="updates-page__station-card">
+                  <div className="updates-page__station-art">
+                    <img
+                      src="/images/stations/psybrazil-progressive.jpg"
+                      alt="Progressive station artwork"
+                      loading="lazy"
+                      width={600}
+                      height={600}
+                    />
+                  </div>
+                  <p className="updates-page__station-name">PROGRESSIVE</p>
+                  <p className="updates-page__station-descriptor">
+                    Progressive psychedelic frequencies from the network.
+                  </p>
+                </li>
+                <li className="updates-page__station-card">
+                  <div className="updates-page__station-art">
+                    <img
+                      src="/images/stations/psybrazil-lofi.jpg"
+                      alt="LoFi station artwork"
+                      loading="lazy"
+                      width={600}
+                      height={600}
+                    />
+                  </div>
+                  <p className="updates-page__station-name">LOFI</p>
+                  <p className="updates-page__station-descriptor">
+                    A slower, chilled-out signal for the quieter edges of the
+                    spectrum.
+                  </p>
+                </li>
+              </ul>
+              <p className="about-transmission-copy">
+                <span className="about-associated-gradient-text">
+                  We&apos;ve also created a dedicated{" "}
+                  <strong className="updates-page__accent-salmon">
+                    PsyBrazil visual environment
+                  </strong>{" "}
+                  inside DeepSignals.FM — our small visual tribute to a
+                  project that has kept independent psychedelic radio
+                  transmitting for more than twenty years.
+                </span>
+              </p>
+              <p className="about-transmission-copy">
+                <span className="about-associated-gradient-text">
+                  It&apos;s been especially fun discovering that, despite
+                  coming from very different eras of the web, PsyBrazil and
+                  DeepSignals.FM share some wonderfully familiar obsessions:
+                  internet radio, music visualization, live signal data,
+                  experimental interfaces, and finding increasingly elaborate
+                  ways to make a PLAY button look like part of a spacecraft.
+                </span>
+              </p>
+              <p className="about-transmission-copy">
+                <span className="about-associated-gradient-text">
+                  Much respect to PsyBrazil. 🚀👽✌️
+                </span>
+              </p>
+              <p className="about-transmission-copy">
+                <span className="about-associated-gradient-text">
+                  Explore PsyBrazil directly at{" "}
+                  <a
+                    className="updates-page__inline-link"
+                    href="https://psybrazil.com.br/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    psybrazil.com.br
+                  </a>
+                  , or tune into the featured stations through the{" "}
+                  <a className="updates-page__inline-link" href="/player/">
+                    DeepSignals.FM player
+                  </a>
+                  .
+                </span>
+              </p>
+              <p className="about-transmission-copy updates-page__slogan">
+                <span className="updates-page__accent-green">TUNE IN.</span>{" "}
+                <span className="updates-page__accent-cyan">TRANSMIT.</span>{" "}
+                <span className="updates-page__accent-salmon">TRANSCEND.</span>
+              </p>
+            </div>
+          </section>
+
           <section className="about-section" aria-labelledby="update-02-title">
             <h2
               className="about-page__section-label about-page__transmission-heading about-page__label-pulse about-page__label-pulse--one"

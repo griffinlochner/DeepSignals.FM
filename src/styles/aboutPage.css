@@ -518,6 +518,121 @@
   color: #53f2d6;
 }
 
+.updates-page__accent-green,
+.updates-page__accent-cyan,
+.updates-page__accent-salmon {
+  background: none;
+  -webkit-text-fill-color: currentColor;
+}
+
+.updates-page__accent-green {
+  color: var(--deepsignals-neon-green);
+}
+
+.updates-page__accent-cyan {
+  color: var(--deepsignals-neon-cyan);
+}
+
+.updates-page__accent-salmon {
+  color: var(--deepsignals-neon-salmon);
+}
+
+.updates-page__inline-link {
+  color: var(--deepsignals-neon-cyan);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.updates-page__inline-link:focus-visible {
+  outline: 2px solid var(--deepsignals-neon-cyan);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+.updates-page__slogan {
+  font-family: var(--display);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.updates-page__station-array {
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: clamp(0.85rem, 1.6vw, 1.25rem);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.updates-page__station-card {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding: clamp(0.7rem, 1vw, 0.9rem);
+  border-radius: 14px;
+  border: 1px solid rgba(120, 244, 255, 0.16);
+  background: linear-gradient(
+    160deg,
+    rgba(18, 20, 36, 0.82) 0%,
+    rgba(8, 9, 18, 0.9) 100%
+  );
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.updates-page__station-card:hover {
+  border-color: rgba(120, 244, 255, 0.36);
+  box-shadow: 0 0 22px rgba(71, 247, 255, 0.1);
+}
+
+.updates-page__station-art {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  border-radius: 10px;
+  background: #05060c;
+}
+
+.updates-page__station-art img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+.updates-page__station-name {
+  margin: 0;
+  font-family: var(--display);
+  font-size: clamp(0.85rem, 0.8rem + 0.2vw, 0.95rem);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #ecf0ff;
+}
+
+.updates-page__station-descriptor {
+  margin: 0;
+  font-size: clamp(0.82rem, 0.8rem + 0.1vw, 0.9rem);
+  line-height: 1.5;
+  color: rgba(230, 240, 255, 0.72);
+}
+
+@media (max-width: 720px) {
+  .updates-page__station-array {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 420px) {
+  .updates-page__station-array {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 .about-page__label-pulse {
   opacity: 0.9;
   filter: drop-shadow(0 0 0 rgba(105, 238, 255, 0));
