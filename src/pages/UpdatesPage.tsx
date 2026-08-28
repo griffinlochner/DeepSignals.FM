@@ -69,9 +69,14 @@ function UpdatesPage() {
               <p className="about-transmission-copy">
                 <span className="about-associated-gradient-text">
                   We&apos;re very happy to now feature selections from the{" "}
-                  <strong className="updates-page__accent-green">
-                    PsyBrazil Entertainment Network
-                  </strong>
+                  <a
+                    className="updates-page__inline-link updates-page__accent-green"
+                    href="https://psybrazil.com.br/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <strong>PsyBrazil Entertainment Network</strong>
+                  </a>
                   , an independent Brazilian radio project broadcasting online
                   since <strong className="updates-page__accent-cyan">2002</strong>.
                 </span>

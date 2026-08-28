@@ -544,6 +544,10 @@
   text-underline-offset: 3px;
 }
 
+.updates-page__inline-link.updates-page__accent-green {
+  color: var(--deepsignals-neon-green);
+}
+
 .updates-page__inline-link:focus-visible {
   outline: 2px solid var(--deepsignals-neon-cyan);
   outline-offset: 3px;
