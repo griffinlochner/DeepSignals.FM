@@ -23,6 +23,15 @@ function PublicSocialIcon({ network }: PublicSocialIconProps) {
     )
   }
 
+  if (network === 'youtube') {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <rect x="2.5" y="5.5" width="19" height="13" rx="3.5" />
+        <path d="M10.5 9.5v5l4.3-2.5-4.3-2.5Z" fill="currentColor" stroke="none" />
+      </svg>
+    )
+  }
+
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true">
       <path d="M18.3 3H21l-6.4 7.3L22 21h-5.6l-4.4-5.7L6.8 21H4l6.8-7.8L2 3h5.7l4 5.3L18.3 3Zm-1 16.2h1.1L7 4.7H5.8l11.5 14.5Z" />

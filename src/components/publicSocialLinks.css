@@ -42,6 +42,10 @@
   color: rgba(255, 127, 161, 0.88);
 }
 
+.public-social-links__link--youtube {
+  color: rgba(245, 240, 225, 0.88);
+}
+
 .public-social-links__link:hover,
 .public-social-links__link:focus-visible {
   opacity: 1;

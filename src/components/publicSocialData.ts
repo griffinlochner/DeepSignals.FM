@@ -1,4 +1,4 @@
-export type PublicSocialNetwork = 'facebook' | 'instagram' | 'x'
+export type PublicSocialNetwork = 'facebook' | 'instagram' | 'x' | 'youtube'
 
 export type PublicSocialLink = {
   network: PublicSocialNetwork
@@ -21,5 +21,10 @@ export const PUBLIC_SOCIAL_LINKS: PublicSocialLink[] = [
     network: 'x',
     href: 'https://x.com/DeepSignalsFM',
     ariaLabel: 'Visit DeepSignals.FM on X',
+  },
+  {
+    network: 'youtube',
+    href: 'https://www.youtube.com/@DeepSignalsFM',
+    ariaLabel: 'Visit DeepSignals.FM on YouTube',
   },
 ]
