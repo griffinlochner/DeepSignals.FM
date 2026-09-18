@@ -40,6 +40,27 @@ test("public Hirschmilch external signals are available in the selector", async 
   await expect(page.getByRole("button", { name: /^(Play|Pause)$/ })).toBeVisible();
 });
 
+test("Hirschmilch channels use their official channel artwork in the feed", async ({
+  page,
+}) => {
+  const cases = [
+    ["hirschmilch-psytrance", "/images/channel-track-psytrance.webp"],
+    ["hirschmilch-progressive", "/images/channel-track-progressive.webp"],
+    ["hirschmilch-chillout", "/images/channel-track-chillout.webp"],
+  ] as const;
+
+  for (const [signalId, expectedArtworkPath] of cases) {
+    await page.getByLabel("Signal source").selectOption(signalId);
+    await expect(page.locator(".visual-feed-window__artwork")).toBeVisible();
+
+    const artworkSrc = await page
+      .locator(".visual-feed-window__artwork")
+      .getAttribute("src");
+
+    expect(artworkSrc).toContain(expectedArtworkPath);
+  }
+});
+
 test("fresh player defaults apply without replacing persisted choices", async ({
   page,
 }) => {

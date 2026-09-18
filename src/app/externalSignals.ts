@@ -150,6 +150,7 @@ export const EXTERNAL_SIGNAL_DEFINITIONS: ExternalSignalDefinition[] = [
     stationWebsite: 'https://hirschmilch.de/channel/psytrance',
     sourceAttribution: 'External signal from Hirschmilch Radio',
     publicPlayerCompatible: true,
+    artworkUrl: 'https://hirschmilch.de/images/channel-track-psytrance.webp',
   },
   {
     id: 'hirschmilch-chillout',
@@ -158,6 +159,7 @@ export const EXTERNAL_SIGNAL_DEFINITIONS: ExternalSignalDefinition[] = [
     stationWebsite: 'https://hirschmilch.de/channel/chillout',
     sourceAttribution: 'External signal from Hirschmilch Radio',
     publicPlayerCompatible: true,
+    artworkUrl: 'https://hirschmilch.de/images/channel-track-chillout.webp',
   },
   {
     id: 'hirschmilch-progressive',
@@ -166,6 +168,7 @@ export const EXTERNAL_SIGNAL_DEFINITIONS: ExternalSignalDefinition[] = [
     stationWebsite: 'https://hirschmilch.de/channel/progressive',
     sourceAttribution: 'External signal from Hirschmilch Radio',
     publicPlayerCompatible: true,
+    artworkUrl: 'https://hirschmilch.de/images/channel-track-progressive.webp',
   },
   {
     id: 'space-unicorn-radio',
