@@ -27,6 +27,19 @@ test("desktop player exposes critical controls", async ({ page }) => {
   );
 });
 
+test("public Hirschmilch external signals are available in the selector", async ({
+  page,
+}) => {
+  const signalSource = page.getByLabel("Signal source");
+
+  await expect(signalSource).toContainText("Hirschmilch Psytrance");
+  await expect(signalSource).toContainText("Hirschmilch Progressive");
+  await expect(signalSource).toContainText("Hirschmilch Chillout");
+
+  await signalSource.selectOption("hirschmilch-psytrance");
+  await expect(page.getByRole("button", { name: /^(Play|Pause)$/ })).toBeVisible();
+});
+
 test("fresh player defaults apply without replacing persisted choices", async ({
   page,
 }) => {

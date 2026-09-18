@@ -146,10 +146,10 @@ export const EXTERNAL_SIGNAL_DEFINITIONS: ExternalSignalDefinition[] = [
   {
     id: 'hirschmilch-psytrance',
     stationName: 'Hirschmilch Psytrance',
-    streamUrl: 'https://xfer.hirschmilch.de:8001/psytrance.mp3',
+    streamUrl: 'https://hirschmilch.de:7000/psytrance.mp3',
     stationWebsite: 'https://hirschmilch.de/channel/psytrance',
     sourceAttribution: 'External signal from Hirschmilch Radio',
-    publicPlayerCompatible: false,
+    publicPlayerCompatible: true,
   },
   {
     id: 'hirschmilch-chillout',
@@ -157,15 +157,15 @@ export const EXTERNAL_SIGNAL_DEFINITIONS: ExternalSignalDefinition[] = [
     streamUrl: 'https://hirschmilch.de:7000/chillout.mp3',
     stationWebsite: 'https://hirschmilch.de/channel/chillout',
     sourceAttribution: 'External signal from Hirschmilch Radio',
-    publicPlayerCompatible: false,
+    publicPlayerCompatible: true,
   },
   {
     id: 'hirschmilch-progressive',
     stationName: 'Hirschmilch Progressive',
-    streamUrl: 'https://xfer.hirschmilch.de:8001/progressive.mp3',
+    streamUrl: 'https://hirschmilch.de:7000/progressive.mp3',
     stationWebsite: 'https://hirschmilch.de/channel/progressive',
     sourceAttribution: 'External signal from Hirschmilch Radio',
-    publicPlayerCompatible: false,
+    publicPlayerCompatible: true,
   },
   {
     id: 'space-unicorn-radio',
