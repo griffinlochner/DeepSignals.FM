@@ -37,6 +37,7 @@ import { usePsyBrazilLoFiNowPlaying } from "./usePsyBrazilLoFiNowPlaying";
 import { usePsyBrazilLowBpmNowPlaying } from "./usePsyBrazilLowBpmNowPlaying";
 import { usePsyBrazilElectroNowPlaying } from "./usePsyBrazilElectroNowPlaying";
 import { useDeepTripNowPlaying } from "./useDeepTripNowPlaying";
+import { useSpaceUnicornNowPlaying } from "./useSpaceUnicornNowPlaying";
 import { publishRuntimeTestSnapshot } from "./runtimeTestBridge";
 import {
   mapSignalTarget,
@@ -461,6 +462,7 @@ function PlayerShell({ className }: PlayerShellProps) {
   const psyBrazilElectroNowPlaying =
     usePsyBrazilElectroNowPlaying(selectedSignalId);
   const deepTripNowPlaying = useDeepTripNowPlaying(selectedSignalId);
+  const spaceUnicornNowPlaying = useSpaceUnicornNowPlaying(selectedSignalId);
   const externalNowPlaying =
     psyStreamNowPlaying ??
     psyBrazilNowPlaying ??
@@ -469,7 +471,8 @@ function PlayerShell({ className }: PlayerShellProps) {
     psyBrazilLoFiNowPlaying ??
     psyBrazilLowBpmNowPlaying ??
     psyBrazilElectroNowPlaying ??
-    deepTripNowPlaying;
+    deepTripNowPlaying ??
+    spaceUnicornNowPlaying;
   const registrySourceBpm = audioController.audioSource.bpm ?? null;
   const effectiveReactiveBpm = ignoreSourceBpmEnabled
     ? null
