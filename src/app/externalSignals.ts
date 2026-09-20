@@ -176,7 +176,8 @@ export const EXTERNAL_SIGNAL_DEFINITIONS: ExternalSignalDefinition[] = [
     streamUrl: 'https://spaceunicorn.radio/stream',
     stationWebsite: 'https://spaceunicorn.radio/',
     sourceAttribution: 'External signal from Space Unicorn Radio',
-    publicPlayerCompatible: false,
+    publicPlayerCompatible: true,
+    artworkUrl: publicAssetUrl('/images/stations/space-unicorn-radio.webp'),
   },
 ]
 

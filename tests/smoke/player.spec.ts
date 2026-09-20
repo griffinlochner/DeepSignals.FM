@@ -40,6 +40,24 @@ test("public Hirschmilch external signals are available in the selector", async 
   await expect(page.getByRole("button", { name: /^(Play|Pause)$/ })).toBeVisible();
 });
 
+test("Space Unicorn Radio is available in the public selector with its station info", async ({
+  page,
+}) => {
+  const signalSource = page.getByLabel("Signal source");
+
+  await expect(signalSource).toContainText("Space Unicorn Radio");
+
+  await signalSource.selectOption("space-unicorn-radio");
+  await expect(page.getByRole("button", { name: /^(Play|Pause)$/ })).toBeVisible();
+
+  const artworkImage = page.locator(".visual-feed-window__artwork");
+  await expect(artworkImage).toBeVisible();
+  await expect(artworkImage).toHaveAttribute("src", /space-unicorn-radio/);
+
+  const infoLink = page.getByRole("link", { name: /Space Unicorn Radio|Info/i }).first();
+  await expect(infoLink).toHaveAttribute("href", "https://spaceunicorn.radio/");
+});
+
 test("Hirschmilch channels use their official channel artwork in the feed", async ({
   page,
 }) => {
