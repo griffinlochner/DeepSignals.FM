@@ -49,9 +49,179 @@ function UpdatesPage() {
             </div>
           </section>
 
-          <section className="about-section" aria-labelledby="update-03-title">
+          <section className="about-section" aria-labelledby="update-05-title">
             <h2
               className="about-page__section-label about-page__transmission-heading about-page__label-pulse about-page__label-pulse--zero"
+              id="update-05-title"
+            >
+              <TransmissionHeading
+                sequence="05"
+                metadata="2026-09-22"
+                title="NEW SIGNAL // SPACE UNICORN RADIO"
+              />
+            </h2>
+            <div className="about-section__copy updates-page__entry-copy">
+              <p className="about-transmission-copy">
+                <span className="about-associated-gradient-text">
+                  A new signal has joined DeepSignals.FM.
+                </span>
+              </p>
+              <p className="about-transmission-copy">
+                <span className="about-associated-gradient-text">
+                  We&apos;re happy to now feature{" "}
+                  <a
+                    className="updates-page__inline-link updates-page__accent-green"
+                    href="https://spaceunicorn.radio/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <strong>Space Unicorn Radio</strong>
+                  </a>
+                  , a non-profit, 24/7 Trance &amp; PsyTrance station
+                  streaming from the Ministry of Trance 2 community in Second
+                  Life.
+                </span>
+              </p>
+              <ul className="updates-page__station-array">
+                <li className="updates-page__station-card">
+                  <div className="updates-page__station-art">
+                    <img
+                      src="/images/stations/space-unicorn-radio.webp"
+                      alt="Space Unicorn Radio station artwork"
+                      loading="lazy"
+                      width={600}
+                      height={600}
+                    />
+                  </div>
+                  <p className="updates-page__station-name">
+                    SPACE UNICORN RADIO
+                  </p>
+                  <p className="updates-page__station-descriptor">
+                    24/7 Trance &amp; PsyTrance with live DJ programming from
+                    the Ministry of Trance 2 community.
+                  </p>
+                </li>
+              </ul>
+              <p className="about-transmission-copy">
+                <span className="about-associated-gradient-text">
+                  Space Unicorn is now available directly through the{" "}
+                  <a className="updates-page__inline-link" href="/player/">
+                    DeepSignals.FM player
+                  </a>
+                  . Explore Space Unicorn directly at{" "}
+                  <a
+                    className="updates-page__inline-link"
+                    href="https://spaceunicorn.radio/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    spaceunicorn.radio
+                  </a>
+                  .
+                </span>
+              </p>
+            </div>
+          </section>
+
+          <section className="about-section" aria-labelledby="update-04-title">
+            <h2
+              className="about-page__section-label about-page__transmission-heading about-page__label-pulse about-page__label-pulse--one"
+              id="update-04-title"
+            >
+              <TransmissionHeading
+                sequence="04"
+                metadata="2026-09-12"
+                title="NEW SIGNAL // HIRSCHMILCH RADIO"
+              />
+            </h2>
+            <div className="about-section__copy updates-page__entry-copy">
+              <p className="about-transmission-copy">
+                <span className="about-associated-gradient-text">
+                  Three new channels from{" "}
+                  <a
+                    className="updates-page__inline-link updates-page__accent-green"
+                    href="https://hirschmilch.de/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <strong>Hirschmilch Radio</strong>
+                  </a>
+                  , an independent internet radio community, can now be tuned
+                  directly through the DeepSignals.FM player.
+                </span>
+              </p>
+              <ul className="updates-page__station-array">
+                <li className="updates-page__station-card">
+                  <div className="updates-page__station-art">
+                    <img
+                      src="/images/stations/hirschmilch-psytrance.webp"
+                      alt="Hirschmilch Psytrance station artwork"
+                      loading="lazy"
+                      width={600}
+                      height={600}
+                    />
+                  </div>
+                  <p className="updates-page__station-name">PSYTRANCE</p>
+                  <p className="updates-page__station-descriptor">
+                    Hirschmilch&apos;s psychedelic mainline transmission.
+                  </p>
+                </li>
+                <li className="updates-page__station-card">
+                  <div className="updates-page__station-art">
+                    <img
+                      src="/images/stations/hirschmilch-progressive.webp"
+                      alt="Hirschmilch Progressive station artwork"
+                      loading="lazy"
+                      width={600}
+                      height={600}
+                    />
+                  </div>
+                  <p className="updates-page__station-name">PROGRESSIVE</p>
+                  <p className="updates-page__station-descriptor">
+                    Progressive psychedelic frequencies from Hirschmilch.
+                  </p>
+                </li>
+                <li className="updates-page__station-card">
+                  <div className="updates-page__station-art">
+                    <img
+                      src="/images/stations/hirschmilch-chillout.webp"
+                      alt="Hirschmilch Chillout station artwork"
+                      loading="lazy"
+                      width={600}
+                      height={600}
+                    />
+                  </div>
+                  <p className="updates-page__station-name">CHILLOUT</p>
+                  <p className="updates-page__station-descriptor">
+                    A softer ambient/downbeat signal for the calmer edges of
+                    the spectrum.
+                  </p>
+                </li>
+              </ul>
+              <p className="about-transmission-copy">
+                <span className="about-associated-gradient-text">
+                  Explore Hirschmilch directly at{" "}
+                  <a
+                    className="updates-page__inline-link"
+                    href="https://hirschmilch.de/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    hirschmilch.de
+                  </a>
+                  , or tune into the featured channels through the{" "}
+                  <a className="updates-page__inline-link" href="/player/">
+                    DeepSignals.FM player
+                  </a>
+                  .
+                </span>
+              </p>
+            </div>
+          </section>
+
+          <section className="about-section" aria-labelledby="update-03-title">
+            <h2
+              className="about-page__section-label about-page__transmission-heading about-page__label-pulse about-page__label-pulse--two"
               id="update-03-title"
             >
               <TransmissionHeading
