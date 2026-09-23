@@ -37,16 +37,6 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-
-  @media (max-width: 1024px) {
-    font-size: 16px;
-  }
-}
-
-@media (min-width: 1025px) and (max-height: 800px) {
-  :root {
-    font-size: 16px;
-  }
 }
 
 #root {

@@ -254,10 +254,23 @@ function VisualFeedWindow({
       ref={panelElementRef}
     >
       <header className="visual-feed-window__header">
-        <p className="visual-feed-window__title">INFO</p>
-        <span className="visual-feed-window__fps" aria-label="Frames per second">
-          FPS {typeof fps === "number" ? fps : "---"}
-        </span>
+        <div className="visual-feed-window__telemetry">
+          <span className="visual-feed-window__fps" aria-label="Frames per second">
+            <span className="visual-feed-window__metric-label">FPS</span>
+            <span className="visual-feed-window__metric-value">
+              {typeof fps === "number" ? fps : "---"}
+            </span>
+          </span>
+          <span className="visual-feed-window__metric visual-feed-window__metric--listeners">
+            <span className="visual-feed-window__metric-label">LISTENERS</span>
+            <span className="visual-feed-window__metric-value">---</span>
+          </span>
+          <span className="visual-feed-window__metric visual-feed-window__metric--bitrate">
+            <span className="visual-feed-window__metric-label">BITRATE</span>
+            <span className="visual-feed-window__metric-value">---</span>
+            <span className="visual-feed-window__metric-unit">kbps</span>
+          </span>
+        </div>
         {externalSourceUrl ? (
           <a
             className="visual-feed-window__source-link"
@@ -268,7 +281,11 @@ function VisualFeedWindow({
           >
             SOURCE <ExternalLinkIcon />
           </a>
-        ) : null}
+        ) : (
+          <span className="visual-feed-window__source-link">
+            SOURCE <ExternalLinkIcon />
+          </span>
+        )}
       </header>
 
       <div className="visual-feed-window__body" id={contentId}>
