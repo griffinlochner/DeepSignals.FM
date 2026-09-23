@@ -213,3 +213,61 @@ test("Space Unicorn renders live listener and bitrate values without clipping", 
   expect(geometry.bitrate!.overflow).toBe("visible");
   expect(geometry.source!.overflow).toBe("visible");
 });
+
+test("collapsed INFO header aligns with the player and keeps station artwork square", async ({
+  page,
+}) => {
+  for (const viewport of [
+    { width: 1052, height: 768 },
+    { width: 1440, height: 900 },
+  ]) {
+    await page.setViewportSize(viewport);
+    await page.goto("/player/");
+    await page.getByLabel("Signal source").selectOption("space-unicorn-radio");
+    await page.getByRole("button", { name: "Collapse player panel" }).click();
+
+    const geometry = await page.evaluate(() => {
+      const box = (selector: string) => {
+        const element = document.querySelector(selector) as HTMLElement;
+        const rect = element.getBoundingClientRect();
+        return {
+          left: rect.left,
+          right: rect.right,
+          top: rect.top,
+          bottom: rect.bottom,
+          width: rect.width,
+          height: rect.height,
+        };
+      };
+
+      return {
+        playerHeader: box(".floating-player-panel__header"),
+        infoHeader: box(".visual-feed-window__header"),
+        artworkShell: box(".visual-feed-window__artwork-shell"),
+        artwork: box(".visual-feed-window__artwork"),
+      };
+    });
+
+    expect(
+      Math.abs(geometry.playerHeader.top - geometry.infoHeader.top),
+    ).toBeLessThan(0.75);
+    expect(
+      Math.abs(geometry.playerHeader.bottom - geometry.infoHeader.bottom),
+    ).toBeLessThan(0.75);
+    expect(
+      Math.abs(geometry.artworkShell.width - geometry.artworkShell.height),
+    ).toBeLessThan(0.75);
+    expect(geometry.artwork.left).toBeGreaterThanOrEqual(
+      geometry.artworkShell.left,
+    );
+    expect(geometry.artwork.right).toBeLessThanOrEqual(
+      geometry.artworkShell.right,
+    );
+    expect(geometry.artwork.top).toBeGreaterThanOrEqual(
+      geometry.artworkShell.top,
+    );
+    expect(geometry.artwork.bottom).toBeLessThanOrEqual(
+      geometry.artworkShell.bottom,
+    );
+  }
+});

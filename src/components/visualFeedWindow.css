@@ -107,8 +107,8 @@
 }
 
 .visual-feed-window--dock-right[data-player-collapsed="true"] .visual-feed-window__artwork-shell {
-  width: min(100%, 100px);
-  height: auto;
+  width: auto;
+  height: min(100%, 100px);
   aspect-ratio: 1 / 1;
 }
 
@@ -198,8 +198,8 @@
 }
 
 .visual-feed-window--dock-bottom[data-player-collapsed="true"] .visual-feed-window__artwork-shell {
-  width: min(100%, 100px);
-  height: auto;
+  width: auto;
+  height: min(100%, 100px);
   aspect-ratio: 1 / 1;
 }
 
@@ -230,6 +230,7 @@
 .visual-feed-window__header {
   display: grid;
   grid-template-columns: max-content max-content max-content minmax(0, 1fr) max-content;
+  flex: 0 0 var(--attached-panel-header-height);
   align-items: center;
   column-gap: 0.65rem;
   width: 100%;
