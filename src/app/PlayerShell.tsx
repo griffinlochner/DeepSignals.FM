@@ -37,7 +37,10 @@ import { usePsyBrazilLoFiNowPlaying } from "./usePsyBrazilLoFiNowPlaying";
 import { usePsyBrazilLowBpmNowPlaying } from "./usePsyBrazilLowBpmNowPlaying";
 import { usePsyBrazilElectroNowPlaying } from "./usePsyBrazilElectroNowPlaying";
 import { useDeepTripNowPlaying } from "./useDeepTripNowPlaying";
-import { useSpaceUnicornNowPlaying } from "./useSpaceUnicornNowPlaying";
+import {
+  useSpaceUnicornNowPlaying,
+  useSpaceUnicornTelemetry,
+} from "./useSpaceUnicornNowPlaying";
 import { publishRuntimeTestSnapshot } from "./runtimeTestBridge";
 import {
   mapSignalTarget,
@@ -463,6 +466,7 @@ function PlayerShell({ className }: PlayerShellProps) {
     usePsyBrazilElectroNowPlaying(selectedSignalId);
   const deepTripNowPlaying = useDeepTripNowPlaying(selectedSignalId);
   const spaceUnicornNowPlaying = useSpaceUnicornNowPlaying(selectedSignalId);
+  const spaceUnicornTelemetry = useSpaceUnicornTelemetry(selectedSignalId);
   const externalNowPlaying =
     psyStreamNowPlaying ??
     psyBrazilNowPlaying ??
@@ -1199,6 +1203,8 @@ function PlayerShell({ className }: PlayerShellProps) {
             selectedSignalId ? audioController.audioSource : null
           }
           metadataOverride={externalNowPlaying}
+          listeners={spaceUnicornTelemetry?.listeners ?? null}
+          bitrateKbps={spaceUnicornTelemetry?.bitrateKbps ?? null}
           audioSnapshot={audioAnalysis.snapshot}
           getLatestSnapshot={audioAnalysis.getLatestSnapshot}
           analysisStatus={audioAnalysis.status}

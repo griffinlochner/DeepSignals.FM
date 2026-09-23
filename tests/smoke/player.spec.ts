@@ -40,6 +40,39 @@ test("public Hirschmilch external signals are available in the selector", async 
   await expect(page.getByRole("button", { name: /^(Play|Pause)$/ })).toBeVisible();
 });
 
+test("Space Unicorn Radio shows live listener and bitrate telemetry", async ({
+  page,
+}) => {
+  const signalSource = page.getByLabel("Signal source");
+  const listenersValue = page.locator(
+    ".visual-feed-window__metric--listeners .visual-feed-window__metric-value",
+  );
+  const bitrateValue = page.locator(
+    ".visual-feed-window__metric--bitrate .visual-feed-window__metric-value",
+  );
+  const bitrateUnit = page.locator(
+    ".visual-feed-window__metric--bitrate .visual-feed-window__metric-unit",
+  );
+
+  await signalSource.selectOption("space-unicorn-radio");
+  await page.waitForRequest("https://spaceunicorn.radio/status-json.xsl");
+
+  await expect(listenersValue).not.toHaveText("---");
+  await expect(bitrateValue).not.toHaveText("---");
+  await expect(bitrateUnit).toHaveText("kbps");
+
+  await expect(listenersValue).toHaveText(/\d+/);
+  await expect(bitrateValue).toHaveText(/\d+/);
+
+  await signalSource.selectOption("psystream");
+  await expect(listenersValue).toHaveText("---");
+  await expect(bitrateValue).toHaveText("---");
+
+  await signalSource.selectOption("space-unicorn-radio");
+  await expect(listenersValue).not.toHaveText("---");
+  await expect(bitrateValue).not.toHaveText("---");
+});
+
 test("Space Unicorn Radio is available in the public selector with its station info", async ({
   page,
 }) => {

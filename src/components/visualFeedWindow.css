@@ -229,9 +229,9 @@
 
 .visual-feed-window__header {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: max-content max-content max-content minmax(0, 1fr) max-content;
   align-items: center;
-  column-gap: 0.75rem;
+  column-gap: 0.65rem;
   width: 100%;
   min-width: 0;
   max-width: 100%;
@@ -242,28 +242,29 @@
 }
 
 .visual-feed-window__telemetry {
-  display: flex;
-  align-items: center;
-  gap: 0.7rem;
-  min-width: 0;
-  max-width: 100%;
-  overflow: hidden;
+  display: contents;
 }
 
 .visual-feed-window__source-link {
+  grid-column: 5;
   justify-self: end;
-  flex-shrink: 0;
+  display: inline-flex;
+  gap: 4px;
+  margin-top: 0;
+  color: var(--theme-accent-secondary, #80d8ff);
   font-size: 10.5px;
+  font-weight: 700;
   letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-decoration: none;
   white-space: nowrap;
-  min-width: max-content;
 }
 
 .visual-feed-window__fps,
 .visual-feed-window__metric {
-  display: inline-flex;
+  display: inline-grid;
   align-items: baseline;
-  gap: 0.2rem;
+  column-gap: 0.35em;
   font-size: 10.5px;
   font-weight: 600;
   letter-spacing: 0.1em;
@@ -271,34 +272,32 @@
   text-align: left;
   text-transform: uppercase;
   white-space: nowrap;
-  flex: 0 0 auto;
 }
 
 .visual-feed-window__fps {
-  --value-slot-width: 3.5ch;
+  grid-template-columns: max-content 3.5ch;
 }
 
 .visual-feed-window__metric--listeners {
-  --value-slot-width: 6ch;
+  grid-template-columns: max-content 6ch;
 }
 
 .visual-feed-window__metric--bitrate {
-  --value-slot-width: 4ch;
+  grid-template-columns: max-content 3.5ch max-content;
 }
 
-.visual-feed-window__metric-value,
-.visual-feed-window__metric-unit {
+.visual-feed-window__metric-value {
   font-variant-numeric: tabular-nums;
   text-align: left;
 }
 
 .visual-feed-window__metric-value {
-  min-width: var(--value-slot-width);
-  flex: 0 0 auto;
+  min-width: 0;
 }
 
 .visual-feed-window__metric-unit {
   min-width: 0;
+  text-align: left;
 }
 
 .visual-feed-window__fps {
@@ -383,19 +382,6 @@
 .visual-feed-window--dock-right .visual-feed-window__details {
   border-top: 0;
   border-left: 1px solid var(--visual-feed-border, rgba(165, 243, 234, 0.15));
-}
-
-.visual-feed-window__source-link {
-  color: var(--theme-accent-secondary, #80d8ff);
-  font-size: 10.5px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  display: inline-flex;
-  gap: 4px;
-  margin-top: 0;
-  text-decoration: none;
-  white-space: nowrap;
 }
 
 .visual-feed-window__external-link-icon {

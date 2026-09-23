@@ -27,6 +27,8 @@ type VisualFeedWindowProps = {
   playerCollapsed?: boolean;
   selectedTrackSource: AudioSource | null;
   metadataOverride?: TrackSignalMetadata | null;
+  listeners?: number | null;
+  bitrateKbps?: number | null;
   audioSnapshot?: AudioReactiveSnapshot;
   getLatestSnapshot?: () => AudioReactiveSnapshot;
   analysisStatus?: string;
@@ -124,6 +126,8 @@ function VisualFeedWindow({
   playerCollapsed,
   selectedTrackSource,
   metadataOverride,
+  listeners,
+  bitrateKbps,
   audioSnapshot,
   getLatestSnapshot,
   playbackStatus,
@@ -263,11 +267,15 @@ function VisualFeedWindow({
           </span>
           <span className="visual-feed-window__metric visual-feed-window__metric--listeners">
             <span className="visual-feed-window__metric-label">LISTENERS</span>
-            <span className="visual-feed-window__metric-value">---</span>
+            <span className="visual-feed-window__metric-value">
+              {typeof listeners === "number" ? listeners : "---"}
+            </span>
           </span>
           <span className="visual-feed-window__metric visual-feed-window__metric--bitrate">
             <span className="visual-feed-window__metric-label">BITRATE</span>
-            <span className="visual-feed-window__metric-value">---</span>
+            <span className="visual-feed-window__metric-value">
+              {typeof bitrateKbps === "number" ? bitrateKbps : "---"}
+            </span>
             <span className="visual-feed-window__metric-unit">kbps</span>
           </span>
         </div>

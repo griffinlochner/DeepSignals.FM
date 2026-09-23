@@ -1,132 +1,215 @@
 import { test, expect } from "../support/test";
 
-async function setTelemetryValues(page: Parameters<typeof test>[0]["page"], fps: string, listeners: string, bitrate: string) {
-  await page.evaluate((values) => {
-    const fpsValue = document.querySelector(
-      ".visual-feed-window__fps .visual-feed-window__metric-value",
-    );
-    const listenersValue = document.querySelector(
-      ".visual-feed-window__metric--listeners .visual-feed-window__metric-value",
-    );
-    const bitrateValue = document.querySelector(
-      ".visual-feed-window__metric--bitrate .visual-feed-window__metric-value",
-    );
-    const bitrateUnit = document.querySelector(
-      ".visual-feed-window__metric--bitrate .visual-feed-window__metric-unit",
-    );
+type Page = Parameters<typeof test>[0]["page"];
 
-    if (fpsValue) fpsValue.textContent = values.fps;
-    if (listenersValue) listenersValue.textContent = values.listeners;
-    if (bitrateValue) bitrateValue.textContent = values.bitrate;
-    if (bitrateUnit) bitrateUnit.textContent = "kbps";
-  }, { fps, listeners, bitrate });
+const selectors = {
+  header: ".visual-feed-window__header",
+  fps: ".visual-feed-window__fps",
+  fpsLabel: ".visual-feed-window__fps .visual-feed-window__metric-label",
+  fpsValue: ".visual-feed-window__fps .visual-feed-window__metric-value",
+  listeners: ".visual-feed-window__metric--listeners",
+  listenersLabel:
+    ".visual-feed-window__metric--listeners .visual-feed-window__metric-label",
+  listenersValue:
+    ".visual-feed-window__metric--listeners .visual-feed-window__metric-value",
+  bitrate: ".visual-feed-window__metric--bitrate",
+  bitrateLabel:
+    ".visual-feed-window__metric--bitrate .visual-feed-window__metric-label",
+  bitrateValue:
+    ".visual-feed-window__metric--bitrate .visual-feed-window__metric-value",
+  bitrateUnit:
+    ".visual-feed-window__metric--bitrate .visual-feed-window__metric-unit",
+  source: ".visual-feed-window__source-link",
+  sourceIcon: ".visual-feed-window__external-link-icon",
+} as const;
+
+async function setTelemetryValues(
+  page: Page,
+  fps: string,
+  listeners: string,
+  bitrate: string,
+) {
+  await page.evaluate(
+    ({ selectors, values }) => {
+      const setText = (selector: string, value: string) => {
+        const element = document.querySelector(selector);
+        if (element) element.textContent = value;
+      };
+
+      setText(selectors.fpsValue, values.fps);
+      setText(selectors.listenersValue, values.listeners);
+      setText(selectors.bitrateValue, values.bitrate);
+    },
+    { selectors, values: { fps, listeners, bitrate } },
+  );
 }
 
-async function readHeaderMetrics(page: Parameters<typeof test>[0]["page"]) {
-  const values = await page.evaluate(() => {
-    const getBox = (selector: string) => {
-      const el = document.querySelector(selector) as HTMLElement | null;
-      if (!el) return null;
-      const rect = el.getBoundingClientRect();
+async function readHeaderGeometry(page: Page) {
+  return page.evaluate((selectors) => {
+    const read = (selector: string) => {
+      const element = document.querySelector(selector) as HTMLElement | null;
+      if (!element) return null;
+      const rect = element.getBoundingClientRect();
+      const style = getComputedStyle(element);
+
       return {
-        x: rect.x,
-        y: rect.y,
+        text: element.textContent?.trim() ?? "",
         left: rect.left,
         right: rect.right,
+        top: rect.top,
+        bottom: rect.bottom,
         width: rect.width,
         height: rect.height,
+        display: style.display,
+        overflow: style.overflow,
+        visibility: style.visibility,
+        fontSize: style.fontSize,
       };
     };
 
-    return {
-      fpsLabel: getBox(".visual-feed-window__fps .visual-feed-window__metric-label"),
-      fpsValue: getBox(".visual-feed-window__fps .visual-feed-window__metric-value"),
-      listenersLabel: getBox(".visual-feed-window__metric--listeners .visual-feed-window__metric-label"),
-      listenersValue: getBox(".visual-feed-window__metric--listeners .visual-feed-window__metric-value"),
-      bitrateLabel: getBox(".visual-feed-window__metric--bitrate .visual-feed-window__metric-label"),
-      bitrateValue: getBox(".visual-feed-window__metric--bitrate .visual-feed-window__metric-value"),
-      bitrateUnit: getBox(".visual-feed-window__metric--bitrate .visual-feed-window__metric-unit"),
-      source: getBox(".visual-feed-window__source-link"),
-      sourceIcon: getBox(".visual-feed-window__external-link-icon"),
-      header: getBox(".visual-feed-window__header"),
-    };
-  });
-
-  return values;
+    return Object.fromEntries(
+      Object.entries(selectors).map(([name, selector]) => [name, read(selector)]),
+    ) as Record<keyof typeof selectors, ReturnType<typeof read>>;
+  }, selectors);
 }
 
-test("telemetry header keeps compact FPS spacing and stable source positioning", async ({ page }) => {
-  await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto("/player/");
-  await expect(page.locator(".visual-feed-window__header")).toBeVisible();
+function expectValidHeaderGeometry(
+  geometry: Awaited<ReturnType<typeof readHeaderGeometry>>,
+) {
+  const header = geometry.header!;
+  const ordered = [
+    geometry.fps!,
+    geometry.listeners!,
+    geometry.bitrate!,
+    geometry.source!,
+  ];
 
-  await setTelemetryValues(page, "121", "12345", "320");
-  const populated = await readHeaderMetrics(page);
-
-  expect(populated.fpsLabel).not.toBeNull();
-  expect(populated.fpsValue).not.toBeNull();
-  expect(populated.source).not.toBeNull();
-
-  expect(populated.fpsValue!.x - populated.fpsLabel!.right).toBeLessThan(18);
-  expect(populated.fpsValue!.x - populated.fpsLabel!.right).toBeGreaterThan(-2);
-
-  const listenersStartBefore = populated.listenersLabel?.x ?? 0;
-  const bitrateStartBefore = populated.bitrateLabel?.x ?? 0;
-  const sourceXBefore = populated.source?.x ?? 0;
-
-  await setTelemetryValues(page, "9", "1", "64");
-  const compact = await readHeaderMetrics(page);
-
-  expect(Math.abs((compact.listenersLabel?.x ?? 0) - listenersStartBefore)).toBeLessThan(12);
-  expect(Math.abs((compact.bitrateLabel?.x ?? 0) - bitrateStartBefore)).toBeLessThan(12);
-  expect(Math.abs((compact.source?.x ?? 0) - sourceXBefore)).toBeLessThan(12);
-
-  const sourceRight = (compact.source?.right ?? 0) + 2;
-  const headerRight = (compact.header?.right ?? 0);
-  expect(sourceRight).toBeLessThanOrEqual(headerRight);
-  expect((compact.sourceIcon?.right ?? 0)).toBeLessThanOrEqual(headerRight);
-  expect((compact.bitrateUnit?.right ?? 0)).toBeLessThanOrEqual(compact.source?.x ?? Infinity);
-});
-
-test("header typography remains stable across viewport heights at the same width", async ({ page }) => {
-  const heights = [600, 720, 900, 1100];
-  const measurements: Array<{ fontSizes: number[]; headerHeight: number; sourceX: number }> = [];
-
-  for (const height of heights) {
-    await page.setViewportSize({ width: 1440, height });
-    await page.goto("/player/");
-    await expect(page.locator(".visual-feed-window__header")).toBeVisible();
-
-    await setTelemetryValues(page, "121", "12345", "320");
-    const measurement = await page.evaluate(() => {
-      const els = [
-        ".visual-feed-window__fps",
-        ".visual-feed-window__metric--listeners",
-        ".visual-feed-window__metric--bitrate",
-        ".visual-feed-window__source-link",
-      ].map((selector) => {
-        const el = document.querySelector(selector) as HTMLElement | null;
-        return el ? Number.parseFloat(getComputedStyle(el).fontSize) : 0;
-      });
-
-      const header = document.querySelector(".visual-feed-window__header") as HTMLElement | null;
-      const source = document.querySelector(".visual-feed-window__source-link") as HTMLElement | null;
-      return {
-        fontSizes: els,
-        headerHeight: header ? header.getBoundingClientRect().height : 0,
-        sourceX: source ? source.getBoundingClientRect().left : 0,
-      };
-    });
-
-    measurements.push(measurement);
+  for (const element of [
+    ...ordered,
+    geometry.bitrateUnit!,
+    geometry.sourceIcon!,
+  ]) {
+    expect(element.width).toBeGreaterThan(0);
+    expect(element.height).toBeGreaterThan(0);
+    expect(element.left).toBeGreaterThanOrEqual(header.left - 0.5);
+    expect(element.right).toBeLessThanOrEqual(header.right + 0.5);
+    expect(element.visibility).toBe("visible");
+    expect(element.display).not.toBe("none");
   }
 
-  const allFontSizes = measurements.flatMap((measurement) => measurement.fontSizes);
-  const maxDelta = Math.max(...allFontSizes) - Math.min(...allFontSizes);
-  const headerHeightDelta = Math.max(...measurements.map((m) => m.headerHeight)) - Math.min(...measurements.map((m) => m.headerHeight));
-  const sourceXDelta = Math.max(...measurements.map((m) => m.sourceX)) - Math.min(...measurements.map((m) => m.sourceX));
+  for (let index = 0; index < ordered.length - 1; index += 1) {
+    expect(ordered[index]!.right).toBeLessThan(ordered[index + 1]!.left);
+  }
 
-  expect(maxDelta).toBeLessThan(0.5);
-  expect(headerHeightDelta).toBeLessThan(1);
-  expect(sourceXDelta).toBeLessThan(8);
+  const rowTop = Math.max(...ordered.map((element) => element.top));
+  const rowBottom = Math.min(...ordered.map((element) => element.bottom));
+  expect(rowBottom).toBeGreaterThan(rowTop);
+  expect(geometry.source!.text).toBe("SOURCE");
+  expect(geometry.bitrateUnit!.text).toBe("kbps");
+}
+
+test("telemetry labels stay anchored across representative values", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/player/");
+  await page.getByLabel("Visual environment").selectOption("minimal");
+  await expect(page.locator(selectors.header)).toBeVisible();
+
+  const cases = [
+    ["9", "1", "64"],
+    ["60", "127", "192"],
+    ["121", "9999", "320"],
+    ["999", "123456", "320"],
+  ] as const;
+  const measurements: Awaited<ReturnType<typeof readHeaderGeometry>>[] = [];
+
+  for (const [fps, listeners, bitrate] of cases) {
+    await setTelemetryValues(page, fps, listeners, bitrate);
+    const geometry = await readHeaderGeometry(page);
+    expectValidHeaderGeometry(geometry);
+    measurements.push(geometry);
+  }
+
+  for (const key of ["fpsLabel", "listenersLabel", "bitrateLabel"] as const) {
+    const positions = measurements.map(
+      (measurement) => measurement[key]!.left - measurement.header!.left,
+    );
+    expect(Math.max(...positions) - Math.min(...positions)).toBeLessThan(1);
+  }
+
+  const sourceRightGaps = measurements.map(
+    (measurement) => measurement.header!.right - measurement.source!.right,
+  );
+  expect(Math.max(...sourceRightGaps) - Math.min(...sourceRightGaps)).toBeLessThan(
+    1,
+  );
+
+  const fpsGap =
+    measurements[0].fpsValue!.left - measurements[0].fpsLabel!.right;
+  expect(fpsGap).toBeGreaterThan(0);
+  expect(fpsGap).toBeLessThan(8);
+});
+
+test("telemetry grid remains unclipped across desktop viewport sizes", async ({
+  page,
+}) => {
+  test.setTimeout(60_000);
+
+  const viewports = [
+    { width: 1024, height: 600 },
+    { width: 1024, height: 768 },
+    { width: 1280, height: 600 },
+    { width: 1280, height: 720 },
+    { width: 1280, height: 900 },
+    { width: 1366, height: 768 },
+    { width: 1440, height: 600 },
+    { width: 1440, height: 900 },
+    { width: 1920, height: 1080 },
+  ];
+  const relativeLabelPositions = new Map<number, Map<string, number[]>>();
+
+  for (const viewport of viewports) {
+    await page.setViewportSize(viewport);
+    await page.goto("/player/");
+    await page.getByLabel("Visual environment").selectOption("minimal");
+    await expect(page.locator(selectors.header)).toBeVisible();
+    await setTelemetryValues(page, "999", "123456", "320");
+
+    const geometry = await readHeaderGeometry(page);
+    expectValidHeaderGeometry(geometry);
+    expect(geometry.header!.display).toBe("grid");
+    expect(geometry.header!.fontSize).not.toMatch(/vh|dvh|svh|lvh/);
+
+    const byLabel =
+      relativeLabelPositions.get(viewport.width) ?? new Map<string, number[]>();
+    for (const key of ["fpsLabel", "listenersLabel", "bitrateLabel"] as const) {
+      const positions = byLabel.get(key) ?? [];
+      positions.push(geometry[key]!.left - geometry.header!.left);
+      byLabel.set(key, positions);
+    }
+    relativeLabelPositions.set(viewport.width, byLabel);
+  }
+
+  for (const byLabel of relativeLabelPositions.values()) {
+    for (const positions of byLabel.values()) {
+      expect(Math.max(...positions) - Math.min(...positions)).toBeLessThan(1);
+    }
+  }
+});
+
+test("Space Unicorn renders live listener and bitrate values without clipping", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 600 });
+  await page.goto("/player/");
+  await page.getByLabel("Signal source").selectOption("space-unicorn-radio");
+
+  await expect(page.locator(selectors.listenersValue)).toHaveText(/^\d+$/);
+  await expect(page.locator(selectors.bitrateValue)).toHaveText(/^\d+(?:\.\d+)?$/);
+
+  const geometry = await readHeaderGeometry(page);
+  expectValidHeaderGeometry(geometry);
+  expect(geometry.bitrate!.overflow).toBe("visible");
+  expect(geometry.source!.overflow).toBe("visible");
 });
