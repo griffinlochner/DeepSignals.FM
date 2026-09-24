@@ -40,6 +40,7 @@ import { usePsyBrazilProgressiveNowPlaying } from "./usePsyBrazilProgressiveNowP
 import { usePsyBrazilLoFiNowPlaying } from "./usePsyBrazilLoFiNowPlaying";
 import { usePsyBrazilLowBpmNowPlaying } from "./usePsyBrazilLowBpmNowPlaying";
 import { usePsyBrazilElectroNowPlaying } from "./usePsyBrazilElectroNowPlaying";
+import { usePsyBrazilTelemetry } from "./usePsyBrazilTelemetry";
 import { useDeepTripNowPlaying } from "./useDeepTripNowPlaying";
 import {
   useSpaceUnicornNowPlaying,
@@ -470,6 +471,7 @@ function PlayerShell({ className }: PlayerShellProps) {
     usePsyBrazilLowBpmNowPlaying(selectedSignalId);
   const psyBrazilElectroNowPlaying =
     usePsyBrazilElectroNowPlaying(selectedSignalId);
+  const psyBrazilTelemetry = usePsyBrazilTelemetry(selectedSignalId);
   const deepTripNowPlaying = useDeepTripNowPlaying(selectedSignalId);
   const spaceUnicornNowPlaying = useSpaceUnicornNowPlaying(selectedSignalId);
   const spaceUnicornTelemetry = useSpaceUnicornTelemetry(selectedSignalId);
@@ -1212,12 +1214,14 @@ function PlayerShell({ className }: PlayerShellProps) {
           listeners={
             psyndoraTelemetry?.listeners ??
             psyStreamTelemetry?.listeners ??
+            psyBrazilTelemetry?.listeners ??
             spaceUnicornTelemetry?.listeners ??
             null
           }
           bitrateKbps={
             psyndoraTelemetry?.bitrateKbps ??
             psyStreamTelemetry?.bitrateKbps ??
+            psyBrazilTelemetry?.bitrateKbps ??
             spaceUnicornTelemetry?.bitrateKbps ??
             null
           }
