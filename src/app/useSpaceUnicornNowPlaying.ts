@@ -1,18 +1,16 @@
-import { useEffect, useRef, useState } from 'react'
 import {
   useExternalNowPlaying,
   type ExternalNowPlayingMetadata,
 } from './useExternalNowPlaying'
+import {
+  useStationTelemetry,
+  type StationTelemetry,
+} from './useStationTelemetry'
 
 const SPACE_UNICORN_SOURCE_ID = 'space-unicorn-radio'
 const SPACE_UNICORN_NOW_PLAYING_URL = 'https://spaceunicorn.radio/status-json.xsl'
 const SPACE_UNICORN_METADATA_POLL_MS = 20_000
 const SPACE_UNICORN_TELEMETRY_POLL_MS = 45_000
-
-export type StationTelemetry = {
-  listeners: number | null
-  bitrateKbps: number | null
-}
 
 type SpaceUnicornSourceEntry = {
   title?: unknown
@@ -286,88 +284,20 @@ const SPACE_UNICORN_NOW_PLAYING_CONFIG = {
   parse: parseSpaceUnicornNowPlaying,
 }
 
+const SPACE_UNICORN_TELEMETRY_CONFIG = {
+  sourceId: SPACE_UNICORN_SOURCE_ID,
+  telemetryUrl: SPACE_UNICORN_NOW_PLAYING_URL,
+  pollMs: SPACE_UNICORN_TELEMETRY_POLL_MS,
+  parse: parseSpaceUnicornTelemetry,
+  requestLabel: 'Space Unicorn',
+}
+
 export function useSpaceUnicornNowPlaying(selectedSourceId: string | null) {
   return useExternalNowPlaying(selectedSourceId, SPACE_UNICORN_NOW_PLAYING_CONFIG)
 }
 
 export function useSpaceUnicornTelemetry(selectedSourceId: string | null) {
-  const [telemetry, setTelemetry] = useState<StationTelemetry | null>(null)
-  const requestGenerationRef = useRef(0)
-
-  useEffect(() => {
-    requestGenerationRef.current += 1
-    const generation = requestGenerationRef.current
-
-    if (selectedSourceId !== SPACE_UNICORN_SOURCE_ID) {
-      return
-    }
-
-    let timeoutHandle: number | null = null
-    let activeController: AbortController | null = null
-
-    const poll = async () => {
-      activeController = new AbortController()
-
-      try {
-        const response = await fetch(SPACE_UNICORN_NOW_PLAYING_URL, {
-          cache: 'no-store',
-          mode: 'cors',
-          signal: activeController.signal,
-        })
-
-        if (!response.ok) {
-          throw new Error(
-            `Space Unicorn telemetry request failed (${response.status})`,
-          )
-        }
-
-        const payload = await response.json()
-        const nextTelemetry = parseSpaceUnicornTelemetry(payload)
-
-        if (requestGenerationRef.current !== generation) {
-          return
-        }
-
-        setTelemetry((current) => {
-          if (
-            current?.listeners === nextTelemetry?.listeners &&
-            current?.bitrateKbps === nextTelemetry?.bitrateKbps
-          ) {
-            return current
-          }
-
-          return nextTelemetry
-        })
-      } catch {
-        if (
-          activeController?.signal.aborted ||
-          requestGenerationRef.current !== generation
-        ) {
-          return
-        }
-
-        setTelemetry(null)
-      } finally {
-        if (requestGenerationRef.current === generation) {
-          timeoutHandle = window.setTimeout(poll, SPACE_UNICORN_TELEMETRY_POLL_MS)
-        }
-      }
-    }
-
-    void poll()
-
-    return () => {
-      requestGenerationRef.current += 1
-      activeController?.abort()
-      setTelemetry(null)
-
-      if (timeoutHandle !== null) {
-        window.clearTimeout(timeoutHandle)
-      }
-    }
-  }, [selectedSourceId])
-
-  return selectedSourceId === SPACE_UNICORN_SOURCE_ID ? telemetry : null
+  return useStationTelemetry(selectedSourceId, SPACE_UNICORN_TELEMETRY_CONFIG)
 }
 
 export default useSpaceUnicornTelemetry

@@ -29,7 +29,11 @@ import { preloadImageDepthTextures } from "../themes/image-depth/imageDepthTextu
 import { imageDepthEnvironmentCatalog } from "../themes/image-depth/environmentCatalog";
 import { useAudioAnalysis } from "./useAudioAnalysis";
 import { usePersistentAudioController } from "./usePersistentAudioController";
-import { usePsyStreamNowPlaying } from "./usePsyStreamNowPlaying";
+import {
+  usePsyStreamNowPlaying,
+  usePsyStreamTelemetry,
+} from "./usePsyStreamNowPlaying";
+import { usePsyndoraTelemetry } from "./usePsyndoraTelemetry";
 import { usePsyBrazilNowPlaying } from "./usePsyBrazilNowPlaying";
 import { useDumangueNowPlaying } from "./useDumangueNowPlaying";
 import { usePsyBrazilProgressiveNowPlaying } from "./usePsyBrazilProgressiveNowPlaying";
@@ -455,6 +459,8 @@ function PlayerShell({ className }: PlayerShellProps) {
     selectedSignalId ?? undefined,
   );
   const psyStreamNowPlaying = usePsyStreamNowPlaying(selectedSignalId);
+  const psyStreamTelemetry = usePsyStreamTelemetry(selectedSignalId);
+  const psyndoraTelemetry = usePsyndoraTelemetry(selectedSignalId);
   const psyBrazilNowPlaying = usePsyBrazilNowPlaying(selectedSignalId);
   const dumangueNowPlaying = useDumangueNowPlaying(selectedSignalId);
   const psyBrazilProgressiveNowPlaying =
@@ -1203,8 +1209,18 @@ function PlayerShell({ className }: PlayerShellProps) {
             selectedSignalId ? audioController.audioSource : null
           }
           metadataOverride={externalNowPlaying}
-          listeners={spaceUnicornTelemetry?.listeners ?? null}
-          bitrateKbps={spaceUnicornTelemetry?.bitrateKbps ?? null}
+          listeners={
+            psyndoraTelemetry?.listeners ??
+            psyStreamTelemetry?.listeners ??
+            spaceUnicornTelemetry?.listeners ??
+            null
+          }
+          bitrateKbps={
+            psyndoraTelemetry?.bitrateKbps ??
+            psyStreamTelemetry?.bitrateKbps ??
+            spaceUnicornTelemetry?.bitrateKbps ??
+            null
+          }
           audioSnapshot={audioAnalysis.snapshot}
           getLatestSnapshot={audioAnalysis.getLatestSnapshot}
           analysisStatus={audioAnalysis.status}
