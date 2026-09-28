@@ -498,13 +498,13 @@ test("Space Unicorn Radio is available in the public selector with its station i
   await expect(infoLink).toHaveAttribute("href", "https://spaceunicorn.radio/");
 });
 
-test("Hirschmilch channels use their official channel artwork in the feed", async ({
+test("Hirschmilch channels retain local station artwork as the feed fallback", async ({
   page,
 }) => {
   const cases = [
-    ["hirschmilch-psytrance", "/images/channel-track-psytrance.webp"],
-    ["hirschmilch-progressive", "/images/channel-track-progressive.webp"],
-    ["hirschmilch-chillout", "/images/channel-track-chillout.webp"],
+    ["hirschmilch-psytrance", "/images/stations/hirschmilch-psytrance.webp"],
+    ["hirschmilch-progressive", "/images/stations/hirschmilch-progressive.webp"],
+    ["hirschmilch-chillout", "/images/stations/hirschmilch-chillout.webp"],
   ] as const;
 
   for (const [signalId, expectedArtworkPath] of cases) {

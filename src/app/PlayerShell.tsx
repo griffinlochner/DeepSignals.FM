@@ -46,6 +46,7 @@ import {
   useSpaceUnicornNowPlaying,
   useSpaceUnicornTelemetry,
 } from "./useSpaceUnicornNowPlaying";
+import { useHirschmilchNowPlaying } from "./useHirschmilchNowPlaying";
 import { publishRuntimeTestSnapshot } from "./runtimeTestBridge";
 import {
   mapSignalTarget,
@@ -475,6 +476,7 @@ function PlayerShell({ className }: PlayerShellProps) {
   const deepTripNowPlaying = useDeepTripNowPlaying(selectedSignalId);
   const spaceUnicornNowPlaying = useSpaceUnicornNowPlaying(selectedSignalId);
   const spaceUnicornTelemetry = useSpaceUnicornTelemetry(selectedSignalId);
+  const hirschmilchNowPlaying = useHirschmilchNowPlaying(selectedSignalId);
   const externalNowPlaying =
     psyStreamNowPlaying ??
     psyBrazilNowPlaying ??
@@ -484,7 +486,8 @@ function PlayerShell({ className }: PlayerShellProps) {
     psyBrazilLowBpmNowPlaying ??
     psyBrazilElectroNowPlaying ??
     deepTripNowPlaying ??
-    spaceUnicornNowPlaying;
+    spaceUnicornNowPlaying ??
+    hirschmilchNowPlaying;
   const registrySourceBpm = audioController.audioSource.bpm ?? null;
   const effectiveReactiveBpm = ignoreSourceBpmEnabled
     ? null
