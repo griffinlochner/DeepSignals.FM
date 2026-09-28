@@ -38,13 +38,13 @@ Built primarily as a learning project and a love letter to psychedelic trance.
 
 ## E2E Testing
 
-The 27-test Playwright regression suite tests the production build through Vite preview, not the Vite development server.
+The 28-test Playwright regression suite tests the production build through Vite preview, not the Vite development server.
 
 Install the browser once with `npx playwright install chromium`, then run `npm run test:e2e`. The HTML report is written to `playwright-report/` and can be opened with `npx playwright show-report`. Run one spec with `npx playwright test tests/smoke/player.spec.ts`.
 
-The behavior spec also runs against the bundled `Biomekanik — Fragments of Reality` demo track, so it does not depend on live radio or metadata services. Run it with `npx playwright test tests/behavior/motion-chroma.spec.ts`.
+The behavior spec also runs against the bundled `Illustrator — Psychedelic Experience` demo track, so it does not depend on live radio or metadata services. Run it with `npx playwright test tests/behavior/motion-chroma.spec.ts`.
 
-Phase 2B also covers Race volume-zero and volume-ramp behavior, qualified SURGE near the deterministic demo reference, and the shared qualifier's arm/cooldown semantics. Run `npx playwright test tests/behavior/volume-surge.spec.ts tests/behavior/surge-qualification.spec.ts`.
+Phase 2B also covers Race volume-zero and volume-ramp behavior, qualified SURGE during local demo playback, and the shared qualifier's arm/cooldown semantics. Run `npx playwright test tests/behavior/volume-surge.spec.ts tests/behavior/surge-qualification.spec.ts`.
 
 ## Player Architecture
 

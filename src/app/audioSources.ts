@@ -2,9 +2,6 @@ import { publicAssetUrl } from './publicAssetUrl'
 import type { AudioSource } from './playerTypes'
 import { EXTERNAL_SIGNAL_DEFINITIONS, type ExternalSignalDefinition } from './externalSignals'
 
-const DFECTV_DEMO_RELEASE = 'Artist-permitted demo'
-const DFECTV_DEMO_LICENSE = 'Artist-permitted demo track for DeepSignals.'
-
 export function formatAudioSourceLabel(source: Pick<AudioSource, 'artist' | 'title' | 'displayName'>) {
   if (source.artist && source.title) {
     return `${source.artist} — ${source.title}`
@@ -66,17 +63,6 @@ function createLiveStreamAudioSource(definition: ExternalSignalDefinition): Audi
   }
 }
 
-export const DEMO_MODULAR_DIMENSIONS_AUDIO_SOURCE = createDemoTrackAudioSource({
-  id: 'demo-modular-dimensions',
-  artist: 'Zzbing',
-  title: 'Modular Dimensions',
-  release: 'MoDem Festival Vol. 5',
-  audioPath: '/audio/demo/zzbing-modular-dimensions.mp3',
-  sourceUrl: 'https://ektoplazm.com/style/darkpsy/page/3',
-  license: 'Creative Commons license for noncommercial usage; exact variant not specified.',
-  attribution: 'Zzbing — Modular Dimensions, from MoDem Festival Vol. 5.',
-})
-
 export const DEMO_PSYCHEDELIC_EXPERIENCE_AUDIO_SOURCE = createDemoTrackAudioSource({
   id: 'demo-psychedelic-experience',
   artist: 'Illustrator',
@@ -86,20 +72,6 @@ export const DEMO_PSYCHEDELIC_EXPERIENCE_AUDIO_SOURCE = createDemoTrackAudioSour
   sourceUrl: 'https://ektoplazm.com/style/darkpsy/page/3',
   license: 'Creative Commons license for noncommercial usage; exact variant not specified.',
   attribution: 'Illustrator — Psychedelic Experience, from MoDem Festival Vol. 5.',
-})
-
-export const DEMO_FRAGMENTS_OF_REALITY_AUDIO_SOURCE = createDemoTrackAudioSource({
-  id: 'demo-fragments-of-reality',
-  artist: 'Biomekanik',
-  title: 'Fragments of Reality',
-  release: 'Cinematech',
-  label: 'CyberBay Records',
-  bpm: 165,
-  audioPath: '/audio/demo/biomekanik-fragments-of-reality.mp3',
-  sourceUrl: 'https://ektoplazm.com/style/darkpsy/page/4',
-  license: 'Creative Commons license for noncommercial usage; exact variant not specified.',
-  attribution:
-    'Biomekanik — Fragments of Reality, from Cinematech, released by CyberBay Records.',
 })
 
 export const GLOBULAR_FOR_THE_TIME_BEING_AUDIO_SOURCE = createDemoTrackAudioSource({
@@ -113,55 +85,9 @@ export const GLOBULAR_FOR_THE_TIME_BEING_AUDIO_SOURCE = createDemoTrackAudioSour
   attribution: 'Globular — For The Time Being, from Entangled Everything.',
 })
 
-export const DEMO_DFECTV_SPCYHT_NO_NAME_AUDIO_SOURCE = createDemoTrackAudioSource({
-  id: 'demo-dfectv-spcyht-no-name',
-  artist: 'Dfectv & Spcyht',
-  title: 'No Name',
-  release: DFECTV_DEMO_RELEASE,
-  audioPath: '/audio/demo/Dfectv & Spcyht - No Name.mp3',
-  license: DFECTV_DEMO_LICENSE,
-  attribution: 'Dfectv & Spcyht — No Name, used with artist permission.',
-})
-
-export const DEMO_DFECTV_THE_MAZE_AUDIO_SOURCE = createDemoTrackAudioSource({
-  id: 'demo-dfectv-the-maze',
-  artist: 'Dfectv',
-  title: 'The Maze',
-  release: DFECTV_DEMO_RELEASE,
-  audioPath: '/audio/demo/Dfectv - The Maze.mp3',
-  license: DFECTV_DEMO_LICENSE,
-  attribution: 'Dfectv — The Maze, used with artist permission.',
-})
-
-export const DEMO_DFECTV_STARFIRE_BEYOND_THE_BOUNDRIES_AUDIO_SOURCE = createDemoTrackAudioSource({
-  id: 'demo-dfectv-starfire-beyond-the-boundries',
-  artist: 'Dfectv & StarFire',
-  title: 'Beyond the Boundries',
-  release: DFECTV_DEMO_RELEASE,
-  audioPath: '/audio/demo/Dfectv & StarFire - Beyond the Boundries.mp3',
-  license: DFECTV_DEMO_LICENSE,
-  attribution: 'Dfectv & StarFire — Beyond the Boundries, used with artist permission.',
-})
-
-export const DEMO_DFECTV_ITS_A_TRAP_AUDIO_SOURCE = createDemoTrackAudioSource({
-  id: 'demo-dfectv-its-a-trap',
-  artist: 'Dfectv',
-  title: "It's A Trap",
-  release: DFECTV_DEMO_RELEASE,
-  audioPath: "/audio/demo/Dfectv - It's A Trap.mp3",
-  license: DFECTV_DEMO_LICENSE,
-  attribution: "Dfectv — It's A Trap, used with artist permission.",
-})
-
 export const DEMO_AUDIO_SOURCES: AudioSource[] = [
-  DEMO_MODULAR_DIMENSIONS_AUDIO_SOURCE,
   DEMO_PSYCHEDELIC_EXPERIENCE_AUDIO_SOURCE,
-  DEMO_FRAGMENTS_OF_REALITY_AUDIO_SOURCE,
   GLOBULAR_FOR_THE_TIME_BEING_AUDIO_SOURCE,
-  DEMO_DFECTV_SPCYHT_NO_NAME_AUDIO_SOURCE,
-  DEMO_DFECTV_THE_MAZE_AUDIO_SOURCE,
-  DEMO_DFECTV_STARFIRE_BEYOND_THE_BOUNDRIES_AUDIO_SOURCE,
-  DEMO_DFECTV_ITS_A_TRAP_AUDIO_SOURCE,
 ]
 
 export const PUBLIC_EXTERNAL_AUDIO_SOURCES: AudioSource[] =

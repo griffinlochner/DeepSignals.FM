@@ -543,7 +543,7 @@ test("fresh player defaults apply without replacing persisted choices", async ({
 
   await page
     .getByLabel("Signal source")
-    .selectOption("demo-modular-dimensions");
+    .selectOption("globular-for-the-time-being");
   await page.getByLabel("Visual environment").selectOption("neon-hyper-racer");
   await page
     .locator("label")
@@ -557,7 +557,7 @@ test("fresh player defaults apply without replacing persisted choices", async ({
 
   await page.reload();
   await expect(page.getByLabel("Signal source")).toHaveValue(
-    "demo-modular-dimensions",
+    "globular-for-the-time-being",
   );
   await expect(page.getByLabel("Visual environment")).toHaveValue(
     "neon-hyper-racer",
@@ -566,6 +566,66 @@ test("fresh player defaults apply without replacing persisted choices", async ({
     page.getByLabel("Toggle environment chroma effects"),
   ).not.toBeChecked();
   await expect(page.locator(".visual-feed-window")).toBeHidden();
+});
+
+test("demo transmissions retain two playable tracks and switch across sources", async ({
+  page,
+}) => {
+  await page.evaluate(() => window.localStorage.clear());
+  await page.reload();
+
+  const signalSource = page.getByLabel("Signal source");
+  const demoOptions = signalSource.locator(
+    'optgroup[label="DEMO TRANSMISSIONS"] option',
+  );
+  await expect(demoOptions).toHaveCount(2);
+  await expect(demoOptions).toHaveText([
+    "Globular — For The Time Being",
+    "Illustrator — Psychedelic Experience",
+  ]);
+  await expect(signalSource).toHaveValue("demo-psychedelic-experience");
+
+  await page.getByRole("button", { name: "Play", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "Pause", exact: true }),
+  ).toBeVisible();
+  await expect
+    .poll(async () =>
+      page.evaluate(
+        () =>
+          (window as Window & {
+            __DSFM_TEST__?: { audio: { smoothedEnergy: number } };
+          }).__DSFM_TEST__?.audio.smoothedEnergy ?? 0,
+      ),
+      { timeout: 15_000 },
+    )
+    .toBeGreaterThan(0.01);
+
+  await signalSource.selectOption("globular-for-the-time-being");
+  await expect(signalSource).toHaveValue("globular-for-the-time-being");
+  await page.getByRole("button", { name: "Play", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "Pause", exact: true }),
+  ).toBeVisible();
+  await expect
+    .poll(async () =>
+      page.evaluate(
+        () =>
+          (window as Window & {
+            __DSFM_TEST__?: { audio: { smoothedEnergy: number } };
+          }).__DSFM_TEST__?.audio.smoothedEnergy ?? 0,
+      ),
+      { timeout: 15_000 },
+    )
+    .toBeGreaterThan(0.01);
+
+  await signalSource.selectOption("hirschmilch-psytrance");
+  await expect(signalSource).toHaveValue("hirschmilch-psytrance");
+  await signalSource.selectOption("demo-psychedelic-experience");
+  await expect(signalSource).toHaveValue("demo-psychedelic-experience");
+  await signalSource.focus();
+  await signalSource.press("ArrowUp");
+  await expect(signalSource).toHaveValue("globular-for-the-time-being");
 });
 
 test("INFO can close, reopen, and exposes stable signal content", async ({

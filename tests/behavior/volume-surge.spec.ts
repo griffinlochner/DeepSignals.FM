@@ -1,7 +1,7 @@
 import { test, expect } from "../support/test";
 import type { Page } from "@playwright/test";
 
-const SOURCE_ID = "demo-fragments-of-reality";
+const SOURCE_ID = "demo-psychedelic-experience";
 type Snapshot = {
   playback: string;
   controls: { chroma: boolean; motion: boolean; volume: number };
@@ -119,16 +119,15 @@ test.describe("Race volume contracts", () => {
   });
 });
 
-test("qualified SURGE increments the real Race event count near the known reference", async ({
+test("qualified SURGE increments the real Race event count during local demo playback", async ({
   page,
 }) => {
   test.setTimeout(70_000);
   await startRace(page);
-  await seekNearReference(page);
   const before = (await runtime(page)).environment.surgeCount;
   await expect
     .poll(async () => (await runtime(page)).environment.surgeCount, {
-      timeout: 15_000,
+      timeout: 45_000,
     })
     .toBeGreaterThan(before);
 });

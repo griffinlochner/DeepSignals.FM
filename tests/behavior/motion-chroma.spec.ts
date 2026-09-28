@@ -1,7 +1,7 @@
 import { test, expect } from "../support/test";
 import type { Page } from "@playwright/test";
 
-const DEMO_SOURCE_ID = "demo-fragments-of-reality";
+const DEMO_SOURCE_ID = "demo-psychedelic-experience";
 
 type RuntimeSnapshot = {
   playback: string;

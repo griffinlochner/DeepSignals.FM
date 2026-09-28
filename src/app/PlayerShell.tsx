@@ -150,12 +150,6 @@ const ENVIRONMENT_GROUPS: EnvironmentGroup[] = [
     ],
   },
 ];
-const PUBLIC_DEMO_SOURCE_EXCLUSIONS = new Set([
-  "demo-dfectv-spcyht-no-name",
-  "demo-dfectv-the-maze",
-  "demo-dfectv-starfire-beyond-the-boundries",
-  "demo-dfectv-its-a-trap",
-]);
 // Additional PsyBrazil network station ids can be added here as they are onboarded.
 // Order is intentional (flagship first) rather than alphabetical.
 const PSYBRAZIL_NETWORK_SOURCE_IDS = [
@@ -601,9 +595,7 @@ function PlayerShell({ className }: PlayerShellProps) {
       },
       {
         label: "DEMO TRANSMISSIONS",
-        signals: DEMO_AUDIO_SOURCES.filter(
-          (source) => !PUBLIC_DEMO_SOURCE_EXCLUSIONS.has(source.id),
-        )
+        signals: DEMO_AUDIO_SOURCES
           .map((source) => ({
             id: source.id,
             label: formatAudioSourceLabel(source),
