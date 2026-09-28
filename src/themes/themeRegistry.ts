@@ -4,12 +4,14 @@ import { imageDepthThemeDefinitions } from "./image-depth/imageDepthThemeDefinit
 import MinimalDefinition from "./minimal";
 import NeonHyperRacerDefinition from "./neon-hyper-racer";
 import SignalGradientDefinition from "./signal-gradient";
+import SignalRainDefinition from "./signal-rain";
 import SignalRunnerDefinition from "./signal-runner";
 import CosmicRollerCoasterDefinition from "./cosmic-roller-coaster";
 
 export const themeRegistry: ThemeDefinition[] = [
   MinimalDefinition,
   SignalGradientDefinition,
+  SignalRainDefinition,
   CosmicNexusDefinition,
   NeonHyperRacerDefinition,
   SignalRunnerDefinition,

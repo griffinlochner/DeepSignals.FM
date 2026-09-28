@@ -91,6 +91,7 @@ const PUBLIC_PLAYER_ENVIRONMENT_IDS = [
   "signal-runner",
   "minimal",
   "signal-gradient",
+  "signal-rain",
   "cosmic-nexus",
   "neon-hyper-racer",
   "uv-reactive-jungle",
@@ -125,7 +126,7 @@ type EnvironmentGroup = {
 const ENVIRONMENT_GROUPS: EnvironmentGroup[] = [
   {
     groupName: "MINIMAL",
-    environmentIds: ["minimal", "signal-gradient"],
+    environmentIds: ["minimal", "signal-gradient", "signal-rain"],
   },
   {
     groupName: "DEPTH WORLDS",

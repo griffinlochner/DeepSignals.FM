@@ -14,7 +14,7 @@ test("Signal Gradient is a static DOM environment when CHROMA is off", async ({
   const environment = page.getByLabel("Visual environment");
   await expect(
     environment.locator('optgroup[label="MINIMAL"] option'),
-  ).toHaveText(["Black", "Signal Gradient"]);
+  ).toHaveText(["Black", "Signal Gradient", "Signal Rain"]);
 
   await environment.selectOption("signal-gradient");
   const scene = page.locator(".signal-gradient-scene");
