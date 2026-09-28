@@ -90,6 +90,7 @@ const DEFAULT_PLAYER_AUDIO_SOURCE_ID =
 const PUBLIC_PLAYER_ENVIRONMENT_IDS = [
   "signal-runner",
   "minimal",
+  "signal-gradient",
   "cosmic-nexus",
   "neon-hyper-racer",
   "uv-reactive-jungle",
@@ -124,7 +125,7 @@ type EnvironmentGroup = {
 const ENVIRONMENT_GROUPS: EnvironmentGroup[] = [
   {
     groupName: "MINIMAL",
-    environmentIds: ["minimal"],
+    environmentIds: ["minimal", "signal-gradient"],
   },
   {
     groupName: "DEPTH WORLDS",
@@ -959,6 +960,7 @@ function PlayerShell({ className }: PlayerShellProps) {
     motionEnabled,
     chromaEnabled,
     getLatestAudioSnapshot: audioAnalysis.getLatestSnapshot,
+    subscribeToAudioSnapshots: audioAnalysis.subscribeToSnapshots,
     reactivePreviewEnabled:
       supportsAudioReactiveBehavior && !productionFullOnActive,
     reactiveBehavior: "chill",

@@ -58,6 +58,9 @@ type UseAudioAnalysisResult = {
   errorMessage: string | null
   requestInitializationFromUserGesture: () => Promise<void>
   getLatestSnapshot: () => AudioReactiveSnapshot
+  subscribeToSnapshots: (
+    listener: (snapshot: AudioReactiveSnapshot, nowMs: number) => void,
+  ) => () => void
   analysisCalculationMode: 'requestAnimationFrame'
   diagnosticsPublishHz: number
 }
@@ -562,6 +565,9 @@ export function useAudioAnalysis({
   const connectedElementRef = useRef<HTMLAudioElement | null>(null)
   const contextStateListenerRef = useRef<(() => void) | null>(null)
   const snapshotRef = useRef<AudioReactiveSnapshot>(ZERO_SNAPSHOT)
+  const snapshotSubscribersRef = useRef(
+    new Set<(snapshot: AudioReactiveSnapshot, nowMs: number) => void>(),
+  )
   const envelopesRef = useRef<EnvelopeState>(EMPTY_ENVELOPES)
   const previousFrequencyDataRef = useRef<Float32Array | null>(null)
   const previousKickPulseCandidateRef = useRef<number>(0)
@@ -616,6 +622,9 @@ export function useAudioAnalysis({
       snapshotRef.current = nextSnapshot
       bassPulseDebugRef.current = nextBassPulseDebug
       kickPulseDebugRef.current = nextKickPulseDebug
+      snapshotSubscribersRef.current.forEach((listener) => {
+        listener(nextSnapshot, nowMs)
+      })
 
       if (!publishDiagnostics) {
         return
@@ -711,6 +720,13 @@ export function useAudioAnalysis({
   )
 
   const getLatestSnapshot = useCallback(() => snapshotRef.current, [])
+  const subscribeToSnapshots = useCallback(
+    (listener: (snapshot: AudioReactiveSnapshot, nowMs: number) => void) => {
+      snapshotSubscribersRef.current.add(listener)
+      return () => snapshotSubscribersRef.current.delete(listener)
+    },
+    [],
+  )
 
   const requestInitializationFromUserGesture = useCallback(async () => {
     if (!audioElement) {
@@ -1403,6 +1419,7 @@ export function useAudioAnalysis({
     errorMessage,
     requestInitializationFromUserGesture,
     getLatestSnapshot,
+    subscribeToSnapshots,
     analysisCalculationMode: 'requestAnimationFrame',
     diagnosticsPublishHz: ANALYSIS_PUBLISH_HZ,
   }

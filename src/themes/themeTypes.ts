@@ -20,6 +20,9 @@ export type ThemeSceneProps = {
   motionEnabled?: boolean;
   chromaEnabled?: boolean;
   getLatestAudioSnapshot?: (() => AudioReactiveSnapshot) | null;
+  subscribeToAudioSnapshots?: (
+    listener: (snapshot: AudioReactiveSnapshot, nowMs: number) => void,
+  ) => () => void;
   reactivePreviewEnabled?: boolean;
   reactiveBehavior?: ReactiveBehaviorId;
   reactiveDepthMode?: "default" | "stabilized-depth" | "lighting-only";

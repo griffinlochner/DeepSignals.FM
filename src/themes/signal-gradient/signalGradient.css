@@ -1,0 +1,22 @@
+.signal-gradient-scene {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: linear-gradient(
+    90deg,
+    var(--dsfm-brand-green, #9cff57) 0%,
+    var(--dsfm-brand-cyan, #47f7ff) 50%,
+    var(--dsfm-brand-salmon, #ff7fa1) 100%
+  );
+  filter: hue-rotate(var(--signal-gradient-hue, 0deg))
+    saturate(var(--signal-gradient-saturation, 1));
+  transition: filter 90ms linear;
+  will-change: filter;
+}
+
+.signal-gradient-scene::after {
+  position: absolute;
+  inset: 0;
+  background: rgba(1, 6, 9, 0.42);
+  content: "";
+}
