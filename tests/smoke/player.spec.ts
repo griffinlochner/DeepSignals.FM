@@ -604,7 +604,7 @@ test("fresh player defaults apply without replacing persisted choices", async ({
     "demo-psychedelic-experience",
   );
   await expect(page.getByLabel("Visual environment")).toHaveValue(
-    "cosmic-nexus",
+    "cosmic-roller-coaster",
   );
   await expect(
     page.getByRole("button", { name: "Play", exact: true }),
