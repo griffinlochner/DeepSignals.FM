@@ -519,6 +519,79 @@ test("Hirschmilch channels retain local station artwork as the feed fallback", a
   }
 });
 
+test("dynamic artwork links retain their station names", async ({ page }) => {
+  await page.route(PSYSTREAM_TELEMETRY_URL, (route) =>
+    route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        station: {
+          mounts: [
+            {
+              url: PSYSTREAM_STREAM_URL,
+              listeners: { current: 4 },
+              bitrate: 256,
+            },
+          ],
+        },
+        now_playing: {
+          song: {
+            id: "psystream-track",
+            artist: "Middle Mode",
+            title: "Life Simulation (Original)",
+            art: "https://radio.psymusic.co.uk/art/psystream-track.jpg",
+          },
+        },
+      }),
+    }),
+  );
+  await page.route("https://radio.psymusic.co.uk/art/psystream-track.jpg", (route) =>
+    route.fulfill({
+      contentType: "image/svg+xml",
+      body: '<svg xmlns="http://www.w3.org/2000/svg" width="2" height="2"/>',
+    }),
+  );
+  await page.route("https://stream.deeptripradio.net/api/now", (route) =>
+    route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        artist: "Blatancy",
+        title: "A Cup Of Tea In The Twilight (Original Mix)",
+      }),
+    }),
+  );
+  await page.route("https://stream.deeptripradio.net/api/cover?*", (route) =>
+    route.fulfill({
+      contentType: "image/svg+xml",
+      body: '<svg xmlns="http://www.w3.org/2000/svg" width="2" height="2"/>',
+    }),
+  );
+
+  const signalSource = page.getByLabel("Signal source");
+  const artworkImage = page.locator(".visual-feed-window__artwork");
+  const artworkLink = page.locator(".visual-feed-window__artwork-link");
+
+  await signalSource.selectOption("psystream");
+  await expect(artworkImage).toHaveAttribute("src", /psystream-track\.jpg$/);
+  await expect(artworkLink).toHaveAttribute("title", "Visit PsyStream");
+  await expect(artworkLink).toHaveAttribute("aria-label", "Visit PsyStream");
+  await expect(artworkLink).toHaveAttribute(
+    "href",
+    "https://radio.psymusic.co.uk/public/psystream",
+  );
+
+  await signalSource.selectOption("deep-trip-radio");
+  await expect(artworkImage).toHaveAttribute("src", /\/api\/cover\?v=/);
+  await expect(artworkLink).toHaveAttribute("title", "Visit Deep Trip Radio");
+  await expect(artworkLink).toHaveAttribute(
+    "aria-label",
+    "Visit Deep Trip Radio",
+  );
+  await expect(artworkLink).toHaveAttribute(
+    "href",
+    "https://deeptripradio.net/",
+  );
+});
+
 test("PsyBrazil stations use current-track artwork with local fallbacks", async ({
   page,
 }) => {
@@ -556,10 +629,14 @@ test("PsyBrazil stations use current-track artwork with local fallbacks", async 
 
   const signalSource = page.getByLabel("Signal source");
   const artworkImage = page.locator(".visual-feed-window__artwork");
+  const artworkLink = page.locator(".visual-feed-window__artwork-link");
 
   for (const [signalId, stationId, nowPlaying] of stations) {
     await signalSource.selectOption(signalId);
     await expect(artworkImage).toHaveAttribute("src", /\/api\/artwork\.php\?/);
+    await expect(artworkLink).toHaveAttribute("title", "Visit PsyBrazil");
+    await expect(artworkLink).toHaveAttribute("aria-label", "Visit PsyBrazil");
+    await expect(artworkLink).toHaveAttribute("href", "https://psybrazil.com.br/");
 
     const artworkUrl = new URL((await artworkImage.getAttribute("src"))!);
     expect(artworkUrl.searchParams.get("song")).toBe(nowPlaying);

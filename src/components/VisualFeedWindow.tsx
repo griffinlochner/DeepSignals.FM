@@ -205,6 +205,10 @@ function VisualFeedWindow({
     selectedTrackSource?.title ||
     selectedTrackSource?.displayName ||
     "Signal source unavailable";
+  const artworkLinkLabel =
+    selectedTrackSource?.kind === "live-stream"
+      ? selectedTrackSource.sourceLinkLabel ?? selectedTrackSource.displayName
+      : resolvedTitle;
   const artworkUrl =
     [
       metadataOverride?.artworkUrl,
@@ -327,8 +331,8 @@ function VisualFeedWindow({
                   href={externalSourceUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  aria-label={`Visit ${resolvedTitle}`}
-                  title={`Visit ${resolvedTitle}`}
+                  aria-label={`Visit ${artworkLinkLabel}`}
+                  title={`Visit ${artworkLinkLabel}`}
                 >
                   {artworkImage}
                 </a>

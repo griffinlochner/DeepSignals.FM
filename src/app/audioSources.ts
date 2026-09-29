@@ -57,6 +57,7 @@ function createLiveStreamAudioSource(definition: ExternalSignalDefinition): Audi
     title: definition.stationName,
     audioUrl: definition.streamUrl,
     sourceUrl: definition.stationWebsite,
+    sourceLinkLabel: definition.sourceLinkLabel,
     attribution: definition.sourceAttribution,
     isSeekable: false,
     artworkUrl: definition.artworkUrl,

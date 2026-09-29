@@ -22,6 +22,7 @@ export type AudioSource = {
   bpm?: number
   audioUrl: string
   sourceUrl?: string
+  sourceLinkLabel?: string
   license?: string
   attribution?: string
   isSeekable: boolean

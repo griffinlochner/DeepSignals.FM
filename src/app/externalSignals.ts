@@ -24,6 +24,7 @@ export type ExternalSignalDefinition = {
   stationName: string
   streamUrl: string
   stationWebsite: string
+  sourceLinkLabel?: string
   sourceAttribution: string
   publicPlayerCompatible: boolean
   artworkUrl?: string
@@ -86,6 +87,7 @@ export const EXTERNAL_SIGNAL_DEFINITIONS: ExternalSignalDefinition[] = [
     stationName: 'PsyBrazil',
     streamUrl: 'https://radio.psybrazil.com.br/psybr',
     stationWebsite: 'https://psybrazil.com.br/',
+    sourceLinkLabel: 'PsyBrazil',
     sourceAttribution: 'External signal from PsyBrazil',
     publicPlayerCompatible: true,
     artworkUrl: publicAssetUrl('/images/stations/psybr.jpg'),
@@ -95,6 +97,7 @@ export const EXTERNAL_SIGNAL_DEFINITIONS: ExternalSignalDefinition[] = [
     stationName: 'Dumangue',
     streamUrl: 'https://radio.psybrazil.com.br/dumangue',
     stationWebsite: 'https://psybrazil.com.br/',
+    sourceLinkLabel: 'PsyBrazil',
     sourceAttribution: 'External signal from PsyBrazil',
     publicPlayerCompatible: true,
     artworkUrl: publicAssetUrl('/images/stations/psybrazil-dumangue.jpg'),
@@ -104,6 +107,7 @@ export const EXTERNAL_SIGNAL_DEFINITIONS: ExternalSignalDefinition[] = [
     stationName: 'Progressive',
     streamUrl: 'https://radio.psybrazil.com.br/progressive',
     stationWebsite: 'https://psybrazil.com.br/',
+    sourceLinkLabel: 'PsyBrazil',
     sourceAttribution: 'External signal from PsyBrazil',
     publicPlayerCompatible: true,
     artworkUrl: publicAssetUrl('/images/stations/psybrazil-progressive.jpg'),
@@ -113,6 +117,7 @@ export const EXTERNAL_SIGNAL_DEFINITIONS: ExternalSignalDefinition[] = [
     stationName: 'LoFi',
     streamUrl: 'https://radio.psybrazil.com.br/lofi',
     stationWebsite: 'https://psybrazil.com.br/',
+    sourceLinkLabel: 'PsyBrazil',
     sourceAttribution: 'External signal from PsyBrazil',
     publicPlayerCompatible: true,
     artworkUrl: publicAssetUrl('/images/stations/psybrazil-lofi.jpg'),
@@ -122,6 +127,7 @@ export const EXTERNAL_SIGNAL_DEFINITIONS: ExternalSignalDefinition[] = [
     stationName: 'LowBPM',
     streamUrl: 'https://radio.psybrazil.com.br/lowbpm',
     stationWebsite: 'https://psybrazil.com.br/',
+    sourceLinkLabel: 'PsyBrazil',
     sourceAttribution: 'External signal from PsyBrazil',
     publicPlayerCompatible: true,
     artworkUrl: publicAssetUrl('/images/stations/psybrazil-lowbpm.jpg'),
@@ -131,6 +137,7 @@ export const EXTERNAL_SIGNAL_DEFINITIONS: ExternalSignalDefinition[] = [
     stationName: 'Electro',
     streamUrl: 'https://radio.psybrazil.com.br/electro',
     stationWebsite: 'https://psybrazil.com.br/',
+    sourceLinkLabel: 'PsyBrazil',
     sourceAttribution: 'External signal from PsyBrazil',
     publicPlayerCompatible: true,
     artworkUrl: publicAssetUrl('/images/stations/psybrazil-electro.jpg'),
