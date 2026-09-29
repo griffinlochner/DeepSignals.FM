@@ -21,9 +21,9 @@ The wordmark colors come from the resolved decoder states in `src/components/pub
 
 ## Current Status
 
-🚧 Early development
+Public service online
 
-The current public site is a "coming soon" experience while the player is being developed.
+The public player carries live music from multiple independent radio partners with immersive, music-reactive visual environments.
 
 ## Planned Features
 
@@ -612,10 +612,10 @@ http://localhost:5173/
 
 The public landing page is available at `/`.
 
-The work-in-progress player is available locally at:
+The public player is available locally at:
 
 ```text
-http://localhost:5173/player
+http://localhost:5173/player/
 ```
 
 ## Production Build
@@ -676,5 +676,5 @@ https://deepsignals.fm
 
 - Pushing to `main` deploys the current project build.
 - The public landing page is live.
-- The `/player` experience remains under active development.
-- Direct nested-route handling for GitHub Pages may require additional SPA routing work later.
+- The public player is live at `/player/`.
+- Vite builds `/player/` as a direct multi-page entry for GitHub Pages.

@@ -4,6 +4,12 @@
     <loc>https://deepsignals.fm/</loc>
   </url>
   <url>
+    <loc>https://deepsignals.fm/player/</loc>
+  </url>
+  <url>
+    <loc>https://deepsignals.fm/about/</loc>
+  </url>
+  <url>
     <loc>https://deepsignals.fm/submissions/</loc>
   </url>
   <url>

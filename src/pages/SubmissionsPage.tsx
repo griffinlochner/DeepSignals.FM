@@ -78,8 +78,8 @@ function SubmissionsPage() {
               <p className="about-transmission-copy">
                 <span className="about-associated-gradient-text">
                   High-quality audio is preferred. 320 kbps MP3, WAV, or FLAC
-                  files are ideal and can be prepared for the DeepSignals.FM
-                  broadcast stream.
+                  files are ideal for review and possible future DeepSignals.FM
+                  programming.
                 </span>
               </p>
               <p className="about-transmission-copy">
@@ -103,7 +103,7 @@ function SubmissionsPage() {
               <p className="about-transmission-copy" id="submissions-permission-title">
                 <span className="about-associated-gradient-text">
                   Please only submit music that you have permission to allow
-                  DeepSignals.FM to play.
+                  DeepSignals.FM to consider for future play.
                 </span>
               </p>
               <p className="about-transmission-copy">
@@ -115,7 +115,7 @@ function SubmissionsPage() {
               <p className="about-transmission-copy">
                 <span className="about-associated-gradient-text">
                   Artists retain ownership of their music, and tracks can be
-                  removed from DeepSignals.FM upon request.
+                  withdrawn from consideration upon request.
                 </span>
               </p>
             </div>

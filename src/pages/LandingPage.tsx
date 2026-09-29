@@ -46,7 +46,7 @@ function LandingPage() {
           </a>
 
           <p className="player-cta__support">
-            live stations · reactive visuals · telemetry · early preview
+            live stations · reactive visuals · telemetry · on air now
           </p>
 
           <nav
