@@ -48,6 +48,10 @@ Phase 2B also covers Race volume-zero and volume-ramp behavior, qualified SURGE 
 
 ## Player Architecture
 
+For new visualization work, start with the [visualization theme authoring and runtime guide](docs/environment-runtime-contract.md). It covers canonical scenes, registration, lifecycle, controls, shared audio/SURGE, FPS, performance, and testing.
+
+The architecture notes below are historical: their environment inventory and some control/volume descriptions predate the current implementation. Use the guide's source references for current behavior.
+
 DeepSignals.FM currently features **19 registered environments** across several distinct families, each with different audio-reactivity contracts and visual semantics.
 
 The player is designed to be extended through well-defined audio signal contracts rather than duplicating analysis pipelines in every new environment.

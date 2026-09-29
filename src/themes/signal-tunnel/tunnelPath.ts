@@ -17,10 +17,20 @@ export const TUNNEL = {
   segmentCount: 40,
   behindDistance: 24,
   far: 240,
+  doorStartDistance: 112,
+  doorClearDistance: 32,
+  safeRadius: 5.2,
+  torusTube: 1.05,
+  torusTilt: 0.3,
+  portalLayers: 7,
 } as const;
 
 export function createTunnelSection() {
-  return { radius: TUNNEL.radius as number, openness: 0, solid: false, gateway: false, archetype: "spiral" as "spiral" | "rails" };
+  return {
+    radius: TUNNEL.radius as number, openness: 0, solid: false, gateway: false,
+    door: false, torus: false, reentry: false,
+    archetype: "spiral" as "spiral" | "rails" | "torus",
+  };
 }
 
 export function sampleTunnelSection(distance: number, target: ReturnType<typeof createTunnelSection>) {
@@ -32,17 +42,32 @@ export function sampleTunnelSection(distance: number, target: ReturnType<typeof 
     * leaving * leaving * (3 - 2 * leaving);
   target.radius = (TUNNEL.radius + Math.sin(distance * 0.012)) * (1 - target.openness)
     + TUNNEL.chamberRadius * target.openness;
-  target.archetype = cycle % 2 === 0 ? "spiral" : "rails";
+  const chapter = ((cycle % 3) + 3) % 3;
+  target.archetype = chapter === 0 ? "spiral" : chapter === 1 ? "rails" : "torus";
   target.solid = (phase >= 48 && phase < 160) || (phase >= 480 && phase < 592);
   target.gateway = phase === 144 || phase === 160 || phase === 480 || phase === 496;
+  target.door = phase === 112;
+  target.torus = chapter === 2 && phase >= 256 && phase <= 384 && phase % 32 === 0;
+  target.reentry = chapter === 2 && phase === 448;
   return target;
+}
+
+export function tunnelDoorOpening(distanceAhead: number) {
+  const progress = Math.min(1, Math.max(0,
+    (TUNNEL.doorStartDistance - distanceAhead) / (TUNNEL.doorStartDistance - TUNNEL.doorClearDistance),
+  ));
+  return progress * progress * (3 - 2 * progress);
+}
+
+export function tunnelDoorHalfGap(distanceAhead: number, radius: number) {
+  return 0.35 + tunnelDoorOpening(distanceAhead) * (radius + 0.6);
 }
 
 export function tunnelTargetSpeed(
   isPlaying: boolean,
   snapshot?: TunnelAudioInput | null,
 ) {
-  return TUNNEL.speed + TUNNEL.maxSpeedBoost * tunnelAudioEnergy(isPlaying, snapshot);
+  return (TUNNEL.speed + TUNNEL.maxSpeedBoost) * tunnelAudioEnergy(isPlaying, snapshot);
 }
 
 export type TunnelAudioInput = Pick<AudioReactiveSnapshot, "isActive" | "smoothedEnergy">
@@ -52,7 +77,7 @@ export function tunnelAudioEnergy(isPlaying: boolean, snapshot?: TunnelAudioInpu
   if (!isPlaying || !snapshot?.isActive || !Number.isFinite(snapshot.smoothedEnergy)) return 0;
   const raw = Number.isFinite(snapshot.energy) ? snapshot.energy! : snapshot.smoothedEnergy;
   const bass = Number.isFinite(snapshot.bass) ? snapshot.bass! : snapshot.smoothedEnergy;
-  return mapEnergyToSurgeTargetSpeed(0.6 * raw + 0.3 * snapshot.smoothedEnergy + 0.1 * bass) / 100;
+  return (mapEnergyToSurgeTargetSpeed(0.6 * raw + 0.3 * snapshot.smoothedEnergy + 0.1 * bass) / 100) ** 1.35;
 }
 
 export function dampTunnelSpeed(current: number, target: number, deltaSeconds: number) {
