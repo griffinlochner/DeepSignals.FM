@@ -3,6 +3,7 @@ import type { TrackSignalMetadata } from './trackSignalMetadata'
 
 export type ExternalNowPlayingMetadata = TrackSignalMetadata & {
   changeKey: string
+  rawNowPlaying?: string
 }
 
 export type ExternalNowPlayingConfig = {

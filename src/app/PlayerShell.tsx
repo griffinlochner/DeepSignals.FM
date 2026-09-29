@@ -47,6 +47,7 @@ import {
   useSpaceUnicornTelemetry,
 } from "./useSpaceUnicornNowPlaying";
 import { useHirschmilchNowPlaying } from "./useHirschmilchNowPlaying";
+import { getPsyBrazilArtworkUrl } from "./psybrazilArtwork";
 import { publishRuntimeTestSnapshot } from "./runtimeTestBridge";
 import {
   mapSignalTarget,
@@ -484,6 +485,20 @@ function PlayerShell({ className }: PlayerShellProps) {
     deepTripNowPlaying ??
     spaceUnicornNowPlaying ??
     hirschmilchNowPlaying;
+  const externalNowPlayingWithArtwork = useMemo(() => {
+    if (!externalNowPlaying) {
+      return null;
+    }
+
+    const artworkUrl = getPsyBrazilArtworkUrl(
+      selectedSignalId,
+      externalNowPlaying.rawNowPlaying,
+    );
+
+    return artworkUrl
+      ? { ...externalNowPlaying, artworkUrl }
+      : externalNowPlaying;
+  }, [externalNowPlaying, selectedSignalId]);
   const registrySourceBpm = audioController.audioSource.bpm ?? null;
   const effectiveReactiveBpm = ignoreSourceBpmEnabled
     ? null
@@ -1208,7 +1223,7 @@ function PlayerShell({ className }: PlayerShellProps) {
           selectedTrackSource={
             selectedSignalId ? audioController.audioSource : null
           }
-          metadataOverride={externalNowPlaying}
+          metadataOverride={externalNowPlayingWithArtwork}
           listeners={
             psyndoraTelemetry?.listeners ??
             psyStreamTelemetry?.listeners ??

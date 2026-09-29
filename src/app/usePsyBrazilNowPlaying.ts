@@ -83,6 +83,7 @@ function parseNetworkNowPlaying(
   const rawText = typeof raw === 'string' ? raw.trim() : ''
   let artist: string | null = null
   let title: string | null = null
+  let rawNowPlaying: string | null = null
 
   if (rawText) {
     try {
@@ -99,11 +100,13 @@ function parseNetworkNowPlaying(
         cleanString(parsed.track) ??
         cleanString(parsed.nowplaying) ??
         cleanString(parsed.current)
+      rawNowPlaying = combined?.toLowerCase() === 'unknown' ? null : combined
       const split = combined ? splitCombinedTitle(combined) : null
 
       artist = split?.artist ?? musicalArtist(fieldArtist)
       title = split?.title ?? (combined ? normalizeText(combined) : null)
     } catch {
+      rawNowPlaying = rawText
       const split = splitCombinedTitle(rawText)
       artist = split?.artist ?? null
       title = split?.title ?? (normalizeText(rawText) || null)
@@ -120,6 +123,7 @@ function parseNetworkNowPlaying(
     artist: artist ?? undefined,
     origin: 'configured',
     changeKey: `${artist ?? ''}:${title}`,
+    rawNowPlaying: rawNowPlaying ?? undefined,
   }
 }
 

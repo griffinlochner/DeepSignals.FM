@@ -519,6 +519,81 @@ test("Hirschmilch channels retain local station artwork as the feed fallback", a
   }
 });
 
+test("PsyBrazil stations use current-track artwork with local fallbacks", async ({
+  page,
+}) => {
+  const stations = [
+    ["psybrazil", "psybr", "Eartheogen - Energy Rebounds", "/images/stations/psybr.jpg"],
+    ["psybrazil-dumangue", "dumangue", "Chimo Bayo - Asi Me Gusta A Mi", "/images/stations/psybrazil-dumangue.jpg"],
+    ["psybrazil-progressive", "progressive", "Karmon - Bluesky & Beyond", "/images/stations/psybrazil-progressive.jpg"],
+    ["psybrazil-lofi", "lofi", "Khetzal - Litora Praesidium", "/images/stations/psybrazil-lofi.jpg"],
+    ["psybrazil-lowbpm", "lowbpm", "Etnica - Fluorophilia", "/images/stations/psybrazil-lowbpm.jpg"],
+    ["psybrazil-electro", "electro", "Lish - Feel Good", "/images/stations/psybrazil-electro.jpg"],
+  ] as const;
+  let psyBrazilTrack = stations[0][2];
+
+  await page.route("https://psybrazil.com.br/api/track.php?station=*", (route) => {
+    const stationId = new URL(route.request().url()).searchParams.get("station");
+    const station = stations.find(([, id]) => id === stationId);
+
+    return route.fulfill({
+      contentType: "application/json",
+      headers: { "access-control-allow-origin": "*" },
+      body: JSON.stringify({
+        success: true,
+        station: stationId,
+        status: "online",
+        now_playing: stationId === "psybr" ? psyBrazilTrack : station?.[2] ?? "",
+      }),
+    });
+  });
+  await page.route("https://psybrazil.com.br/api/artwork.php?*", (route) =>
+    route.fulfill({
+      contentType: "image/svg+xml",
+      body: '<svg xmlns="http://www.w3.org/2000/svg" width="2" height="2"><path fill="#000" d="M0 0h2v2H0z"/></svg>',
+    }),
+  );
+
+  const signalSource = page.getByLabel("Signal source");
+  const artworkImage = page.locator(".visual-feed-window__artwork");
+
+  for (const [signalId, stationId, nowPlaying] of stations) {
+    await signalSource.selectOption(signalId);
+    await expect(artworkImage).toHaveAttribute("src", /\/api\/artwork\.php\?/);
+
+    const artworkUrl = new URL((await artworkImage.getAttribute("src"))!);
+    expect(artworkUrl.searchParams.get("song")).toBe(nowPlaying);
+    expect(artworkUrl.searchParams.get("station")).toBe(stationId);
+    expect(await artworkImage.getAttribute("crossorigin")).toBeNull();
+  }
+
+  await page.unroute("https://psybrazil.com.br/api/artwork.php?*");
+  await page.route("https://psybrazil.com.br/api/artwork.php?*", (route) =>
+    route.abort("failed"),
+  );
+  psyBrazilTrack = "Fallback Artist - New Track";
+  await signalSource.selectOption("psybrazil");
+  await expect(artworkImage).toHaveAttribute("src", /\/images\/stations\/psybr\.jpg$/);
+
+  await page.unroute("https://psybrazil.com.br/api/artwork.php?*");
+  await page.route("https://psybrazil.com.br/api/artwork.php?*", (route) =>
+    route.fulfill({
+      contentType: "image/svg+xml",
+      body: '<svg xmlns="http://www.w3.org/2000/svg" width="2" height="2"><path fill="#000" d="M0 0h2v2H0z"/></svg>',
+    }),
+  );
+  await signalSource.selectOption("psybrazil-electro");
+  psyBrazilTrack = "Recovered Artist - Later Track";
+  await signalSource.selectOption("psybrazil");
+  await expect(artworkImage).toHaveAttribute("src", /\/api\/artwork\.php\?/);
+  expect(
+    new URL((await artworkImage.getAttribute("src"))!).searchParams.get("song"),
+  ).toBe(psyBrazilTrack);
+
+  await signalSource.selectOption("space-unicorn-radio");
+  await expect(artworkImage).toHaveAttribute("src", /space-unicorn-radio/);
+});
+
 test("fresh player defaults apply without replacing persisted choices", async ({
   page,
 }) => {

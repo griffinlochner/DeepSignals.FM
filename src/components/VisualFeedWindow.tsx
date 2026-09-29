@@ -137,14 +137,24 @@ function VisualFeedWindow({
   className,
 }: VisualFeedWindowProps) {
   const contentId = useId();
-  const [failedArtworkUrls, setFailedArtworkUrls] = useState<Set<string>>(
-    () => new Set(),
-  );
+  const [artworkFailures, setArtworkFailures] = useState<{
+    preferredArtworkUrl: string;
+    failedUrls: Set<string>;
+  }>(() => ({ preferredArtworkUrl: "", failedUrls: new Set() }));
   const [liveSnapshot, setLiveSnapshot] = useState(audioSnapshot);
   const panelElementRef = useRef<HTMLElement | null>(null);
   const FrameComponent = Frame ?? DefaultFrame;
   const { status, metadata } = useTrackSignalMetadata(selectedTrackSource);
   const chromaReactive = chromaEnabled === true && playbackStatus === "playing";
+  const preferredArtworkUrl =
+    metadataOverride?.artworkUrl ??
+    metadata?.artworkUrl ??
+    selectedTrackSource?.artworkUrl ??
+    BRAND_FALLBACK_ARTWORK_URL;
+  const failedArtworkUrls =
+    artworkFailures.preferredArtworkUrl === preferredArtworkUrl
+      ? artworkFailures.failedUrls
+      : new Set<string>();
 
   useEffect(() => {
     if (!open || !getLatestSnapshot) {
@@ -229,7 +239,15 @@ function VisualFeedWindow({
           : `Cover artwork for ${resolvedTitle}`
       }
       onError={() => {
-        setFailedArtworkUrls((current) => new Set(current).add(artworkUrl));
+        setArtworkFailures((current) => {
+          const failedUrls =
+            current.preferredArtworkUrl === preferredArtworkUrl
+              ? new Set(current.failedUrls)
+              : new Set<string>();
+          failedUrls.add(artworkUrl);
+
+          return { preferredArtworkUrl, failedUrls };
+        });
       }}
     />
   ) : null;

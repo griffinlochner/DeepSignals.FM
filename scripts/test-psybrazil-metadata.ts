@@ -3,6 +3,10 @@ import {
   createPsyBrazilNowPlayingParser,
   parsePsyBrazilNowPlaying,
 } from '../src/app/usePsyBrazilNowPlaying'
+import {
+  getPsyBrazilArtworkUrl,
+  PSYBRAZIL_STATION_IDS,
+} from '../src/app/psybrazilArtwork'
 
 const DUMANGUE_URL = 'https://psybrazil.com.br/api/track.php?station=dumangue'
 
@@ -40,6 +44,11 @@ assert.equal(plainText?.title, 'New Divide (Kamasutrance Remix)')
 
 assert.equal(parsePsyBrazilNowPlaying(''), null)
 assert.equal(parsePsyBrazilNowPlaying(JSON.stringify({ ok: true })), null)
+assert.equal(
+  parsePsyBrazilNowPlaying(JSON.stringify({ now_playing: 'Unknown' }))
+    ?.rawNowPlaying,
+  undefined,
+)
 
 // api/track.php shape, as served for the psybr mount (underscore separators).
 const trackApiPsyBr = parsePsyBrazilNowPlaying(
@@ -54,6 +63,7 @@ const trackApiPsyBr = parsePsyBrazilNowPlaying(
 
 assert.equal(trackApiPsyBr?.artist, 'Erebus')
 assert.equal(trackApiPsyBr?.title, 'Return Of The Vindaloo')
+assert.equal(trackApiPsyBr?.rawNowPlaying, 'Erebus_-_Return_Of_The_Vindaloo')
 
 // api/track.php shape, as served for the dumangue mount (dash separator).
 const dumangueParse = createPsyBrazilNowPlayingParser(DUMANGUE_URL)
@@ -136,5 +146,37 @@ const trackApiElectro = createPsyBrazilNowPlayingParser(electroUrl)(
 assert.equal(trackApiElectro?.artist, 'lish')
 assert.equal(trackApiElectro?.title, 'feel good-g-psy-converted')
 assert.equal(trackApiElectro?.sourceUrl, electroUrl)
+
+assert.deepEqual(PSYBRAZIL_STATION_IDS, {
+  psybrazil: 'psybr',
+  'psybrazil-dumangue': 'dumangue',
+  'psybrazil-progressive': 'progressive',
+  'psybrazil-lofi': 'lofi',
+  'psybrazil-lowbpm': 'lowbpm',
+  'psybrazil-electro': 'electro',
+})
+
+for (const [signalId, stationId] of Object.entries(PSYBRAZIL_STATION_IDS)) {
+  const artworkUrl = getPsyBrazilArtworkUrl(
+    signalId,
+    'Eartheogen - Energy Rebounds & Beyond',
+  )
+  assert.ok(artworkUrl)
+  const parsedUrl = new URL(artworkUrl)
+  assert.equal(parsedUrl.origin + parsedUrl.pathname, 'https://psybrazil.com.br/api/artwork.php')
+  assert.equal(parsedUrl.searchParams.get('song'), 'Eartheogen - Energy Rebounds & Beyond')
+  assert.equal(parsedUrl.searchParams.get('station'), stationId)
+}
+
+assert.notEqual(
+  getPsyBrazilArtworkUrl('psybrazil', 'First Artist - First Track'),
+  getPsyBrazilArtworkUrl('psybrazil', 'Second Artist - Second Track'),
+)
+assert.notEqual(
+  getPsyBrazilArtworkUrl('psybrazil', 'Artist - Track'),
+  getPsyBrazilArtworkUrl('psybrazil-electro', 'Artist - Track'),
+)
+assert.equal(getPsyBrazilArtworkUrl('psybrazil', ''), null)
+assert.equal(getPsyBrazilArtworkUrl('space-unicorn-radio', 'Artist - Track'), null)
 
 console.log('PsyBrazil now-playing metadata parsing checks passed.')
