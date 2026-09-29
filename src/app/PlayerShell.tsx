@@ -103,6 +103,7 @@ const PUBLIC_PLAYER_ENVIRONMENT_IDS = [
   "dark-psy-temple",
   "psybrazil",
   "cosmic-roller-coaster",
+  "signal-tunnel",
 ] as const;
 const publicPlayerEnvironmentIds = new Set<string>(
   PUBLIC_PLAYER_ENVIRONMENT_IDS,
@@ -150,6 +151,7 @@ const ENVIRONMENT_GROUPS: EnvironmentGroup[] = [
       "signal-runner",
       "neon-hyper-racer",
       "cosmic-roller-coaster",
+      "signal-tunnel",
     ],
   },
 ];
