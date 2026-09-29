@@ -737,6 +737,8 @@ test("representative environments switch without losing the player", async ({
     ["Signal Runner", "signal-runner"],
     ["Race to the Signal Nexus", "neon-hyper-racer"],
     ["The Signal Nexus", "cosmic-nexus"],
+    ["Alien Megastructure Transit", "alien-megastructure-transit"],
+    ["Signal Tunnel", "signal-tunnel"],
   ] as const;
 
   for (const [label, id] of cases) {

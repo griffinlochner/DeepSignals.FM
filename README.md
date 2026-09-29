@@ -46,6 +46,16 @@ The behavior spec also runs against the bundled `Illustrator — Psychedelic Exp
 
 Phase 2B also covers Race volume-zero and volume-ramp behavior, qualified SURGE during local demo playback, and the shared qualifier's arm/cooldown semantics. Run `npx playwright test tests/behavior/volume-surge.spec.ts tests/behavior/surge-qualification.spec.ts`.
 
+## Alien Megastructure Transit: Phase 2
+
+Select **Alien Megastructure Transit** under **3D EXPERIENCES**. Open-space flight now passes through dark alien machinery with DSFM cyan, green and salmon illumination. Neither player default changes. Playback pause, MOTION OFF and reduced motion freeze travel, segmented halo rotation, suspended ribs and traveling light packets. CHROMA OFF retains restrained authored teal lighting; ON adds the three-color palette, traveling color interplay and smoothed shared energy/bass illumination. Color response is independent of MOTION. No new analyser, surge system, camera banking or audio-driven propulsion is introduced; volume affects analyzed illumination, not authored travel speed.
+
+The unchanged shared spatial model in [transitWorld.ts](src/themes/alien-megastructure-transit/transitWorld.ts) places colossal rings, monolith fields and overhead slabs around a gently curving centerline. Six fixed encounter slots recycle behind the viewer to beyond the far plane. [transitArchitecture.ts](src/themes/alien-megastructure-transit/transitArchitecture.ts) owns seven shared instanced batches: original masses, three counter-rotating segmented halo layers, inset rims, pylon channels/collars, and layered slab rails with slowly suspended ribs. Sparse colored stars retain the open void. Eight draw calls including 420 star points, two simple lights, capped DPR and linear distance fade; no textures, shadows, custom shaders, bloom or postprocessing. Resources remain bounded and explicitly disposed.
+
+For review, watch the first ring crossing around 5 seconds, open space around 10 seconds, monolith threading around 18 seconds, and the overhead bridge around 32 seconds of active travel. Compare CHROMA states, desktop and portrait views, rotating layers, underside parallax, negative space, clearance, and pause/resume. Timings can stretch under low frame rates because simulation delta is capped. No new chapter type was added: the three Phase 1 encounters and open intervals remain recognizable. Full propulsion/SURGE work remains deferred.
+
+Run `npx playwright test tests/behavior/alien-megastructure-transit.spec.ts` for long-run clearance/pool checks, motion gates, live canvas checks, loop/GPU cleanup, FPS clearing and desktop/mobile screenshots. The scene samples shared render FPS only after actual draws and disposes its loop, observer, listeners and owned GPU resources on unmount.
+
 ## Player Architecture
 
 For new visualization work, start with the [visualization theme authoring and runtime guide](docs/environment-runtime-contract.md). It covers canonical scenes, registration, lifecycle, controls, shared audio/SURGE, FPS, performance, and testing.

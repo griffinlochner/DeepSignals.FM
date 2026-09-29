@@ -8,6 +8,7 @@ import SignalRainDefinition from "./signal-rain";
 import SignalRunnerDefinition from "./signal-runner";
 import CosmicRollerCoasterDefinition from "./cosmic-roller-coaster";
 import SignalTunnelDefinition from "./signal-tunnel";
+import AlienMegastructureTransitDefinition from "./alien-megastructure-transit";
 
 export const themeRegistry: ThemeDefinition[] = [
   MinimalDefinition,
@@ -18,6 +19,7 @@ export const themeRegistry: ThemeDefinition[] = [
   SignalRunnerDefinition,
   CosmicRollerCoasterDefinition,
   SignalTunnelDefinition,
+  AlienMegastructureTransitDefinition,
   ...imageDepthThemeDefinitions,
 ];
 
