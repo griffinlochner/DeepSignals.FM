@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { createTransitLighting, createTransitWorld, TRANSIT, type TransitBody } from "./transitWorld";
+import { createTransitMotion, transitSurgeActivation } from "./transitMotion";
 
 const SIDES = [-1, 1] as const;
 
@@ -33,21 +34,37 @@ export function createTransitArchitecture(world: ReturnType<typeof createTransit
   let chroma = false;
   let intensity = 0.48;
   let interplay = 0;
+  let bass = 0;
+  let mids = 0;
+  let highs = 0;
+  let activation = 0;
 
   for (const mesh of meshes) {
     mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     mesh.frustumCulled = false;
   }
-  for (const mesh of [signals, arcLights, rims]) {
+  for (const mesh of [signals, arcLights, rims, machinery, rings, structures]) {
     mesh.setColorAt(0, color);
     mesh.instanceColor!.setUsage(THREE.DynamicDrawUsage);
   }
 
-  const paint = (mesh: THREE.InstancedMesh, index: number, family: number, phase: number, strength = 1) => {
-    const wave = Math.pow(0.5 + 0.5 * Math.sin(phase - clock * 1.4), 5);
+  const paint = (
+    mesh: THREE.InstancedMesh, index: number, family: number, phase: number, strength = 1,
+    band: "bass" | "mids" | "highs" = "mids",
+  ) => {
+    const wave = Math.pow(0.5 + 0.5 * Math.sin(phase - clock * 2.2), 5);
+    const response = band === "bass" ? bass : band === "mids" ? mids : highs;
     color.copy(chroma ? colors[family % 3] : authored);
-    if (chroma) color.lerp(colors[(family + 1) % 3], wave * interplay * 0.42);
-    color.multiplyScalar(intensity * strength * (1 + wave * interplay * 0.9));
+    if (chroma) color.lerp(colors[(family + 1) % 3], Math.min(0.85, wave * interplay * 0.55 + activation * 0.6));
+    color.multiplyScalar(strength * (intensity * (chroma ? 0.35 + wave * 0.65 + response * (0.7 + wave * 1.8) : 1)
+      + activation * (chroma ? 3.2 : 1.6)));
+    mesh.setColorAt(index, color);
+  };
+
+  const paintSurface = (mesh: THREE.InstancedMesh, index: number, family: number, response: number) => {
+    color.setHex(0xffffff);
+    if (chroma) color.lerp(colors[family % 3], 0.25 + response * 0.6 + activation * 0.15);
+    color.multiplyScalar(chroma ? 0.8 + response * 1.5 + activation * 3 : 0.5 + activation * 1.8);
     mesh.setColorAt(index, color);
   };
 
@@ -72,19 +89,26 @@ export function createTransitArchitecture(world: ReturnType<typeof createTransit
   const signal = (
     body: TransitBody, offsetX: number, offsetY: number, offsetZ: number,
     width: number, height: number, depth: number, family: number, phase: number, strength = 1,
+    band: "bass" | "mids" | "highs" = "mids",
   ) => {
     bodyBox(signals, signalIndex, body, offsetX, offsetY, offsetZ, width, height, depth);
-    paint(signals, signalIndex++, family, phase, strength);
+    paint(signals, signalIndex++, family, phase, strength, band);
   };
 
   const update = (
     center: THREE.Vector3, lighting: ReturnType<typeof createTransitLighting>, chromaEnabled: boolean,
+    motion?: ReturnType<typeof createTransitMotion>,
   ) => {
     relative.copy(center);
     clock = world.animationSeconds;
     chroma = chromaEnabled;
     intensity = lighting.intensity;
     interplay = lighting.interplay;
+    bass = lighting.bass;
+    mids = lighting.mids;
+    highs = lighting.highs;
+    metal.color.setHex(chroma ? 0x233c3d : 0x142426);
+    graphite.color.setHex(chroma ? 0x446069 : 0x243237);
     signalIndex = 0;
     detailIndex = 0;
     let bodyIndex = 0;
@@ -93,31 +117,34 @@ export function createTransitArchitecture(world: ReturnType<typeof createTransit
     let rimIndex = 0;
     for (const encounter of world.encounters) {
       const encounterPhase = encounter.distance * 0.002;
+      activation = motion ? transitSurgeActivation(encounter.distance - motion.surgeOrigin,
+        motion.elapsedMs - motion.surgeStartedAt, motion.surgeEnvelope) : 0;
       for (let index = 0; index < encounter.bodies.length; index += 1) {
         const body = encounter.bodies[index];
         const family = index % 3;
         const phase = encounterPhase + index * 0.8;
         const front = body.size.z / 2 + 3;
-        bodyBox(structures, bodyIndex++, body, 0, 0, 0, body.size.x, body.size.y, body.size.z);
+        bodyBox(structures, bodyIndex, body, 0, 0, 0, body.size.x, body.size.y, body.size.z);
+        paintSurface(structures, bodyIndex++, family, bass * 0.35);
         if (encounter.kind === "ring") {
           for (const side of SIDES) {
             bodyBox(details, detailIndex++, body, 0, side * 54, 0, 270, 18, body.size.z + 20);
             signal(body, 0, side * 54, front + 12, 230, 8, 8, family, phase);
           }
-          signal(body, 80, 0, front, 18, 76, 8, 1, phase, 1.2);
+          signal(body, 80, 0, front, 18, 76, 8, 1, phase, 1.2, "highs");
           for (let rib = 0; rib < 3; rib += 1) {
             bodyBox(details, detailIndex++, body, -75 + rib * 55, 0, front, 14, 90, 16);
           }
         } else if (encounter.kind === "pylons") {
           for (const side of SIDES) {
             bodyBox(details, detailIndex++, body, side * 99, 0, 0, 38, body.size.y + 80, body.size.z + 36);
-            signal(body, side * 77, 0, front + 20, 10, body.size.y * 0.94, 9, side < 0 ? 1 : 0, phase, 0.85);
-            signal(body, side * 119, 0, 0, 7, body.size.y * 0.85, body.size.z * 0.65, family, phase, 0.5);
+            signal(body, side * 77, 0, front + 20, 10, body.size.y * 0.94, 9, side < 0 ? 1 : 0, phase, 0.85, "bass");
+            signal(body, side * 119, 0, 0, 7, body.size.y * 0.85, body.size.z * 0.65, family, phase, 0.5, "bass");
           }
           for (let rib = 0; rib < 5; rib += 1) {
             const height = (rib - 2) * body.size.y / 5.7;
             bodyBox(details, detailIndex++, body, 0, height, front, 155, 58, 32);
-            signal(body, 0, height + 21, front + 18, 130, 7, 6, family, phase + rib * 1.1, 0.7);
+            signal(body, 0, height + 21, front + 18, 130, 7, 6, family, phase + rib * 1.1, 0.7, "highs");
           }
           const packet = ((clock * 0.035 + index * 0.17) % 1 - 0.5) * body.size.y * 0.84;
           signal(body, 0, packet, front + 20, 28, 100, 9, 2, phase, chroma ? 1.5 : 0.25);
@@ -131,7 +158,7 @@ export function createTransitArchitecture(world: ReturnType<typeof createTransit
             const offset = (rib - 2) * body.size.x / 5.5;
             const suspension = -body.size.y / 2 - 50 + Math.sin(clock * 0.16 + rib + index) * 12;
             bodyBox(details, detailIndex++, body, offset, suspension, 0, 70, 30, 245);
-            signal(body, offset, suspension - 17, 0, 46, 6, 210, family, phase + rib, 0.85);
+            signal(body, offset, suspension - 17, 0, 46, 6, 210, family, phase + rib, 0.85, "highs");
           }
           const packet = ((clock * 0.04 + index * 0.21) % 1 - 0.5) * body.size.x * 0.9;
           signal(body, packet, -body.size.y / 2 - 4, 0, 150, 6, 34, 1, phase, chroma ? 1.4 : 0.2);
@@ -142,7 +169,8 @@ export function createTransitArchitecture(world: ReturnType<typeof createTransit
       transform.scale.set(1, 1, TRANSIT.ringDepthScale);
       transform.rotation.set(0, 0, clock * 0.018);
       transform.updateMatrix();
-      rings.setMatrixAt(ringIndex++, transform.matrix);
+      rings.setMatrixAt(ringIndex, transform.matrix);
+      paintSurface(rings, ringIndex++, 0, bass);
       for (const side of SIDES) {
         transform.position.copy(encounter.center).sub(center);
         transform.position.z += side * 180;
@@ -150,7 +178,7 @@ export function createTransitArchitecture(world: ReturnType<typeof createTransit
         transform.rotation.set(0, 0, 0);
         transform.updateMatrix();
         rims.setMatrixAt(rimIndex, transform.matrix);
-        paint(rims, rimIndex++, side < 0 ? 2 : 0, encounterPhase, 1.1);
+        paint(rims, rimIndex++, side < 0 ? 2 : 0, encounterPhase, 1.1, "bass");
       }
       for (let layer = 0; layer < 3; layer += 1) {
         const radius = 990 + layer * 175;
@@ -162,6 +190,7 @@ export function createTransitArchitecture(world: ReturnType<typeof createTransit
           transform.rotation.set(0, 0, turning + segment * Math.PI / 3);
           transform.updateMatrix();
           machinery.setMatrixAt(arcIndex, transform.matrix);
+          paintSurface(machinery, arcIndex, layer, mids * (0.5 + 0.5 * Math.sin(segment * 1.1 - clock * 2.2)));
           transform.position.z += 67;
           transform.scale.z = radius;
           transform.updateMatrix();

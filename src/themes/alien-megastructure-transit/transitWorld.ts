@@ -1,5 +1,5 @@
 import { Vector3 } from "three";
-import type { AudioReactiveSnapshot } from "../../app/playerTypes";
+import { transitUnit, type TransitAudioInput } from "./transitMotion";
 
 export const TRANSIT = {
   speed: 240,
@@ -22,11 +22,7 @@ export type TransitBody = {
 };
 
 export function createTransitLighting() {
-  return { energy: 0, bass: 0, intensity: 0.48, interplay: 0 };
-}
-
-function unit(value: number) {
-  return Number.isFinite(value) ? Math.min(1, Math.max(0, value)) : 0;
+  return { energy: 0, bass: 0, mids: 0, highs: 0, intensity: 0.16, interplay: 0 };
 }
 
 export function updateTransitLighting(
@@ -34,17 +30,20 @@ export function updateTransitLighting(
   deltaSeconds: number,
   isPlaying: boolean,
   chromaEnabled: boolean,
-  snapshot?: AudioReactiveSnapshot | null,
+  snapshot?: TransitAudioInput | null,
 ) {
   const active = isPlaying && chromaEnabled && snapshot?.isActive;
-  const energy = active ? unit(snapshot.smoothedEnergy) * 0.75 + unit(snapshot.energy) * 0.25 : 0;
-  const bass = active ? unit(snapshot.bass) : 0;
+  const energy = active ? transitUnit(snapshot.smoothedEnergy) * 0.75 + transitUnit(snapshot.energy) * 0.25 : 0;
+  const bass = active ? transitUnit(transitUnit(snapshot.bass) * 0.7 + transitUnit(snapshot.bassPulse) * 0.35 + transitUnit(snapshot.kickPulse) * 0.5) : 0;
+  const mids = active ? transitUnit(snapshot.mids) : 0;
+  const highs = active ? transitUnit(transitUnit(snapshot.highs) * 0.7 + transitUnit(snapshot.transient) * 0.5) : 0;
   const delta = Number.isFinite(deltaSeconds) ? Math.min(0.05, Math.max(0, deltaSeconds)) : 0;
-  const blend = 1 - Math.exp(-delta * 3);
-  lighting.energy = active ? lighting.energy + (energy - lighting.energy) * blend : 0;
-  lighting.bass = active ? lighting.bass + (bass - lighting.bass) * blend : 0;
-  lighting.intensity = chromaEnabled ? 0.85 + lighting.energy * 0.65 + lighting.bass * 0.2 : 0.48;
-  lighting.interplay = chromaEnabled ? 0.32 + lighting.energy * 0.48 : 0;
+  lighting.energy = active ? lighting.energy + (energy - lighting.energy) * (1 - Math.exp(-delta * 4)) : 0;
+  lighting.bass = active ? lighting.bass + (bass - lighting.bass) * (1 - Math.exp(-delta * (bass > lighting.bass ? 18 : 5))) : 0;
+  lighting.mids = active ? lighting.mids + (mids - lighting.mids) * (1 - Math.exp(-delta * 9)) : 0;
+  lighting.highs = active ? lighting.highs + (highs - lighting.highs) * (1 - Math.exp(-delta * (highs > lighting.highs ? 24 : 7))) : 0;
+  lighting.intensity = chromaEnabled ? 0.9 + lighting.energy * 1.8 : 0.16;
+  lighting.interplay = chromaEnabled ? 0.45 + lighting.energy * 0.5 : 0;
 }
 
 export function sampleTransitPath(distance: number, target: Vector3) {
@@ -118,11 +117,12 @@ export function advanceTransitWorld(
   motionEnabled: boolean,
   reducedMotion: boolean,
   direction: Vector3,
+  speed: number = TRANSIT.speed,
 ) {
   if (!isPlaying || !motionEnabled || reducedMotion) return;
   const delta = Number.isFinite(deltaSeconds) ? Math.min(Math.max(deltaSeconds, 0), 0.05) : 0;
   sampleTransitDirection(world.distance, direction);
-  world.distance += TRANSIT.speed * delta / direction.length();
+  world.distance += (Number.isFinite(speed) ? Math.max(0, speed) : 0) * delta / direction.length();
   world.animationSeconds += delta;
   for (const encounter of world.encounters) {
     if (encounter.distance < world.distance - TRANSIT.behind) {

@@ -1,4 +1,4 @@
-import { BoxGeometry, Matrix4, Quaternion, TorusGeometry, Vector3 } from "three";
+import { BoxGeometry, InstancedMesh, Matrix4, Quaternion, TorusGeometry, Vector3 } from "three";
 import type { Page } from "@playwright/test";
 import type { AudioReactiveSnapshot } from "../../src/app/playerTypes";
 import { test, expect } from "../support/test";
@@ -7,6 +7,146 @@ import {
   sampleTransitPath, TRANSIT, updateTransitLighting,
 } from "../../src/themes/alien-megastructure-transit/transitWorld";
 import { createTransitArchitecture } from "../../src/themes/alien-megastructure-transit/transitArchitecture";
+import {
+  createTransitMotion, transitPropulsionEnergy, transitSurgeActivation, TRANSIT_MOTION, updateTransitMotion,
+} from "../../src/themes/alien-megastructure-transit/transitMotion";
+import { createTransitSpace, generateTransitStars, TRANSIT_STAR_CLASSES } from "../../src/themes/alien-megastructure-transit/transitSpace";
+
+test("transit bands illuminate different architecture without changing geometry", () => {
+  const world = createTransitWorld();
+  const architecture = createTransitArchitecture(world);
+  const center = sampleTransitPath(0, new Vector3());
+  const neutral = { isActive: true, energy: 0.3, smoothedEnergy: 0.3, bass: 0, mids: 0, highs: 0 };
+  const sample = (band: "bass" | "mids" | "highs" | "none", chroma = true) => {
+    const lighting = createTransitLighting();
+    for (let frame = 0; frame < 120; frame += 1) {
+      updateTransitLighting(lighting, 0.05, true, chroma, { ...neutral, [band]: 1 });
+    }
+    architecture.update(center, lighting, chroma);
+    return architecture.meshes.map((mesh) => mesh.instanceColor ? Array.from(mesh.instanceColor.array) : []);
+  };
+  const neutralColors = sample("none");
+  const matrices = architecture.meshes.map((mesh) => Array.from(mesh.instanceMatrix.array));
+  const bassColors = sample("bass");
+  expect(bassColors[6]).not.toEqual(neutralColors[6]);
+  expect(bassColors[3]).toEqual(neutralColors[3]);
+  const midColors = sample("mids");
+  expect(midColors[3]).not.toEqual(neutralColors[3]);
+  expect(midColors[6]).toEqual(neutralColors[6]);
+  const highColors = sample("highs");
+  expect(highColors[5]).not.toEqual(neutralColors[5]);
+  expect(highColors[3]).toEqual(neutralColors[3]);
+  expect(highColors[6]).toEqual(neutralColors[6]);
+  expect(sample("bass", false)).toEqual(sample("highs", false));
+  const signals = architecture.meshes[5];
+  const offColors = Array.from(signals.instanceColor!.array.slice(0, signals.count * 3));
+  const surge = createTransitMotion();
+  surge.surgeStartedAt = 0;
+  surge.elapsedMs = 1000;
+  surge.surgeEnvelope = 1;
+  architecture.update(center, createTransitLighting(), false, surge);
+  const surgeColors = Array.from(signals.instanceColor!.array.slice(0, signals.count * 3));
+  expect(surgeColors.reduce((sum, value) => sum + value, 0)).toBeGreaterThan(offColors.reduce((sum, value) => sum + value, 0) * 2);
+  architecture.meshes.forEach((mesh, index) => expect(Array.from(mesh.instanceMatrix.array)).toEqual(matrices[index]));
+  architecture.dispose();
+});
+
+test("transit stars are deterministic, irregular and bounded; surge space freezes and clears", () => {
+  const stars = generateTransitStars();
+  expect(stars).toEqual(generateTransitStars());
+  expect(stars).not.toEqual(generateTransitStars(5));
+  expect(stars.reduce((total, batch) => total + batch.count, 0)).toBe(TRANSIT.starCount);
+  expect(TRANSIT_STAR_CLASSES.map((batch) => batch.size)).toEqual([1, 1.8, 3]);
+  const latitudes: number[] = [];
+  for (const batch of stars) {
+    expect(new Set(batch.colors).size).toBeGreaterThan(batch.count);
+    for (let index = 0; index < batch.positions.length; index += 3) {
+      const radius = Math.hypot(...batch.positions.slice(index, index + 3));
+      expect(radius).toBeGreaterThan(8499);
+      expect(radius).toBeLessThan(10001);
+      latitudes.push(batch.positions[index + 1] / radius);
+    }
+  }
+  latitudes.sort((first, second) => first - second);
+  const gaps = latitudes.slice(1).map((latitude, index) => latitude - latitudes[index]);
+  expect(Math.max(...gaps) / Math.min(...gaps)).toBeGreaterThan(20);
+  const space = createTransitSpace();
+  const world = createTransitWorld();
+  const motion = createTransitMotion();
+  const lighting = createTransitLighting();
+  const center = sampleTransitPath(0, new Vector3());
+  space.update(world, motion, lighting, true, center);
+  const dark = space.background.clone();
+  expect(space.objects).toHaveLength(5);
+  const effects = space.objects.filter((object): object is InstancedMesh => object instanceof InstancedMesh);
+  expect(effects.map((mesh) => mesh.count)).toEqual([3, 24]);
+  expect(effects.every((mesh) => !mesh.visible)).toBe(true);
+  const buffers = effects.map((mesh) => mesh.instanceMatrix.array);
+  motion.surgeStartedAt = 0;
+  motion.elapsedMs = 1000;
+  motion.surgeEnvelope = 1;
+  space.update(world, motion, lighting, true, center);
+  expect(space.background.equals(dark)).toBe(false);
+  expect(effects.every((mesh) => mesh.visible)).toBe(true);
+  const matrices = effects.map((mesh) => Array.from(mesh.instanceMatrix.array));
+  const tint = space.background.clone();
+  for (const gates of [[false, true, false], [true, false, false], [true, true, true]]) {
+    updateTransitMotion(motion, 0.05, gates[0], gates[1], gates[2], 0);
+    space.update(world, motion, lighting, true, center);
+    expect(space.background.equals(tint)).toBe(true);
+    effects.forEach((mesh, index) => expect(Array.from(mesh.instanceMatrix.array)).toEqual(matrices[index]));
+  }
+  space.update(world, motion, lighting, false, center);
+  expect(space.background.equals(tint)).toBe(false);
+  expect(space.background.equals(dark)).toBe(false);
+  for (let frame = 0; frame < 100; frame += 1) updateTransitMotion(motion, 0.05, true, true, false, 0);
+  space.update(world, motion, lighting, true, center);
+  expect(space.background.equals(dark)).toBe(true);
+  expect(effects.every((mesh) => !mesh.visible)).toBe(true);
+  effects.forEach((mesh, index) => expect(mesh.instanceMatrix.array).toBe(buffers[index]));
+  space.dispose();
+});
+
+test("transit propulsion and shared-qualified SURGE are bounded, finite and strictly gated", () => {
+  const motion = createTransitMotion();
+  const quiet = { isActive: true, smoothedEnergy: 0.2, energy: 0.2 };
+  const loud = { ...quiet, smoothedEnergy: 0.9, energy: 0.9, kickPulseAcceptedEventSequence: 4 };
+  expect(transitPropulsionEnergy(true, { ...quiet, smoothedEnergy: 0, energy: 0 })).toBe(0);
+  expect(transitPropulsionEnergy(true, { ...quiet, smoothedEnergy: NaN })).toBe(0);
+  expect(transitPropulsionEnergy(true, { ...quiet, isActive: false })).toBe(0);
+  expect(transitPropulsionEnergy(true)).toBe(0);
+  expect(transitPropulsionEnergy(true, { ...quiet, smoothedEnergy: 0.03, energy: 0.03 })).toBeLessThan(0.02);
+  for (let frame = 0; frame < 12; frame += 1) updateTransitMotion(motion, 0.05, true, true, false, 100, quiet);
+  expect(motion.qualification.armed).toBe(true);
+  expect(motion.speed).toBeGreaterThan(0);
+  expect(motion.speed).toBeLessThan(TRANSIT_MOTION.normalMax);
+  updateTransitMotion(motion, 0.05, true, true, false, 100, loud);
+  expect(motion.surgeCount).toBe(1);
+  expect(motion.surgeOrigin).toBe(100);
+  for (let frame = 0; frame < 20; frame += 1) updateTransitMotion(motion, 0.05, true, true, false, 200, loud);
+  expect(motion.speed).toBeGreaterThan(TRANSIT_MOTION.normalMax * 2);
+  expect(motion.targetSpeed).toBe(TRANSIT_MOTION.surgeMax);
+  const clock = motion.elapsedMs;
+  const envelope = motion.surgeEnvelope;
+  for (const gates of [[false, true, false], [true, false, false], [true, true, true]]) {
+    updateTransitMotion(motion, 100, gates[0], gates[1], gates[2], 200, loud);
+    expect(motion.elapsedMs).toBe(clock);
+    expect(motion.surgeEnvelope).toBe(envelope);
+    expect(motion.speed).toBe(0);
+  }
+  for (let frame = 0; frame < 160; frame += 1) updateTransitMotion(motion, 0.05, true, true, false, 200, loud);
+  expect(motion.surgeCount).toBe(1);
+  expect(motion.surgeEnvelope).toBe(0);
+  expect(motion.targetSpeed).toBe(TRANSIT_MOTION.normalMax);
+  expect(motion.speed).toBeCloseTo(TRANSIT_MOTION.normalMax, 0);
+  for (let frame = 0; frame < 160; frame += 1) updateTransitMotion(motion, 0.05, true, true, false, 200, { ...quiet, smoothedEnergy: 0, energy: 0 });
+  expect(motion.speed).toBe(0);
+  updateTransitMotion(motion, 0.05, true, true, false, 200, loud);
+  expect(motion.surgeCount).toBe(2);
+  expect(transitSurgeActivation(6500, 700, 1)).toBeGreaterThan(transitSurgeActivation(1500, 700, 1));
+  expect(transitSurgeActivation(1500, 2700, 1)).toBeGreaterThan(transitSurgeActivation(6500, 2700, 1));
+  expect(transitSurgeActivation(1500, 5000, 0)).toBe(0);
+});
 
 test("transit machinery stays bounded and clear through rotation and recycling", async () => {
   const world = createTransitWorld();
@@ -22,8 +162,8 @@ test("transit machinery stays bounded and clear through rotation and recycling",
   const buffers = architecture.meshes.map((mesh) => mesh.instanceMatrix.array);
   let minimumClearance = Infinity;
   for (let frame = 0; frame < 6000; frame += 1) {
-    advanceTransitWorld(world, 0.05, true, true, false, direction);
-    if (frame % 12 !== 0) continue;
+    advanceTransitWorld(world, 0.05, true, true, false, direction, TRANSIT_MOTION.surgeMax);
+    if (frame % 4 !== 0) continue;
     sampleTransitPath(world.distance, center);
     architecture.update(center, lighting, true);
     for (const mesh of architecture.meshes) {
@@ -70,7 +210,7 @@ test("transit machinery stays bounded and clear through rotation and recycling",
     instances: mesh.count, triangles: mesh.count * mesh.geometry.index!.count / 3,
   }));
   await test.info().attach("architecture-budget", {
-    body: JSON.stringify({ minimumClearance, counts, drawCallsWithStars: counts.length + 1 }), contentType: "application/json",
+    body: JSON.stringify({ minimumClearance, counts, normalDrawCalls: counts.length + 3, surgeDrawCalls: counts.length + 5 }), contentType: "application/json",
   });
   architecture.dispose();
 });
@@ -79,7 +219,7 @@ test("transit lighting uses bounded shared audio and a stable CHROMA OFF fallbac
   const lighting = createTransitLighting();
   const snapshot = { isActive: true, energy: 0.9, smoothedEnergy: 0.8, bass: 1 } as AudioReactiveSnapshot;
   updateTransitLighting(lighting, 0.05, true, false, snapshot);
-  expect(lighting).toEqual({ energy: 0, bass: 0, intensity: 0.48, interplay: 0 });
+  expect(lighting).toEqual({ energy: 0, bass: 0, mids: 0, highs: 0, intensity: 0.16, interplay: 0 });
   updateTransitLighting(lighting, 0.05, true, true);
   const quiet = { ...lighting };
   expect(quiet.intensity).toBeGreaterThan(0.48);
@@ -280,7 +420,7 @@ test.describe("Alien Megastructure Transit player", () => {
     await chroma.click();
     await expect.poll(async () => (await canvasPixels(page)).hash).not.toBe(on.hash);
     const off = await canvasPixels(page);
-    expect(on.brightness).toBeGreaterThan(off.brightness * 1.07);
+    expect(on.brightness).toBeGreaterThan(off.brightness * 1.4);
     expect(on.colorfulPixels).toBeGreaterThan(off.colorfulPixels);
     await page.getByRole("button", { name: "Play", exact: true }).click();
     await volume.fill("1");
@@ -303,6 +443,7 @@ test.describe("Alien Megastructure Transit player", () => {
   });
 
   test("releases GPU resources and its only loop and clears FPS on repeated switches", async ({ page, pageErrors }) => {
+    test.setTimeout(80_000);
     await page.addInitScript(() => {
       const resources = { frames: new Set<number>(), buffers: new Set<WebGLBuffer>(), programs: new Set<WebGLProgram>() };
       window.__TRANSIT_RESOURCES__ = resources;
@@ -356,6 +497,13 @@ test.describe("Alien Megastructure Transit player", () => {
       expect(mounted.frames).toBe(baseline.frames + 1);
       expect(mounted.buffers).toBeGreaterThan(baseline.buffers);
       expect(mounted.programs).toBeGreaterThan(baseline.programs);
+      if (cycle === 0) {
+        await page.getByRole("slider", { name: "Volume" }).fill("1");
+        await page.getByRole("button", { name: "Play", exact: true }).click();
+        await expect.poll(async () => (await runtime(page)).motionTargetSpeed, { timeout: 45_000, intervals: [50] }).toBeGreaterThan(TRANSIT_MOTION.normalMax + 100);
+        await page.getByRole("button", { name: "Pause", exact: true }).click();
+        expect((await resourceCounts()).buffers).toBeGreaterThan(mounted.buffers);
+      }
       await select.selectOption("minimal");
       await expect(page.locator(".player-shell__scene canvas")).toHaveCount(0);
       await expect.poll(resourceCounts).toEqual(baseline);
@@ -365,12 +513,77 @@ test.describe("Alien Megastructure Transit player", () => {
     expect(pageErrors).toEqual([]);
   });
 
+  test("real volume drives propulsion down to zero without changing preferences", async ({ page, pageErrors }) => {
+    test.setTimeout(65_000);
+    const volume = page.getByRole("slider", { name: "Volume" });
+    await volume.fill("1");
+    await page.getByRole("button", { name: "Play", exact: true }).click();
+    await page.getByLabel("Seek playback").fill("43");
+    await expect.poll(async () => (await runtime(page)).motionTargetSpeed, { timeout: 15_000 }).toBeGreaterThan(200);
+    const fullEnergy = await page.evaluate(() => window.__DSFM_TEST__!.audio.smoothedEnergy);
+    await volume.fill("0.12");
+    await expect.poll(async () => (await runtime(page)).motionTargetSpeed, { timeout: 10_000 }).toBeLessThan(60);
+    expect(await page.evaluate(() => window.__DSFM_TEST__!.audio.smoothedEnergy)).toBeLessThan(fullEnergy);
+    await volume.fill("0.03");
+    await expect.poll(async () => (await runtime(page)).motionTargetSpeed, { timeout: 10_000 }).toBeLessThan(10);
+    await volume.fill("0");
+    await expect.poll(async () => (await runtime(page)).motionSpeed, { timeout: 12_000 }).toBe(0);
+    const muted = await runtime(page);
+    await page.waitForTimeout(300);
+    expect((await runtime(page)).travelPosition).toBe(muted.travelPosition);
+    expect((await runtime(page)).surgeCount).toBe(muted.surgeCount);
+    await expect(page.getByLabel("Motion", { exact: true })).toBeChecked();
+    await expect(page.getByLabel("Toggle environment chroma effects")).toBeChecked();
+    await volume.fill("1");
+    await expect.poll(async () => (await runtime(page)).motionSpeed, { timeout: 10_000 }).toBeGreaterThan(200);
+    expect(pageErrors).toEqual([]);
+  });
+
+  test("real music qualifies a visible SURGE and freezes the active wavefront", async ({ page, pageErrors }, testInfo) => {
+    test.setTimeout(65_000);
+    await page.getByRole("slider", { name: "Volume" }).fill("1");
+    await page.getByRole("button", { name: "Play", exact: true }).click();
+    await expect.poll(async () => (await runtime(page)).surgeCount, { timeout: 45_000, intervals: [50] }).toBeGreaterThan(0);
+    await expect.poll(async () => (await runtime(page)).motionSpeed, { timeout: 3000, intervals: [50] }).toBeGreaterThan(TRANSIT_MOTION.normalMax * 1.4);
+    const surge = await runtime(page);
+    await page.getByRole("button", { name: "Pause", exact: true }).click();
+    await expect.poll(async () => (await runtime(page)).motionSpeed).toBe(0);
+    for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 }]) {
+      await page.setViewportSize(viewport);
+      const frozen = await canvasPixels(page);
+      expect(frozen.litPixels).toBeGreaterThan(100);
+      await page.waitForTimeout(250);
+      expect(await canvasPixels(page)).toEqual(frozen);
+      await page.screenshot({ path: testInfo.outputPath(`surge-${viewport.width}.png`) });
+      await page.locator("label").filter({ hasText: /^Chroma$/ }).click();
+      const off = await canvasPixels(page);
+      expect(off.brightness).toBeLessThan(frozen.brightness);
+      await page.waitForTimeout(200);
+      expect(await canvasPixels(page)).toEqual(off);
+      await page.screenshot({ path: testInfo.outputPath(`surge-${viewport.width}-chroma-off.png`) });
+      await page.locator("label").filter({ hasText: /^Chroma$/ }).click();
+    }
+    await testInfo.attach("surge-runtime", { body: JSON.stringify(surge), contentType: "application/json" });
+    await page.getByRole("button", { name: "Play", exact: true }).click();
+    await expect.poll(async () => (await runtime(page)).motionSpeed).toBeGreaterThan(0);
+    await page.locator("label").filter({ hasText: /^Motion$/ }).click();
+    await expect.poll(async () => (await runtime(page)).motionSpeed).toBe(0);
+    await page.locator("label").filter({ hasText: /^Chroma$/ }).click();
+    const motionOff = await canvasPixels(page);
+    const stopped = await runtime(page);
+    await page.waitForTimeout(300);
+    expect(await canvasPixels(page)).toEqual(motionOff);
+    expect((await runtime(page)).travelPosition).toBe(stopped.travelPosition);
+    expect(pageErrors).toEqual([]);
+  });
+
   test("renders open flight and all encounters on desktop and narrow screens", async ({ page, pageErrors }, testInfo) => {
-    test.setTimeout(100_000);
+    test.setTimeout(160_000);
+    await page.getByRole("slider", { name: "Volume" }).fill("1");
     await page.getByRole("button", { name: "Play", exact: true }).click();
     const observations = [];
     for (const [distance, name] of [[100, "ring"], [2450, "open-void"], [3900, "monoliths"], [7000, "bridge"]] as const) {
-      await expect.poll(async () => (await runtime(page)).travelPosition, { timeout: 30_000, intervals: [100] })
+      await expect.poll(async () => (await runtime(page)).travelPosition, { timeout: 60_000, intervals: [100] })
         .toBeGreaterThan(distance);
       await page.locator("label").filter({ hasText: /^Motion$/ }).click();
       await expect.poll(async () => (await runtime(page)).motionSpeed).toBe(0);

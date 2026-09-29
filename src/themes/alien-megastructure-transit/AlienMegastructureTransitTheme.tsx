@@ -7,6 +7,8 @@ import {
   sampleTransitPath, TRANSIT, updateTransitLighting,
 } from "./transitWorld";
 import { createTransitArchitecture } from "./transitArchitecture";
+import { createTransitMotion, updateTransitMotion } from "./transitMotion";
+import { createTransitSpace } from "./transitSpace";
 
 export default function AlienMegastructureTransitTheme({
   isPlaying, motionEnabled = true, chromaEnabled = true, getLatestAudioSnapshot, reducedMotion, onRuntimeTelemetry,
@@ -23,7 +25,6 @@ export default function AlienMegastructureTransitTheme({
     if (!mount) return;
 
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x030405);
     scene.fog = new THREE.Fog(0x030405, 7000, TRANSIT.far);
     const camera = new THREE.PerspectiveCamera(64, 1, 2, TRANSIT.far);
     const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -33,6 +34,10 @@ export default function AlienMegastructureTransitTheme({
 
     const world = createTransitWorld();
     const lighting = createTransitLighting();
+    const motion = createTransitMotion();
+    const space = createTransitSpace();
+    scene.background = space.background;
+    scene.add(...space.objects);
     const architecture = createTransitArchitecture(world);
     scene.add(...architecture.meshes);
 
@@ -40,28 +45,6 @@ export default function AlienMegastructureTransitTheme({
     const light = new THREE.DirectionalLight(0xdbfff2, 2.5);
     light.position.set(-1500, 2400, 1800);
     scene.add(ambient, light);
-
-    const starGeometry = new THREE.BufferGeometry();
-    const starPositions = new Float32Array(TRANSIT.starCount * 3);
-    const starColors = new Float32Array(TRANSIT.starCount * 3);
-    const starColor = new THREE.Color();
-    for (let index = 0; index < TRANSIT.starCount; index += 1) {
-      const vertical = 1 - 2 * (index + 0.5) / TRANSIT.starCount;
-      const radius = Math.sqrt(1 - vertical * vertical);
-      const angle = index * 2.399963;
-      starPositions[index * 3] = Math.cos(angle) * radius * 10000;
-      starPositions[index * 3 + 1] = vertical * 10000;
-      starPositions[index * 3 + 2] = Math.sin(angle) * radius * 10000;
-      starColor.setHex(index % 7 === 0 ? 0xff9eaa : index % 5 === 0 ? 0xb2ff86 : 0x9cbfc4);
-      starColor.multiplyScalar(0.35 + (index % 11) * 0.055).toArray(starColors, index * 3);
-    }
-    starGeometry.setAttribute("position", new THREE.BufferAttribute(starPositions, 3));
-    starGeometry.setAttribute("color", new THREE.BufferAttribute(starColors, 3));
-    const starMaterial = new THREE.PointsMaterial({
-      vertexColors: true, size: 1.5, sizeAttenuation: false, fog: false,
-    });
-    const stars = new THREE.Points(starGeometry, starMaterial);
-    scene.add(stars);
 
     const center = new THREE.Vector3();
     const direction = new THREE.Vector3();
@@ -85,24 +68,29 @@ export default function AlienMegastructureTransitTheme({
     let animationFrame = 0;
     const render = (now: number) => {
       const props = propsRef.current;
-      const moving = props.isPlaying && props.motionEnabled && !props.reducedMotion;
       const deltaSeconds = (now - lastFrame) / 1000;
-      updateTransitLighting(lighting, deltaSeconds, props.isPlaying, props.chromaEnabled, props.getLatestAudioSnapshot?.());
+      const snapshot = props.getLatestAudioSnapshot?.();
+      updateTransitLighting(lighting, deltaSeconds, props.isPlaying, props.chromaEnabled, snapshot);
+      updateTransitMotion(motion, deltaSeconds, props.isPlaying, props.motionEnabled, props.reducedMotion, world.distance, snapshot);
       advanceTransitWorld(world, deltaSeconds,
-        props.isPlaying, props.motionEnabled, props.reducedMotion, direction);
+        props.isPlaying, props.motionEnabled, props.reducedMotion, direction, motion.speed);
       lastFrame = now;
       sampleTransitPath(world.distance, center);
       sampleTransitDirection(world.distance + 160, direction).normalize();
       camera.lookAt(direction);
-      architecture.update(center, lighting, props.chromaEnabled);
+      architecture.update(center, lighting, props.chromaEnabled, motion);
+      space.update(world, motion, lighting, props.chromaEnabled, center);
+      scene.fog!.color.copy(space.background);
       renderer.render(scene, camera);
       fpsSampler.sample(performance.now());
       if (now - lastTelemetry >= 100) {
         props.onRuntimeTelemetry?.({
           renderFps: measuredFps,
-          motionTargetSpeed: moving ? TRANSIT.speed : 0,
-          motionSpeed: moving ? TRANSIT.speed : 0,
+          motionTargetSpeed: motion.targetSpeed,
+          motionSpeed: motion.speed,
           travelPosition: world.distance,
+          surgeCount: motion.surgeCount,
+          lastSurgeAt: Number.isFinite(motion.surgeStartedAt) ? motion.surgeStartedAt : undefined,
         });
         lastTelemetry = now;
       }
@@ -116,8 +104,7 @@ export default function AlienMegastructureTransitTheme({
       resizeObserver.disconnect();
       window.removeEventListener("resize", resize);
       architecture.dispose();
-      starGeometry.dispose();
-      starMaterial.dispose();
+      space.dispose();
       scene.clear();
       renderer.dispose();
       renderer.domElement.remove();
