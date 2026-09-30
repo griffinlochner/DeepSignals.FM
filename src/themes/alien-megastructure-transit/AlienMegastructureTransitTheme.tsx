@@ -26,7 +26,7 @@ export default function AlienMegastructureTransitTheme({
 
     const scene = new THREE.Scene();
     scene.fog = new THREE.Fog(0x030405, 7000, TRANSIT.far);
-    const camera = new THREE.PerspectiveCamera(64, 1, 2, TRANSIT.far);
+    const camera = new THREE.PerspectiveCamera(64, 1, 20, TRANSIT.far);
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.domElement.style.display = "block";
     renderer.domElement.setAttribute("aria-label", "Alien Megastructure Transit canvas");
