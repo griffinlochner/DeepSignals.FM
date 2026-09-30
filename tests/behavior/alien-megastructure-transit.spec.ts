@@ -12,8 +12,71 @@ import {
 } from "../../src/themes/alien-megastructure-transit/transitMotion";
 import { createTransitSpace, generateTransitStars, TRANSIT_STAR_CLASSES } from "../../src/themes/alien-megastructure-transit/transitSpace";
 
+test("transit panel lighting has slow dark-to-bright cycles without audio and CHROMA OFF stays authored", () => {
+  const world = createTransitWorld();
+  const architecture = createTransitArchitecture(world);
+  const center = sampleTransitPath(0, new Vector3());
+  const lighting = createTransitLighting();
+  updateTransitLighting(lighting, 0.05, false, true);
+  const signals = architecture.meshes[5];
+  const brightness: number[] = [];
+  let maximumStep = 0;
+  let previous: number[] | undefined;
+  for (let frame = 0; frame <= 720; frame += 1) {
+    world.animationSeconds = frame / 60;
+    architecture.update(center, lighting, true);
+    const colors = Array.from(signals.instanceColor!.array.slice(0, signals.count * 3));
+    brightness.push(Math.max(...colors.slice(0, 3)));
+    if (previous) colors.forEach((value, index) => { maximumStep = Math.max(maximumStep, Math.abs(value - previous![index])); });
+    previous = colors;
+  }
+  expect(Math.min(...brightness)).toBeLessThan(0.03);
+  expect(Math.max(...brightness)).toBeGreaterThan(0.9);
+  expect(maximumStep).toBeLessThan(0.06);
+  updateTransitLighting(lighting, 0.05, false, false);
+  architecture.update(center, lighting, false);
+  const off = Array.from(signals.instanceColor!.array.slice(0, signals.count * 3));
+  world.animationSeconds += 7;
+  architecture.update(center, lighting, false);
+  expect(Array.from(signals.instanceColor!.array.slice(0, signals.count * 3))).toEqual(off);
+  architecture.dispose();
+});
+
+test("transit LED tracks chase with fixed geometry, bounded buffers and no CHROMA OFF additions", () => {
+  const world = createTransitWorld();
+  const architecture = createTransitArchitecture(world);
+  const center = sampleTransitPath(0, new Vector3());
+  const lighting = createTransitLighting();
+  const leds = architecture.meshes[7];
+  architecture.update(center, lighting, true);
+  expect(leds.visible).toBe(true);
+  expect(leds.count).toBe(1504);
+  expect(leds.instanceMatrix.array.length).toBe(leds.count * 16);
+  const matrices = Array.from(leds.instanceMatrix.array);
+  const colors = Array.from(leds.instanceColor!.array);
+  const matrixBuffer = leds.instanceMatrix.array;
+  const colorBuffer = leds.instanceColor!.array;
+  const direction = new Vector3();
+  for (const gates of [[false, true, false], [true, false, false], [true, true, true]]) {
+    advanceTransitWorld(world, 0.05, gates[0], gates[1], gates[2], direction, 0);
+    architecture.update(center, lighting, true);
+    expect(Array.from(leds.instanceColor!.array)).toEqual(colors);
+  }
+  for (let frame = 0; frame < 40; frame += 1) advanceTransitWorld(world, 0.05, true, true, false, direction, 0);
+  architecture.update(center, lighting, true);
+  expect(world.distance).toBe(0);
+  expect(Array.from(leds.instanceColor!.array)).not.toEqual(colors);
+  expect(Array.from(leds.instanceMatrix.array)).toEqual(matrices);
+  expect(leds.instanceMatrix.array).toBe(matrixBuffer);
+  expect(leds.instanceColor!.array).toBe(colorBuffer);
+  architecture.update(center, lighting, false);
+  expect(leds.visible).toBe(false);
+  architecture.dispose();
+});
+
 test("transit bands illuminate different architecture without changing geometry", () => {
   const world = createTransitWorld();
+  world.animationSeconds = 4;
   const architecture = createTransitArchitecture(world);
   const center = sampleTransitPath(0, new Vector3());
   const neutral = { isActive: true, energy: 0.3, smoothedEnergy: 0.3, bass: 0, mids: 0, highs: 0 };
@@ -193,7 +256,7 @@ test("transit machinery stays bounded and clear through rotation and recycling",
   }
   expect(minimumClearance).toBeGreaterThan(TRANSIT.safeRadius);
   expect(world.recycled).toBeGreaterThan(12);
-  expect(architecture.meshes).toHaveLength(7);
+  expect(architecture.meshes).toHaveLength(8);
   architecture.meshes.forEach((mesh, index) => expect(mesh.instanceMatrix.array).toBe(buffers[index]));
   architecture.update(center, lighting, true);
   const frozen = architecture.meshes.map((mesh) => Array.from(mesh.instanceMatrix.array));

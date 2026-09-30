@@ -3,10 +3,15 @@ import { createTransitLighting, createTransitWorld, TRANSIT, type TransitBody } 
 import { createTransitMotion, transitSurgeActivation } from "./transitMotion";
 
 const SIDES = [-1, 1] as const;
+const RING_LEDS = 72;
+const PYLON_LEDS = 14;
+const BRIDGE_LEDS = 24;
 
 export function createTransitArchitecture(world: ReturnType<typeof createTransitWorld>) {
   const bodyCount = world.encounters.reduce((count, encounter) => count + encounter.bodies.length, 0);
   const ringCount = world.encounters.filter((encounter) => encounter.kind === "ring").length;
+  const ledCount = world.encounters.reduce((count, encounter) => count + (encounter.kind === "ring"
+    ? RING_LEDS * 4 : encounter.bodies.length * 2 * (encounter.kind === "pylons" ? PYLON_LEDS : BRIDGE_LEDS)), 0);
   const box = new THREE.BoxGeometry(1, 1, 1);
   const torus = new THREE.TorusGeometry(TRANSIT.ringRadius, TRANSIT.ringTube, 6, 64);
   const arc = new THREE.TorusGeometry(1, 0.036, 4, 16, Math.PI * 0.235);
@@ -22,8 +27,9 @@ export function createTransitArchitecture(world: ReturnType<typeof createTransit
   const details = new THREE.InstancedMesh(box, graphite, bodyCount * 8);
   const signals = new THREE.InstancedMesh(box, neon, bodyCount * 10);
   const rims = new THREE.InstancedMesh(rim, neon, ringCount * 2);
-  const meshes = [structures, rings, machinery, arcLights, details, signals, rims];
-  const colors = [new THREE.Color(0x74fff0), new THREE.Color(0xb2ff86), new THREE.Color(0xff9eaa)];
+  const leds = new THREE.InstancedMesh(box, neon, ledCount);
+  const meshes = [structures, rings, machinery, arcLights, details, signals, rims, leds];
+  const colors = [new THREE.Color(0x32f5ec), new THREE.Color(0x94ff35), new THREE.Color(0xff528e)];
   const authored = new THREE.Color(0x549e9a);
   const color = new THREE.Color();
   const transform = new THREE.Object3D();
@@ -33,7 +39,6 @@ export function createTransitArchitecture(world: ReturnType<typeof createTransit
   let clock = 0;
   let chroma = false;
   let intensity = 0.48;
-  let interplay = 0;
   let bass = 0;
   let mids = 0;
   let highs = 0;
@@ -43,7 +48,7 @@ export function createTransitArchitecture(world: ReturnType<typeof createTransit
     mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     mesh.frustumCulled = false;
   }
-  for (const mesh of [signals, arcLights, rims, machinery, rings, structures]) {
+  for (const mesh of [signals, arcLights, rims, machinery, rings, structures, leds]) {
     mesh.setColorAt(0, color);
     mesh.instanceColor!.setUsage(THREE.DynamicDrawUsage);
   }
@@ -52,12 +57,18 @@ export function createTransitArchitecture(world: ReturnType<typeof createTransit
     mesh: THREE.InstancedMesh, index: number, family: number, phase: number, strength = 1,
     band: "bass" | "mids" | "highs" = "mids",
   ) => {
-    const wave = Math.pow(0.5 + 0.5 * Math.sin(phase - clock * 2.2), 5);
-    const response = band === "bass" ? bass : band === "mids" ? mids : highs;
-    color.copy(chroma ? colors[family % 3] : authored);
-    if (chroma) color.lerp(colors[(family + 1) % 3], Math.min(0.85, wave * interplay * 0.55 + activation * 0.6));
-    color.multiplyScalar(strength * (intensity * (chroma ? 0.35 + wave * 0.65 + response * (0.7 + wave * 1.8) : 1)
-      + activation * (chroma ? 3.2 : 1.6)));
+    if (chroma) {
+      const wave = 0.5 + 0.5 * Math.cos(phase - clock * 0.65);
+      const bloom = THREE.MathUtils.smoothstep(wave, 0.3, 0.92);
+      const palette = ((family + phase * 0.08 + clock * 0.065) % 3 + 3) % 3;
+      const paletteIndex = Math.floor(palette);
+      const response = band === "bass" ? bass : band === "mids" ? mids : highs;
+      color.copy(colors[paletteIndex]).lerp(colors[(paletteIndex + 1) % 3],
+        THREE.MathUtils.smoothstep(palette % 1, 0.2, 0.8));
+      color.multiplyScalar(strength * (0.025 + bloom * (0.9 + intensity * 0.18 + response * 0.35) + activation * 3.2));
+    } else {
+      color.copy(authored).multiplyScalar(strength * (intensity + activation * 1.6));
+    }
     mesh.setColorAt(index, color);
   };
 
@@ -103,18 +114,19 @@ export function createTransitArchitecture(world: ReturnType<typeof createTransit
     clock = world.animationSeconds;
     chroma = chromaEnabled;
     intensity = lighting.intensity;
-    interplay = lighting.interplay;
     bass = lighting.bass;
     mids = lighting.mids;
     highs = lighting.highs;
     metal.color.setHex(chroma ? 0x233c3d : 0x142426);
     graphite.color.setHex(chroma ? 0x446069 : 0x243237);
+    leds.visible = chroma;
     signalIndex = 0;
     detailIndex = 0;
     let bodyIndex = 0;
     let ringIndex = 0;
     let arcIndex = 0;
     let rimIndex = 0;
+    let ledIndex = 0;
     for (const encounter of world.encounters) {
       const encounterPhase = encounter.distance * 0.002;
       activation = motion ? transitSurgeActivation(encounter.distance - motion.surgeOrigin,
@@ -149,6 +161,13 @@ export function createTransitArchitecture(world: ReturnType<typeof createTransit
           const packet = ((clock * 0.035 + index * 0.17) % 1 - 0.5) * body.size.y * 0.84;
           signal(body, 0, packet, front + 20, 28, 100, 9, 2, phase, chroma ? 1.5 : 0.25);
           bodyBox(details, detailIndex++, body, 0, body.size.y * 0.37, -30, 130, body.size.y * 0.38, 330);
+          for (const side of SIDES) {
+            for (let cell = 0; cell < PYLON_LEDS; cell += 1) {
+              const height = ((cell + 0.5) / PYLON_LEDS - 0.5) * body.size.y * 0.92;
+              bodyBox(leds, ledIndex, body, side * 99, height, front + 36, 22, body.size.y / PYLON_LEDS * 0.58, 12);
+              paint(leds, ledIndex++, family + (side > 0 ? 1 : 0), phase + side * cell * 0.48, 1.15, "bass");
+            }
+          }
         } else {
           for (const side of SIDES) {
             bodyBox(details, detailIndex++, body, 0, -body.size.y / 2 - 15, side * 100, body.size.x * 0.96, 26, 25);
@@ -162,6 +181,14 @@ export function createTransitArchitecture(world: ReturnType<typeof createTransit
           }
           const packet = ((clock * 0.04 + index * 0.21) % 1 - 0.5) * body.size.x * 0.9;
           signal(body, packet, -body.size.y / 2 - 4, 0, 150, 6, 34, 1, phase, chroma ? 1.4 : 0.2);
+          for (const side of SIDES) {
+            for (let cell = 0; cell < BRIDGE_LEDS; cell += 1) {
+              const offset = ((cell + 0.5) / BRIDGE_LEDS - 0.5) * body.size.x * 0.94;
+              bodyBox(leds, ledIndex, body, offset, -body.size.y / 2 - 14, side * 50,
+                body.size.x / BRIDGE_LEDS * 0.72, 12, 32);
+              paint(leds, ledIndex++, family + (side > 0 ? 1 : 0), phase + side * cell * 0.38, 1.05, "highs");
+            }
+          }
         }
       }
       if (encounter.kind !== "ring") continue;
@@ -180,6 +207,23 @@ export function createTransitArchitecture(world: ReturnType<typeof createTransit
         rims.setMatrixAt(rimIndex, transform.matrix);
         paint(rims, rimIndex++, side < 0 ? 2 : 0, encounterPhase, 1.1, "bass");
       }
+      for (const side of SIDES) {
+        for (let track = 0; track < 2; track += 1) {
+          const radius = 826 + track * 58;
+          for (let cell = 0; cell < RING_LEDS; cell += 1) {
+            const angle = cell * Math.PI * 2 / RING_LEDS;
+            transform.position.copy(encounter.center).sub(center);
+            transform.position.x += Math.cos(angle) * radius;
+            transform.position.y += Math.sin(angle) * radius;
+            transform.position.z += side * 238;
+            transform.rotation.set(0, 0, angle + Math.PI / 2);
+            transform.scale.set(46, 18, 12);
+            transform.updateMatrix();
+            leds.setMatrixAt(ledIndex, transform.matrix);
+            paint(leds, ledIndex++, track, encounterPhase + angle * (track === 0 ? 2 : -2) + track * 1.4 + side * 0.6, 1.15);
+          }
+        }
+      }
       for (let layer = 0; layer < 3; layer += 1) {
         const radius = 990 + layer * 175;
         const turning = clock * (layer === 1 ? -0.035 : 0.025) + layer * 0.48 + encounterPhase;
@@ -195,7 +239,7 @@ export function createTransitArchitecture(world: ReturnType<typeof createTransit
           transform.scale.z = radius;
           transform.updateMatrix();
           arcLights.setMatrixAt(arcIndex, transform.matrix);
-          paint(arcLights, arcIndex++, layer, segment * 0.9 + encounterPhase, 1.2);
+          paint(arcLights, arcIndex++, layer, segment * Math.PI / 3 + encounterPhase + layer * 1.4, 1.2);
         }
       }
     }
@@ -206,6 +250,7 @@ export function createTransitArchitecture(world: ReturnType<typeof createTransit
     details.count = detailIndex;
     signals.count = signalIndex;
     rims.count = rimIndex;
+    leds.count = ledIndex;
     for (const mesh of meshes) {
       mesh.instanceMatrix.needsUpdate = true;
       if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;

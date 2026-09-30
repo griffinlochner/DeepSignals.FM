@@ -69,6 +69,8 @@ For new travel themes, use `isPlaying && motionEnabled && !reducedMotion` for tr
 
 Tunnel is the strict example: playback pause, MOTION OFF, and reduced motion freeze travel, waves, door opening, and decorative clocks. Rain freezes column/glyph/transmission progression but can still react chromatically. Gradient has no meaningful spatial motion. Audio-reactive color and motion need not share a clock, and CHROMA OFF need not remove all authored accent colors.
 
+Alien Megastructure Transit's [transitArchitecture.ts](../src/themes/alien-megastructure-transit/transitArchitecture.ts) uses slow, staggered cyan/lime/pink light sequences, with audio bands as secondary brightness accents. Ring LED chases, column light banks and bridge tiles share the existing `world.animationSeconds` clock: pause, MOTION OFF and reduced motion freeze their sequencing; mute stops propulsion but lets the lights continue while playback/MOTION remain enabled. CHROMA OFF hides the added LED mesh and retains the authored dark treatment and existing SURGE response. The additional lights use one bounded instanced mesh, not individual lights or a postprocessing pass.
+
 ## Shared audio analysis and effective volume
 
 The player owns one persistent media element in [src/app/usePersistentAudioController.ts](../src/app/usePersistentAudioController.ts). PlayerShell connects it to [src/app/useAudioAnalysis.ts](../src/app/useAudioAnalysis.ts), which owns/reuses the Web Audio graph, normalizes bands/RMS, smooths envelopes, handles onset warmup/seeking, and publishes snapshots. **Do not create a Web Audio graph or analyser per theme.**
