@@ -198,6 +198,86 @@ test("telemetry grid remains unclipped across desktop viewport sizes", async ({
   }
 });
 
+test("SOURCE link keeps a safe margin inside the clipped panel under wider font metrics", async ({
+  page,
+}) => {
+  test.setTimeout(60_000);
+
+  // Scales above 1 emulate platform fonts (e.g. Avenir Next) that render wider than the fallback.
+  const fontScales = [1, 1.05, 1.08];
+  const viewports = [
+    { width: 1052, height: 768 },
+    { width: 1280, height: 720 },
+    { width: 1440, height: 900 },
+  ];
+
+  for (const viewport of viewports) {
+    await page.setViewportSize(viewport);
+    await page.goto("/player/");
+    await page.getByLabel("Visual environment").selectOption("minimal");
+    await expect(page.locator(selectors.source)).toBeVisible();
+    await setTelemetryValues(page, "999", "123456", "320");
+
+    for (const scale of fontScales) {
+      const geometry = await page.evaluate(
+        ({ selectors, scale }) => {
+          let style = document.getElementById("font-metric-stress");
+          if (!style) {
+            style = document.createElement("style");
+            style.id = "font-metric-stress";
+            document.head.append(style);
+          }
+          style.textContent = `${selectors.header} :is(${selectors.fps}, .visual-feed-window__metric, ${selectors.source}) { font-size: ${10.5 * scale}px !important; }`;
+
+          const panel = document.querySelector(".visual-feed-window")!;
+          const header = document.querySelector(selectors.header)!;
+          const source = document.querySelector(selectors.source)!;
+          const icon = document.querySelector(selectors.sourceIcon)!;
+          const bitrate = document.querySelector(selectors.bitrate)!;
+          const panelStyle = getComputedStyle(panel);
+          const headerStyle = getComputedStyle(header);
+          const sourceRect = source.getBoundingClientRect();
+
+          return {
+            panelInnerRight:
+              panel.getBoundingClientRect().right -
+              parseFloat(panelStyle.borderRightWidth),
+            panelOverflow: panelStyle.overflow,
+            headerContentRight:
+              header.getBoundingClientRect().right -
+              parseFloat(headerStyle.paddingRight),
+            sourceText: source.textContent?.trim(),
+            sourceLeft: sourceRect.left,
+            sourceHeight: sourceRect.height,
+            sourceFontSize: parseFloat(getComputedStyle(source).fontSize),
+            iconLeft: icon.getBoundingClientRect().left,
+            iconRight: icon.getBoundingClientRect().right,
+            iconWidth: icon.getBoundingClientRect().width,
+            bitrateRight: bitrate.getBoundingClientRect().right,
+          };
+        },
+        { selectors, scale },
+      );
+
+      const context = `${viewport.width}x${viewport.height} @ font scale ${scale}`;
+      expect(geometry.panelOverflow, context).toBe("hidden");
+      expect(geometry.iconWidth, context).toBeGreaterThan(0);
+      expect(geometry.iconRight, context).toBeLessThanOrEqual(
+        geometry.panelInnerRight - 4,
+      );
+      expect(geometry.iconRight, context).toBeLessThanOrEqual(
+        geometry.headerContentRight + 0.5,
+      );
+      expect(geometry.iconLeft, context).toBeGreaterThan(geometry.sourceLeft);
+      expect(geometry.sourceLeft, context).toBeGreaterThan(geometry.bitrateRight);
+      expect(geometry.sourceText, context).toBe("SOURCE");
+      expect(geometry.sourceHeight, context).toBeLessThan(
+        geometry.sourceFontSize * 1.6,
+      );
+    }
+  }
+});
+
 test("Space Unicorn renders live listener and bitrate values without clipping", async ({
   page,
 }) => {

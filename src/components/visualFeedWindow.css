@@ -229,10 +229,15 @@
 
 .visual-feed-window__header {
   display: grid;
-  grid-template-columns: max-content max-content max-content minmax(0, 1fr) max-content;
+  /* Gap tracks shrink under wider font metrics so SOURCE keeps its full content width. */
+  grid-template-columns:
+    max-content minmax(4px, 0.65rem)
+    max-content minmax(4px, 0.65rem)
+    max-content minmax(4px, 1fr)
+    max-content;
   flex: 0 0 var(--attached-panel-header-height);
   align-items: center;
-  column-gap: 0.65rem;
+  column-gap: 0;
   width: 100%;
   min-width: 0;
   max-width: 100%;
@@ -246,11 +251,26 @@
   display: contents;
 }
 
-.visual-feed-window__source-link {
+.visual-feed-window__fps {
+  grid-column: 1;
+}
+
+.visual-feed-window__metric--listeners {
+  grid-column: 3;
+}
+
+.visual-feed-window__metric--bitrate {
   grid-column: 5;
+}
+
+.visual-feed-window__source-link {
+  grid-column: 7;
   justify-self: end;
   display: inline-flex;
+  align-items: center;
   gap: 4px;
+  min-width: max-content;
+  line-height: 1;
   margin-top: 0;
   color: var(--theme-accent-secondary, #80d8ff);
   font-size: 10.5px;
@@ -386,6 +406,7 @@
 }
 
 .visual-feed-window__external-link-icon {
+  display: block;
   width: 0.9em;
   height: 0.9em;
   flex: 0 0 auto;
