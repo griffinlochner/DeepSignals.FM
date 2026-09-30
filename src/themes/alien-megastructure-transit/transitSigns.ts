@@ -1,13 +1,27 @@
 import * as THREE from "three";
-import { createTransitWorld, sampleTransitPath } from "./transitWorld";
+import { createTransitWorld, sampleTransitPath, TRANSIT } from "./transitWorld";
 
 export const TRANSIT_SLOGANS = [
-  { kind: "ring", text: "TUNE IN.", color: "#b2ff86", glow: "#74fff0", offset: 460, height: -480 },
-  { kind: "pylons", text: "TRANSMIT.", color: "#74fff0", glow: "#ff9eaa", offset: -800, height: -420 },
-  { kind: "bridge", text: "TRANSCEND.", color: "#ff9eaa", glow: "#b2ff86", offset: -900, height: -420 },
+  { text: "TUNE IN.", color: "#b2ff86", glow: "#74fff0" },
+  { text: "TRANSMIT.", color: "#74fff0", glow: "#ff9eaa" },
+  { text: "TRANSCEND.", color: "#ff9eaa", glow: "#b2ff86" },
 ] as const;
 
-export const TRANSIT_SIGN = { width: 1120, height: 280, depth: 32, faceOffset: 28 } as const;
+export const TRANSIT_SIGN = { width: 1120, height: 280, depth: 32, faceOffset: 28, offset: -900, heightOffset: -420 } as const;
+
+export function transitSignIntensity(phrase: number, seconds: number, chroma: boolean) {
+  if (!chroma) return 0.16;
+  const clock = Number.isFinite(seconds) ? Math.max(0, seconds) : 0;
+  if (phrase === 0) return 0.04 + 1.21 * (0.5 + 0.5 * Math.sin(clock * Math.PI / 3));
+  if (phrase === 1) {
+    const phase = clock % 7.3;
+    const dip = (center: number, width: number) => Math.exp(-(((phase - center) / width) ** 2));
+    return 0.96 - 0.65 * dip(1.1, 0.22) - 0.42 * dip(1.85, 0.3) - 0.7 * dip(4.6, 0.4);
+  }
+  const pulse = (0.5 + 0.5 * Math.sin(clock * Math.PI * 2 / 1.6)) ** 4;
+  const burst = (0.5 + 0.5 * Math.sin(clock * Math.PI * 2 / 6.4)) ** 12;
+  return 0.18 + 0.85 * pulse + 0.8 * burst;
+}
 
 export function createTransitSignAtlas() {
   const canvas = document.createElement("canvas");
@@ -58,41 +72,39 @@ export function createTransitSignAtlas() {
 }
 
 export function createTransitSigns(world: ReturnType<typeof createTransitWorld>, texture: THREE.Texture) {
-  const slots = world.encounters.slice(TRANSIT_SLOGANS.length).map((encounter) => ({
-    encounter, phrase: TRANSIT_SLOGANS.findIndex((slogan) => slogan.kind === encounter.kind),
-  }));
+  const slots = world.encounters.slice(TRANSIT_SLOGANS.length).filter((encounter) => encounter.kind === "bridge");
   const panelGeometry = new THREE.BoxGeometry(1, 1, 1);
   const faceGeometry = new THREE.PlaneGeometry(1, 1);
-  faceGeometry.setAttribute("signRow", new THREE.InstancedBufferAttribute(new Float32Array(slots.map(({ phrase }) => 2 - phrase)), 1));
-  faceGeometry.setAttribute("signPhase", new THREE.InstancedBufferAttribute(new Float32Array(slots.map(({ phrase }) => phrase * 2.1)), 1));
+  const rows = new THREE.InstancedBufferAttribute(new Float32Array(slots.length), 1).setUsage(THREE.DynamicDrawUsage);
+  faceGeometry.setAttribute("signRow", rows);
+  const intensities = new THREE.InstancedBufferAttribute(new Float32Array(slots.length), 1).setUsage(THREE.DynamicDrawUsage);
+  faceGeometry.setAttribute("signIntensity", intensities);
   const panelMaterial = new THREE.MeshLambertMaterial({ color: 0x1a3438 });
   const faceMaterial = new THREE.MeshBasicMaterial({ map: texture, toneMapped: false });
-  const clock = { value: 0 };
+  const chromaEnabled = { value: 1 };
   faceMaterial.onBeforeCompile = (shader) => {
-    shader.uniforms.signClock = clock;
+    shader.uniforms.signChroma = chromaEnabled;
     shader.vertexShader = shader.vertexShader.replace("#include <common>", `
       #include <common>
       attribute float signRow;
-      attribute float signPhase;
-      varying vec2 vSignUv;
-      varying float vSignPhase;
+      attribute float signIntensity;
+      varying float vSignIntensity;
     `).replace("#include <uv_vertex>", `
       #include <uv_vertex>
-      vSignUv = uv;
-      vSignPhase = signPhase;
+      vSignIntensity = signIntensity;
       vMapUv.y = (vMapUv.y + signRow) / 3.0;
     `);
     shader.fragmentShader = shader.fragmentShader.replace("#include <common>", `
       #include <common>
-      uniform float signClock;
-      varying vec2 vSignUv;
-      varying float vSignPhase;
+      uniform float signChroma;
+      varying float vSignIntensity;
     `).replace("#include <map_fragment>", `
       #include <map_fragment>
-      float sweep = pow(0.5 + 0.5 * sin(vSignUv.x * 6.283185 - signClock * 0.7 + vSignPhase), 12.0);
-      float edge = smoothstep(0.32, 0.45, abs(vSignUv.y - 0.5));
-      float breathe = 0.88 + 0.12 * sin(signClock * 0.55 + vSignPhase);
-      diffuseColor.rgb *= breathe + sweep * (0.28 + edge * 0.5);
+      if (signChroma < 0.5) {
+        float ink = dot(diffuseColor.rgb, vec3(0.2126, 0.7152, 0.0722));
+        diffuseColor.rgb = mix(vec3(ink), diffuseColor.rgb, 0.18);
+      }
+      diffuseColor.rgb *= vSignIntensity;
     `);
   };
   const panels = new THREE.InstancedMesh(panelGeometry, panelMaterial, slots.length * 3);
@@ -105,14 +117,17 @@ export function createTransitSigns(world: ReturnType<typeof createTransitWorld>,
   const transform = new THREE.Object3D();
   const position = new THREE.Vector3();
   const update = (center: THREE.Vector3, chroma: boolean) => {
-    for (const object of objects) object.visible = chroma;
-    if (!chroma) return;
-    clock.value = world.animationSeconds;
+    chromaEnabled.value = chroma ? 1 : 0;
     let panelIndex = 0;
-    for (const [index, { encounter, phrase }] of slots.entries()) {
-      const slogan = TRANSIT_SLOGANS[phrase];
-      sampleTransitPath(encounter.distance + slogan.offset, position).sub(center);
-      position.y += slogan.height;
+    for (const [index, encounter] of slots.entries()) {
+      const phrase = Math.floor((encounter.distance - TRANSIT.firstEncounter) / (TRANSIT.spacing * TRANSIT.poolSize)) % TRANSIT_SLOGANS.length;
+      if (rows.getX(index) !== 2 - phrase) {
+        rows.setX(index, 2 - phrase);
+        rows.needsUpdate = true;
+      }
+      intensities.setX(index, transitSignIntensity(phrase, world.animationSeconds, chroma));
+      sampleTransitPath(encounter.distance + TRANSIT_SIGN.offset, position).sub(center);
+      position.y += TRANSIT_SIGN.heightOffset;
       transform.position.copy(position);
       transform.scale.set(TRANSIT_SIGN.width, TRANSIT_SIGN.height, TRANSIT_SIGN.depth);
       transform.updateMatrix();
@@ -133,6 +148,7 @@ export function createTransitSigns(world: ReturnType<typeof createTransitWorld>,
       }
     }
     panels.count = panelIndex;
+    intensities.needsUpdate = true;
     panels.instanceMatrix.needsUpdate = true;
     faces.instanceMatrix.needsUpdate = true;
   };

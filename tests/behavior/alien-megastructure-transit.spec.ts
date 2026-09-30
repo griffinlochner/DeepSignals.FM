@@ -11,9 +11,49 @@ import {
   createTransitMotion, transitPropulsionEnergy, transitSurgeActivation, TRANSIT_MOTION, updateTransitMotion,
 } from "../../src/themes/alien-megastructure-transit/transitMotion";
 import { createTransitSpace, generateTransitStars, TRANSIT_STAR_CLASSES } from "../../src/themes/alien-megastructure-transit/transitSpace";
-import { createTransitSigns, TRANSIT_SIGN, TRANSIT_SLOGANS } from "../../src/themes/alien-megastructure-transit/transitSigns";
+import { createTransitSigns, transitSignIntensity, TRANSIT_SIGN, TRANSIT_SLOGANS } from "../../src/themes/alien-megastructure-transit/transitSigns";
 
-test("transit slogans alternate full shape sequences and stay ordered, pooled and clear through recycling", () => {
+test("transit slogan lights have distinct bounded envelopes and freeze with scene controls", () => {
+  const samples = TRANSIT_SLOGANS.map((_slogan, phrase) => Array.from({ length: 960 }, (_unused, frame) => transitSignIntensity(phrase, frame / 60, true)));
+  expect(Math.min(...samples[0])).toBeLessThan(0.05);
+  expect(Math.max(...samples[0])).toBeCloseTo(1.25);
+  expect(Math.min(...samples[1])).toBeGreaterThan(0.2);
+  expect(Math.min(...samples[1])).toBeLessThan(0.3);
+  expect(Math.max(...samples[1])).toBeLessThan(1);
+  expect(Math.max(...samples[2])).toBeGreaterThan(1.5);
+  for (const [phrase, values] of samples.entries()) {
+    expect(Math.min(...values)).toBeGreaterThan(0);
+    expect(Math.max(...values)).toBeLessThan(1.84);
+    expect(Math.max(...values.slice(1).map((value, index) => Math.abs(value - values[index])))).toBeLessThan(0.14);
+    expect(transitSignIntensity(phrase, NaN, true)).toBe(transitSignIntensity(phrase, 0, true));
+    expect(transitSignIntensity(phrase, 4, false)).toBe(0.16);
+    expect(transitSignIntensity(phrase, 9, false)).toBe(0.16);
+  }
+  const world = createTransitWorld();
+  const signs = createTransitSigns(world, new Texture());
+  const center = new Vector3();
+  const direction = new Vector3();
+  const intensity = signs.objects[1].geometry.getAttribute("signIntensity");
+  for (let phrase = 0; phrase < 3; phrase += 1) {
+    world.encounters[5].distance = TRANSIT.firstEncounter + (5 + phrase * 6) * TRANSIT.spacing;
+    world.animationSeconds = 1.1;
+    signs.update(center, true);
+    const frozen = intensity.getX(0);
+    for (const gates of [[false, true, false], [true, false, false], [true, true, true]]) {
+      advanceTransitWorld(world, 0.05, gates[0], gates[1], gates[2], direction, 0);
+      signs.update(center, true);
+      expect(intensity.getX(0)).toBe(frozen);
+    }
+    advanceTransitWorld(world, 0.05, true, true, false, direction, 0);
+    signs.update(center, true);
+    expect(intensity.getX(0)).not.toBe(frozen);
+    signs.update(center, false);
+    expect(intensity.getX(0)).toBeCloseTo(0.16);
+  }
+  signs.dispose();
+});
+
+test("transit slogans use one hanging sign every other sequence and stay ordered, pooled and clear through recycling", () => {
   const world = createTransitWorld();
   const texture = new Texture();
   let textureDisposals = 0;
@@ -29,6 +69,7 @@ test("transit slogans alternate full shape sequences and stay ordered, pooled an
   expect(TRANSIT_SLOGANS.map((slogan) => slogan.text)).toEqual(["TUNE IN.", "TRANSMIT.", "TRANSCEND."]);
   expect(TRANSIT_SIGN.faceOffset - TRANSIT_SIGN.depth / 2).toBeGreaterThanOrEqual(12);
   let minimumClearance = Infinity;
+  const seen = new Map<number, number>();
   for (let frame = 0; frame < 6000; frame += 1) {
     advanceTransitWorld(world, 0.05, true, true, false, direction, TRANSIT_MOTION.surgeMax);
     if (frame % 10 !== 0) continue;
@@ -39,9 +80,11 @@ test("transit slogans alternate full shape sequences and stay ordered, pooled an
       faces.getMatrixAt(index, matrix);
       const phrase = 2 - faces.geometry.getAttribute("signRow").getX(index);
       const distance = -matrix.elements[14] - center.z + TRANSIT_SIGN.faceOffset;
-      const encounterDistance = distance - TRANSIT_SLOGANS[phrase].offset;
+      const encounterDistance = distance - TRANSIT_SIGN.offset;
       const sequence = Math.round((encounterDistance - TRANSIT.firstEncounter) / TRANSIT.spacing);
-      expect(sequence % 6).toBe(3 + phrase);
+      expect(sequence % 6).toBe(5);
+      expect(phrase).toBe(Math.floor(sequence / 6) % 3);
+      seen.set(sequence, phrase);
       expect(encounterDistance).toBeCloseTo(TRANSIT.firstEncounter + sequence * TRANSIT.spacing, 2);
       return { phrase, distance };
     }).sort((first, second) => first.distance - second.distance);
@@ -60,10 +103,11 @@ test("transit slogans alternate full shape sequences and stay ordered, pooled an
   expect(minimumClearance).toBeGreaterThan(TRANSIT.safeRadius);
   expect(world.recycled).toBeGreaterThan(12);
   expect(signs.objects).toHaveLength(2);
-  expect(signs.objects.map((mesh) => mesh.count)).toEqual([5, 3]);
+  expect(signs.objects.map((mesh) => mesh.count)).toEqual([3, 1]);
+  expect([...seen.values()].slice(0, 6)).toEqual([0, 1, 2, 0, 1, 2]);
   signs.objects.forEach((mesh, index) => expect(mesh.instanceMatrix.array).toBe(buffers[index]));
   signs.update(center, false);
-  expect(signs.objects.every((mesh) => !mesh.visible)).toBe(true);
+  expect(signs.objects.every((mesh) => mesh.visible)).toBe(true);
   signs.dispose();
   expect(textureDisposals).toBe(1);
 });
@@ -762,11 +806,11 @@ test.describe("Alien Megastructure Transit player", () => {
   });
 
   test("renders open flight and all encounters on desktop and narrow screens", async ({ page, pageErrors }, testInfo) => {
-    test.setTimeout(160_000);
+    test.setTimeout(220_000);
     await page.getByRole("slider", { name: "Volume" }).fill("1");
     await page.getByRole("button", { name: "Play", exact: true }).click();
     const observations = [];
-    for (const [distance, name] of [[100, "ring"], [2450, "open-void"], [3900, "monoliths"], [7000, "bridge"]] as const) {
+    for (const [distance, name] of [[100, "ring"], [2450, "open-void"], [3900, "monoliths"], [7000, "bridge"], [14500, "hanging-slogan"]] as const) {
       await expect.poll(async () => (await runtime(page)).travelPosition, { timeout: 60_000, intervals: [100] })
         .toBeGreaterThan(distance);
       await page.locator("label").filter({ hasText: /^Motion$/ }).click();
@@ -785,7 +829,17 @@ test.describe("Alien Megastructure Transit player", () => {
         await page.locator("label").filter({ hasText: /^Chroma$/ }).click();
         await expect.poll(async () => (await canvasPixels(page)).brightness).toBeLessThan(pixels.brightness);
         await page.screenshot({ path: testInfo.outputPath(`${name}-${viewport.width}-chroma-off.png`) });
+        if (name === "hanging-slogan" && viewport.width === 390) {
+          await page.getByRole("button", { name: "Collapse player panel" }).click();
+          await page.screenshot({ path: testInfo.outputPath("hanging-slogan-mobile-collapsed-off.png") });
+          await page.getByRole("button", { name: "Expand player panel" }).click();
+        }
         await page.locator("label").filter({ hasText: /^Chroma$/ }).click();
+        if (name === "hanging-slogan" && viewport.width === 390) {
+          await page.getByRole("button", { name: "Collapse player panel" }).click();
+          await page.screenshot({ path: testInfo.outputPath("hanging-slogan-mobile-collapsed-on.png") });
+          await page.getByRole("button", { name: "Expand player panel" }).click();
+        }
         observations.push({ name, viewport, pixels, telemetry: await runtime(page) });
       }
       await page.setViewportSize({ width: 1440, height: 900 });
