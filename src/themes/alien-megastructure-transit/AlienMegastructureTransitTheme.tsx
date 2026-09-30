@@ -9,6 +9,7 @@ import {
 import { createTransitArchitecture } from "./transitArchitecture";
 import { createTransitMotion, updateTransitMotion } from "./transitMotion";
 import { createTransitSpace } from "./transitSpace";
+import { createTransitSignAtlas, createTransitSigns } from "./transitSigns";
 
 export default function AlienMegastructureTransitTheme({
   isPlaying, motionEnabled = true, chromaEnabled = true, getLatestAudioSnapshot, reducedMotion, onRuntimeTelemetry,
@@ -40,6 +41,14 @@ export default function AlienMegastructureTransitTheme({
     scene.add(...space.objects);
     const architecture = createTransitArchitecture(world);
     scene.add(...architecture.meshes);
+    const signAtlas = createTransitSignAtlas();
+    signAtlas.texture.anisotropy = Math.min(4, renderer.capabilities.getMaxAnisotropy());
+    const signs = createTransitSigns(world, signAtlas.texture);
+    scene.add(...signs.objects);
+    let disposed = false;
+    void document.fonts.load('900 140px "Chakra Petch"').then(() => {
+      if (!disposed) signAtlas.redraw();
+    }, () => undefined);
 
     const ambient = new THREE.AmbientLight(0x93bdc1, 1.5);
     const light = new THREE.DirectionalLight(0xdbfff2, 2.5);
@@ -79,6 +88,7 @@ export default function AlienMegastructureTransitTheme({
       sampleTransitDirection(world.distance + 160, direction).normalize();
       camera.lookAt(direction);
       architecture.update(center, lighting, props.chromaEnabled, motion);
+      signs.update(center, props.chromaEnabled);
       space.update(world, motion, lighting, props.chromaEnabled, center);
       scene.fog!.color.copy(space.background);
       renderer.render(scene, camera);
@@ -99,11 +109,13 @@ export default function AlienMegastructureTransitTheme({
     animationFrame = requestAnimationFrame(render);
 
     return () => {
+      disposed = true;
       cancelAnimationFrame(animationFrame);
       fpsSampler.dispose();
       resizeObserver.disconnect();
       window.removeEventListener("resize", resize);
       architecture.dispose();
+      signs.dispose();
       space.dispose();
       scene.clear();
       renderer.dispose();

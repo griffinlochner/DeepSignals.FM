@@ -1,4 +1,4 @@
-import { BoxGeometry, InstancedMesh, Matrix4, Quaternion, TorusGeometry, Vector3 } from "three";
+import { BoxGeometry, InstancedMesh, Matrix4, Quaternion, Texture, TorusGeometry, Vector3 } from "three";
 import type { Page } from "@playwright/test";
 import type { AudioReactiveSnapshot } from "../../src/app/playerTypes";
 import { test, expect } from "../support/test";
@@ -11,6 +11,62 @@ import {
   createTransitMotion, transitPropulsionEnergy, transitSurgeActivation, TRANSIT_MOTION, updateTransitMotion,
 } from "../../src/themes/alien-megastructure-transit/transitMotion";
 import { createTransitSpace, generateTransitStars, TRANSIT_STAR_CLASSES } from "../../src/themes/alien-megastructure-transit/transitSpace";
+import { createTransitSigns, TRANSIT_SIGN, TRANSIT_SLOGANS } from "../../src/themes/alien-megastructure-transit/transitSigns";
+
+test("transit slogans alternate full shape sequences and stay ordered, pooled and clear through recycling", () => {
+  const world = createTransitWorld();
+  const texture = new Texture();
+  let textureDisposals = 0;
+  texture.addEventListener("dispose", () => { textureDisposals += 1; });
+  const signs = createTransitSigns(world, texture);
+  const center = new Vector3();
+  const direction = new Vector3();
+  const position = new Vector3();
+  const scale = new Vector3();
+  const rotation = new Quaternion();
+  const matrix = new Matrix4();
+  const buffers = signs.objects.map((mesh) => mesh.instanceMatrix.array);
+  expect(TRANSIT_SLOGANS.map((slogan) => slogan.text)).toEqual(["TUNE IN.", "TRANSMIT.", "TRANSCEND."]);
+  expect(TRANSIT_SIGN.faceOffset - TRANSIT_SIGN.depth / 2).toBeGreaterThanOrEqual(12);
+  let minimumClearance = Infinity;
+  for (let frame = 0; frame < 6000; frame += 1) {
+    advanceTransitWorld(world, 0.05, true, true, false, direction, TRANSIT_MOTION.surgeMax);
+    if (frame % 10 !== 0) continue;
+    sampleTransitPath(world.distance, center);
+    signs.update(center, true);
+    const faces = signs.objects[1];
+    const ordered = Array.from({ length: faces.count }, (_unused, index) => {
+      faces.getMatrixAt(index, matrix);
+      const phrase = 2 - faces.geometry.getAttribute("signRow").getX(index);
+      const distance = -matrix.elements[14] - center.z + TRANSIT_SIGN.faceOffset;
+      const encounterDistance = distance - TRANSIT_SLOGANS[phrase].offset;
+      const sequence = Math.round((encounterDistance - TRANSIT.firstEncounter) / TRANSIT.spacing);
+      expect(sequence % 6).toBe(3 + phrase);
+      expect(encounterDistance).toBeCloseTo(TRANSIT.firstEncounter + sequence * TRANSIT.spacing, 2);
+      return { phrase, distance };
+    }).sort((first, second) => first.distance - second.distance);
+    ordered.slice(1).forEach((sign, index) => expect(sign.phrase).toBe((ordered[index].phrase + 1) % 3));
+    for (const mesh of signs.objects) {
+      expect(mesh.count).toBeLessThanOrEqual(mesh.instanceMatrix.array.length / 16);
+      for (let instance = 0; instance < mesh.count; instance += 1) {
+        mesh.getMatrixAt(instance, matrix);
+        matrix.decompose(position, rotation, scale);
+        const clearance = Math.hypot(Math.max(0, Math.abs(position.x) - scale.x / 2),
+          Math.max(0, Math.abs(position.y) - scale.y / 2), Math.max(0, Math.abs(position.z) - scale.z / 2));
+        minimumClearance = Math.min(minimumClearance, clearance);
+      }
+    }
+  }
+  expect(minimumClearance).toBeGreaterThan(TRANSIT.safeRadius);
+  expect(world.recycled).toBeGreaterThan(12);
+  expect(signs.objects).toHaveLength(2);
+  expect(signs.objects.map((mesh) => mesh.count)).toEqual([5, 3]);
+  signs.objects.forEach((mesh, index) => expect(mesh.instanceMatrix.array).toBe(buffers[index]));
+  signs.update(center, false);
+  expect(signs.objects.every((mesh) => !mesh.visible)).toBe(true);
+  signs.dispose();
+  expect(textureDisposals).toBe(1);
+});
 
 test("transit panel lighting has slow dark-to-bright cycles without audio and CHROMA OFF stays authored", () => {
   const world = createTransitWorld();
@@ -121,6 +177,7 @@ test("transit stars are deterministic, irregular and bounded; surge space freeze
   expect(stars.reduce((total, batch) => total + batch.count, 0)).toBe(TRANSIT.starCount);
   expect(TRANSIT_STAR_CLASSES.map((batch) => batch.size)).toEqual([1, 1.8, 3]);
   const latitudes: number[] = [];
+  let bandStars = 0;
   for (const batch of stars) {
     expect(new Set(batch.colors).size).toBeGreaterThan(batch.count);
     for (let index = 0; index < batch.positions.length; index += 3) {
@@ -128,11 +185,16 @@ test("transit stars are deterministic, irregular and bounded; surge space freeze
       expect(radius).toBeGreaterThan(8499);
       expect(radius).toBeLessThan(10001);
       latitudes.push(batch.positions[index + 1] / radius);
+      const bandLatitude = (-Math.sin(0.55) * batch.positions[index] + Math.cos(0.55) * batch.positions[index + 1]) / radius;
+      if (Math.abs(bandLatitude) < 0.18) bandStars += 1;
     }
   }
   latitudes.sort((first, second) => first - second);
   const gaps = latitudes.slice(1).map((latitude, index) => latitude - latitudes[index]);
   expect(Math.max(...gaps) / Math.min(...gaps)).toBeGreaterThan(20);
+  expect(bandStars / TRANSIT.starCount).toBeGreaterThan(0.5);
+  expect(bandStars / TRANSIT.starCount).toBeLessThan(0.8);
+  expect(TRANSIT_STAR_CLASSES[2].count).toBe(14);
   const space = createTransitSpace();
   const world = createTransitWorld();
   const motion = createTransitMotion();
@@ -167,6 +229,50 @@ test("transit stars are deterministic, irregular and bounded; surge space freeze
   expect(space.background.equals(dark)).toBe(true);
   expect(effects.every((mesh) => !mesh.visible)).toBe(true);
   effects.forEach((mesh, index) => expect(mesh.instanceMatrix.array).toBe(buffers[index]));
+  space.dispose();
+});
+
+test("transit SURGE streaks approach the moving camera and recycle ahead after passing", () => {
+  const space = createTransitSpace();
+  const world = createTransitWorld();
+  const motion = createTransitMotion();
+  const lighting = createTransitLighting();
+  const center = new Vector3();
+  const matrix = new Matrix4();
+  const streaks = space.objects.filter((object): object is InstancedMesh => object instanceof InstancedMesh)[1];
+  const previousPositions: number[] = [];
+  let recycled = 0;
+  let passedCamera = false;
+  motion.surgeStartedAt = 0;
+  motion.surgeEnvelope = 1;
+  for (let frame = 0; frame <= 120; frame += 1) {
+    world.distance = frame * 40;
+    motion.elapsedMs = frame * 50;
+    sampleTransitPath(world.distance, center);
+    space.update(world, motion, lighting, true, center);
+    for (let index = 0; index < streaks.count; index += 1) {
+      streaks.getMatrixAt(index, matrix);
+      const position = matrix.elements[14];
+      expect(position).toBeGreaterThanOrEqual(-3500);
+      expect(position).toBeLessThanOrEqual(900);
+      passedCamera ||= position > 0;
+      if (frame > 0) {
+        const delta = position - previousPositions[index];
+        if (delta < 0) {
+          expect(previousPositions[index]).toBeGreaterThan(700);
+          expect(position).toBeLessThan(-3300);
+          expect(delta).toBeCloseTo(130 - 4400, 2);
+          recycled += 1;
+        } else {
+          expect(delta).toBeCloseTo(130, 2);
+        }
+      }
+      previousPositions[index] = position;
+    }
+  }
+  expect(streaks.count).toBe(24);
+  expect(passedCamera).toBe(true);
+  expect(recycled).toBeGreaterThan(24);
   space.dispose();
 });
 
@@ -273,7 +379,7 @@ test("transit machinery stays bounded and clear through rotation and recycling",
     instances: mesh.count, triangles: mesh.count * mesh.geometry.index!.count / 3,
   }));
   await test.info().attach("architecture-budget", {
-    body: JSON.stringify({ minimumClearance, counts, normalDrawCalls: counts.length + 3, surgeDrawCalls: counts.length + 5 }), contentType: "application/json",
+    body: JSON.stringify({ minimumClearance, counts, sloganDrawCalls: 2, normalDrawCalls: counts.length + 5, surgeDrawCalls: counts.length + 7 }), contentType: "application/json",
   });
   architecture.dispose();
 });
@@ -415,6 +521,7 @@ declare global {
       frames: Set<number>;
       buffers: Set<WebGLBuffer>;
       programs: Set<WebGLProgram>;
+      textures: Set<WebGLTexture>;
     };
   }
 }
@@ -508,7 +615,7 @@ test.describe("Alien Megastructure Transit player", () => {
   test("releases GPU resources and its only loop and clears FPS on repeated switches", async ({ page, pageErrors }) => {
     test.setTimeout(80_000);
     await page.addInitScript(() => {
-      const resources = { frames: new Set<number>(), buffers: new Set<WebGLBuffer>(), programs: new Set<WebGLProgram>() };
+      const resources = { frames: new Set<number>(), buffers: new Set<WebGLBuffer>(), programs: new Set<WebGLProgram>(), textures: new Set<WebGLTexture>() };
       window.__TRANSIT_RESOURCES__ = resources;
       const request = window.requestAnimationFrame.bind(window);
       const cancel = window.cancelAnimationFrame.bind(window);
@@ -523,6 +630,8 @@ test.describe("Alien Megastructure Transit player", () => {
       const deleteBuffer = prototype.deleteBuffer;
       const createProgram = prototype.createProgram;
       const deleteProgram = prototype.deleteProgram;
+      const texStorage2D = prototype.texStorage2D;
+      const deleteTexture = prototype.deleteTexture;
       prototype.createBuffer = function () {
         const buffer = createBuffer.call(this);
         resources.buffers.add(buffer);
@@ -541,13 +650,24 @@ test.describe("Alien Megastructure Transit player", () => {
         if (program) resources.programs.delete(program);
         deleteProgram.call(this, program);
       };
+      prototype.texStorage2D = function (target, levels, format, width, height) {
+        if (target === this.TEXTURE_2D) {
+          const texture = this.getParameter(this.TEXTURE_BINDING_2D) as WebGLTexture | null;
+          if (texture) resources.textures.add(texture);
+        }
+        texStorage2D.call(this, target, levels, format, width, height);
+      };
+      prototype.deleteTexture = function (texture) {
+        if (texture) resources.textures.delete(texture);
+        deleteTexture.call(this, texture);
+      };
     });
     await page.reload();
     const select = page.getByLabel("Visual environment");
     const fps = page.locator(".visual-feed-window__fps .visual-feed-window__metric-value");
     const resourceCounts = () => page.evaluate(() => {
       const resources = window.__TRANSIT_RESOURCES__;
-      return { frames: resources.frames.size, buffers: resources.buffers.size, programs: resources.programs.size };
+      return { frames: resources.frames.size, buffers: resources.buffers.size, programs: resources.programs.size, textures: resources.textures.size };
     });
     await select.selectOption("minimal");
     await expect(fps).toHaveText("---");
@@ -560,6 +680,7 @@ test.describe("Alien Megastructure Transit player", () => {
       expect(mounted.frames).toBe(baseline.frames + 1);
       expect(mounted.buffers).toBeGreaterThan(baseline.buffers);
       expect(mounted.programs).toBeGreaterThan(baseline.programs);
+      expect(mounted.textures).toBeGreaterThan(baseline.textures);
       if (cycle === 0) {
         await page.getByRole("slider", { name: "Volume" }).fill("1");
         await page.getByRole("button", { name: "Play", exact: true }).click();

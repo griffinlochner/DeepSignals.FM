@@ -3,9 +3,9 @@ import { createTransitLighting, createTransitWorld, sampleTransitPath } from "./
 import { createTransitMotion } from "./transitMotion";
 
 export const TRANSIT_STAR_CLASSES = [
-  { count: 330, size: 1, brightness: 0.32 },
-  { count: 76, size: 1.8, brightness: 0.58 },
-  { count: 14, size: 3, brightness: 0.85 },
+  { count: 800, size: 1, brightness: 0.32, bandCount: 480 },
+  { count: 86, size: 1.8, brightness: 0.58, bandCount: 0 },
+  { count: 14, size: 3, brightness: 0.85, bandCount: 0 },
 ] as const;
 
 export function generateTransitStars(seed = 0x5df031) {
@@ -14,18 +14,26 @@ export function generateTransitStars(seed = 0x5df031) {
     state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
     return state / 4294967296;
   };
-  return TRANSIT_STAR_CLASSES.map(({ count, size, brightness }) => {
+  const tilt = 0.55;
+  return TRANSIT_STAR_CLASSES.map(({ count, size, brightness, bandCount }) => {
     const positions = new Float32Array(count * 3);
     const colors = new Float32Array(count * 3);
     for (let index = 0; index < count; index += 1) {
-      const vertical = random() * 2 - 1;
-      const angle = random() * Math.PI * 2;
+      const inBand = index < bandCount;
+      let angle = random() * Math.PI * 2;
+      angle += inBand ? Math.sin(angle * 3) * 0.18 : 0;
+      const width = 0.045 + (0.5 + 0.5 * Math.sin(angle * 3)) * 0.065;
+      const vertical = inBand
+        ? THREE.MathUtils.clamp(Math.sqrt(-2 * Math.log(Math.max(random(), 0.000001)))
+          * Math.cos(random() * Math.PI * 2) * width + Math.sin(angle * 2) * 0.035, -0.4, 0.4)
+        : random() * 2 - 1;
       const radial = Math.sqrt(1 - vertical * vertical);
       const distance = 8500 + random() * 1500;
-      positions[index * 3] = Math.cos(angle) * radial * distance;
-      positions[index * 3 + 1] = vertical * distance;
+      const horizontal = Math.cos(angle) * radial;
+      positions[index * 3] = (horizontal * Math.cos(tilt) - vertical * Math.sin(tilt)) * distance;
+      positions[index * 3 + 1] = (horizontal * Math.sin(tilt) + vertical * Math.cos(tilt)) * distance;
       positions[index * 3 + 2] = Math.sin(angle) * radial * distance;
-      const luminance = brightness * (0.3 + random() * 0.7);
+      const luminance = brightness * (0.3 + random() * 0.7) * (inBand ? 0.65 : 1);
       colors[index * 3] = luminance * (0.88 + random() * 0.12);
       colors[index * 3 + 1] = luminance;
       colors[index * 3 + 2] = luminance * (0.88 + random() * 0.12);
@@ -104,7 +112,7 @@ export function createTransitSpace() {
     }
     for (let index = 0; index < 24; index += 1) {
       const phase = index * 2.399963;
-      const distance = world.distance + ((index * 173 + ageSeconds * 2600) % 4400) - 900;
+      const distance = world.distance + 3500 - ((index * 173 + ageSeconds * 2600) % 4400);
       sampleTransitPath(distance, transform.position).sub(center);
       const radius = 650 + index % 5 * 190;
       transform.position.x += Math.cos(phase) * radius;

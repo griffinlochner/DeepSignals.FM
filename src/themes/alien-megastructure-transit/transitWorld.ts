@@ -12,7 +12,7 @@ export const TRANSIT = {
   ringRadius: 850,
   ringTube: 90,
   ringDepthScale: 2.4,
-  starCount: 420,
+  starCount: 900,
 } as const;
 
 export type TransitBody = {
