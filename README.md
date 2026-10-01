@@ -46,9 +46,9 @@ The behavior spec also runs against the bundled `Illustrator — Psychedelic Exp
 
 Phase 2B also covers Race volume-zero and volume-ramp behavior, qualified SURGE during local demo playback, and the shared qualifier's arm/cooldown semantics. Run `npx playwright test tests/behavior/volume-surge.spec.ts tests/behavior/surge-qualification.spec.ts`.
 
-## Alien Megastructure Transit: Phase 3
+## Deep Space Drift: Phase 3
 
-Select **Alien Megastructure Transit** under **3D EXPERIENCES**. The approved rotating rings, monoliths, slabs, path and open intervals are preserved. CHROMA OFF is dim, stable dark-teal machinery; ON is brighter DSFM cyan/green/salmon architecture with independent band illumination and traveling color. Playback pause, MOTION OFF and reduced motion freeze travel, rotating halos, suspended ribs, packets, SURGE clocks, wavefronts and streaks. Independent audio color response is still permitted with MOTION OFF. No new analyser, camera banking, FOV animation or player default changes.
+Select **Deep Space Drift** under **3D EXPERIENCES**. The approved rotating rings, monoliths, slabs, path and open intervals are preserved. CHROMA OFF is dim, stable dark-teal machinery; ON is brighter DSFM cyan/green/salmon architecture with independent band illumination and traveling color. Playback pause, MOTION OFF and reduced motion freeze travel, rotating halos, suspended ribs, packets, SURGE clocks, wavefronts and streaks. Independent audio color response is still permitted with MOTION OFF. No new analyser, camera banking, FOV animation or player default changes.
 
 Audio is read once per frame from the player's shared snapshot. Lighting uses `0.75 * smoothedEnergy + 0.25 * energy` for overall activation; clamped `0.7 * bass + 0.35 * bassPulse + 0.5 * kickPulse` emphasizes major rims and pylon channels; `mids` drives segmented mechanical bands and traveling rails; clamped `0.7 * highs + 0.5 * transient` activates small ribs, markers and sparse bright-star glints. Local attack/release smoothing preserves visible pulses without a global strobe. Ring circumference, pylon collars and bridge ribs activate at different spatial phases. CHROMA OFF suppresses ordinary audio illumination but retains restrained SURGE brightness.
 

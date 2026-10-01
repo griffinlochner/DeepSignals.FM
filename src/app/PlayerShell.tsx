@@ -148,12 +148,12 @@ const ENVIRONMENT_GROUPS: EnvironmentGroup[] = [
   {
     groupName: "3D EXPERIENCES",
     environmentIds: [
-      "cosmic-nexus",
-      "signal-runner",
-      "neon-hyper-racer",
       "cosmic-roller-coaster",
-      "signal-tunnel",
       "alien-megastructure-transit",
+      "neon-hyper-racer",
+      "signal-runner",
+      "signal-tunnel",
+      "cosmic-nexus",
     ],
   },
 ];

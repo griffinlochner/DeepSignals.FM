@@ -30,7 +30,7 @@ export default function AlienMegastructureTransitTheme({
     const camera = new THREE.PerspectiveCamera(64, 1, 20, TRANSIT.far);
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.domElement.style.display = "block";
-    renderer.domElement.setAttribute("aria-label", "Alien Megastructure Transit canvas");
+    renderer.domElement.setAttribute("aria-label", "Deep Space Drift canvas");
     mount.appendChild(renderer.domElement);
 
     const world = createTransitWorld();
@@ -125,6 +125,6 @@ export default function AlienMegastructureTransitTheme({
 
   return (
     <div ref={mountRef} style={{ position: "absolute", inset: 0, pointerEvents: "none" }}
-      aria-label="Alien Megastructure Transit environment" />
+      aria-label="Deep Space Drift environment" />
   );
 }

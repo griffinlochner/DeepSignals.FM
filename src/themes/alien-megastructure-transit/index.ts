@@ -3,7 +3,7 @@ import AlienMegastructureTransitTheme from "./AlienMegastructureTransitTheme";
 
 const AlienMegastructureTransitDefinition: ThemeDefinition = {
   id: "alien-megastructure-transit",
-  name: "Alien Megastructure Transit",
+  name: "Deep Space Drift",
   description: "Open flight through colossal rotating halos, luminous monoliths and suspended alien machinery.",
   className: "theme-alien-megastructure-transit",
   performanceTier: "standard",

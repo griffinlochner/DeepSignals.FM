@@ -533,7 +533,7 @@ async function runtime(page: Page) {
 }
 
 async function canvasPixels(page: Page) {
-  return page.getByLabel("Alien Megastructure Transit canvas").evaluate((element) =>
+  return page.getByLabel("Deep Space Drift canvas").evaluate((element) =>
     new Promise<{ hash: number; litPixels: number; brightness: number; colorfulPixels: number }>((resolve) => {
       requestAnimationFrame(() => {
         const sample = document.createElement("canvas");
@@ -570,7 +570,7 @@ declare global {
   }
 }
 
-test.describe("Alien Megastructure Transit player", () => {
+test.describe("Deep Space Drift player", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/player/");
     await page.evaluate(() => window.localStorage.clear());
@@ -580,8 +580,17 @@ test.describe("Alien Megastructure Transit player", () => {
 
   test("registers and freezes pixels on idle, MOTION OFF and paused playback", async ({ page, pageErrors }) => {
     await expect(page.locator('optgroup[label="3D EXPERIENCES"] option[value="alien-megastructure-transit"]'))
-      .toHaveText("Alien Megastructure Transit");
-    await expect(page.getByLabel("Alien Megastructure Transit canvas")).toHaveCount(1);
+      .toHaveText("Deep Space Drift");
+    await expect(page.locator('optgroup[label="3D EXPERIENCES"] option'))
+      .toHaveText([
+        "Cosmic Coaster",
+        "Deep Space Drift",
+        "Race to the Signal Nexus",
+        "Signal Runner",
+        "Signal Tunnel",
+        "The Signal Nexus",
+      ]);
+    await expect(page.getByLabel("Deep Space Drift canvas")).toHaveCount(1);
     await expect(page.getByLabel("Toggle environment chroma effects")).toBeEnabled();
     await page.locator("label").filter({ hasText: /^Chroma$/ }).click();
     await expect.poll(async () => (await runtime(page)).motionSpeed).toBe(0);
@@ -718,7 +727,7 @@ test.describe("Alien Megastructure Transit player", () => {
     const baseline = await resourceCounts();
     for (let cycle = 0; cycle < 3; cycle += 1) {
       await select.selectOption("alien-megastructure-transit");
-      await expect(page.getByLabel("Alien Megastructure Transit canvas")).toHaveCount(1);
+      await expect(page.getByLabel("Deep Space Drift canvas")).toHaveCount(1);
       await expect.poll(async () => (await runtime(page)).renderFps).toBeGreaterThan(0);
       const mounted = await resourceCounts();
       expect(mounted.frames).toBe(baseline.frames + 1);
@@ -818,7 +827,7 @@ test.describe("Alien Megastructure Transit player", () => {
       await page.getByRole("button", { name: "Pause", exact: true }).click();
       for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 }]) {
         await page.setViewportSize(viewport);
-        const canvas = page.getByLabel("Alien Megastructure Transit canvas");
+        const canvas = page.getByLabel("Deep Space Drift canvas");
         await expect.poll(async () => (await canvas.boundingBox())?.width).toBe(viewport.width);
         const pixels = await canvasPixels(page);
         expect(pixels.litPixels).toBeGreaterThan(50);

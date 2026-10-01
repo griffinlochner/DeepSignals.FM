@@ -814,7 +814,7 @@ test("representative environments switch without losing the player", async ({
     ["Signal Runner", "signal-runner"],
     ["Race to the Signal Nexus", "neon-hyper-racer"],
     ["The Signal Nexus", "cosmic-nexus"],
-    ["Alien Megastructure Transit", "alien-megastructure-transit"],
+    ["Deep Space Drift", "alien-megastructure-transit"],
     ["Signal Tunnel", "signal-tunnel"],
   ] as const;
 
@@ -830,6 +830,20 @@ test("representative environments switch without losing the player", async ({
     );
     await expect(page.locator(".floating-player-panel")).toBeVisible();
   }
+
+  await environment.selectOption({ label: "Deep Space Drift" });
+  await expect.poll(() =>
+    page.evaluate(() => {
+      const preferences = window.localStorage.getItem(
+        "deepsignals.player.preferences.v3",
+      );
+      return preferences ? JSON.parse(preferences).selectedThemeId : null;
+    }),
+  ).toBe("alien-megastructure-transit");
+  await page.reload();
+  await expect(page.getByLabel("Visual environment")).toHaveValue(
+    "alien-megastructure-transit",
+  );
 });
 
 test("CHROMA and MOTION toggle independently", async ({ page }) => {
