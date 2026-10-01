@@ -10,10 +10,10 @@ import {
   sampleCenterline,
   sampleDirection,
   sampleTunnelSection,
-  tunnelDoorHalfGap,
   TUNNEL,
 } from "./tunnelPath";
 import { createTunnelMotion, tunnelSurgeActivation, updateTunnelMotion } from "./tunnelMotion";
+import { createTunnelDoors } from "./tunnelDoors";
 
 const PANEL_SIDES = 12;
 const WAVE_COUNT = 4;
@@ -75,8 +75,8 @@ export default function SignalTunnelTheme({
     const gateTrims = new THREE.InstancedMesh(geometry, material, TUNNEL.segmentCount * 2);
     const packets = new THREE.InstancedMesh(beamGeometry, material, TUNNEL.segmentCount * 6);
     const waves = new THREE.InstancedMesh(waveGeometry, waveMaterial, WAVE_COUNT);
-    const doors = new THREE.InstancedMesh(panelGeometry, architectureMaterial, 2);
-    const doorLights = new THREE.InstancedMesh(panelGeometry, material, 6);
+    const doors = createTunnelDoors();
+    scene.add(doors.group);
     const torusGeometry = new THREE.TorusGeometry(1, TUNNEL.torusTube / (TUNNEL.chamberRadius * 0.86), 8, 32);
     const torusTrimGeometry = new THREE.TorusGeometry(1, 0.008, 4, 32);
     const portalGeometry = new THREE.TorusGeometry(TUNNEL.radius, 0.18, 5, 64, Math.PI * 1.65);
@@ -85,7 +85,7 @@ export default function SignalTunnelTheme({
     const portalArms = new THREE.InstancedMesh(portalGeometry, material, TUNNEL.portalLayers * 2);
     const portalRims = new THREE.InstancedMesh(geometry, material, TUNNEL.portalLayers);
     const meshes = [rings, spirals, rails, panels, strips, gates, gateTrims, packets, waves,
-      doors, doorLights, tori, torusTrims, portalArms, portalRims];
+      tori, torusTrims, portalArms, portalRims];
     for (const mesh of meshes) {
       mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
       mesh.frustumCulled = false;
@@ -189,8 +189,7 @@ export default function SignalTunnelTheme({
       let gateCount = 0;
       let trimCount = 0;
       let packetCount = 0;
-      let doorCount = 0;
-      let doorLightCount = 0;
+      doors.group.visible = false;
       let torusCount = 0;
       let torusTrimCount = 0;
       let portalCount = 0;
@@ -245,7 +244,7 @@ export default function SignalTunnelTheme({
             }
           }
         }
-        if (section.gateway || section.door) {
+        if (section.gateway) {
           transform.position.copy(segmentCenter);
           transform.quaternion.copy(segmentRotation);
           transform.scale.set(radiusScale + 0.05, radiusScale + 0.05, 2.8);
@@ -266,28 +265,10 @@ export default function SignalTunnelTheme({
         }
 
         if (section.door) {
-          const halfGap = tunnelDoorHalfGap(ahead, section.radius);
-          for (let side = -1; side <= 1; side += 2) {
-            localPoint.set(side * (halfGap + section.radius / 2), 0, 0);
-            transform.position.copy(localPoint).applyQuaternion(segmentRotation).add(segmentCenter);
-            transform.quaternion.copy(segmentRotation);
-            transform.scale.set(section.radius, section.radius * 1.85, 0.9);
-            transform.updateMatrix();
-            doors.setMatrixAt(doorCount, transform.matrix);
-            ringColor.copy(wallColor).lerp(cyan, chromaOn ? 0.08 + activation * 0.35 : 0.025 + activation * 0.08)
-              .multiplyScalar(chromaOn ? 1 : 0.65);
-            doors.setColorAt(doorCount++, ringColor);
-            for (let detail = 0; detail < 3; detail += 1) {
-              localPoint.set(side * (halfGap + (detail === 0 ? 0.12 : section.radius * 0.45)),
-                detail === 0 ? 0 : (detail === 1 ? -1 : 1) * section.radius * 0.6, 0.49);
-              transform.position.copy(localPoint).applyQuaternion(segmentRotation).add(segmentCenter);
-              transform.scale.set(detail === 0 ? 0.16 : section.radius * 0.6, detail === 0 ? section.radius * 1.7 : 0.12, 0.04);
-              transform.updateMatrix();
-              doorLights.setMatrixAt(doorLightCount, transform.matrix);
-              paint(detail === 0 ? 1 : 0, 0.95);
-              doorLights.setColorAt(doorLightCount++, ringColor);
-            }
-          }
+          doors.group.visible = true;
+          doors.group.position.copy(segmentCenter);
+          doors.group.quaternion.copy(segmentRotation);
+          doors.update(distance, section.radius, ahead, time, motion.energy, chromaOn, activation);
         }
 
         if (section.torus) {
@@ -377,8 +358,6 @@ export default function SignalTunnelTheme({
       gates.count = gateCount;
       gateTrims.count = trimCount;
       packets.count = packetCount;
-      doors.count = doorCount;
-      doorLights.count = doorLightCount;
       tori.count = torusCount;
       torusTrims.count = torusTrimCount;
       portalArms.count = portalCount;
@@ -428,6 +407,7 @@ export default function SignalTunnelTheme({
       fpsSampler.dispose();
       resizeObserver.disconnect();
       window.removeEventListener("resize", resize);
+      doors.dispose();
       for (const mesh of meshes) {
         scene.remove(mesh);
         mesh.dispose();

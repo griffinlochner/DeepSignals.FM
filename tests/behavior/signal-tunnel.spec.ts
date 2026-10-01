@@ -1,4 +1,5 @@
-import { Line3, Vector3 } from "three";
+import { Line3, Matrix4, ShaderLib, Vector3 } from "three";
+import type { BufferGeometry, Material, WebGLRenderer } from "three";
 import { test, expect } from "../support/test";
 import {
   advanceTunnel,
@@ -16,6 +17,174 @@ import {
 } from "../../src/themes/signal-tunnel/tunnelPath";
 import type { Page } from "@playwright/test";
 import { createTunnelMotion, tunnelSurgeActivation, updateTunnelMotion } from "../../src/themes/signal-tunnel/tunnelMotion";
+import { createTunnelDoors, TUNNEL_DOORS, tunnelDoorLayout, tunnelDoorLeafClearance, tunnelDoorLeafOpening, tunnelDoorVariant } from "../../src/themes/signal-tunnel/tunnelDoors";
+
+declare global {
+  interface Window {
+    __TUNNEL_RESOURCES__: { frames: Set<number>; buffers: Set<WebGLBuffer>; programs: Set<WebGLProgram>; textures: Set<WebGLTexture> };
+  }
+}
+
+test("door variants are stable per encounter with shared max-surge clearance", () => {
+  const section = createTunnelSection();
+  const direction = new Vector3();
+  const camera = new Vector3();
+  const center = new Vector3();
+  const variants = new Set<string>();
+  const maxSpeed = TUNNEL.speed + TUNNEL.maxSpeedBoost + TUNNEL.surgeBoost;
+  for (let encounter = 0; encounter < 30; encounter += 1) {
+    const distance = encounter * TUNNEL.sectionLength + 112;
+    const layout = tunnelDoorLayout(distance, sampleTunnelSection(distance, section).radius);
+    variants.add(layout.variant.id);
+    expect(layout.variant).toBe(TUNNEL_DOORS[encounter % 3]);
+    expect(tunnelDoorVariant(distance)).toBe(tunnelDoorVariant(distance));
+    expect(layout.aperture).toBeLessThan(layout.pocketRadius);
+    expect(layout.pocketRadius).toBeLessThan(layout.outerRadius);
+    const travel = createTunnelTravel();
+    travel.distance = distance - 125;
+    while (travel.distance < distance + 12) {
+      advanceTunnel(travel, 0.05, true, direction, maxSpeed);
+      const ahead = distance - travel.distance;
+      for (let leaf = 0; leaf < layout.variant.leaves; leaf += 1) {
+        if (ahead > TUNNEL.doorStartDistance) expect(tunnelDoorLeafOpening(ahead, leaf, layout.variant)).toBe(0);
+        if (ahead <= TUNNEL.doorClearDistance) {
+          expect(tunnelDoorLeafOpening(ahead, leaf, layout.variant)).toBe(1);
+          expect(tunnelDoorLeafClearance(ahead, leaf, layout)).toBeGreaterThan(layout.aperture);
+        }
+      }
+      if (Math.abs(ahead) < 12) {
+        sampleCenterline(travel.distance, camera);
+        sampleCenterline(distance, center).sub(camera);
+        sampleDirection(distance, direction).normalize();
+        const axial = center.dot(direction);
+        const transverse = Math.sqrt(Math.max(0, center.lengthSq() - axial * axial));
+        const structuralClearance = layout.aperture - section.radius * 0.012;
+        expect(structuralClearance - transverse).toBeGreaterThan(TUNNEL.safeRadius);
+      }
+    }
+  }
+  expect([...variants]).toEqual(["iris", "split", "bay"]);
+  const small = tunnelDoorLayout(112, 9).aperture;
+  const normal = tunnelDoorLayout(752, 7).aperture;
+  const large = tunnelDoorLayout(1392, 7).aperture;
+  expect(small).toBeLessThan(normal);
+  expect(tunnelDoorLayout(752, 9).aperture).toBeLessThan(large);
+});
+
+test("gateway pockets conceal moving edges and reuse bounded geometry through every opening", () => {
+  const doors = createTunnelDoors();
+  expect(doors.group.children).toEqual([...doors.meshes, doors.housing]);
+  expect([...doors.meshes, doors.housing].every((mesh) => mesh.material.map === null)).toBe(true);
+  const section = createTunnelSection();
+  const matrix = new Matrix4();
+  const point = new Vector3();
+  const buffers = doors.meshes.map((mesh) => [mesh.instanceMatrix.array, mesh.instanceColor!.array]);
+  const clipped = doors.meshes.slice(0, 3);
+  let minimumHardwareClearance = Infinity;
+  let maximumProtrusion = -Infinity;
+  let minimumOpenLeafClearance = Infinity;
+  for (const mesh of clipped) {
+    const shader = { ...ShaderLib.basic, uniforms: { ...ShaderLib.basic.uniforms } };
+    mesh.material.onBeforeCompile(shader, {} as WebGLRenderer);
+    expect(shader.uniforms.doorPocketRadius).toBe(doors.pocket);
+    expect(shader.vertexShader).toContain("doorLocalPosition = (instanceMatrix * vec4(transformed, 1.0)).xy");
+    expect(shader.fragmentShader).toContain("if (length(doorLocalPosition) > doorPocketRadius) discard;");
+  }
+  for (let encounter = 0; encounter < 18; encounter += 1) {
+    const distance = encounter * TUNNEL.sectionLength + 112;
+    const radius = sampleTunnelSection(distance, section).radius;
+    const layout = tunnelDoorLayout(distance, radius);
+    for (let ahead = 140; ahead >= -20; ahead -= 4) {
+      doors.update(distance, radius, ahead, 3.2, 0.7, true, 0.4);
+      expect(doors.pocket.value).toBeLessThan(layout.outerRadius - 0.2);
+      expect(doors.pocket.value).toBeGreaterThan(layout.aperture);
+      expect(doors.meshes[0].count + doors.meshes[1].count).toBe(layout.variant.leaves);
+      expect(doors.meshes[3].count).toBe(24);
+      expect(doors.meshes[4].count).toBe(12);
+      for (const [index, mesh] of doors.meshes.entries()) {
+        expect(mesh.instanceMatrix.array).toBe(buffers[index][0]);
+        expect(mesh.instanceColor!.array).toBe(buffers[index][1]);
+        expect(mesh.count).toBeLessThanOrEqual(mesh.instanceMatrix.count);
+        if (index < 3) continue;
+        const positions = mesh.geometry.getAttribute("position");
+        for (let instance = 0; instance < mesh.count; instance += 1) {
+          mesh.getMatrixAt(instance, matrix);
+          for (let vertex = 0; vertex < positions.count; vertex += 1) {
+            point.fromBufferAttribute(positions, vertex).applyMatrix4(matrix);
+            const radial = Math.hypot(point.x, point.y);
+            maximumProtrusion = Math.max(maximumProtrusion, radial - layout.outerRadius);
+            minimumHardwareClearance = Math.min(minimumHardwareClearance, radial);
+          }
+        }
+      }
+      if (ahead <= TUNNEL.doorClearDistance) {
+        for (const mesh of clipped) {
+          const positions = mesh.geometry.getAttribute("position");
+          for (let instance = 0; instance < mesh.count; instance += 1) {
+            mesh.getMatrixAt(instance, matrix);
+            for (let vertex = 0; vertex < positions.count; vertex += 1) {
+              point.fromBufferAttribute(positions, vertex).applyMatrix4(matrix);
+              minimumOpenLeafClearance = Math.min(minimumOpenLeafClearance, Math.hypot(point.x, point.y) - layout.aperture);
+            }
+          }
+        }
+      }
+    }
+  }
+  expect(maximumProtrusion).toBeLessThan(0.02);
+  expect(minimumHardwareClearance).toBeGreaterThan(TUNNEL.safeRadius);
+  expect(minimumOpenLeafClearance).toBeGreaterThan(0);
+  doors.dispose();
+});
+
+test("all gateway leaves and lighting freeze with each motion gate and release owned resources", () => {
+  const doors = createTunnelDoors();
+  const motion = createTunnelMotion();
+  const travel = createTunnelTravel();
+  const direction = new Vector3();
+  const snapshot = { isActive: true, smoothedEnergy: 0.6 };
+  const resources = new Set<BufferGeometry | Material>([doors.housing.material]);
+  const meshDisposals = new Set();
+  doors.meshes.forEach((mesh) => {
+    resources.add(mesh.geometry);
+    resources.add(mesh.material);
+    mesh.addEventListener("dispose", () => meshDisposals.add(mesh));
+  });
+  const state = () => doors.meshes.map((mesh) => ({
+    count: mesh.count, matrices: Array.from(mesh.instanceMatrix.array), colors: Array.from(mesh.instanceColor!.array),
+  }));
+  for (let encounter = 0; encounter < 3; encounter += 1) {
+    const distance = encounter * TUNNEL.sectionLength + 112;
+    travel.distance = distance - 72;
+    const update = (chroma = true) => doors.update(distance, 8, distance - travel.distance, motion.animationMs / 1000, motion.energy, chroma, motion.surgeEnvelope);
+    updateTunnelMotion(motion, 0.05, true, true, snapshot);
+    update();
+    resources.add(doors.housing.geometry);
+    const frozen = state();
+    for (const [playing, enabled, reduced] of [[false, true, false], [true, false, false], [true, true, true]]) {
+      const moving = playing && enabled && !reduced;
+      updateTunnelMotion(motion, 0.05, moving, playing, snapshot);
+      advanceTunnel(travel, 0.05, moving, direction, 72);
+      update();
+      expect(state()).toEqual(frozen);
+    }
+    updateTunnelMotion(motion, 0.05, true, true, snapshot);
+    advanceTunnel(travel, 0.05, true, direction, 72);
+    update();
+    expect(state()).not.toEqual(frozen);
+    update(false);
+    const off = state();
+    doors.update(distance, 8, distance - travel.distance, 999, 1, false, 1);
+    expect(state()).toEqual(off);
+  }
+  const disposed = new Map<BufferGeometry | Material, number>();
+  resources.forEach((resource) => resource.addEventListener("dispose", () => disposed.set(resource, (disposed.get(resource) ?? 0) + 1)));
+  doors.dispose();
+  expect(disposed.size).toBe(resources.size);
+  expect([...disposed.values()].every((count) => count === 1)).toBe(true);
+  expect(meshDisposals.size).toBe(doors.meshes.length);
+  expect(doors.group.children).toHaveLength(0);
+});
 
 async function runtime(page: Page) {
   return page.evaluate(() => window.__DSFM_TEST__!.environment);
@@ -421,7 +590,9 @@ test.describe("Signal Tunnel player", () => {
     test.setTimeout(180_000);
     await page.getByRole("slider", { name: "Volume" }).fill("1");
     await page.getByRole("button", { name: "Play", exact: true }).click();
-    const checkpoints = [[8, "sealed-door"], [55, "opening-door"], [90, "clear-door"], [136, "gateway"], [285, "spiral"], [925, "rails"], [1550, "torus"], [1690, "reentry"]] as const;
+    const checkpoints = [[8, "sealed-iris"], [55, "opening-iris"], [90, "clear-iris"], [136, "gateway"], [285, "spiral"],
+      [648, "sealed-hatch"], [695, "opening-hatch"], [730, "clear-hatch"], [925, "rails"],
+      [1288, "sealed-bay"], [1335, "opening-bay"], [1370, "clear-bay"], [1550, "torus"], [1690, "reentry"]] as const;
     const observations = [];
     for (const [distance, name] of checkpoints) {
       await expect.poll(async () => (await runtime(page)).travelPosition, { timeout: 65_000, intervals: [100] })
@@ -429,6 +600,7 @@ test.describe("Signal Tunnel player", () => {
       const telemetry = await runtime(page);
       await page.locator("label").filter({ hasText: /^Motion$/ }).click();
       await expect.poll(async () => (await runtime(page)).motionSpeed).toBe(0);
+      await page.getByRole("button", { name: "Collapse player panel" }).click();
       for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 }]) {
         await page.setViewportSize(viewport);
         const pixels = await canvasPixels(page);
@@ -438,6 +610,7 @@ test.describe("Signal Tunnel player", () => {
         await page.screenshot({ path: testInfo.outputPath(`${name}-${viewport.width}.png`) });
         observations.push({ name, viewport, pixels, telemetry });
       }
+      await page.getByRole("button", { name: "Expand player panel" }).click();
       await page.setViewportSize({ width: 1440, height: 900 });
       const colorful = await canvasPixels(page);
       await page.locator("label").filter({ hasText: /^Chroma$/ }).click();
@@ -453,15 +626,77 @@ test.describe("Signal Tunnel player", () => {
   });
 
   test("reports render FPS and releases the scene on repeated switches", async ({ page, pageErrors }) => {
+    await page.addInitScript(() => {
+      const resources = { frames: new Set<number>(), buffers: new Set<WebGLBuffer>(), programs: new Set<WebGLProgram>(), textures: new Set<WebGLTexture>() };
+      window.__TUNNEL_RESOURCES__ = resources;
+      const request = window.requestAnimationFrame.bind(window);
+      const cancel = window.cancelAnimationFrame.bind(window);
+      window.requestAnimationFrame = (callback) => {
+        const id = request((time) => { resources.frames.delete(id); callback(time); });
+        resources.frames.add(id);
+        return id;
+      };
+      window.cancelAnimationFrame = (id) => { resources.frames.delete(id); cancel(id); };
+      const prototype = WebGL2RenderingContext.prototype;
+      const createBuffer = prototype.createBuffer;
+      const deleteBuffer = prototype.deleteBuffer;
+      const createProgram = prototype.createProgram;
+      const deleteProgram = prototype.deleteProgram;
+      const texStorage2D = prototype.texStorage2D;
+      const deleteTexture = prototype.deleteTexture;
+      prototype.createBuffer = function () {
+        const buffer = createBuffer.call(this);
+        resources.buffers.add(buffer);
+        return buffer;
+      };
+      prototype.deleteBuffer = function (buffer) {
+        if (buffer) resources.buffers.delete(buffer);
+        deleteBuffer.call(this, buffer);
+      };
+      prototype.createProgram = function () {
+        const program = createProgram.call(this);
+        if (program) resources.programs.add(program);
+        return program;
+      };
+      prototype.deleteProgram = function (program) {
+        if (program) resources.programs.delete(program);
+        deleteProgram.call(this, program);
+      };
+      prototype.texStorage2D = function (target, levels, format, width, height) {
+        if (target === this.TEXTURE_2D) {
+          const texture = this.getParameter(this.TEXTURE_BINDING_2D) as WebGLTexture | null;
+          if (texture) resources.textures.add(texture);
+        }
+        texStorage2D.call(this, target, levels, format, width, height);
+      };
+      prototype.deleteTexture = function (texture) {
+        if (texture) resources.textures.delete(texture);
+        deleteTexture.call(this, texture);
+      };
+    });
+    await page.reload();
     const environment = page.getByLabel("Visual environment");
     const fps = page.locator(".visual-feed-window__fps .visual-feed-window__metric-value");
+    const counts = () => page.evaluate(() => {
+      const resources = window.__TUNNEL_RESOURCES__;
+      return { frames: resources.frames.size, buffers: resources.buffers.size, programs: resources.programs.size, textures: resources.textures.size };
+    });
+    await environment.selectOption("minimal");
+    const baseline = await counts();
     for (let cycle = 0; cycle < 3; cycle += 1) {
+      await environment.selectOption("signal-tunnel");
       await expect(page.getByLabel("Signal Tunnel canvas")).toHaveCount(1);
       await expect.poll(async () => Number(await fps.textContent())).toBeGreaterThan(0);
+      const mounted = await counts();
+      expect(mounted.frames).toBe(baseline.frames + 1);
+      expect(mounted.textures).toBe(baseline.textures);
+      expect(mounted.buffers).toBeGreaterThan(baseline.buffers);
+      expect(mounted.programs).toBeGreaterThan(baseline.programs);
       await environment.selectOption("minimal");
       await expect(page.getByLabel("Signal Tunnel environment")).toHaveCount(0);
       await expect(page.locator(".player-shell__scene canvas")).toHaveCount(0);
       await expect(page.locator(".minimal-scene")).toBeVisible();
+      await expect.poll(counts).toEqual(baseline);
       await page.waitForTimeout(1100);
       await expect(fps).toHaveText("---");
       await environment.selectOption("signal-tunnel");
