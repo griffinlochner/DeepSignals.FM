@@ -18,6 +18,7 @@ export type ExternalSignalId =
   | 'hirschmilch-progressive'
   | 'space-unicorn-radio'
   | 'deep-trip-radio'
+  | 'psybient-sunset'
 
 export type ExternalSignalDefinition = {
   id: ExternalSignalId
@@ -31,6 +32,15 @@ export type ExternalSignalDefinition = {
 }
 
 export const EXTERNAL_SIGNAL_DEFINITIONS: ExternalSignalDefinition[] = [
+  {
+    id: 'psybient-sunset',
+    stationName: 'Psybient Sunset',
+    streamUrl: 'https://listen.openstream.co/6517/audio',
+    stationWebsite: 'https://mixlive.net/stream/psybient-sunset/',
+    sourceAttribution: 'External signal from Psybient Sunset',
+    publicPlayerCompatible: true,
+    artworkUrl: publicAssetUrl('/images/stations/psybient-sunset.webp'),
+  },
   {
     id: 'psyradio-progressive',
     stationName: 'PsyRadio Progressive',

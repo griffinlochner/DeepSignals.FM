@@ -68,6 +68,8 @@ For new visualization work, start with the [visualization theme authoring and ru
 
 Hirschmilch track metadata uses a small server-side [Cloudflare Worker](docs/hirschmilch-metadata-worker.md) because its metadata service does not support browser clients. Hirschmilch audio still streams directly to the browser.
 
+Psybient Sunset is available as an External Signals test station, using its station logo with no metadata or telemetry integrations. The shared audio element sets `crossOrigin = 'anonymous'` before assigning any source and reuses the existing analyser across station switches. External Signals is alphabetized in the player selector. Run `npx playwright test tests/smoke/psybient-sunset.spec.ts` for deterministic coverage; set `DSFM_LIVE_STREAM_TEST=1` to also test the real Psybient Sunset stream and existing stations (requires reachable live services).
+
 The architecture notes below are historical: their environment inventory and some control/volume descriptions predate the current implementation. Use the guide's source references for current behavior.
 
 DeepSignals.FM currently features **19 registered environments** across several distinct families, each with different audio-reactivity contracts and visual semantics.
