@@ -37,6 +37,8 @@ jobs:
         run: npm ci
 
       - name: Build site
+        env:
+          VITE_HIRSCHMILCH_METADATA_URL: ${{ vars.VITE_HIRSCHMILCH_METADATA_URL }}
         run: npm run build
 
       - name: Configure GitHub Pages

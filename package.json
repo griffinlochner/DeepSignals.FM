@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "test:runtime": "tsx scripts/test-environment-runtime.ts",
     "test:hirschmilch-metadata": "tsx scripts/test-hirschmilch-metadata.ts",
+    "test:hirschmilch-worker": "npm --prefix workers/hirschmilch-metadata test",
     "test:psybrazil-metadata": "tsx scripts/test-psybrazil-metadata.ts",
     "test:psybrazil-telemetry": "tsx scripts/test-psybrazil-telemetry.ts",
     "preview": "vite preview",
@@ -20,7 +21,6 @@
     "music-metadata": "^11.14.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
-    "socket.io-client": "^4.8.4",
     "three": "^0.185.1"
   },
   "devDependencies": {

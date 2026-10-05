@@ -54,6 +54,81 @@ test("public Hirschmilch external signals are available in the selector", async 
   await expect(page.getByRole("button", { name: /^(Play|Pause)$/ })).toBeVisible();
 });
 
+test("Hirschmilch metadata uses the Worker and leaves audio controls independent", async ({
+  page,
+}) => {
+  const requestedUrls: string[] = [];
+  page.on("request", (request) => requestedUrls.push(request.url()));
+  await page.route("**/metadata?channel=psytrance", (route) =>
+    route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        channelId: "psytrance",
+        trackId: "123",
+        artist: "Worker Artist",
+        title: "Worker Track",
+      }),
+    }),
+  );
+
+  await page.getByLabel("Signal source").selectOption("hirschmilch-psytrance");
+  await expect(page.locator(".track-marquee__live")).toHaveText(
+    "Worker Artist — Worker Track",
+  );
+  await expect(
+    page.locator(".visual-feed-window__artwork"),
+  ).toHaveAttribute("src", /hirschmilch-psytrance/);
+  await expect(
+    page.getByRole("button", { name: /^(Play|Pause)$/ }),
+  ).toBeVisible();
+  await expect(page.getByRole("slider", { name: "Volume" })).toBeVisible();
+  await expect(page.getByLabel("Motion")).toBeVisible();
+  await expect(
+    page.getByLabel("Toggle environment chroma effects"),
+  ).toBeVisible();
+  expect(
+    requestedUrls.some(
+      (url) =>
+        url.includes("/channel/ajax/refresh") ||
+        url.includes("/socket.chat"),
+    ),
+  ).toBe(false);
+});
+
+test("Hirschmilch Worker failure retains station artwork and player controls", async ({
+  page,
+}) => {
+  await page.route("**/metadata?channel=psytrance", (route) =>
+    route.abort("failed"),
+  );
+  const streamUrl = "https://hirschmilch.de:7000/psytrance.mp3";
+  const requestedUrls: string[] = [];
+  page.on("request", (request) => requestedUrls.push(request.url()));
+  await page.route(streamUrl, (route) =>
+    route.fulfill({
+      path: "public/audio/demo/illustrator-psychedelic-experience.mp3",
+      headers: { "Access-Control-Allow-Origin": "*" },
+    }),
+  );
+
+  await page.getByLabel("Signal source").selectOption("hirschmilch-psytrance");
+  await expect(page.locator(".track-marquee__live")).toHaveText(
+    "Hirschmilch Psytrance",
+  );
+  await expect(
+    page.locator(".visual-feed-window__artwork"),
+  ).toHaveAttribute("src", /hirschmilch-psytrance/);
+  await expect(
+    page.getByRole("button", { name: /^(Play|Pause)$/ }),
+  ).toBeVisible();
+  await expect(page.getByRole("slider", { name: "Volume" })).toBeVisible();
+  await page.getByRole("button", { name: "Play", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "Pause", exact: true }),
+  ).toBeVisible();
+  expect(requestedUrls).toContain(streamUrl);
+});
+
 test("Space Unicorn Radio shows live listener and bitrate telemetry", async ({
   page,
 }) => {

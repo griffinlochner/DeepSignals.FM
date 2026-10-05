@@ -66,6 +66,8 @@ Run `npx playwright test tests/behavior/alien-megastructure-transit.spec.ts` for
 
 For new visualization work, start with the [visualization theme authoring and runtime guide](docs/environment-runtime-contract.md). It covers canonical scenes, registration, lifecycle, controls, shared audio/SURGE, FPS, performance, and testing.
 
+Hirschmilch track metadata uses a small server-side [Cloudflare Worker](docs/hirschmilch-metadata-worker.md) because its metadata service does not support browser clients. Hirschmilch audio still streams directly to the browser.
+
 The architecture notes below are historical: their environment inventory and some control/volume descriptions predate the current implementation. Use the guide's source references for current behavior.
 
 DeepSignals.FM currently features **19 registered environments** across several distinct families, each with different audio-reactivity contracts and visual semantics.
