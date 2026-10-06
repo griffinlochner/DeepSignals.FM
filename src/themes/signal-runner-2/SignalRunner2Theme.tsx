@@ -18,7 +18,7 @@ export default function SignalRunner2Theme(props: ThemeSceneProps) {
     const camera = new THREE.PerspectiveCamera(68, 1, 0.1, 1200);
     const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
     renderer.domElement.style.display = "block";
-    renderer.domElement.setAttribute("aria-label", "Signal Runner 2.0 canvas");
+    renderer.domElement.setAttribute("aria-label", "Asteroid Runner canvas");
     mount.appendChild(renderer.domElement);
     const journey = createRunnerJourney();
     const motion = createRunnerMotion();
@@ -92,6 +92,6 @@ export default function SignalRunner2Theme(props: ThemeSceneProps) {
     };
   }, []);
 
-  return <div ref={mountRef} aria-label="Signal Runner 2.0 environment"
+  return <div ref={mountRef} aria-label="Asteroid Runner environment"
     style={{ position: "absolute", inset: 0, pointerEvents: "none" }} />;
 }

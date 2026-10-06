@@ -19,7 +19,7 @@ const quiet = { ...loud, smoothedEnergy: 0.1 };
 
 test("sibling has its own stable registration and does not replace the original", () => {
   expect(SignalRunner2Definition.id).toBe("signal-runner-2");
-  expect(SignalRunner2Definition.name).toBe("Signal Runner 2.0");
+  expect(SignalRunner2Definition.name).toBe("Asteroid Runner");
   expect(SignalRunner2Definition.supportsMotion).toBe(true);
   expect(SignalRunner2Definition.supportsChroma).toBe(true);
   const registry = readFileSync(resolve("src", "themes", "themeRegistry.ts"), "utf8");
@@ -683,7 +683,7 @@ async function runtime(page: Page) {
 }
 
 async function pixels(page: Page) {
-  return page.getByLabel("Signal Runner 2.0 canvas").evaluate((element) =>
+  return page.getByLabel("Asteroid Runner canvas").evaluate((element) =>
     new Promise<{ hash: number; lit: number; intensity: number; accents: number }>((resolvePixels) => {
       requestAnimationFrame(() => {
         const canvas = document.createElement("canvas");
@@ -705,7 +705,7 @@ async function pixels(page: Page) {
     }));
 }
 
-test.describe("Signal Runner 2.0 player", () => {
+test.describe("Asteroid Runner player", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/player/");
     await page.evaluate(() => localStorage.clear());
@@ -717,13 +717,22 @@ test.describe("Signal Runner 2.0 player", () => {
     const selector = page.getByLabel("Visual environment");
     const group = selector.locator('optgroup[label="3D EXPERIENCES"]');
     await expect(group.locator('option[value="signal-runner"]')).toHaveText("Signal Runner");
-    await expect(group.locator('option[value="signal-runner-2"]')).toHaveText("Signal Runner 2.0");
+    await expect(group.locator('option[value="signal-runner-2"]')).toHaveText("Asteroid Runner");
+    await expect(group.locator("option")).toHaveText([
+      "Asteroid Runner",
+      "Cosmic Coaster",
+      "Deep Space Drift",
+      "Race to the Signal Nexus",
+      "Signal Runner",
+      "Signal Tunnel",
+      "The Signal Nexus",
+    ]);
     await page.reload();
     await expect(selector).toHaveValue("signal-runner-2");
     await selector.selectOption("signal-runner");
     await page.reload();
     await expect(selector).toHaveValue("signal-runner");
-    await expect(page.getByLabel("Signal Runner 2.0 canvas")).toHaveCount(0);
+    await expect(page.getByLabel("Asteroid Runner canvas")).toHaveCount(0);
     await expect(page.locator(".player-shell__scene canvas")).toHaveCount(1);
     expect(pageErrors).toEqual([]);
   });
@@ -875,7 +884,7 @@ test.describe("Signal Runner 2.0 player", () => {
         const sample = await pixels(page);
         expect(sample.lit).toBeGreaterThan(50);
         expect(sample.lit).toBeLessThan(12800);
-        const box = await page.getByLabel("Signal Runner 2.0 canvas").boundingBox();
+        const box = await page.getByLabel("Asteroid Runner canvas").boundingBox();
         expect(box!.width).toBe(viewport.width);
         expect(box!.height).toBe(viewport.height);
         await page.screenshot({ path: testInfo.outputPath(`${name}-${viewport.width}.png`) });
@@ -899,7 +908,7 @@ test.describe("Signal Runner 2.0 player", () => {
     const drawCalls = await page.evaluate(() => window.__RUNNER2_DRAWS__.max);
     expect(drawCalls).toBeGreaterThanOrEqual(7);
     expect(drawCalls).toBeLessThanOrEqual(14);
-    console.log(`Signal Runner 2.0 observed maximum: ${drawCalls} WebGL draws per frame.`);
+    console.log(`Asteroid Runner observed maximum: ${drawCalls} WebGL draws per frame.`);
     await testInfo.attach("maximum-draw-calls", { body: String(drawCalls), contentType: "text/plain" });
     expect(shaderErrors).toEqual([]);
     expect(pageErrors).toEqual([]);
@@ -974,7 +983,7 @@ test.describe("Signal Runner 2.0 player", () => {
     const baseline = await counts();
     for (let cycle = 0; cycle < 3; cycle += 1) {
       await selector.selectOption("signal-runner-2");
-      await expect(page.getByLabel("Signal Runner 2.0 canvas")).toHaveCount(1);
+      await expect(page.getByLabel("Asteroid Runner canvas")).toHaveCount(1);
       await expect.poll(async () => Number(await page.locator(".visual-feed-window__fps .visual-feed-window__metric-value").textContent()))
         .toBeGreaterThan(0);
       const mounted = await counts();
@@ -998,7 +1007,7 @@ test.describe("Signal Runner 2.0 player", () => {
         expect((await counts()).buffers).toBeGreaterThan(mounted.buffers);
       }
       await selector.selectOption("minimal");
-      await expect(page.getByLabel("Signal Runner 2.0 canvas")).toHaveCount(0);
+      await expect(page.getByLabel("Asteroid Runner canvas")).toHaveCount(0);
       await expect.poll(counts).toEqual(baseline);
       await page.waitForTimeout(1100);
       await expect(page.locator(".visual-feed-window__fps .visual-feed-window__metric-value")).toHaveText("---");

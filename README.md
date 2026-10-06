@@ -46,9 +46,9 @@ The behavior spec also runs against the bundled `Illustrator — Psychedelic Exp
 
 Phase 2B also covers Race volume-zero and volume-ramp behavior, qualified SURGE during local demo playback, and the shared qualifier's arm/cooldown semantics. Run `npx playwright test tests/behavior/volume-surge.spec.ts tests/behavior/surge-qualification.spec.ts`.
 
-## Signal Runner 2.0: focused encounter refinement
+## Asteroid Runner: focused encounter refinement
 
-**Signal Runner 2.0** remains independent of the original Signal Runner. Its current scene-specific details below supersede the historical Phase 2 inventory in the runtime guide; the shared runtime contract is unchanged.
+**Asteroid Runner** remains independent of the original Signal Runner. Its current scene-specific details below supersede the historical Phase 2 inventory in the runtime guide; the shared runtime contract is unchanged.
 
 - The distant ringed planet and background nebula are removed, including their shaders, geometry, materials and crossfade logic. Open space remains dark and star-filled. Signal gates are unchanged.
 - [The journey](src/themes/signal-runner-2/runnerJourney.ts) retains three recycled region slots. Asteroid fields now span **1,440 units instead of 480** (18 seconds at the normal 80-unit/sec ceiling; longer with quieter music). Open and gate regions remain 480 units. Each field has three smooth planned bypasses, 420 units apart: 5.25 seconds between closest passes at full cruise, or 1.75 seconds at the temporary 240-unit/sec SURGE ceiling. Overlapping low-amplitude tails allow partial recentering without sharp turns.
