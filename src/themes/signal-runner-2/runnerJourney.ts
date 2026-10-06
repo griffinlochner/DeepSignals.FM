@@ -5,10 +5,11 @@ import {
 } from "../../app/sharedSurgeQualification";
 
 export const RUNNER = {
-  seed: 23017, regionLength: 480, regionCount: 3, rocksPerRegion: 36,
+  seed: 23017, regionLength: 480, asteroidLength: 1440, regionCount: 3, rocksPerRegion: 108,
   gatesPerRegion: 3, starCount: 900, far: 340, normalMax: 80,
   surgeMax: 240, surgeDurationMs: 3200, gateRadius: 13,
-  rockStretch: 1.35, maxBank: 0.065,
+  rockStretch: 1.35, maxBank: 0.065, bypassCount: 3, bypassHalfWidth: 300,
+  heroMax: 30, exhaustCount: 64,
 } as const;
 
 export type RunnerEncounter = "open-warp" | "asteroid-field" | "signal-gates";
@@ -34,18 +35,57 @@ export function runnerEncounter(index: number, seed: number = RUNNER.seed): Runn
 function baselineX(distance: number) { return Math.sin(distance / 170) * 2.2; }
 function baselineY(distance: number) { return Math.sin(distance / 231) * 1.1; }
 
-export function runnerMajorSize(region: number, seed: number = RUNNER.seed) {
-  return 12 + runnerRandom(region * 251 + 1, seed) * 6;
+export function runnerRegionLength(index: number, seed: number = RUNNER.seed) {
+  return runnerEncounter(index, seed) === "asteroid-field" ? RUNNER.asteroidLength : RUNNER.regionLength;
+}
+
+export function runnerRegionStart(index: number, seed: number = RUNNER.seed) {
+  const cycle = Math.floor(index / 4);
+  let start = cycle * (RUNNER.regionLength * 3 + RUNNER.asteroidLength);
+  for (let i = cycle * 4; i < index; i += 1) start += runnerRegionLength(i, seed);
+  return start;
+}
+
+export function runnerRegionIndex(distance: number, seed: number = RUNNER.seed) {
+  let index = Math.floor(Math.max(0, distance) / (RUNNER.regionLength * 3 + RUNNER.asteroidLength)) * 4;
+  let start = runnerRegionStart(index, seed);
+  while (start + runnerRegionLength(index, seed) <= distance) {
+    start += runnerRegionLength(index, seed);
+    index += 1;
+  }
+  return index;
+}
+
+export function runnerMajorSize(region: number, seed: number = RUNNER.seed, obstacle = 0) {
+  const hero = Math.floor(runnerRandom(region * 251 + 2, seed) * RUNNER.bypassCount);
+  const variation = runnerRandom(region * 251 + obstacle * 17 + 1, seed);
+  return obstacle === hero ? 26 + variation * (RUNNER.heroMax - 26) : 12 + variation * 6;
+}
+
+export function runnerBypassDistance(region: number, obstacle: number, seed: number = RUNNER.seed) {
+  return runnerRegionStart(region, seed) + RUNNER.bypassHalfWidth
+    + obstacle * (RUNNER.asteroidLength - RUNNER.bypassHalfWidth * 2) / (RUNNER.bypassCount - 1);
+}
+
+function bypassAngle(region: number, obstacle: number, seed: number) {
+  const side = (Math.floor(runnerRandom(region * 251, seed) * 2) + obstacle) % 2;
+  return side * Math.PI + (runnerRandom(region * 251 + obstacle * 17 + 3, seed) - 0.5) * 1.1;
 }
 
 function avoidanceOffset(distance: number, vertical: boolean, seed: number) {
-  const index = Math.floor(distance / RUNNER.regionLength);
+  const index = runnerRegionIndex(distance, seed);
   if (runnerEncounter(index, seed) !== "asteroid-field") return 0;
-  const phase = (distance - index * RUNNER.regionLength) / RUNNER.regionLength;
-  const angle = runnerRandom(index * 251, seed) * Math.PI * 2;
-  const amplitude = runnerMajorSize(index, seed) * RUNNER.rockStretch + 9;
-  // C3-continuous at region boundaries; the crest clears the obstacle's swept sphere.
-  return Math.sin(phase * Math.PI) ** 4 * amplitude * (vertical ? Math.sin(angle) : Math.cos(angle));
+  let offset = 0;
+  for (let obstacle = 0; obstacle < RUNNER.bypassCount; obstacle += 1) {
+    const local = distance - runnerBypassDistance(index, obstacle, seed);
+    if (Math.abs(local) >= RUNNER.bypassHalfWidth) continue;
+    const angle = bypassAngle(index, obstacle, seed);
+    const amplitude = runnerMajorSize(index, seed, obstacle) * RUNNER.rockStretch + 9;
+    // C3-continuous lobes overlap only at their quiet tails; each crest clears a swept sphere.
+    offset += Math.cos(local / RUNNER.bypassHalfWidth * Math.PI / 2) ** 4
+      * amplitude * (vertical ? Math.sin(angle) : Math.cos(angle));
+  }
+  return offset;
 }
 
 export function runnerPathX(distance: number, seed: number = RUNNER.seed) {
@@ -68,22 +108,28 @@ export function sampleRunnerFlight(distance: number, seed: number, flight: Retur
   return flight;
 }
 
-export function runnerRegionWeight(distance: number, index: number) {
-  const local = distance - index * RUNNER.regionLength;
-  const edge = Math.min(runnerUnit((local + 160) / 260), runnerUnit((640 - local) / 260));
-  return edge * edge * (3 - 2 * edge);
+export function createRunnerTraffic() {
+  return { visible: false, variant: 0, x: 0, y: 0, z: 0, dx: 1, dy: 0, dz: 0, bank: 0, fade: 0 };
 }
 
-export function createRunnerTraffic() { return { visible: false, x: 0, y: 0, z: 0, fade: 0 }; }
-
-export function sampleRunnerTraffic(distance: number, traffic: ReturnType<typeof createRunnerTraffic>) {
-  const index = Math.floor(distance / RUNNER.regionLength);
-  const local = distance - index * RUNNER.regionLength;
+export function sampleRunnerTraffic(
+  distance: number, traffic: ReturnType<typeof createRunnerTraffic>, seed: number = RUNNER.seed,
+) {
+  const index = runnerRegionIndex(distance, seed);
+  const local = distance - runnerRegionStart(index, seed);
   traffic.visible = index % 8 === 2 && local >= 40 && local <= 430;
-  const progress = (local - 40) / 390;
-  traffic.x = -145 + progress * 290;
-  traffic.y = 22 + Math.sin(progress * Math.PI) * 8;
-  traffic.z = -(460 - local);
+  const progress = runnerUnit((local - 40) / 390);
+  traffic.variant = (Math.floor(index / 8) + seed % 6) % 6;
+  const direction = traffic.variant % 2 === 0 ? 1 : -1;
+  const diagonal = traffic.variant === 2 || traffic.variant === 3;
+  const depth = traffic.variant < 2 ? 0 : traffic.variant < 4 ? 90 : 150;
+  traffic.x = direction * (-155 + progress * 310);
+  traffic.y = diagonal ? direction * (-42 + progress * 84) : 22 + Math.sin(progress * Math.PI) * 8;
+  traffic.z = -220 + direction * (progress - 0.5) * depth;
+  traffic.dx = direction * 310;
+  traffic.dy = diagonal ? direction * 84 : Math.cos(progress * Math.PI) * Math.PI * 8;
+  traffic.dz = direction * depth;
+  traffic.bank = direction * 0.16;
   traffic.fade = traffic.visible ? Math.min(1, (local - 40) / 55, (430 - local) / 55) : 0;
   return traffic;
 }
@@ -95,29 +141,35 @@ function createRock() {
 function populateRegion(region: RunnerRegion, index: number, seed: number) {
   region.index = index;
   region.kind = runnerEncounter(index, seed);
-  region.start = index * RUNNER.regionLength;
+  region.start = runnerRegionStart(index, seed);
+  region.length = runnerRegionLength(index, seed);
   for (let i = 0; i < region.rocks.length; i += 1) {
     const rock = region.rocks[i];
     const key = index * 251 + i * 7;
     const angle = runnerRandom(key, seed) * Math.PI * 2;
     rock.size = 0.5 + runnerRandom(key + 1, seed) ** 2 * 8;
     // Peripheral debris stays outside the entire avoidance sweep, not just its centerline.
-    const radius = rock.size * RUNNER.rockStretch + 44 + runnerRandom(key + 2, seed) * 30;
-    rock.distance = region.start + 85 + runnerRandom(key + 3, seed) * 310;
+    const radius = rock.size * RUNNER.rockStretch + RUNNER.heroMax * RUNNER.rockStretch
+      + 20 + runnerRandom(key + 2, seed) * 30;
+    // Stratified depth keeps density consistent over the longer field, without allocating more draws.
+    rock.distance = region.start + 85 + (i + runnerRandom(key + 3, seed))
+      / region.rocks.length * (RUNNER.asteroidLength - 170);
     rock.x = baselineX(rock.distance) + Math.cos(angle) * radius;
     rock.y = baselineY(rock.distance) + Math.sin(angle) * radius;
-    if (i === 0) {
-      rock.size = runnerMajorSize(index, seed);
-      rock.distance = region.start + RUNNER.regionLength / 2;
+    if (i < RUNNER.bypassCount) {
+      rock.size = runnerMajorSize(index, seed, i);
+      rock.distance = runnerBypassDistance(index, i, seed);
       rock.x = baselineX(rock.distance);
       rock.y = baselineY(rock.distance);
-    } else if (i <= 4) {
-      const bypassAngle = runnerRandom(index * 251, seed) * Math.PI * 2;
-      const debrisRadius = runnerMajorSize(index, seed) * RUNNER.rockStretch + 5 + i;
+    } else if (i < RUNNER.bypassCount * 5) {
+      const obstacle = Math.floor((i - RUNNER.bypassCount) / 4);
+      const debris = (i - RUNNER.bypassCount) % 4;
+      const angle = bypassAngle(index, obstacle, seed);
+      const debrisRadius = runnerMajorSize(index, seed, obstacle) * RUNNER.rockStretch + 6 + debris;
       rock.size = 0.5 + runnerRandom(key + 1, seed) * 1.3;
-      rock.distance = region.start + RUNNER.regionLength / 2 + (i - 2) * 9;
-      rock.x = baselineX(rock.distance) - Math.cos(bypassAngle) * debrisRadius;
-      rock.y = baselineY(rock.distance) - Math.sin(bypassAngle) * debrisRadius;
+      rock.distance = runnerBypassDistance(index, obstacle, seed) + (debris - 1) * 9;
+      rock.x = baselineX(rock.distance) - Math.cos(angle) * debrisRadius;
+      rock.y = baselineY(rock.distance) - Math.sin(angle) * debrisRadius;
     }
     rock.phase = runnerRandom(key + 4, seed) * Math.PI * 2;
     rock.spin = (runnerRandom(key + 5, seed) - 0.5) * 0.075;
@@ -128,13 +180,13 @@ function populateRegion(region: RunnerRegion, index: number, seed: number) {
 }
 
 type RunnerRegion = {
-  index: number; kind: RunnerEncounter; start: number;
+  index: number; kind: RunnerEncounter; start: number; length: number;
   rocks: ReturnType<typeof createRock>[];
 };
 
 export function createRunnerJourney(seed: number = RUNNER.seed) {
   const regions: RunnerRegion[] = Array.from({ length: RUNNER.regionCount }, () => ({
-    index: 0, kind: "open-warp", start: 0,
+    index: 0, kind: "open-warp", start: 0, length: RUNNER.regionLength,
     rocks: Array.from({ length: RUNNER.rocksPerRegion }, createRock),
   }));
   for (let i = 0; i < regions.length; i += 1) populateRegion(regions[i], i, seed);
@@ -144,9 +196,9 @@ export function createRunnerJourney(seed: number = RUNNER.seed) {
 export function advanceRunnerJourney(journey: ReturnType<typeof createRunnerJourney>, distance: number) {
   journey.distance += distance;
   for (const region of journey.regions) {
-    if (region.start + RUNNER.regionLength >= journey.distance - 30) continue;
-    const jumps = Math.ceil((journey.distance - 30 - region.start - RUNNER.regionLength)
-      / (RUNNER.regionCount * RUNNER.regionLength));
+    if (region.start + region.length >= journey.distance - 30) continue;
+    const firstNeeded = runnerRegionIndex(journey.distance - 30, journey.seed);
+    const jumps = Math.ceil((firstNeeded - region.index) / RUNNER.regionCount);
     populateRegion(region, region.index + jumps * RUNNER.regionCount, journey.seed);
     journey.recycled += jumps;
   }

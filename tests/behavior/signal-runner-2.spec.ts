@@ -7,7 +7,8 @@ import { test, expect } from "../support/test";
 import {
   RUNNER, createRunnerJourney, advanceRunnerJourney, runnerEncounter, runnerPathX, runnerPathY,
   createRunnerMotion, updateRunnerMotion, runnerSurgeEnvelope, runnerGateActivation,
-  createRunnerFlight, sampleRunnerFlight, runnerMajorSize, createRunnerTraffic, sampleRunnerTraffic, runnerRegionWeight,
+  createRunnerFlight, sampleRunnerFlight, runnerMajorSize, createRunnerTraffic, sampleRunnerTraffic,
+  runnerRegionStart, runnerRegionLength, runnerRegionIndex, runnerBypassDistance,
 } from "../../src/themes/signal-runner-2/runnerJourney";
 import { createRunnerSpace } from "../../src/themes/signal-runner-2/runnerSpace";
 import { createRunnerRock } from "../../src/themes/signal-runner-2/runnerRock";
@@ -48,7 +49,9 @@ test("seeded encounter selection, open breaks and recycling preserve bounded obj
       expect(region.rocks).toHaveLength(RUNNER.rocksPerRegion);
       expect(region.rocks.every((rock, index) => rock === rocks[slot][index])).toBe(true);
       expect(region.kind).toBe(runnerEncounter(region.index));
-      expect(region.start + RUNNER.regionLength).toBeGreaterThanOrEqual(journey.distance - 30);
+      expect(region.start + region.length).toBeGreaterThanOrEqual(journey.distance - 30);
+      expect(region.start).toBe(runnerRegionStart(region.index));
+      expect(region.length).toBe(runnerRegionLength(region.index));
       kinds.add(region.kind);
       if (region.kind !== "open-warp") {
         expect(runnerEncounter(region.index + 1)).toBe("open-warp");
@@ -56,12 +59,63 @@ test("seeded encounter selection, open breaks and recycling preserve bounded obj
       }
     }
     expect(journey.regions.some((region) => region.start <= journey.distance
-      && region.start + RUNNER.regionLength > journey.distance)).toBe(true);
-    expect(Math.max(...journey.regions.map((region) => region.start + RUNNER.regionLength)))
+      && region.start + region.length > journey.distance)).toBe(true);
+    expect(Math.max(...journey.regions.map((region) => region.start + region.length)))
       .toBeGreaterThan(journey.distance + RUNNER.far);
   }
   expect(kinds).toEqual(new Set(["open-warp", "asteroid-field", "signal-gates"]));
-  expect(journey.recycled).toBeGreaterThan(200);
+  expect(journey.recycled).toBeGreaterThan(150);
+});
+
+test("only asteroid fields expand to three times the travel length with three spaced bypasses", () => {
+  for (const seed of [RUNNER.seed, 42, 999, 90210]) {
+    const journey = createRunnerJourney(seed);
+    for (let index = 0; index < 32; index += 1) {
+      const start = runnerRegionStart(index, seed);
+      const length = runnerRegionLength(index, seed);
+      expect(runnerRegionIndex(start, seed)).toBe(index);
+      expect(runnerRegionIndex(start + length - 0.001, seed)).toBe(index);
+      expect(runnerRegionStart(index + 1, seed)).toBe(start + length);
+      advanceRunnerJourney(journey, start - journey.distance);
+      const region = journey.regions.find((candidate) => candidate.index === index)!;
+      expect(region).toBeDefined();
+      if (region.kind !== "asteroid-field") {
+        expect(length).toBe(480);
+        continue;
+      }
+      expect(length / 480).toBe(3);
+      expect(length / RUNNER.normalMax).toBe(18);
+      const obstacles = region.rocks.slice(0, RUNNER.bypassCount);
+      expect(obstacles).toHaveLength(3);
+      expect(obstacles.filter((rock) => rock.size >= 26)).toHaveLength(1);
+      expect(region.rocks.filter((rock) => rock.size <= 8.5).length).toBe(105);
+      for (let i = 0; i < obstacles.length; i += 1) {
+        expect(obstacles[i].distance).toBe(runnerBypassDistance(index, i, seed));
+        expect(obstacles[i].size).toBe(runnerMajorSize(index, seed, i));
+        if (i === 0) continue;
+        const gap = obstacles[i].distance - obstacles[i - 1].distance;
+        expect(gap).toBe(420);
+        expect(gap / RUNNER.surgeMax).toBeGreaterThanOrEqual(1.75);
+        const rest = (obstacles[i].distance + obstacles[i - 1].distance) / 2;
+        expect(Math.hypot(runnerPathX(rest, seed) - Math.sin(rest / 170) * 2.2,
+          runnerPathY(rest, seed) - Math.sin(rest / 231) * 1.1)).toBeLessThan(4);
+      }
+      expect(Math.max(...region.rocks.map((rock) => rock.distance))
+        - Math.min(...region.rocks.map((rock) => rock.distance))).toBeGreaterThan(1000);
+    }
+  }
+});
+
+test("discarded planet and nebula have no scheduled kinds or allocated draw resources", () => {
+  const space = createRunnerSpace();
+  expect(new Set(Array.from({ length: 64 }, (_, index) => runnerEncounter(index))))
+    .toEqual(new Set(["open-warp", "asteroid-field", "signal-gates"]));
+  expect(space.objects.some((object) => object.geometry.type === "SphereGeometry"
+    || object.geometry.type === "RingGeometry")).toBe(false);
+  expect(space.objects.filter((object) => object.type === "Points")
+    .map((object) => object.geometry.getAttribute("position").count)).toEqual([RUNNER.starCount, RUNNER.exhaustCount]);
+  expect(space.traffic.objects).toHaveLength(4);
+  space.dispose();
 });
 
 test("maximum-speed path retains comfortable asteroid and gate clearance after recycling", () => {
@@ -125,19 +179,21 @@ test("obstacle-driven autopilot translates, looks ahead and recenters determinis
   let minClearance = Infinity;
   let minUnsteeredClearance = Infinity;
   let maximumTranslation = 0;
+  let maximumLateral = 0, maximumVertical = 0;
   let maximumAngularStep = 0;
   let maximumYaw = 0, maximumPitch = 0, maximumRoll = 0;
-  for (const seed of [RUNNER.seed, 999, 42, 90210]) {
+  const horizontal = new Set<number>(), vertical = new Set<number>();
+  for (const seed of [RUNNER.seed, 999, 42, 90210, 0, 1, 7, 23, 1337, 2026]) {
     const journey = createRunnerJourney(seed);
     for (let regionIndex = 0; regionIndex < 40; regionIndex += 1) {
       if (runnerEncounter(regionIndex, seed) !== "asteroid-field") continue;
-      const start = regionIndex * RUNNER.regionLength;
+      const start = runnerRegionStart(regionIndex, seed);
       advanceRunnerJourney(journey, start - journey.distance);
       const region = journey.regions.find((candidate) => candidate.index === regionIndex)!;
       expect(region.rocks[0].size).toBe(runnerMajorSize(regionIndex, seed));
       const obstacle = region.rocks[0];
       expect(obstacle.size).toBeGreaterThanOrEqual(12);
-      const center = start + 240;
+      const center = runnerBypassDistance(regionIndex, 0, seed);
       const baselineX = Math.sin(center / 170) * 2.2;
       const baselineY = Math.sin(center / 231) * 1.1;
       minUnsteeredClearance = Math.min(minUnsteeredClearance,
@@ -145,8 +201,13 @@ test("obstacle-driven autopilot translates, looks ahead and recenters determinis
       sampleRunnerFlight(start, seed, flight);
       expect(sampleRunnerFlight(center, seed, createRunnerFlight()))
         .toEqual(sampleRunnerFlight(center, seed, createRunnerFlight()));
+      for (let obstacle = 0; obstacle < RUNNER.bypassCount; obstacle += 1) {
+        const crest = runnerBypassDistance(regionIndex, obstacle, seed);
+        horizontal.add(Math.sign(runnerPathX(crest, seed) - Math.sin(crest / 170) * 2.2));
+        vertical.add(Math.sign(runnerPathY(crest, seed) - Math.sin(crest / 231) * 1.1));
+      }
       let previousYaw = flight.yaw, previousPitch = flight.pitch, previousRoll = flight.roll;
-      for (let local = 0; local <= RUNNER.regionLength; local += 2) {
+      for (let local = 0; local <= region.length; local += 2) {
         sampleRunnerFlight(start + local, seed, flight);
         for (const rock of region.rocks) {
           minClearance = Math.min(minClearance,
@@ -156,6 +217,8 @@ test("obstacle-driven autopilot translates, looks ahead and recenters determinis
         maximumTranslation = Math.max(maximumTranslation, Math.hypot(
           flight.x - Math.sin((start + local) / 170) * 2.2,
           flight.y - Math.sin((start + local) / 231) * 1.1));
+        maximumLateral = Math.max(maximumLateral, Math.abs(flight.x));
+        maximumVertical = Math.max(maximumVertical, Math.abs(flight.y));
         maximumAngularStep = Math.max(maximumAngularStep,
           Math.abs(flight.yaw - previousYaw), Math.abs(flight.pitch - previousPitch), Math.abs(flight.roll - previousRoll));
         maximumYaw = Math.max(maximumYaw, Math.abs(flight.yaw));
@@ -163,14 +226,18 @@ test("obstacle-driven autopilot translates, looks ahead and recenters determinis
         maximumRoll = Math.max(maximumRoll, Math.abs(flight.roll));
         previousYaw = flight.yaw; previousPitch = flight.pitch; previousRoll = flight.roll;
       }
-      expect(flight.x).toBeCloseTo(Math.sin((start + 480) / 170) * 2.2, 8);
-      expect(flight.y).toBeCloseTo(Math.sin((start + 480) / 231) * 1.1, 8);
+      expect(flight.x).toBeCloseTo(Math.sin((start + region.length) / 170) * 2.2, 8);
+      expect(flight.y).toBeCloseTo(Math.sin((start + region.length) / 231) * 1.1, 8);
     }
   }
   expect(minUnsteeredClearance).toBeLessThan(-16);
   expect(minClearance).toBeGreaterThan(6);
-  expect(maximumTranslation).toBeGreaterThan(30);
-  expect(maximumTranslation).toBeLessThan(34);
+  expect(maximumTranslation).toBeGreaterThan(44);
+  expect(maximumTranslation).toBeLessThanOrEqual(RUNNER.heroMax * RUNNER.rockStretch + 9);
+  expect(maximumLateral).toBeLessThan(52);
+  expect(maximumVertical).toBeLessThan(27);
+  expect(horizontal).toEqual(new Set([-1, 1]));
+  expect(vertical).toEqual(new Set([-1, 1]));
   expect(maximumAngularStep).toBeLessThan(0.006);
   expect(maximumYaw).toBeLessThan(0.2);
   expect(maximumPitch).toBeLessThan(0.15);
@@ -219,7 +286,7 @@ test("mechanical gates retain a recessed clear aperture throughout rotation and 
   const vertex = new Vector3();
   let minimum = Infinity;
   for (let encounter = 0; encounter < 8; encounter += 1) {
-    const distance = (3 + encounter * 4) * RUNNER.regionLength + 135;
+    const distance = runnerRegionStart(3 + encounter * 4) + 135;
     advanceRunnerJourney(journey, distance - journey.distance);
     for (let step = 0; step < 8; step += 1) {
       motion.animationSeconds = step * 13;
@@ -243,42 +310,103 @@ test("mechanical gates retain a recessed clear aperture throughout rotation and 
   space.dispose();
 });
 
-test("rare traffic and scenery recycle without popping or progressing while frozen", () => {
+test("six rare seeded spacecraft crossings stay safely ahead and face their direction of travel", () => {
   const space = createRunnerSpace();
   const journey = createRunnerJourney();
   const motion = createRunnerMotion();
   const traffic = createRunnerTraffic();
+  const hullRadius = 27;
   let starts = 0, previousVisible = false, minimumClearance = Infinity;
-  for (let distance = 0; distance < RUNNER.regionLength * 24; distance += 4) {
+  const variants = new Set<number>();
+  const directions = new Set<number>();
+  for (let distance = 0; distance < runnerRegionStart(48); distance += 4) {
     sampleRunnerTraffic(distance, traffic);
+    expect(traffic).toEqual(sampleRunnerTraffic(distance, createRunnerTraffic()));
     if (traffic.visible && !previousVisible) starts += 1;
-    if (traffic.visible) minimumClearance = Math.min(minimumClearance, Math.hypot(
-      traffic.x - runnerPathX(distance), traffic.y - runnerPathY(distance), traffic.z) - 20);
+    if (traffic.visible) {
+      expect(runnerEncounter(runnerRegionIndex(distance))).toBe("open-warp");
+      minimumClearance = Math.min(minimumClearance, Math.hypot(
+        traffic.x - runnerPathX(distance), traffic.y - runnerPathY(distance), traffic.z) - hullRadius);
+      expect(traffic.z).toBeLessThanOrEqual(-145);
+      variants.add(traffic.variant);
+      directions.add(Math.sign(traffic.dx));
+    }
     previousVisible = traffic.visible;
   }
-  expect(starts).toBe(3);
-  expect(minimumClearance).toBeGreaterThan(60);
-  expect(sampleRunnerTraffic(1000, traffic).fade).toBe(0);
-  expect(sampleRunnerTraffic(1390, traffic).fade).toBe(0);
-  for (const distance of [650, 990, 1170, 1600]) {
-    advanceRunnerJourney(journey, distance - journey.distance);
+  expect(starts).toBe(6);
+  expect(variants.size).toBe(6);
+  expect(directions).toEqual(new Set([-1, 1]));
+  expect(minimumClearance).toBeGreaterThan(140);
+  const hull = space.traffic.ship.geometry.getAttribute("position");
+  const vertex = new Vector3();
+  for (let i = 0; i < hull.count; i += 1) {
+    expect(vertex.fromBufferAttribute(hull, i).length() * 1.2).toBeLessThan(hullRadius);
+  }
+  for (let event = 0; event < 6; event += 1) {
+    const start = runnerRegionStart(2 + event * 8);
+    expect(sampleRunnerTraffic(start + 40, traffic).fade).toBe(0);
+    expect(sampleRunnerTraffic(start + 430, traffic).fade).toBe(0);
+    advanceRunnerJourney(journey, start + 235 - journey.distance);
     space.update(journey, motion, true);
-    const before = space.scenery.objects.map((object) => ({
-      position: object.position.toArray(), rotation: object.rotation.toArray(), visible: object.visible,
-      opacity: object.material.opacity,
-    }));
-    const lampMatrices = Array.from(space.scenery.lamps.instanceMatrix.array);
+    const sample = space.traffic.traffic;
+    const nose = new Vector3(1, 0, 0).applyQuaternion(space.traffic.ship.quaternion);
+    expect(nose.dot(new Vector3(sample.dx, sample.dy, sample.dz).normalize())).toBeCloseTo(1, 8);
+  }
+  expect(sampleRunnerTraffic(runnerRegionStart(2, 42) + 235, createRunnerTraffic(), 42).variant)
+    .not.toBe(sampleRunnerTraffic(runnerRegionStart(2) + 235, createRunnerTraffic()).variant);
+  space.dispose();
+});
+
+test("pooled ship exhaust is bounded, chromatic and freezes through all motion gates", () => {
+  const space = createRunnerSpace();
+  const journey = createRunnerJourney();
+  const motion = createRunnerMotion();
+  const { ship, lamps, plumes, exhaust } = space.traffic;
+  const position = exhaust.geometry.getAttribute("position");
+  const tint = exhaust.geometry.getAttribute("color");
+  const size = exhaust.geometry.getAttribute("exhaustSize");
+  const buffers = [position.array, tint.array, size.array, lamps.instanceMatrix.array, plumes.instanceMatrix.array];
+  expect(position.count).toBe(64);
+  expect(lamps.count).toBe(6);
+  expect(plumes.count).toBe(2);
+  const capture = () => ({
+    ship: ship.matrix.toArray(), visible: space.traffic.objects.map((object) => object.visible),
+    positions: Array.from(position.array), colors: Array.from(tint.array), sizes: Array.from(size.array),
+    lamps: Array.from(lamps.instanceMatrix.array), plumes: Array.from(plumes.instanceMatrix.array),
+    lampColors: Array.from(lamps.instanceColor!.array), plumeColors: Array.from(plumes.instanceColor!.array),
+    opacity: space.traffic.objects.map((object) => object.material.opacity),
+  });
+  for (const distance of [runnerRegionStart(2) + 95, runnerRegionStart(2) + 235, runnerRegionStart(10) + 235]) {
+    advanceRunnerJourney(journey, distance - journey.distance);
+    updateRunnerMotion(motion, 0.05, true, true, false, loud);
+    space.update(journey, motion, true);
+    const before = capture();
     for (const [playing, enabled, reduced] of [[false, true, false], [true, false, false], [true, true, true]]) {
       advanceRunnerJourney(journey, updateRunnerMotion(motion, 1, playing, enabled, reduced, loud));
       space.update(journey, motion, true);
-      expect(space.scenery.objects.map((object) => ({
-        position: object.position.toArray(), rotation: object.rotation.toArray(), visible: object.visible,
-        opacity: object.material.opacity,
-      }))).toEqual(before);
-      expect(Array.from(space.scenery.lamps.instanceMatrix.array)).toEqual(lampMatrices);
+      expect(capture()).toEqual(before);
+    }
+    space.update(journey, motion, false);
+    expect(Array.from(position.array)).toEqual(before.positions);
+    expect(Array.from(tint.array)).not.toEqual(before.colors);
+    updateRunnerMotion(motion, 0.05, true, true, false, loud);
+    space.update(journey, motion, true);
+    expect(Array.from(position.array)).not.toEqual(before.positions);
+    [position.array, tint.array, size.array, lamps.instanceMatrix.array, plumes.instanceMatrix.array]
+      .forEach((buffer, index) => expect(buffer).toBe(buffers[index]));
+    const inverse = ship.matrix.clone().invert();
+    const local = new Vector3();
+    for (let i = 0; i < position.count; i += 1) {
+      local.fromBufferAttribute(position, i).applyMatrix4(inverse);
+      expect(local.x).toBeLessThan(-11.9);
+      expect(local.x).toBeGreaterThanOrEqual(-60.01);
+      expect(Math.abs(local.y)).toBeLessThan(4.4);
+      expect(Math.abs(local.z)).toBeLessThan(10.7);
     }
   }
-  expect(Math.abs(runnerRegionWeight(990, 1) - runnerRegionWeight(991, 1))).toBeLessThan(0.01);
+  advanceRunnerJourney(journey, 240);
+  space.update(journey, motion, true);
+  expect(space.traffic.objects.every((object) => !object.visible)).toBe(true);
   space.dispose();
 });
 
@@ -340,7 +468,8 @@ test("render pools reuse buffers, freeze all kinetic geometry, and dispose every
     object.material.addEventListener("dispose", () => disposed.add(object.material));
   }
   const meshDisposals = new Set();
-  space.meshes.forEach((mesh) => mesh.addEventListener("dispose", () => meshDisposals.add(mesh)));
+  const instanced = [...space.meshes, space.traffic.lamps, space.traffic.plumes];
+  instanced.forEach((mesh) => mesh.addEventListener("dispose", () => meshDisposals.add(mesh)));
   const matrix = new Matrix4();
   const position = new Vector3();
   let maxRocks = 0;
@@ -363,7 +492,7 @@ test("render pools reuse buffers, freeze all kinetic geometry, and dispose every
       }
     }
   }
-  expect(space.objects).toHaveLength(13);
+  expect(space.objects).toHaveLength(12);
   expect(maxRocks).toBeGreaterThan(20);
   expect(maxRocks).toBeLessThanOrEqual(RUNNER.rocksPerRegion);
   expect(maxGates).toBe(RUNNER.gatesPerRegion * 16);
@@ -380,13 +509,13 @@ test("render pools reuse buffers, freeze all kinetic geometry, and dispose every
   expect(space.objects[5].geometry.getAttribute("color").array).not.toEqual(colorful);
   space.dispose();
   expect(disposed).toEqual(resources);
-  expect(meshDisposals.size).toBe(space.meshes.length);
+  expect(meshDisposals.size).toBe(instanced.length);
 });
 
 test("qualified SURGE extends peripheral trails, lights gates and expands only the fixed wave pool", () => {
   const space = createRunnerSpace();
   const journey = createRunnerJourney();
-  advanceRunnerJourney(journey, 1500);
+  advanceRunnerJourney(journey, runnerRegionStart(3) + 60);
   const motion = createRunnerMotion();
   for (let i = 0; i < 100; i += 1) updateRunnerMotion(motion, 0.05, true, true, false, loud);
   space.update(journey, motion, true);
@@ -590,8 +719,9 @@ test.describe("Signal Runner 2.0 player", () => {
     await page.getByRole("button", { name: "Play", exact: true }).click();
     await page.getByLabel("Seek playback").fill("43");
     const observations = [];
-    for (const [distance, name] of [[40, "open-warp"], [575, "asteroid-approach"], [690, "asteroid-bypass"],
-      [840, "recentering"], [1170, "traffic"], [1530, "signal-gates"]] as const) {
+    for (const [distance, name] of [[40, "open-warp"], [630, "asteroid-approach"], [760, "asteroid-bypass"],
+      [990, "recentering"], [1180, "second-bypass"], [1600, "final-bypass"],
+      [2155, "traffic"], [2490, "signal-gates"]] as const) {
       await expect.poll(async () => (await runtime(page)).travelPosition, { timeout: 60_000, intervals: [100] })
         .toBeGreaterThan(distance);
       await page.locator("label").filter({ hasText: /^Motion$/ }).click();
@@ -625,7 +755,7 @@ test.describe("Signal Runner 2.0 player", () => {
     await testInfo.attach("encounter-samples", { body: JSON.stringify(observations, null, 2), contentType: "application/json" });
     const drawCalls = await page.evaluate(() => window.__RUNNER2_DRAWS__.max);
     expect(drawCalls).toBeGreaterThanOrEqual(7);
-    expect(drawCalls).toBeLessThanOrEqual(13);
+    expect(drawCalls).toBeLessThanOrEqual(12);
     console.log(`Signal Runner 2.0 observed maximum: ${drawCalls} WebGL draws per frame.`);
     await testInfo.attach("maximum-draw-calls", { body: String(drawCalls), contentType: "text/plain" });
     expect(shaderErrors).toEqual([]);
@@ -633,6 +763,7 @@ test.describe("Signal Runner 2.0 player", () => {
   });
 
   test("switching releases GPU resources, observers, resize listeners, RAF and FPS", async ({ page, pageErrors }) => {
+    test.setTimeout(90_000);
     await page.addInitScript(() => {
       const resources = {
         frames: new Set<number>(), buffers: new Set<WebGLBuffer>(), programs: new Set<WebGLProgram>(),
@@ -708,6 +839,20 @@ test.describe("Signal Runner 2.0 player", () => {
       expect(mounted.observers).toBe(baseline.observers + 1);
       expect(mounted.listeners).toBe(baseline.listeners + 1);
       expect(mounted.buffers).toBeGreaterThan(baseline.buffers);
+      if (cycle === 0) {
+        await page.getByRole("slider", { name: "Volume" }).fill("1");
+        await page.getByRole("button", { name: "Play", exact: true }).click();
+        await page.getByLabel("Seek playback").fill("43");
+        await expect.poll(async () => (await runtime(page)).travelPosition, { timeout: 60_000, intervals: [100] })
+          .toBeGreaterThan(runnerRegionStart(2) + 100);
+        await page.getByRole("button", { name: "Pause", exact: true }).click();
+        await expect.poll(async () => (await runtime(page)).motionSpeed).toBe(0);
+        expect((await runtime(page)).travelPosition).toBeLessThan(runnerRegionStart(2) + 430);
+        const frozenExhaust = await pixels(page);
+        await page.waitForTimeout(250);
+        expect(await pixels(page)).toEqual(frozenExhaust);
+        expect((await counts()).buffers).toBeGreaterThan(mounted.buffers);
+      }
       await selector.selectOption("minimal");
       await expect(page.getByLabel("Signal Runner 2.0 canvas")).toHaveCount(0);
       await expect.poll(counts).toEqual(baseline);

@@ -4,7 +4,7 @@ import {
   type createRunnerJourney, type createRunnerMotion,
 } from "./runnerJourney";
 import { createRunnerRock } from "./runnerRock";
-import { createRunnerScenery } from "./runnerScenery";
+import { createRunnerTrafficSpace } from "./runnerTraffic";
 
 export function createRunnerSpace() {
   const transform = new THREE.Object3D();
@@ -13,7 +13,7 @@ export function createRunnerSpace() {
   const cool = new THREE.Color(0x709aa9);
   const background = new THREE.Color();
   const rockResources = createRunnerRock();
-  const scenery = createRunnerScenery();
+  const traffic = createRunnerTrafficSpace();
   const geometries = [
     rockResources.geometry,
     new THREE.TorusGeometry(15.5, 2.2, 6, 6, Math.PI * 2 / 16 * 0.87),
@@ -29,7 +29,7 @@ export function createRunnerSpace() {
     transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending,
   });
   const materials = [rockMaterial, gateMaterial, trimMaterial, waveMaterial, panelMaterial];
-  const rocks = new THREE.InstancedMesh(geometries[0], rockMaterial, RUNNER.regionCount * RUNNER.rocksPerRegion);
+  const rocks = new THREE.InstancedMesh(geometries[0], rockMaterial, RUNNER.rocksPerRegion);
   const gateCapacity = RUNNER.regionCount * RUNNER.gatesPerRegion;
   const gates = new THREE.InstancedMesh(geometries[1], gateMaterial, gateCapacity * 16);
   const trims = new THREE.InstancedMesh(geometries[2], trimMaterial, gateCapacity * 2);
@@ -75,7 +75,7 @@ export function createRunnerSpace() {
   const trails = new THREE.LineSegments(streakGeometry, streakMaterial);
   stars.frustumCulled = false;
   trails.frustumCulled = false;
-  const objects = [rocks, gates, trims, pylons, waves, stars, trails, panels, ...scenery.objects];
+  const objects = [rocks, gates, trims, pylons, waves, stars, trails, panels, ...traffic.objects];
 
   const paint = (accent: number, brightness: number, chroma: boolean, energy: number, surge: number) => {
     if (chroma) {
@@ -90,14 +90,14 @@ export function createRunnerSpace() {
   };
 
   return {
-    objects, meshes, background, scenery, rockResources,
+    objects, meshes, background, traffic, rockResources,
     update(journey: ReturnType<typeof createRunnerJourney>, motion: ReturnType<typeof createRunnerMotion>, chroma: boolean) {
       const distance = journey.distance;
       const cx = runnerPathX(distance, journey.seed);
       const cy = runnerPathY(distance, journey.seed);
       const surge = motion.surge;
       const age = motion.elapsedMs - motion.surgeStartedAt;
-      scenery.update(journey, motion, chroma);
+      traffic.update(journey, motion, chroma);
       rockResources.lighting.chroma.value = chroma ? 1 : 0;
       rockResources.lighting.surge.value = surge;
       rockResources.lighting.bass.value = motion.bass;
@@ -219,7 +219,7 @@ export function createRunnerSpace() {
       streakGeometry.dispose();
       pointMaterial.dispose();
       streakMaterial.dispose();
-      scenery.dispose();
+      traffic.dispose();
     },
   };
 }
