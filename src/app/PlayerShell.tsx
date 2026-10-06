@@ -90,6 +90,7 @@ const DEFAULT_PLAYER_AUDIO_SOURCE_ID =
   DEMO_PSYCHEDELIC_EXPERIENCE_AUDIO_SOURCE.id;
 const PUBLIC_PLAYER_ENVIRONMENT_IDS = [
   "signal-runner",
+  "signal-runner-2",
   "minimal",
   "signal-gradient",
   "signal-rain",
@@ -152,6 +153,7 @@ const ENVIRONMENT_GROUPS: EnvironmentGroup[] = [
       "alien-megastructure-transit",
       "neon-hyper-racer",
       "signal-runner",
+      "signal-runner-2",
       "signal-tunnel",
       "cosmic-nexus",
     ],
