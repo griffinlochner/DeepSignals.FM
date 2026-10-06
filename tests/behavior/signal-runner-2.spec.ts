@@ -39,6 +39,7 @@ test("seeded encounter selection, open breaks and recycling preserve bounded obj
   expect(createRunnerJourney(999).regions[1].rocks).not.toEqual(journey.regions[1].rocks);
   const regions = [...journey.regions];
   const rocks = journey.regions.map((region) => [...region.rocks]);
+  const gates = journey.regions.map((region) => [...region.gates]);
   const kinds = new Set<string>();
   for (let frame = 0; frame < 30_000; frame += 1) {
     advanceRunnerJourney(journey, RUNNER.surgeMax / 60);
@@ -48,6 +49,7 @@ test("seeded encounter selection, open breaks and recycling preserve bounded obj
       expect(region).toBe(regions[slot]);
       expect(region.rocks).toHaveLength(RUNNER.rocksPerRegion);
       expect(region.rocks.every((rock, index) => rock === rocks[slot][index])).toBe(true);
+      expect(region.gates.every((gate, index) => gate === gates[slot][index])).toBe(true);
       expect(region.kind).toBe(runnerEncounter(region.index));
       expect(region.start + region.length).toBeGreaterThanOrEqual(journey.distance - 30);
       expect(region.start).toBe(runnerRegionStart(region.index));
@@ -65,6 +67,64 @@ test("seeded encounter selection, open breaks and recycling preserve bounded obj
   }
   expect(kinds).toEqual(new Set(["open-warp", "asteroid-field", "signal-gates"]));
   expect(journey.recycled).toBeGreaterThan(150);
+});
+
+test("seeded gates mix widely spaced singles, rare short sleeves, clusters and hero diameters", () => {
+  const families = new Set<string>();
+  const gaps: number[] = [];
+  const radii: number[] = [];
+  const thicknesses: number[] = [];
+  let heroes = 0, sleeves = 0, count = 0;
+  for (const seed of [RUNNER.seed, 42, 999, 90210]) {
+    const journey = createRunnerJourney(seed);
+    const repeat = createRunnerJourney(seed);
+    for (let index = 0; index < 96; index += 1) {
+      const distance = runnerRegionStart(index, seed);
+      advanceRunnerJourney(journey, distance - journey.distance);
+      advanceRunnerJourney(repeat, distance - repeat.distance);
+      const region = journey.regions.find((candidate) => candidate.index === index)!;
+      expect(region.gates).toEqual(repeat.regions.find((candidate) => candidate.index === index)!.gates);
+      const active = region.gates.filter((gate) => gate.active);
+      if (region.kind !== "signal-gates") {
+        expect(active).toHaveLength(0);
+        continue;
+      }
+      expect(active.length).toBeGreaterThanOrEqual(2);
+      expect(active.length).toBeLessThanOrEqual(RUNNER.gatesPerRegion);
+      for (let i = 0; i < active.length; i += 1) {
+        const gate = active[i];
+        count += 1;
+        families.add(gate.family);
+        radii.push(gate.radius);
+        thicknesses.push(gate.thickness);
+        expect(gate.distance).toBeGreaterThan(region.start + 60);
+        expect(gate.distance + gate.depth).toBeLessThan(region.start + region.length - 80);
+        if (i) gaps.push(gate.distance - active[i - 1].distance);
+        if (gate.hero) {
+          heroes += 1;
+          expect(gate.radius).toBeGreaterThanOrEqual(23);
+        }
+        if (gate.family === "sleeve") {
+          sleeves += 1;
+          expect(gate.depth).toBeGreaterThanOrEqual(32);
+          expect(gate.depth).toBeLessThanOrEqual(44);
+          expect(gate.depth / RUNNER.normalMax).toBeLessThan(0.56);
+          expect(active[i + 1].distance - gate.distance - gate.depth).toBeGreaterThan(10);
+        } else expect(gate.depth).toBe(0);
+      }
+    }
+  }
+  expect(families).toEqual(new Set(["structural", "portal", "sleeve"]));
+  expect(Math.min(...gaps)).toBeGreaterThanOrEqual(55);
+  expect(Math.min(...gaps)).toBeLessThan(85);
+  expect(Math.max(...gaps)).toBeGreaterThan(275);
+  expect(gaps.filter((gap) => gap > 230).length / gaps.length).toBeGreaterThan(0.45);
+  expect(Math.max(...radii) / Math.min(...radii)).toBeGreaterThan(1.8);
+  expect(Math.max(...thicknesses) - Math.min(...thicknesses)).toBeGreaterThan(0.8);
+  expect(heroes / count).toBeGreaterThan(0.08);
+  expect(heroes / count).toBeLessThan(0.15);
+  expect(sleeves / count).toBeGreaterThan(0.1);
+  expect(sleeves / count).toBeLessThan(0.16);
 });
 
 test("only asteroid fields expand to three times the travel length with three spaced bypasses", () => {
@@ -140,10 +200,11 @@ test("maximum-speed path retains comfortable asteroid and gate clearance after r
           if (Math.abs(rock.distance - journey.distance) < 6) nearMiss = Math.min(nearMiss, clearance);
         }
       } else if (region.kind === "signal-gates") {
-        for (let i = 0; i < RUNNER.gatesPerRegion; i += 1) {
-          const distance = region.start + 135 + i * 100;
-          if (Math.abs(distance - journey.distance) > 15) continue;
-          expect(RUNNER.gateRadius * 0.945 - 0.05
+        for (const gate of region.gates) {
+          if (!gate.active || journey.distance < gate.distance - 15
+            || journey.distance > gate.distance + gate.depth + 15) continue;
+          const distance = gate.distance;
+          expect(gate.radius * 0.945 - 0.05
             - Math.hypot(runnerPathX(distance) - x, runnerPathY(distance) - y)).toBeGreaterThan(10);
         }
       }
@@ -278,28 +339,37 @@ test("fractured rocks remain inside their safety sphere and chroma changes only 
   second.geometry.dispose(); second.material.dispose();
 });
 
-test("mechanical gates retain a recessed clear aperture throughout rotation and recycling", () => {
+test("all gate families retain a clear swept aperture through rotation, sleeve exits and recycling", () => {
   const space = createRunnerSpace();
   const journey = createRunnerJourney();
   const motion = createRunnerMotion();
   const matrix = new Matrix4();
   const vertex = new Vector3();
   let minimum = Infinity;
+  const families = new Set<string>();
   for (let encounter = 0; encounter < 8; encounter += 1) {
-    const distance = runnerRegionStart(3 + encounter * 4) + 135;
-    advanceRunnerJourney(journey, distance - journey.distance);
-    for (let step = 0; step < 8; step += 1) {
-      motion.animationSeconds = step * 13;
-      space.update(journey, motion, true);
-      for (const slot of [1, 2, 3, 5]) {
-        const mesh = space.meshes[slot];
-        const positions = mesh.geometry.getAttribute("position");
-        for (let instance = 0; instance < mesh.count; instance += 1) {
-          mesh.getMatrixAt(instance, matrix);
-          for (let i = 0; i < positions.count; i += 1) {
-            vertex.fromBufferAttribute(positions, i).applyMatrix4(matrix);
-            if (Math.abs(vertex.z) > 8) continue;
-            minimum = Math.min(minimum, Math.hypot(vertex.x - runnerPathX(distance), vertex.y - runnerPathY(distance)));
+    const index = 3 + encounter * 4;
+    advanceRunnerJourney(journey, runnerRegionStart(index) - journey.distance);
+    const region = journey.regions.find((candidate) => candidate.index === index)!;
+    for (const gate of region.gates.filter((candidate) => candidate.active)) {
+      families.add(gate.family);
+      for (const offset of [0, gate.depth / 2, gate.depth]) {
+        const distance = gate.distance + offset;
+        advanceRunnerJourney(journey, distance - journey.distance);
+        for (let step = 0; step < 3; step += 1) {
+          motion.animationSeconds = step * 13;
+          space.update(journey, motion, true);
+          for (const slot of [1, 2, 3, 5]) {
+            const mesh = space.meshes[slot];
+            const positions = mesh.geometry.getAttribute("position");
+            for (let instance = 0; instance < mesh.count; instance += 1) {
+              mesh.getMatrixAt(instance, matrix);
+              for (let i = 0; i < positions.count; i += 1) {
+                vertex.fromBufferAttribute(positions, i).applyMatrix4(matrix);
+                if (Math.abs(vertex.z) > 8) continue;
+                minimum = Math.min(minimum, Math.hypot(vertex.x - runnerPathX(distance), vertex.y - runnerPathY(distance)));
+              }
+            }
           }
         }
       }
@@ -307,6 +377,60 @@ test("mechanical gates retain a recessed clear aperture throughout rotation and 
   }
   expect(minimum).toBeGreaterThan(12);
   expect(minimum).toBeLessThan(14);
+  expect(families.size).toBe(3);
+  space.dispose();
+});
+
+test("gate energy is bounded, kick softened, chroma restrained and every lighting clock freezes", () => {
+  const space = createRunnerSpace();
+  const journey = createRunnerJourney();
+  advanceRunnerJourney(journey, runnerRegionStart(3));
+  const motion = createRunnerMotion();
+  const gateSpace = space.gateSpace;
+  space.update(journey, motion, true);
+  const resting = gateSpace.arcs.instanceColor!.array.slice();
+  updateRunnerMotion(motion, 1 / 60, true, true, false, { ...loud, kickPulse: 1 });
+  expect(motion.gateKick).toBeGreaterThan(0.2);
+  expect(motion.gateKick).toBeLessThan(0.3);
+  space.update(journey, motion, true);
+  expect(gateSpace.arcs.instanceColor!.array).not.toEqual(resting);
+  expect(motion.surgeCount).toBe(0);
+  for (let i = 0; i < 60; i += 1) updateRunnerMotion(motion, 1 / 60, true, true, false, { ...loud, kickPulse: 1 });
+  space.update(journey, motion, true);
+  expect(motion.gateKick).toBeLessThanOrEqual(1);
+  expect(Math.max(...gateSpace.arcs.instanceColor!.array.slice(0, gateSpace.arcs.count * 3))).toBeLessThan(1.25);
+  expect(gateSpace.membranes.count).toBe(1);
+  const material = gateSpace.membranes.material;
+  expect(material.transparent).toBe(true);
+  expect(material.depthWrite).toBe(false);
+  expect(material.forceSinglePass).toBe(true);
+  const state = () => ({
+    kick: motion.gateKick, activity: motion.gateActivity,
+    clock: material.uniforms.clock.value, shaderKick: material.uniforms.kick.value,
+    shaderActivity: material.uniforms.activity.value,
+    matrices: gateSpace.meshes.map((mesh) => mesh.instanceMatrix.array.slice()),
+    colors: gateSpace.meshes.map((mesh) => mesh.instanceColor!.array.slice()),
+  });
+  const frozen = state();
+  for (const [playing, enabled, reduced] of [[false, true, false], [true, false, false], [true, true, true]]) {
+    for (let frame = 0; frame < 30; frame += 1) {
+      updateRunnerMotion(motion, 0.05, playing, enabled, reduced, { ...quiet, kickPulse: 0 });
+      space.update(journey, motion, true);
+    }
+    expect(state()).toEqual(frozen);
+  }
+  space.update(journey, motion, false);
+  expect(material.uniforms.kick.value).toBe(0);
+  expect(material.uniforms.activity.value).toBe(0);
+  expect(Math.max(...gateSpace.arcs.instanceColor!.array.slice(0, gateSpace.arcs.count * 3))).toBeLessThan(0.3);
+  for (const snapshot of [undefined, { ...loud, isActive: false }, { ...loud, kickPulse: NaN }]) {
+    for (let i = 0; i < 60; i += 1) updateRunnerMotion(motion, 0.05, true, true, false, snapshot);
+    expect(motion.gateKick).toBeLessThan(0.001);
+  }
+  const portal = journey.regions.find((region) => region.index === 3)!.gates[0];
+  advanceRunnerJourney(journey, portal.distance - journey.distance - 8);
+  space.update(journey, motion, true);
+  expect(Array.from(gateSpace.membranes.instanceColor!.array.slice(0, 3))).toEqual([0, 0, 0]);
   space.dispose();
 });
 
@@ -474,12 +598,15 @@ test("render pools reuse buffers, freeze all kinetic geometry, and dispose every
   const position = new Vector3();
   let maxRocks = 0;
   let maxGates = 0;
+  let maxGateTriangles = 0;
   for (let i = 0; i < 1400; i += 1) {
     advanceRunnerJourney(journey, 12);
     updateRunnerMotion(motion, 0.05, true, true, false, i % 100 < 15 ? quiet : loud);
     space.update(journey, motion, true);
     maxRocks = Math.max(maxRocks, space.meshes[0].count);
     maxGates = Math.max(maxGates, space.meshes[1].count);
+    maxGateTriangles = Math.max(maxGateTriangles, space.gateSpace.meshes.reduce(
+      (sum, mesh) => sum + mesh.count * mesh.geometry.index!.count / 3, 0));
     for (let slot = 0; slot < space.meshes.length; slot += 1) {
       const mesh = space.meshes[slot];
       expect(mesh.instanceMatrix.array).toBe(buffers[slot][0]);
@@ -492,10 +619,12 @@ test("render pools reuse buffers, freeze all kinetic geometry, and dispose every
       }
     }
   }
-  expect(space.objects).toHaveLength(12);
+  expect(space.objects).toHaveLength(14);
   expect(maxRocks).toBeGreaterThan(20);
   expect(maxRocks).toBeLessThanOrEqual(RUNNER.rocksPerRegion);
-  expect(maxGates).toBe(RUNNER.gatesPerRegion * 16);
+  expect(maxGates).toBe(64);
+  expect(maxGateTriangles).toBeGreaterThan(8000);
+  expect(maxGateTriangles).toBeLessThan(20_000);
   const matrices = space.meshes.map((mesh) => Array.from(mesh.instanceMatrix.array));
   const stars = space.objects[5].geometry.getAttribute("position").array.slice();
   for (const [playing, enabled, reduced] of [[false, true, false], [true, false, false], [true, true, true]]) {
@@ -678,8 +807,8 @@ test.describe("Signal Runner 2.0 player", () => {
     expect(pageErrors).toEqual([]);
   });
 
-  test("three encounter regions render with distinct chroma and fit desktop/mobile", async ({ page, pageErrors }, testInfo) => {
-    test.setTimeout(180_000);
+  test("encounters and gate families render with distinct chroma and fit desktop/mobile", async ({ page, pageErrors }, testInfo) => {
+    test.setTimeout(240_000);
     const shaderErrors: string[] = [];
     page.on("console", (message) => {
       if (message.type() === "error" && /THREE|shader|WebGL/i.test(message.text())) shaderErrors.push(message.text());
@@ -718,15 +847,27 @@ test.describe("Signal Runner 2.0 player", () => {
     await page.getByRole("slider", { name: "Volume" }).fill("1");
     await page.getByRole("button", { name: "Play", exact: true }).click();
     await page.getByLabel("Seek playback").fill("43");
+    const gateJourney = createRunnerJourney();
+    advanceRunnerJourney(gateJourney, runnerRegionStart(3));
+    const firstGates = gateJourney.regions.find((region) => region.index === 3)!.gates;
+    const heroApproach = firstGates[0].distance - 70;
+    const structuralApproach = firstGates[1].distance - 70;
+    advanceRunnerJourney(gateJourney, runnerRegionStart(7) - gateJourney.distance);
+    const sleeve = gateJourney.regions.find((region) => region.index === 7)!.gates.find((gate) => gate.family === "sleeve")!;
     const observations = [];
     for (const [distance, name] of [[40, "open-warp"], [630, "asteroid-approach"], [760, "asteroid-bypass"],
       [990, "recentering"], [1180, "second-bypass"], [1600, "final-bypass"],
-      [2155, "traffic"], [2490, "signal-gates"]] as const) {
+      [2155, "traffic"], [heroApproach, "hero-portal"], [structuralApproach, "structural-ring"],
+      [sleeve.distance - 70, "transit-sleeve"], [sleeve.distance + sleeve.depth * 0.4, "sleeve-interior"]] as const) {
       await expect.poll(async () => (await runtime(page)).travelPosition, { timeout: 60_000, intervals: [100] })
         .toBeGreaterThan(distance);
       await page.locator("label").filter({ hasText: /^Motion$/ }).click();
       await expect.poll(async () => (await runtime(page)).motionSpeed).toBe(0);
       const telemetry = await runtime(page);
+      if (name === "sleeve-interior") {
+        expect(telemetry.travelPosition).toBeGreaterThan(sleeve.distance);
+        expect(telemetry.travelPosition).toBeLessThan(sleeve.distance + sleeve.depth);
+      }
       await page.getByRole("button", { name: "Collapse player panel" }).click();
       for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 }]) {
         await page.setViewportSize(viewport);
@@ -743,6 +884,8 @@ test.describe("Signal Runner 2.0 player", () => {
       await page.setViewportSize({ width: 1440, height: 900 });
       await page.getByRole("button", { name: "Expand player panel" }).click();
       const chroma = await pixels(page);
+      await page.waitForTimeout(200);
+      expect(await pixels(page)).toEqual(chroma);
       await page.locator("label").filter({ hasText: /^Chroma$/ }).click();
       const restrained = await pixels(page);
       // Natural hull/rock surfaces stay neutral; CHROMA adds accents rather than repainting them.
@@ -755,7 +898,7 @@ test.describe("Signal Runner 2.0 player", () => {
     await testInfo.attach("encounter-samples", { body: JSON.stringify(observations, null, 2), contentType: "application/json" });
     const drawCalls = await page.evaluate(() => window.__RUNNER2_DRAWS__.max);
     expect(drawCalls).toBeGreaterThanOrEqual(7);
-    expect(drawCalls).toBeLessThanOrEqual(12);
+    expect(drawCalls).toBeLessThanOrEqual(14);
     console.log(`Signal Runner 2.0 observed maximum: ${drawCalls} WebGL draws per frame.`);
     await testInfo.attach("maximum-draw-calls", { body: String(drawCalls), contentType: "text/plain" });
     expect(shaderErrors).toEqual([]);
@@ -763,7 +906,7 @@ test.describe("Signal Runner 2.0 player", () => {
   });
 
   test("switching releases GPU resources, observers, resize listeners, RAF and FPS", async ({ page, pageErrors }) => {
-    test.setTimeout(90_000);
+    test.setTimeout(120_000);
     await page.addInitScript(() => {
       const resources = {
         frames: new Set<number>(), buffers: new Set<WebGLBuffer>(), programs: new Set<WebGLProgram>(),
@@ -839,15 +982,16 @@ test.describe("Signal Runner 2.0 player", () => {
       expect(mounted.observers).toBe(baseline.observers + 1);
       expect(mounted.listeners).toBe(baseline.listeners + 1);
       expect(mounted.buffers).toBeGreaterThan(baseline.buffers);
-      if (cycle === 0) {
+      if (cycle < 2) {
         await page.getByRole("slider", { name: "Volume" }).fill("1");
         await page.getByRole("button", { name: "Play", exact: true }).click();
         await page.getByLabel("Seek playback").fill("43");
         await expect.poll(async () => (await runtime(page)).travelPosition, { timeout: 60_000, intervals: [100] })
-          .toBeGreaterThan(runnerRegionStart(2) + 100);
+          .toBeGreaterThan(cycle === 0 ? runnerRegionStart(2) + 100 : runnerRegionStart(3));
         await page.getByRole("button", { name: "Pause", exact: true }).click();
         await expect.poll(async () => (await runtime(page)).motionSpeed).toBe(0);
-        expect((await runtime(page)).travelPosition).toBeLessThan(runnerRegionStart(2) + 430);
+        expect((await runtime(page)).travelPosition).toBeLessThan(
+          cycle === 0 ? runnerRegionStart(2) + 430 : runnerRegionStart(3) + 100);
         const frozenExhaust = await pixels(page);
         await page.waitForTimeout(250);
         expect(await pixels(page)).toEqual(frozenExhaust);

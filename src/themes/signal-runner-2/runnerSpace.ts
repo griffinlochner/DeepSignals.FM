@@ -1,10 +1,11 @@
 import * as THREE from "three";
 import {
-  RUNNER, runnerRandom, runnerPathX, runnerPathY, runnerGateActivation,
+  RUNNER, runnerRandom, runnerPathX, runnerPathY,
   type createRunnerJourney, type createRunnerMotion,
 } from "./runnerJourney";
 import { createRunnerRock } from "./runnerRock";
 import { createRunnerTrafficSpace } from "./runnerTraffic";
+import { createRunnerGateSpace } from "./runnerGates";
 
 export function createRunnerSpace() {
   const transform = new THREE.Object3D();
@@ -14,30 +15,22 @@ export function createRunnerSpace() {
   const background = new THREE.Color();
   const rockResources = createRunnerRock();
   const traffic = createRunnerTrafficSpace();
+  const gateSpace = createRunnerGateSpace();
   const geometries = [
     rockResources.geometry,
-    new THREE.TorusGeometry(15.5, 2.2, 6, 6, Math.PI * 2 / 16 * 0.87),
-    new THREE.TorusGeometry(13.5, 0.55, 6, 64),
-    new THREE.BoxGeometry(1, 1, 1),
     new THREE.TorusGeometry(1, 0.008, 4, 64),
   ];
   const rockMaterial = rockResources.material;
-  const gateMaterial = new THREE.MeshStandardMaterial({ metalness: 0.6, roughness: 0.62 });
-  const trimMaterial = new THREE.MeshStandardMaterial({ color: 0x76818a, metalness: 0.7, roughness: 0.4 });
-  const panelMaterial = new THREE.MeshBasicMaterial();
   const waveMaterial = new THREE.MeshBasicMaterial({
     transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending,
   });
-  const materials = [rockMaterial, gateMaterial, trimMaterial, waveMaterial, panelMaterial];
+  const materials = [rockMaterial, waveMaterial];
   const rocks = new THREE.InstancedMesh(geometries[0], rockMaterial, RUNNER.rocksPerRegion);
-  const gateCapacity = RUNNER.regionCount * RUNNER.gatesPerRegion;
-  const gates = new THREE.InstancedMesh(geometries[1], gateMaterial, gateCapacity * 16);
-  const trims = new THREE.InstancedMesh(geometries[2], trimMaterial, gateCapacity * 2);
-  const pylons = new THREE.InstancedMesh(geometries[3], gateMaterial, gateCapacity * 8 * 3);
-  const panels = new THREE.InstancedMesh(geometries[3], panelMaterial, gateCapacity * 16);
-  const waves = new THREE.InstancedMesh(geometries[4], waveMaterial, 3);
-  const meshes = [rocks, gates, trims, pylons, waves, panels];
-  for (const mesh of meshes) {
+  const { gates, trims, pylons, panels, arcs, membranes } = gateSpace;
+  const waves = new THREE.InstancedMesh(geometries[1], waveMaterial, 3);
+  const ownedMeshes = [rocks, waves];
+  const meshes = [rocks, gates, trims, pylons, waves, panels, arcs, membranes];
+  for (const mesh of ownedMeshes) {
     mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     mesh.frustumCulled = false;
     if (mesh !== waves) mesh.setColorAt(0, color);
@@ -75,7 +68,7 @@ export function createRunnerSpace() {
   const trails = new THREE.LineSegments(streakGeometry, streakMaterial);
   stars.frustumCulled = false;
   trails.frustumCulled = false;
-  const objects = [rocks, gates, trims, pylons, waves, stars, trails, panels, ...traffic.objects];
+  const objects = [rocks, gates, trims, pylons, waves, stars, trails, panels, ...traffic.objects, arcs, membranes];
 
   const paint = (accent: number, brightness: number, chroma: boolean, energy: number, surge: number) => {
     if (chroma) {
@@ -90,7 +83,7 @@ export function createRunnerSpace() {
   };
 
   return {
-    objects, meshes, background, traffic, rockResources,
+    objects, meshes, background, traffic, rockResources, gateSpace,
     update(journey: ReturnType<typeof createRunnerJourney>, motion: ReturnType<typeof createRunnerMotion>, chroma: boolean) {
       const distance = journey.distance;
       const cx = runnerPathX(distance, journey.seed);
@@ -98,15 +91,12 @@ export function createRunnerSpace() {
       const surge = motion.surge;
       const age = motion.elapsedMs - motion.surgeStartedAt;
       traffic.update(journey, motion, chroma);
+      gateSpace.update(journey, motion, chroma);
       rockResources.lighting.chroma.value = chroma ? 1 : 0;
       rockResources.lighting.surge.value = surge;
       rockResources.lighting.bass.value = motion.bass;
       background.setRGB(0.0003 + surge * (chroma ? 0.008 : 0.002), 0.0005 + surge * 0.005, 0.0015 + surge * 0.018);
       let rockCount = 0;
-      let gateCount = 0;
-      let trimCount = 0;
-      let pylonCount = 0;
-      let panelCount = 0;
       for (const region of journey.regions) {
         if (region.kind === "asteroid-field") {
           for (const rock of region.rocks) {
@@ -119,55 +109,9 @@ export function createRunnerSpace() {
             color.setHex(rock.accent === 0 ? 0x66615c : rock.accent === 1 ? 0x555960 : 0x746657);
             instance(rocks, rockCount++);
           }
-        } else if (region.kind === "signal-gates") {
-          for (let i = 0; i < RUNNER.gatesPerRegion; i += 1) {
-            const gateDistance = region.start + 135 + i * 100;
-            const ahead = gateDistance - distance;
-            if (ahead < -20 || ahead > RUNNER.far) continue;
-            const activation = runnerGateActivation(ahead, age, surge);
-            const x = runnerPathX(gateDistance, journey.seed);
-            const y = runnerPathY(gateDistance, journey.seed);
-            for (let segment = 0; segment < 16; segment += 1) {
-              const angle = segment * Math.PI / 8;
-              transform.position.set(x, y, -ahead);
-              transform.rotation.set(0, 0, angle);
-              transform.scale.set(1, 1, 2.5);
-              color.setHex(segment % 2 ? 0x48515c : 0x72767b);
-              instance(gates, gateCount++);
-              const collarAngle = angle + motion.animationSeconds * 0.045 * (i % 2 ? -1 : 1);
-              transform.position.set(x + Math.cos(collarAngle) * 14.4, y + Math.sin(collarAngle) * 14.4, -ahead + 4.7);
-              transform.rotation.z = collarAngle;
-              transform.scale.set(0.65, 1.5, 0.18);
-              const sequence = Math.max(0, Math.min(1, activation * 1.7 - segment / 20));
-              paint((i + segment % 3) % 3, 0.12 + sequence * (0.9 + motion.mids * 0.5) + surge, chroma, motion.energy, surge);
-              instance(panels, panelCount++);
-            }
-            for (let rim = 0; rim < 2; rim += 1) {
-              transform.position.set(x, y, -ahead + (rim ? 3.4 : -3.4));
-              transform.rotation.set(0, 0, motion.animationSeconds * 0.045);
-              transform.scale.set(1, 1, 1.6);
-              color.setHex(0x69717a);
-              instance(trims, trimCount++);
-            }
-            for (let pylon = 0; pylon < 8; pylon += 1) {
-              const angle = pylon * Math.PI / 4;
-              for (let part = 0; part < 3; part += 1) {
-                const radius = part === 0 ? 17.6 : part === 1 ? 20 : 22;
-                transform.position.set(x + Math.cos(angle) * radius, y + Math.sin(angle) * radius, -ahead);
-                transform.rotation.set(0, 0, angle);
-                transform.scale.set(part === 2 ? 5 : 1.6, part === 2 ? 0.18 : 0.7, part === 0 ? 11 : 2);
-                color.setHex(part === 0 ? 0x81868b : 0x454b51);
-                instance(pylons, pylonCount++);
-              }
-            }
-          }
         }
       }
       rocks.count = rockCount;
-      gates.count = gateCount;
-      trims.count = trimCount;
-      pylons.count = pylonCount;
-      panels.count = panelCount;
       waves.visible = surge > 0.001;
       waveMaterial.opacity = surge * 0.7;
       waveMaterial.color.copy(chroma ? palette[1] : cool);
@@ -206,13 +150,15 @@ export function createRunnerSpace() {
       }
       pointPosition.needsUpdate = streakPosition.needsUpdate = true;
       pointColor.needsUpdate = streakColor.needsUpdate = true;
-      for (const mesh of meshes) {
+      for (const mesh of ownedMeshes) {
         mesh.instanceMatrix.needsUpdate = true;
         if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
       }
     },
     dispose() {
-      for (const mesh of meshes) mesh.dispose();
+      rocks.dispose();
+      waves.dispose();
+      gateSpace.dispose();
       for (const geometry of geometries) geometry.dispose();
       for (const material of materials) material.dispose();
       pointGeometry.dispose();

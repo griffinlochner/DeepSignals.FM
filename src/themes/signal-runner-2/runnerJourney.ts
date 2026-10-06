@@ -13,8 +13,9 @@ export const RUNNER = {
 } as const;
 
 export type RunnerEncounter = "open-warp" | "asteroid-field" | "signal-gates";
+export type RunnerGateFamily = "structural" | "portal" | "sleeve";
 export type RunnerAudio = Partial<Pick<AudioReactiveSnapshot,
-  "isActive" | "smoothedEnergy" | "bass" | "mids" | "highs" | "kickPulseAcceptedEventSequence"
+  "isActive" | "smoothedEnergy" | "bass" | "mids" | "highs" | "kickPulse" | "kickPulseAcceptedEventSequence"
 >>;
 
 export function runnerUnit(value: number | undefined) {
@@ -138,11 +139,34 @@ function createRock() {
   return { distance: 0, x: 0, y: 0, size: 0, phase: 0, spin: 0, spinY: 0, spinZ: 0, accent: 0 };
 }
 
+function createGate() {
+  return {
+    active: false, family: "structural" as RunnerGateFamily, distance: 0,
+    radius: 13, thickness: 1, depth: 0, phase: 0, accent: 0, hero: false,
+  };
+}
+
 function populateRegion(region: RunnerRegion, index: number, seed: number) {
   region.index = index;
   region.kind = runnerEncounter(index, seed);
   region.start = runnerRegionStart(index, seed);
   region.length = runnerRegionLength(index, seed);
+  const encounter = Math.floor(index / 4);
+  const clustered = encounter % 3 === 1;
+  for (let i = 0; i < region.gates.length; i += 1) {
+    const gate = region.gates[i];
+    const key = index * 397 + i * 23;
+    gate.active = region.kind === "signal-gates" && i < (clustered ? 3 : 2);
+    gate.family = clustered && i === 1 ? "sleeve" : (encounter + i) % 2 === 0 ? "portal" : "structural";
+    gate.hero = encounter % 4 === 0 && i === 0;
+    const offset = clustered ? (i === 0 ? 70 : i === 1 ? 205 : 285) : (i === 0 ? 85 : 350);
+    gate.distance = region.start + offset + runnerRandom(key, seed) * 25;
+    gate.radius = gate.hero ? 23 + runnerRandom(key + 1, seed) * 3 : 13 + runnerRandom(key + 1, seed) * 5;
+    gate.thickness = 0.75 + runnerRandom(key + 2, seed) * 0.9;
+    gate.depth = gate.family === "sleeve" ? 32 + runnerRandom(key + 3, seed) * 12 : 0;
+    gate.phase = runnerRandom(key + 4, seed) * Math.PI * 2;
+    gate.accent = Math.floor(runnerRandom(key + 5, seed) * 3);
+  }
   for (let i = 0; i < region.rocks.length; i += 1) {
     const rock = region.rocks[i];
     const key = index * 251 + i * 7;
@@ -182,12 +206,14 @@ function populateRegion(region: RunnerRegion, index: number, seed: number) {
 type RunnerRegion = {
   index: number; kind: RunnerEncounter; start: number; length: number;
   rocks: ReturnType<typeof createRock>[];
+  gates: ReturnType<typeof createGate>[];
 };
 
 export function createRunnerJourney(seed: number = RUNNER.seed) {
   const regions: RunnerRegion[] = Array.from({ length: RUNNER.regionCount }, () => ({
     index: 0, kind: "open-warp", start: 0, length: RUNNER.regionLength,
     rocks: Array.from({ length: RUNNER.rocksPerRegion }, createRock),
+    gates: Array.from({ length: RUNNER.gatesPerRegion }, createGate),
   }));
   for (let i = 0; i < regions.length; i += 1) populateRegion(regions[i], i, seed);
   return { seed, distance: 0, recycled: 0, regions };
@@ -219,7 +245,8 @@ export function runnerGateActivation(ahead: number, surgeAgeMs: number, surge: n
 export function createRunnerMotion() {
   return {
     elapsedMs: 0, animationSeconds: 0, speed: 0, targetSpeed: 0, energy: 0,
-    bass: 0, mids: 0, highs: 0, surge: 0, surgeCount: 0, surgeStartedAt: -Infinity,
+    bass: 0, mids: 0, highs: 0, gateKick: 0, gateActivity: 0,
+    surge: 0, surgeCount: 0, surgeStartedAt: -Infinity,
     lastQualificationAt: -Infinity,
     qualification: createSharedSurgeQualificationState(),
     qualificationInput: { nowMs: 0, smoothedEnergy: 0, acceptedSequence: 0, isPlaying: false, motionEnabled: false },
@@ -251,6 +278,9 @@ export function updateRunnerMotion(
   state.bass += ((usable ? runnerUnit(snapshot?.bass) : 0) - state.bass) * smoothing;
   state.mids += ((usable ? runnerUnit(snapshot?.mids) : 0) - state.mids) * smoothing;
   state.highs += ((usable ? runnerUnit(snapshot?.highs) : 0) - state.highs) * smoothing;
+  const kick = usable ? runnerUnit(snapshot?.kickPulse) : 0;
+  state.gateKick += (kick - state.gateKick) * (1 - Math.exp(-delta * (kick > state.gateKick ? 18 : 4)));
+  state.gateActivity += (state.energy - state.gateActivity) * smoothing;
   if (state.elapsedMs - state.lastQualificationAt >= 50) {
     input.nowMs = state.elapsedMs;
     const result = updateSharedSurgeQualification(state.qualification, input);
