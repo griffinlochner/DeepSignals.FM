@@ -137,7 +137,7 @@ function SubmissionsPage() {
                   or releases you&apos;d like us to consider.
                 </span>
               </p>
-              <p className="submissions-page__email">deepsignals.fm@gmail.com</p>
+              <p className="submissions-page__email">submissions@deepsignals.fm</p>
               <p className="about-transmission-copy">
                 <span className="about-associated-gradient-text">
                   You can also contact DeepSignals.FM through our social media
