@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { createTwilightSky, TWILIGHT_SUN, TWILIGHT_ALIEN_SUN, twilightColorShader } from "./twilightSky";
+import { createTwilightSky, createTwilightPalette, updateTwilightPalette, TWILIGHT_SUN, TWILIGHT_ALIEN_SUN, twilightColorShader } from "./twilightSky";
 import type { createTwilightState, twilightQuality } from "./twilightRuntime";
 import { TWILIGHT_METEOR_PATHS, TWILIGHT_PALETTE_SECONDS } from "./twilightRuntime";
 
@@ -70,6 +70,7 @@ export function createTwilightOcean(renderer: THREE.WebGLRenderer, quality: Retu
   let skyTarget = createTwilightSky(renderer, quality.reflectionSize);
   const normals = createRippleNormals();
   normals.anisotropy = Math.min(renderer.capabilities.getMaxAnisotropy(), 4);
+  const palette = createTwilightPalette();
   const uniforms = {
     skyMap: { value: skyTarget.texture },
     rippleMap: { value: normals },
@@ -80,13 +81,20 @@ export function createTwilightOcean(renderer: THREE.WebGLRenderer, quality: Retu
     glintEnergy: { value: 0 },
     waterEnergy: { value: 0 },
     skyTime: { value: 0 },
-    palettePhase: { value: 0 },
     meteorProgress: { value: 1 },
     meteorPath: { value: new THREE.Vector4(...TWILIGHT_METEOR_PATHS[0]) },
     sunDirection: { value: TWILIGHT_SUN },
     alienSunDirection: { value: TWILIGHT_ALIEN_SUN },
-    sunColor: { value: new THREE.Color() },
-    alienSunColor: { value: new THREE.Color() },
+    sunColor: { value: palette.sunColor },
+    alienSunColor: { value: palette.alienSunColor },
+    horizonAwayColor: { value: palette.horizonAwayColor },
+    horizonColor: { value: palette.horizonColor },
+    lowSkyColor: { value: palette.lowSkyColor },
+    midSkyColor: { value: palette.midSkyColor },
+    highSkyColor: { value: palette.highSkyColor },
+    cloudShadowColor: { value: palette.cloudShadowColor },
+    cloudLightColor: { value: palette.cloudLightColor },
+    cloudVeilColor: { value: palette.cloudVeilColor },
   };
   const skyGeometry = new THREE.BoxGeometry(2, 2, 2);
   const skyMaterial = new THREE.ShaderMaterial({
@@ -106,7 +114,8 @@ export function createTwilightOcean(renderer: THREE.WebGLRenderer, quality: Retu
       varying vec3 direction;
       ${twilightColorShader}
       void main() {
-        gl_FragColor = vec4(skyLight(normalize(direction), 1.0), 1.0);
+        vec3 d = normalize(direction);
+        gl_FragColor = vec4(skyLight(d, 1.0, twilightClouds(d)), 1.0);
         #include <tonemapping_fragment>
         #include <colorspace_fragment>
       }
@@ -171,18 +180,20 @@ export function createTwilightOcean(renderer: THREE.WebGLRenderer, quality: Retu
         float solarVisibility = smoothstep(0.012, 0.035, eye.y);
         vec3 reflected = reflect(-eye, normal);
         reflected.y = max(reflected.y, 0.002);
-        vec3 reflection = skyLight(normalize(reflected), solarVisibility);
+        reflected = normalize(reflected);
+        vec2 clouds = twilightClouds(reflected);
+        vec3 reflection = skyLight(reflected, solarVisibility, clouds);
         float facing = max(dot(normal, eye), 0.0);
         float fresnel = 0.025 + 0.975 * pow(1.0 - facing, 5.0);
         vec3 body = vec3(0.018, 0.025, 0.063) + twilightTreatment(vec3(0.12, 0.025, 0.16)) * 0.075;
         vec3 sun = reflectedHighlight(normal, eye, sunDirection, orangeRadiance(), 380.0)
           + reflectedHighlight(normal, eye, alienSunDirection, alienRadiance(), 240.0);
-        vec3 color = mix(body, reflection, fresnel) + sun * solarVisibility;
+        vec3 color = mix(body, reflection, fresnel) + sun * solarVisibility * (1.0 - twilightCloudOpacity(clouds));
         float haze = smoothstep(180.0, 7000.0, distanceToEye) * 0.4;
         // Match the actual sky at the finite grid edge, including fractional-pixel horizons.
         haze = mix(haze, 1.0, 1.0 - smoothstep(0.001, 0.012, eye.y));
         vec3 horizon = normalize(vec3(-eye.x, 0.0, -eye.z));
-        color = mix(color, twilightTreatment(atmosphereLight(horizon, vec2(0.0))), haze);
+        color = mix(color, twilightTreatment(atmosphereLight(horizon)), haze);
         gl_FragColor = vec4(color, 1.0);
         #include <tonemapping_fragment>
         #include <colorspace_fragment>
@@ -208,11 +219,7 @@ export function createTwilightOcean(renderer: THREE.WebGLRenderer, quality: Retu
       uniforms.glintEnergy.value = chromaEnabled ? state.glintEnergy : 0;
       uniforms.waterEnergy.value = state.waterEnergy;
       uniforms.skyTime.value = state.skyTime;
-      const palettePhase = chromaEnabled ? 0.5 - 0.5 * Math.cos(state.paletteTime / TWILIGHT_PALETTE_SECONDS * Math.PI * 2) : 0;
-      uniforms.palettePhase.value = palettePhase;
-      const kick = chromaEnabled ? state.kickEnergy : 0;
-      uniforms.sunColor.value.setHSL(0.075 - kick * 0.12 + palettePhase * 0.045, 0.94, 0.48);
-      uniforms.alienSunColor.value.setHSL(0.315 + kick * 0.23 + palettePhase * 0.06, 0.92, 0.44);
+      updateTwilightPalette(palette, chromaEnabled ? state.paletteTime / TWILIGHT_PALETTE_SECONDS : 0);
       uniforms.meteorProgress.value = chromaEnabled ? state.meteorProgress : 1;
       const [startX, startY, endX, endY] = TWILIGHT_METEOR_PATHS[Math.max(0, state.meteorCount - 1) % TWILIGHT_METEOR_PATHS.length];
       uniforms.meteorPath.value.set(startX, startY, endX, endY);

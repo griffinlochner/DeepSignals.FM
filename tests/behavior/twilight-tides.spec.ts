@@ -2,7 +2,7 @@ import type { Page } from "@playwright/test";
 import { Color, PerspectiveCamera, Vector3 } from "three";
 import { test, expect } from "../support/test";
 import { createTwilightState, twilightQuality, updateTwilightState, twilightMusicEnergy, TWILIGHT_METEOR_PATHS, TWILIGHT_PALETTE_SECONDS, TWILIGHT_FIRST_METEOR_SECONDS } from "../../src/themes/twilight-tides/twilightRuntime";
-import { TWILIGHT_SUN, TWILIGHT_ALIEN_SUN } from "../../src/themes/twilight-tides/twilightSky";
+import { createTwilightPalette, updateTwilightPalette, TWILIGHT_SUN, TWILIGHT_ALIEN_SUN } from "../../src/themes/twilight-tides/twilightSky";
 import type { RuntimeTestSnapshot } from "../../src/app/runtimeTestBridge";
 
 const playing = { isPlaying: true, motionEnabled: true, reducedMotion: false };
@@ -10,7 +10,7 @@ const loud = { isActive: true, smoothedEnergy: 1 };
 
 declare global {
   interface Window {
-    __TWILIGHT_RENDER_INPUTS__?: Record<string, number>;
+    __TWILIGHT_RENDER_INPUTS__?: Record<string, number | number[]>;
     __TWILIGHT_RESOURCES__: {
       frames: Set<number>;
       buffers: Map<WebGLBuffer, WebGL2RenderingContext>;
@@ -96,31 +96,36 @@ test("Twilight Tides maps ordinary music into a visible range without amplifying
   expect(noBands.glintEnergy).toBe(0);
 });
 
-test("Twilight Tides keeps meteors sparse, bounded, silent at mute, and CHROMA-off palette stable", () => {
+test("Twilight Tides schedules a light meteor shower with occasional pairs, quiet gaps and silence gates", () => {
   const state = createTwilightState();
   let previousCount = 0;
   let lastStarted = -Infinity;
   let progressInBounds = true;
   let activeFrames = 0;
+  let closePairs = 0;
   for (let frame = 0; frame < 60 * 240; frame++) {
     updateTwilightState(state, 1 / 60, playing, loud);
     progressInBounds &&= state.meteorProgress >= 0 && state.meteorProgress <= 1;
     if (state.meteorProgress < 1) activeFrames++;
     if (state.meteorCount !== previousCount) {
       if (previousCount === 0) {
-        expect(frame / 60).toBeCloseTo(14, 1);
+        expect(frame / 60).toBeCloseTo(8, 1);
       } else {
-        expect(frame / 60 - lastStarted).toBeGreaterThanOrEqual(23.8);
-        expect(frame / 60 - lastStarted).toBeLessThan(40);
+        const interval = frame / 60 - lastStarted;
+        expect(interval).toBeGreaterThanOrEqual(4.6);
+        expect(interval).toBeLessThan(18);
+        if (interval < 6) closePairs++;
+        else expect(interval).toBeGreaterThanOrEqual(9.8);
       }
       lastStarted = frame / 60;
       previousCount = state.meteorCount;
     }
     expect(progressInBounds).toBe(true);
   }
-  expect(state.meteorCount).toBeGreaterThanOrEqual(7);
-  expect(state.meteorCount).toBeLessThanOrEqual(9);
-  expect(activeFrames / (60 * 240)).toBeLessThan(0.075);
+  expect(state.meteorCount).toBeGreaterThanOrEqual(19);
+  expect(state.meteorCount).toBeLessThanOrEqual(23);
+  expect(closePairs).toBeGreaterThanOrEqual(4);
+  expect(activeFrames / (60 * 240)).toBeLessThan(0.18);
   for (const chromaEnabled of [true, false]) {
     const subdued = createTwilightState();
     for (let frame = 0; frame < 60 * 90; frame++) {
@@ -139,37 +144,38 @@ test("Twilight Tides keeps meteors sparse, bounded, silent at mute, and CHROMA-o
   }
 });
 
-test("Twilight Tides isolates smoothed Kick color from motion and rejects silent or invalid kicks", () => {
+test("Twilight Tides ignores Kick entirely while retaining smooth energy-driven motion", () => {
   const kick = createTwilightState();
   const steady = createTwilightState();
-  updateTwilightState(kick, 1 / 60, playing, { ...loud, kickPulse: 1 });
-  updateTwilightState(steady, 1 / 60, playing, loud);
-  expect(kick.kickEnergy).toBeGreaterThan(0.1);
-  expect(kick.kickEnergy).toBeLessThan(0.15);
-  for (let frame = 0; frame < 120; frame++) {
-    updateTwilightState(kick, 1 / 60, playing, { ...loud, kickPulse: frame % 30 < 8 ? 1 : 0 });
-    updateTwilightState(steady, 1 / 60, playing, loud);
-    expect(kick.time).toBe(steady.time);
-    expect(kick.waterEnergy).toBe(steady.waterEnergy);
-    expect(kick.skyTime).toBe(steady.skyTime);
+  for (const controls of [playing, { ...playing, motionEnabled: false }, { ...playing, reducedMotion: true }, { ...playing, isPlaying: false }]) {
+    for (let frame = 0; frame < 120; frame++) {
+      const snapshot = { ...loud, kickPulse: [0, 1, NaN, Infinity, -1][frame % 5] };
+      updateTwilightState(kick, 1 / 60, controls, snapshot);
+      updateTwilightState(steady, 1 / 60, controls, loud);
+      expect(kick).toEqual(steady);
+    }
   }
-  for (const controls of [{ ...playing, motionEnabled: false }, { ...playing, reducedMotion: true }]) {
-    const before = kick.time;
-    for (let frame = 0; frame < 30; frame++) updateTwilightState(kick, 1 / 60, controls, { ...loud, kickPulse: 1 });
-    expect(kick.kickEnergy).toBeGreaterThan(0.98);
-    expect(kick.time).toBe(before);
+});
+
+test("Twilight Tides reuses palette colors with slow continuous interpolation and a seamless loop", () => {
+  const palette = createTwilightPalette();
+  const initial = createTwilightPalette();
+  const references = { ...palette };
+  let previous = paletteInputs(0);
+  for (let second = 1; second <= 300; second++) {
+    updateTwilightPalette(palette, second / 300);
+    for (const [key, color] of Object.entries(palette)) {
+      expect(color).toBe(references[key as keyof typeof references]);
+      const channels = color.toArray();
+      expect(Math.max(...channels.map((channel, i) => Math.abs(channel - previous[key][i])))).toBeLessThan(0.024);
+    }
+    for (const sun of [palette.sunColor, palette.alienSunColor]) {
+      const channels = sun.toArray();
+      expect((Math.max(...channels) - Math.min(...channels)) / Math.max(...channels)).toBeGreaterThan(0.68);
+    }
+    previous = paletteInputs(second / 300);
   }
-  const paused = { ...kick };
-  updateTwilightState(kick, 0.05, { ...playing, isPlaying: false }, { ...loud, kickPulse: 0 });
-  expect(kick).toEqual(paused);
-  for (const snapshot of [undefined, { ...loud, isActive: false, kickPulse: 1 }, { ...loud, smoothedEnergy: 0, kickPulse: 1 },
-    { ...loud, kickPulse: NaN }, { ...loud, kickPulse: Infinity }, { ...loud, kickPulse: -1 }]) {
-    kick.kickEnergy = 1;
-    updateTwilightState(kick, 1 / 60, playing, snapshot);
-    expect(kick.kickEnergy).toBeGreaterThan(0.9);
-    for (let frame = 0; frame < 180; frame++) updateTwilightState(kick, 1 / 60, playing, snapshot);
-    expect(kick.kickEnergy).toBeLessThan(0.00001);
-  }
+  expect(palette).toEqual(initial);
 });
 
 test("Twilight Tides palette takes five eligible minutes at any energy and freezes with CHROMA off", () => {
@@ -274,7 +280,7 @@ async function sceneColors(page: Page) {
   };
   return page.getByLabel("Twilight Tides canvas").evaluate((element, points) => new Promise<{
     suns: number[][]; horizonContrast: number; seamContrast: number; whitePixels: number;
-    sky: number[]; water: number[]; upperSky: number[];
+    sky: number[]; water: number[]; upperSky: number[]; sunSurroundings: number[][]; sunProfiles: number[][][];
   }>((resolve) => requestAnimationFrame(() => {
     const canvas = element as HTMLCanvasElement;
     const sample = document.createElement("canvas");
@@ -317,12 +323,31 @@ async function sceneColors(page: Page) {
       return sums.map((value) => value / count);
     };
     resolve({ suns: points.suns.map((sun) => pixel(sun.x, sun.y)), horizonContrast, seamContrast, whitePixels,
+      sunSurroundings: points.surroundings.map((ring) => ring.reduce((sum, point) =>
+        pixel(point.x, point.y).map((v, i) => sum[i] + v / ring.length), [0, 0, 0])),
+      sunProfiles: points.profiles.map((profile) => profile.map((point) => pixel(point.x, point.y))),
       sky: region(0.25, 0.4), water: region(0.5, 0.75), upperSky: region(0, 0.1) });
-  })), { suns: [project(TWILIGHT_SUN), project(TWILIGHT_ALIEN_SUN)], horizon: project(new Vector3(0, 0, -1)) });
+  })), {
+    suns: [project(TWILIGHT_SUN), project(TWILIGHT_ALIEN_SUN)], horizon: project(new Vector3(0, 0, -1)),
+    surroundings: [TWILIGHT_SUN, TWILIGHT_ALIEN_SUN].map((sun, i) => [0, Math.PI / 2, Math.PI, Math.PI * 1.5].map((angle) =>
+      project(sun.clone().add(new Vector3(Math.cos(angle), Math.sin(angle), 0).multiplyScalar((i ? 0.032 : 0.017) * 2)).normalize()))),
+    profiles: [TWILIGHT_SUN, TWILIGHT_ALIEN_SUN].map((sun, i) => [0, 0.5, 0.85, 1, 1.15, 1.5].map((radius) =>
+      project(sun.clone().add(new Vector3((i ? 0.032 : 0.017) * radius, 0, 0)).normalize()))),
+  });
+}
+
+function paletteInputs(phase: number) {
+  const palette = createTwilightPalette();
+  updateTwilightPalette(palette, phase);
+  return Object.fromEntries(Object.entries(palette).map(([key, color]) => [key, color.toArray()]));
+}
+
+function colorDifference(a: number[], b: number[]) {
+  return a.reduce((sum, value, i) => sum + Math.abs(value - b[i]), 0) / 3;
 }
 
 // Exercise the real compiled shaders at deterministic extrema without a production debug API.
-async function setRenderedInputs(page: Page, inputs: Record<string, number>) {
+async function setRenderedInputs(page: Page, inputs: Record<string, number | number[]>) {
   await page.evaluate((values) => {
     if (!window.__TWILIGHT_RENDER_INPUTS__) {
       const draw = WebGL2RenderingContext.prototype.drawElements;
@@ -331,7 +356,10 @@ async function setRenderedInputs(page: Page, inputs: Record<string, number>) {
         if (program) {
           for (const [name, value] of Object.entries(window.__TWILIGHT_RENDER_INPUTS__!)) {
             const location = this.getUniformLocation(program, name);
-            if (location) this.uniform1f(location, value);
+            if (location) {
+              if (typeof value === "number") this.uniform1f(location, value);
+              else this.uniform3fv(location, value);
+            }
           }
         }
         draw.call(this, mode, count, type, offset);
@@ -348,12 +376,31 @@ async function renderedSkyClocks(page: Page) {
       const program: WebGLProgram | null = gl.getParameter(gl.CURRENT_PROGRAM);
       if (!program) throw new Error("Expected the rendered Twilight Tides water program");
       const values: Record<string, number> = {};
-      for (const name of ["time", "skyTime", "palettePhase", "waterEnergy", "meteorProgress"]) {
+      for (const name of ["time", "skyTime", "waterEnergy", "meteorProgress"]) {
         const location = gl.getUniformLocation(program, name);
         if (!location) throw new Error(`Missing rendered uniform: ${name}`);
         const value: unknown = gl.getUniform(program, location);
         if (typeof value !== "number") throw new Error(`Expected a numeric rendered uniform: ${name}`);
         values[name] = value;
+      }
+      resolve(values);
+    });
+  }));
+}
+
+async function renderedPalette(page: Page) {
+  return page.getByLabel("Twilight Tides canvas").evaluate((element) => new Promise<Record<string, number[]>>((resolve) => {
+    requestAnimationFrame(() => {
+      const gl = (element as HTMLCanvasElement).getContext("webgl2")!;
+      const program: WebGLProgram | null = gl.getParameter(gl.CURRENT_PROGRAM);
+      if (!program) throw new Error("Expected the rendered Twilight Tides water program");
+      const values: Record<string, number[]> = {};
+      for (const name of ["lowSkyColor", "sunColor", "alienSunColor"]) {
+        const location = gl.getUniformLocation(program, name);
+        if (!location) throw new Error(`Missing rendered color: ${name}`);
+        const value: unknown = gl.getUniform(program, location);
+        if (!(value instanceof Float32Array)) throw new Error(`Expected a rendered color vector: ${name}`);
+        values[name] = Array.from(value);
       }
       resolve(values);
     });
@@ -387,7 +434,9 @@ test.describe("Twilight Tides player", () => {
     expect(still.sky).toBeGreaterThan(500_000);
     expect(still.water).toBeGreaterThan(400_000);
     expect(still.colors).toBeGreaterThan(2000);
-    expect(still.greenSky).toBeGreaterThan(5);
+    const greenSun = (await sceneColors(page)).suns[1];
+    expect(greenSun[1]).toBeGreaterThan(greenSun[0] * 1.2);
+    expect(greenSun[1]).toBeGreaterThan(greenSun[2] * 1.5);
     expect(still.greenWater).toBeGreaterThan(2);
     await page.mouse.move(900, 450);
     await page.mouse.down();
@@ -474,9 +523,11 @@ test.describe("Twilight Tides player", () => {
     await testInfo.attach("horizon-measurements", { body: JSON.stringify(measurements), contentType: "application/json" });
   });
 
-  test("real Kick changes saturated sun hues without moving the frozen ocean", async ({ page }, testInfo) => {
+  test("real Kick leaves sun colors stable and readable with Motion off or reduced motion", async ({ page }, testInfo) => {
+    test.setTimeout(45_000);
     await toggle(page, "Motion");
     const clocks = await renderedSkyClocks(page);
+    const palette = await renderedPalette(page);
     await page.getByRole("button", { name: "Play", exact: true }).click();
     await expect.poll(async () => (await runtime(page)).audio.kickPulse, { timeout: 15_000 }).toBeGreaterThan(0.15);
     await expect(page.getByTestId("signal-meter-kick")).toBeVisible();
@@ -489,32 +540,81 @@ test.describe("Twilight Tides player", () => {
     }
     for (const sun of [0, 1]) {
       const hues = samples.map((sample) => sample.suns[sun].h > 0.8 ? sample.suns[sun].h - 1 : sample.suns[sun].h);
-      expect(Math.max(...hues) - Math.min(...hues)).toBeGreaterThan(sun === 0 ? 0.02 : 0.035);
-      expect(Math.min(...samples.map((sample) => sample.suns[sun].s))).toBeGreaterThan(0.5);
+      expect(Math.max(...hues) - Math.min(...hues)).toBeLessThan(0.015);
+      expect(Math.min(...samples.map((sample) => sample.suns[sun].s))).toBeGreaterThan(0.4);
       expect(Math.max(...samples.map((sample) => sample.suns[sun].l))).toBeLessThan(0.75);
     }
     expect(await renderedSkyClocks(page)).toEqual(clocks);
-    await testInfo.attach("kick-sun-hues", { body: JSON.stringify(samples), contentType: "application/json" });
+    expect(await renderedPalette(page)).toEqual(palette);
+    await testInfo.attach("stable-sun-hues", { body: JSON.stringify(samples), contentType: "application/json" });
+    await toggle(page, "Motion");
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.reload();
+    await page.getByRole("button", { name: "Play", exact: true }).click();
+    await expect.poll(async () => (await runtime(page)).audio.kickPulse, { timeout: 15_000 }).toBeGreaterThan(0.15);
+    expect(await renderedPalette(page)).toEqual(palette);
+    expect(await renderedSkyClocks(page)).toEqual(clocks);
+    await expect(page.getByLabel("Motion")).toBeChecked();
   });
 
-  test("slow palette shader evolves sky and reflected color together without lifting the dark upper sky", async ({ page }, testInfo) => {
+  test("four slow palette moods stay distinct in sky and water with visible suns and a dark upper sky", async ({ page }, testInfo) => {
+    test.setTimeout(60_000);
     const samples = [];
-    for (const phase of [0, 0.5, 1, 0.5, 0]) {
-      await setRenderedInputs(page, { palettePhase: phase });
+    await toggle(page, "Info");
+    await page.getByRole("button", { name: "Collapse player panel" }).click();
+    for (const phase of [0, 0.25, 0.5, 0.75, 1]) {
+      await setRenderedInputs(page, paletteInputs(phase));
       samples.push(await sceneColors(page));
+      if (phase < 1) await page.screenshot({ path: testInfo.outputPath(`twilight-palette-${phase}.png`) });
     }
     for (const sample of samples) expect(Math.max(...sample.upperSky)).toBeLessThan(70);
     for (const region of ["sky", "water"] as const) {
-      const warm = samples[0][region];
-      const cool = samples[2][region];
-      expect(warm[0] - cool[0]).toBeGreaterThan(8);
-      expect(cool[2] - warm[2]).toBeGreaterThan(8);
-      expect(samples[4][region]).toEqual(warm);
+      for (let a = 0; a < 4; a++) {
+        for (let b = a + 1; b < 4; b++) expect(colorDifference(samples[a][region], samples[b][region])).toBeGreaterThan(region === "sky" ? 12 : 6);
+      }
+      expect(samples[4][region]).toEqual(samples[0][region]);
     }
-    await setRenderedInputs(page, { palettePhase: 1 });
-    await page.getByRole("button", { name: "Collapse player panel" }).click();
-    await page.screenshot({ path: testInfo.outputPath("twilight-palette-midcycle.png") });
-    await testInfo.attach("palette-color-cycle", { body: JSON.stringify(samples), contentType: "application/json" });
+    let minimumContrast = Infinity;
+    let minimumSaturation = 1;
+    for (let step = 0; step < 16; step++) {
+      for (const skyTime of [0, 16, 40, 80, 120, 200]) {
+        await setRenderedInputs(page, { ...paletteInputs(step / 16), skyTime, colorEnergy: 1 });
+        const colors = await sceneColors(page);
+        for (let sun = 0; sun < 2; sun++) {
+          const contrast = colorDifference(colors.suns[sun], colors.sunSurroundings[sun]);
+          minimumContrast = Math.min(minimumContrast, contrast);
+          expect(contrast, `Sun ${sun}, palette ${step}/16, cloud time ${skyTime}`).toBeGreaterThan(18);
+          const rgb = colors.suns[sun];
+          const saturation = new Color(rgb[0] / 255, rgb[1] / 255, rgb[2] / 255).getHSL({ h: 0, s: 0, l: 0 }).s;
+          minimumSaturation = Math.min(minimumSaturation, saturation);
+          expect(saturation).toBeGreaterThan(0.3);
+        }
+        expect(colors.seamContrast).toBeLessThan(3);
+        expect(colors.whitePixels).toBe(0);
+      }
+    }
+    await testInfo.attach("palette-color-cycle", { body: JSON.stringify({ samples, minimumContrast, minimumSaturation }), contentType: "application/json" });
+  });
+
+  test("cloud veils cross softened sun discs while the emitted palette remains stable", async ({ page }, testInfo) => {
+    const emitted = await renderedPalette(page);
+    const samples = [];
+    for (const skyTime of [0, 10, 20, 30, 40, 50, 60]) {
+      await setRenderedInputs(page, { skyTime });
+      samples.push(await sceneColors(page));
+      expect(await renderedPalette(page)).toEqual(emitted);
+    }
+    const alienColors = samples.map((sample) => sample.suns[1]);
+    expect(Math.max(...alienColors.map((color) => colorDifference(color, alienColors[0])))).toBeGreaterThan(5);
+    for (const sun of [0, 1]) {
+      const profile = samples[0].sunProfiles[sun];
+      expect(colorDifference(profile[0], profile[2])).toBeGreaterThan(3);
+      const coreToSky = colorDifference(profile[0], profile[5]);
+      const edgeToSky = colorDifference(profile[3], profile[5]);
+      expect(edgeToSky).toBeGreaterThan(coreToSky * 0.1);
+      expect(edgeToSky).toBeLessThan(coreToSky * 0.9);
+    }
+    await testInfo.attach("cloud-sun-compositing", { body: JSON.stringify(samples), contentType: "application/json" });
   });
 
   test("reduced motion freezes the water without changing user controls", async ({ page, pageErrors }) => {
@@ -534,6 +634,7 @@ test.describe("Twilight Tides player", () => {
     test.setTimeout(55_000);
     await toggle(page, "Info");
     const initial = await renderedSkyClocks(page);
+    const initialPalette = await renderedPalette(page);
     await page.getByRole("button", { name: "Play", exact: true }).click();
     await expect.poll(async () => {
       const progress = (await renderedSkyClocks(page)).meteorProgress;
@@ -542,10 +643,12 @@ test.describe("Twilight Tides player", () => {
     await toggle(page, "Motion");
     const frozen = await renderedSkyClocks(page);
     expect(frozen.skyTime).toBeGreaterThan(initial.skyTime + 1);
-    expect(frozen.palettePhase).toBeGreaterThan(initial.palettePhase + 0.01);
+    const frozenPalette = await renderedPalette(page);
+    expect(frozenPalette).not.toEqual(initialPalette);
     expect(frozen.meteorProgress).toBeLessThan(1);
     await page.waitForTimeout(450);
     expect(await renderedSkyClocks(page)).toEqual(frozen);
+    expect(await renderedPalette(page)).toEqual(frozenPalette);
     await page.getByRole("button", { name: "Collapse player panel" }).click();
     await page.screenshot({ path: testInfo.outputPath("twilight-meteor-motion-off.png") });
     await page.getByRole("button", { name: "Expand player panel" }).click();

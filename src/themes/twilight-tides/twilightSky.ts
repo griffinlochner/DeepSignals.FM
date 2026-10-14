@@ -3,6 +3,66 @@ import * as THREE from "three";
 export const TWILIGHT_SUN = new THREE.Vector3(-0.12, 0.045, -1).normalize();
 export const TWILIGHT_ALIEN_SUN = new THREE.Vector3(0.13, 0.15, -1).normalize();
 
+const paletteStops = [
+  {
+    horizonAwayColor: new THREE.Color(0.55, 0.105, 0.17), horizonColor: new THREE.Color(1.0, 0.32, 0.075),
+    lowSkyColor: new THREE.Color(0.63, 0.07, 0.23), midSkyColor: new THREE.Color(0.22, 0.025, 0.22),
+    highSkyColor: new THREE.Color(0.017, 0.009, 0.06),
+    cloudShadowColor: new THREE.Color(0.22, 0.035, 0.18), cloudLightColor: new THREE.Color(1.0, 0.30, 0.21),
+    cloudVeilColor: new THREE.Color(0.09, 0.012, 0.065),
+    sunColor: new THREE.Color(1.10, 0.46, 0.055), alienSunColor: new THREE.Color(0.12, 0.90, 0.025),
+  },
+  {
+    horizonAwayColor: new THREE.Color(0.24, 0.04, 0.23), horizonColor: new THREE.Color(0.70, 0.12, 0.25),
+    lowSkyColor: new THREE.Color(0.16, 0.07, 0.42), midSkyColor: new THREE.Color(0.025, 0.025, 0.19),
+    highSkyColor: new THREE.Color(0.006, 0.012, 0.045),
+    cloudShadowColor: new THREE.Color(0.10, 0.025, 0.17), cloudLightColor: new THREE.Color(0.44, 0.18, 0.52),
+    cloudVeilColor: new THREE.Color(0.05, 0.018, 0.07),
+    sunColor: new THREE.Color(1.05, 0.38, 0.055), alienSunColor: new THREE.Color(0.03, 0.90, 0.24),
+  },
+  {
+    horizonAwayColor: new THREE.Color(0.12, 0.035, 0.27), horizonColor: new THREE.Color(0.30, 0.09, 0.48),
+    lowSkyColor: new THREE.Color(0.07, 0.30, 0.12), midSkyColor: new THREE.Color(0.015, 0.14, 0.065),
+    highSkyColor: new THREE.Color(0.004, 0.020, 0.026),
+    cloudShadowColor: new THREE.Color(0.018, 0.095, 0.08), cloudLightColor: new THREE.Color(0.35, 0.52, 0.10),
+    cloudVeilColor: new THREE.Color(0.015, 0.07, 0.035),
+    sunColor: new THREE.Color(1.08, 0.50, 0.075), alienSunColor: new THREE.Color(0.075, 0.30, 1.10),
+  },
+  {
+    horizonAwayColor: new THREE.Color(0.35, 0.045, 0.17), horizonColor: new THREE.Color(1.0, 0.20, 0.105),
+    lowSkyColor: new THREE.Color(0.035, 0.28, 0.34), midSkyColor: new THREE.Color(0.014, 0.095, 0.17),
+    highSkyColor: new THREE.Color(0.006, 0.012, 0.04),
+    cloudShadowColor: new THREE.Color(0.035, 0.07, 0.14), cloudLightColor: new THREE.Color(0.60, 0.18, 0.26),
+    cloudVeilColor: new THREE.Color(0.035, 0.05, 0.09),
+    sunColor: new THREE.Color(1.10, 0.40, 0.05), alienSunColor: new THREE.Color(0.20, 1.0, 0.04),
+  },
+];
+
+export function createTwilightPalette() {
+  return {
+    horizonAwayColor: paletteStops[0].horizonAwayColor.clone(), horizonColor: paletteStops[0].horizonColor.clone(),
+    lowSkyColor: paletteStops[0].lowSkyColor.clone(), midSkyColor: paletteStops[0].midSkyColor.clone(),
+    highSkyColor: paletteStops[0].highSkyColor.clone(),
+    cloudShadowColor: paletteStops[0].cloudShadowColor.clone(), cloudLightColor: paletteStops[0].cloudLightColor.clone(),
+    cloudVeilColor: paletteStops[0].cloudVeilColor.clone(),
+    sunColor: paletteStops[0].sunColor.clone(), alienSunColor: paletteStops[0].alienSunColor.clone(),
+  };
+}
+
+const paletteKeys = [
+  "horizonAwayColor", "horizonColor", "lowSkyColor", "midSkyColor", "highSkyColor",
+  "cloudShadowColor", "cloudLightColor", "cloudVeilColor", "sunColor", "alienSunColor",
+] as const;
+
+export function updateTwilightPalette(palette: ReturnType<typeof createTwilightPalette>, phase: number) {
+  const position = THREE.MathUtils.euclideanModulo(phase, 1) * paletteStops.length;
+  const index = Math.floor(position);
+  const blend = THREE.MathUtils.smoothstep(position - index, 0, 1);
+  for (const key of paletteKeys) {
+    palette[key].lerpColors(paletteStops[index][key], paletteStops[(index + 1) % paletteStops.length][key], blend);
+  }
+}
+
 // The visible sky and reflected sky use exactly the same linear-light treatment.
 export const twilightColorShader = /* glsl */`
   uniform samplerCube skyMap;
@@ -10,7 +70,6 @@ export const twilightColorShader = /* glsl */`
   uniform float colorEnergy;
   uniform float glintEnergy;
   uniform float skyTime;
-  uniform float palettePhase;
   uniform float waterEnergy;
   uniform float meteorProgress;
   uniform vec4 meteorPath;
@@ -18,6 +77,14 @@ export const twilightColorShader = /* glsl */`
   uniform vec3 alienSunDirection;
   uniform vec3 sunColor;
   uniform vec3 alienSunColor;
+  uniform vec3 horizonAwayColor;
+  uniform vec3 horizonColor;
+  uniform vec3 lowSkyColor;
+  uniform vec3 midSkyColor;
+  uniform vec3 highSkyColor;
+  uniform vec3 cloudShadowColor;
+  uniform vec3 cloudLightColor;
+  uniform vec3 cloudVeilColor;
 
   vec3 orangeRadiance() {
     return sunColor;
@@ -39,30 +106,39 @@ export const twilightColorShader = /* glsl */`
     drift.y += sin(d.x * 5.0 + skyTime * 0.12) * 0.008 * mask;
     return textureCube(skyMap, normalize(drift)).rg * mask;
   }
-  vec3 atmosphereLight(vec3 d, vec2 clouds) {
-    float height = max(d.y, 0.0);
-    float sunFacing = pow(max(dot(normalize(vec3(d.x, 0.0, d.z)),
+  float twilightSunFacing(vec3 d) {
+    return pow(max(dot(normalize(vec3(d.x, 0.0, d.z)),
       normalize(vec3(sunDirection.x, 0.0, sunDirection.z))), 0.0), 6.0);
-    float cycle = chroma * palettePhase;
-    vec3 horizon = mix(vec3(0.55, 0.105, 0.17), vec3(1.0, 0.32, 0.075), sunFacing);
-    horizon = mix(horizon, vec3(0.85, 0.12, 0.24), chroma * (0.12 + colorEnergy * 0.12));
-    horizon = mix(horizon, mix(vec3(0.25, 0.055, 0.23), vec3(0.8, 0.16, 0.33), sunFacing), cycle);
-    vec3 color = mix(horizon, mix(vec3(0.63, 0.07, 0.23), vec3(0.25, 0.11, 0.43), cycle), smoothstep(0.0, 0.12, height));
-    color = mix(color, mix(vec3(0.22, 0.025, 0.22), vec3(0.055, 0.06, 0.24), cycle), smoothstep(0.08, 0.23, height));
-    color = mix(color, mix(vec3(0.017, 0.009, 0.06), vec3(0.012, 0.017, 0.06), cycle), smoothstep(0.18, 0.32, height));
+  }
+  vec3 atmosphereLight(vec3 d) {
+    float height = max(d.y, 0.0);
+    vec3 horizon = mix(horizonAwayColor, horizonColor, twilightSunFacing(d));
+    horizon = mix(horizon, lowSkyColor, chroma * (0.12 + colorEnergy * 0.12));
+    vec3 color = mix(horizon, lowSkyColor, smoothstep(0.0, 0.12, height));
+    color = mix(color, midSkyColor, smoothstep(0.08, 0.23, height));
+    color = mix(color, highSkyColor, smoothstep(0.18, 0.32, height));
     color = mix(color, vec3(0.0015, 0.003, 0.014), smoothstep(0.28, 0.46, height));
-    vec3 cloudColor = mix(vec3(0.22, 0.035, 0.18), vec3(1.0, 0.30, 0.21),
-      exp(-height * 4.0) * (0.4 + 0.6 * sunFacing));
-    cloudColor = mix(cloudColor, cloudColor * vec3(0.8, 0.65, 1.45), chroma * 0.2);
-    cloudColor = mix(cloudColor, mix(vec3(0.055, 0.045, 0.22), vec3(0.38, 0.30, 0.6),
-      exp(-height * 4.0) * (0.4 + 0.6 * sunFacing)), cycle);
-    color = mix(color, cloudColor, clouds.x * 0.55);
-    color += vec3(0.09, 0.012, 0.065) * clouds.y * (1.0 + chroma * colorEnergy * 0.65);
     float sunAngle = acos(clamp(dot(d, sunDirection), -1.0, 1.0));
     float alienAngle = acos(clamp(dot(d, alienSunDirection), -1.0, 1.0));
     color += orangeRadiance() * 0.27 * exp(-sunAngle * 12.0);
-    color += alienRadiance() * 0.065 * exp(-alienAngle * 22.0) * (1.0 + chroma * colorEnergy);
+    color += alienRadiance() * 0.065 * exp(-alienAngle * 22.0);
     return color;
+  }
+  float twilightCloudOpacity(vec2 clouds) {
+    return min(0.58, clouds.x * 0.55 + clouds.y * 0.12);
+  }
+  vec3 cloudLight(vec3 d) {
+    vec3 color = mix(cloudShadowColor, cloudLightColor,
+      exp(-max(d.y, 0.0) * 4.0) * (0.4 + 0.6 * twilightSunFacing(d)));
+    return mix(color, color * vec3(0.8, 0.65, 1.45), chroma * 0.2);
+  }
+  vec3 celestialBody(vec3 background, vec3 radiance, float angle, float radius, float visibility) {
+    float edge = max(fwidth(angle), radius * 0.12);
+    float disc = 1.0 - smoothstep(radius - edge, radius + edge, angle);
+    float limb = 0.64 + 0.36 * sqrt(max(0.0, 1.0 - pow(angle / radius, 2.0)));
+    float halo = exp(-pow(angle / (radius * 1.8), 2.0)) * 0.09;
+    background += radiance * halo * visibility;
+    return mix(background, radiance * limb * (0.82 + chroma * 0.18), disc * visibility);
   }
   float starHash(vec2 cell) {
     return fract(sin(dot(cell, vec2(127.1, 311.7))) * 43758.5453);
@@ -94,19 +170,15 @@ export const twilightColorShader = /* glsl */`
     float fade = smoothstep(0.0, 0.16, meteorProgress) * (1.0 - smoothstep(0.55, 1.0, meteorProgress));
     return vec3(0.45, 0.65, 0.57) * trail * along * fade * chroma * waterEnergy * 0.55;
   }
-  vec3 skyLight(vec3 direction, float solarVisibility) {
-    vec3 d = normalize(direction);
-    vec2 clouds = twilightClouds(d);
-    vec3 color = twilightTreatment(atmosphereLight(d, clouds));
+  vec3 skyLight(vec3 d, float solarVisibility, vec2 clouds) {
+    vec3 color = twilightTreatment(atmosphereLight(d));
     float sunAngle = acos(clamp(dot(d, sunDirection), -1.0, 1.0));
     float alienAngle = acos(clamp(dot(d, alienSunDirection), -1.0, 1.0));
-    float sunEdge = max(fwidth(sunAngle), 0.0006);
-    float alienEdge = max(fwidth(alienAngle), 0.0006);
-    float sunDisc = 1.0 - smoothstep(0.017 - sunEdge, 0.017 + sunEdge, sunAngle);
-    float alienDisc = 1.0 - smoothstep(0.032 - alienEdge, 0.032 + alienEdge, alienAngle);
-    color = mix(color, orangeRadiance() * (0.82 + chroma * 0.18), sunDisc * solarVisibility);
-    float limb = 0.7 + 0.3 * sqrt(max(0.0, 1.0 - pow(alienAngle / 0.032, 2.0)));
-    color = mix(color, alienRadiance() * limb * (0.82 + chroma * 0.18), alienDisc * solarVisibility);
+    color = celestialBody(color, orangeRadiance(), sunAngle, 0.017, solarVisibility);
+    color = celestialBody(color, alienRadiance(), alienAngle, 0.032, solarVisibility);
+    // Thin cloud veils pass in front of both bodies without fully extinguishing them.
+    color = mix(color, twilightTreatment(cloudLight(d)), twilightCloudOpacity(clouds));
+    color += twilightTreatment(cloudVeilColor) * clouds.y * (1.0 + chroma * colorEnergy * 0.65);
     color += twilightTreatment(starlight(d, clouds.x) + shootingStar(d) * (1.0 - clouds.x * 0.75));
     return color;
   }
