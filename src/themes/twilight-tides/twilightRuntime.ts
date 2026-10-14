@@ -1,7 +1,10 @@
 import type { AudioReactiveSnapshot } from "../../app/playerTypes";
 
 type TwilightAudio = Pick<AudioReactiveSnapshot, "isActive" | "smoothedEnergy"> &
-  Partial<Pick<AudioReactiveSnapshot, "bass" | "highs">>;
+  Partial<Pick<AudioReactiveSnapshot, "bass" | "highs" | "kickPulse">>;
+
+export const TWILIGHT_PALETTE_SECONDS = 300;
+export const TWILIGHT_FIRST_METEOR_SECONDS = 14;
 
 export const TWILIGHT_METEOR_PATHS = [
   [0.15, 0.38, -0.03, 0.29],
@@ -36,8 +39,8 @@ export function twilightQuality(width: number, height: number, devicePixelRatio:
 export function createTwilightState() {
   return {
     time: 0, skyTime: 0, paletteTime: 0,
-    waterEnergy: 0, colorEnergy: 0, glintEnergy: 0,
-    meteorWait: 24, meteorProgress: 1, meteorCount: 0,
+    waterEnergy: 0, colorEnergy: 0, glintEnergy: 0, kickEnergy: 0,
+    meteorWait: TWILIGHT_FIRST_METEOR_SECONDS, meteorProgress: 1, meteorCount: 0,
   };
 }
 
@@ -53,6 +56,8 @@ export function updateTwilightState(
     state.colorEnergy = damp(state.colorEnergy, energy, dt, 2.5, 1.5);
     const glint = energy * unit(unit(snapshot?.bass) * 0.65 + unit(snapshot?.highs) * 0.7);
     state.glintEnergy = damp(state.glintEnergy, glint, dt, 4, 2);
+    const kick = unit(snapshot?.kickPulse) * Math.min(1, energy * 4);
+    state.kickEnergy = damp(state.kickEnergy, kick, dt, 9, 4.5);
   }
   if (controls.isPlaying && controls.motionEnabled && !controls.reducedMotion) {
     const previousEnergy = state.waterEnergy;
@@ -60,7 +65,7 @@ export function updateTwilightState(
     const averageEnergy = (previousEnergy + state.waterEnergy) * 0.5;
     state.time += dt * (0.045 + averageEnergy * 1.10);
     state.skyTime += dt * (0.025 + averageEnergy * 0.40);
-    if (controls.chromaEnabled !== false) state.paletteTime += dt * (0.025 + averageEnergy * 0.16);
+    if (controls.chromaEnabled !== false) state.paletteTime = (state.paletteTime + dt) % TWILIGHT_PALETTE_SECONDS;
     if (state.meteorProgress < 1) {
       state.meteorProgress = Math.min(1, state.meteorProgress + dt / 1.8);
     } else if (controls.chromaEnabled !== false && energy > 0.15) {
@@ -68,7 +73,7 @@ export function updateTwilightState(
       if (state.meteorWait <= 0) {
         state.meteorCount += 1;
         state.meteorProgress = 0;
-        state.meteorWait = 48 + state.meteorCount * 17 % 29;
+        state.meteorWait = 22 + state.meteorCount * 11 % 17;
       }
     }
   }

@@ -16,14 +16,14 @@ export const twilightColorShader = /* glsl */`
   uniform vec4 meteorPath;
   uniform vec3 sunDirection;
   uniform vec3 alienSunDirection;
+  uniform vec3 sunColor;
+  uniform vec3 alienSunColor;
 
   vec3 orangeRadiance() {
-    return mix(vec3(1.0, 0.63, 0.27), vec3(1.0, 0.38, 0.32),
-      chroma * (colorEnergy * 0.35 + palettePhase * 0.16));
+    return sunColor;
   }
   vec3 alienRadiance() {
-    return mix(vec3(0.12, 0.85, 0.035), vec3(0.065, 1.0, 0.18),
-      chroma * (colorEnergy * 0.5 + palettePhase * 0.18));
+    return alienSunColor;
   }
   vec3 twilightTreatment(vec3 color) {
     float luminance = dot(color, vec3(0.2126, 0.7152, 0.0722));
@@ -43,15 +43,19 @@ export const twilightColorShader = /* glsl */`
     float height = max(d.y, 0.0);
     float sunFacing = pow(max(dot(normalize(vec3(d.x, 0.0, d.z)),
       normalize(vec3(sunDirection.x, 0.0, sunDirection.z))), 0.0), 6.0);
+    float cycle = chroma * palettePhase;
     vec3 horizon = mix(vec3(0.55, 0.105, 0.17), vec3(1.0, 0.32, 0.075), sunFacing);
-    horizon = mix(horizon, vec3(0.85, 0.12, 0.24), chroma * (palettePhase * 0.24 + colorEnergy * 0.12));
-    vec3 color = mix(horizon, vec3(0.63, 0.07, 0.23), smoothstep(0.0, 0.12, height));
-    color = mix(color, vec3(0.22, 0.025, 0.22), smoothstep(0.08, 0.23, height));
-    color = mix(color, vec3(0.017, 0.009, 0.06), smoothstep(0.18, 0.32, height));
+    horizon = mix(horizon, vec3(0.85, 0.12, 0.24), chroma * (0.12 + colorEnergy * 0.12));
+    horizon = mix(horizon, mix(vec3(0.25, 0.055, 0.23), vec3(0.8, 0.16, 0.33), sunFacing), cycle);
+    vec3 color = mix(horizon, mix(vec3(0.63, 0.07, 0.23), vec3(0.25, 0.11, 0.43), cycle), smoothstep(0.0, 0.12, height));
+    color = mix(color, mix(vec3(0.22, 0.025, 0.22), vec3(0.055, 0.06, 0.24), cycle), smoothstep(0.08, 0.23, height));
+    color = mix(color, mix(vec3(0.017, 0.009, 0.06), vec3(0.012, 0.017, 0.06), cycle), smoothstep(0.18, 0.32, height));
     color = mix(color, vec3(0.0015, 0.003, 0.014), smoothstep(0.28, 0.46, height));
     vec3 cloudColor = mix(vec3(0.22, 0.035, 0.18), vec3(1.0, 0.30, 0.21),
       exp(-height * 4.0) * (0.4 + 0.6 * sunFacing));
-    cloudColor = mix(cloudColor, cloudColor * vec3(0.8, 0.65, 1.45), palettePhase * chroma * 0.4);
+    cloudColor = mix(cloudColor, cloudColor * vec3(0.8, 0.65, 1.45), chroma * 0.2);
+    cloudColor = mix(cloudColor, mix(vec3(0.055, 0.045, 0.22), vec3(0.38, 0.30, 0.6),
+      exp(-height * 4.0) * (0.4 + 0.6 * sunFacing)), cycle);
     color = mix(color, cloudColor, clouds.x * 0.55);
     color += vec3(0.09, 0.012, 0.065) * clouds.y * (1.0 + chroma * colorEnergy * 0.65);
     float sunAngle = acos(clamp(dot(d, sunDirection), -1.0, 1.0));
@@ -90,21 +94,21 @@ export const twilightColorShader = /* glsl */`
     float fade = smoothstep(0.0, 0.16, meteorProgress) * (1.0 - smoothstep(0.55, 1.0, meteorProgress));
     return vec3(0.45, 0.65, 0.57) * trail * along * fade * chroma * waterEnergy * 0.55;
   }
-  vec3 skyLight(vec3 direction) {
+  vec3 skyLight(vec3 direction, float solarVisibility) {
     vec3 d = normalize(direction);
     vec2 clouds = twilightClouds(d);
-    vec3 color = atmosphereLight(d, clouds);
+    vec3 color = twilightTreatment(atmosphereLight(d, clouds));
     float sunAngle = acos(clamp(dot(d, sunDirection), -1.0, 1.0));
     float alienAngle = acos(clamp(dot(d, alienSunDirection), -1.0, 1.0));
     float sunEdge = max(fwidth(sunAngle), 0.0006);
     float alienEdge = max(fwidth(alienAngle), 0.0006);
     float sunDisc = 1.0 - smoothstep(0.017 - sunEdge, 0.017 + sunEdge, sunAngle);
     float alienDisc = 1.0 - smoothstep(0.032 - alienEdge, 0.032 + alienEdge, alienAngle);
-    color = mix(color, orangeRadiance() * (1.0 + chroma * glintEnergy * 0.5), sunDisc);
+    color = mix(color, orangeRadiance() * (0.82 + chroma * 0.18), sunDisc * solarVisibility);
     float limb = 0.7 + 0.3 * sqrt(max(0.0, 1.0 - pow(alienAngle / 0.032, 2.0)));
-    color = mix(color, alienRadiance() * limb * (1.0 + chroma * glintEnergy * 0.7), alienDisc);
-    color += starlight(d, clouds.x) + shootingStar(d) * (1.0 - clouds.x * 0.75);
-    return twilightTreatment(color);
+    color = mix(color, alienRadiance() * limb * (0.82 + chroma * 0.18), alienDisc * solarVisibility);
+    color += twilightTreatment(starlight(d, clouds.x) + shootingStar(d) * (1.0 - clouds.x * 0.75));
+    return color;
   }
 `;
 
