@@ -4,9 +4,108 @@ import { test, expect } from "../support/test";
 import { createTwilightState, twilightQuality, updateTwilightState, twilightMusicEnergy, TWILIGHT_METEOR_PATHS, TWILIGHT_PALETTE_SECONDS, TWILIGHT_FIRST_METEOR_SECONDS } from "../../src/themes/twilight-tides/twilightRuntime";
 import { createTwilightPalette, updateTwilightPalette, TWILIGHT_SUN, TWILIGHT_ALIEN_SUN } from "../../src/themes/twilight-tides/twilightSky";
 import type { RuntimeTestSnapshot } from "../../src/app/runtimeTestBridge";
+import { TWILIGHT_SURGE, twilightSurgeEnvelope } from "../../src/themes/twilight-tides/twilightSurge";
 
 const playing = { isPlaying: true, motionEnabled: true, reducedMotion: false };
 const loud = { isActive: true, smoothedEnergy: 1 };
+
+function advanceTwilight(state: ReturnType<typeof createTwilightState>, seconds: number,
+  snapshot = { ...loud, kickPulseAcceptedEventSequence: 0 }, controls = playing) {
+  for (let frame = 0; frame < Math.round(seconds * 60); frame++) updateTwilightState(state, 1 / 60, controls, snapshot);
+}
+
+function startSolarSurge() {
+  const state = createTwilightState();
+  advanceTwilight(state, 0.6, { ...loud, smoothedEnergy: 0.2, kickPulseAcceptedEventSequence: 7 });
+  expect(state.surge.qualification.armed).toBe(true);
+  advanceTwilight(state, 0.1, { ...loud, kickPulseAcceptedEventSequence: 8 });
+  expect(state.surge.count).toBe(1);
+  return state;
+}
+
+test("Twilight Tides SURGE uses shared qualification, lasts 3.2 seconds and blooms both suns to 1.5x", () => {
+  const unarmed = createTwilightState();
+  advanceTwilight(unarmed, 5);
+  expect(unarmed.surge.count).toBe(0);
+  const state = startSolarSurge();
+  expect(state.surge.qualification.lastTriggeredSequence).toBe(8);
+  advanceTwilight(state, 0.6);
+  expect(state.surge.envelope).toBe(1);
+  expect(state.surge.scale).toBe(1.5);
+  // A fresh shared trigger inside the local envelope cannot restart or stack the effect.
+  advanceTwilight(state, 1.1, { ...loud, smoothedEnergy: 0.2, kickPulseAcceptedEventSequence: 9 });
+  advanceTwilight(state, 0.1, { ...loud, kickPulseAcceptedEventSequence: 10 });
+  expect(state.surge.count).toBe(1);
+  advanceTwilight(state, 1.6);
+  expect(state.surge.ageSeconds).toBe(TWILIGHT_SURGE.durationSeconds);
+  expect(state.surge.envelope).toBe(0);
+  expect(state.surge.scale).toBe(1);
+  advanceTwilight(state, 4);
+  expect(state.surge.count).toBe(1);
+  advanceTwilight(state, 0.6, { ...loud, smoothedEnergy: 0.2, kickPulseAcceptedEventSequence: 11 });
+  advanceTwilight(state, 0.1, { ...loud, kickPulseAcceptedEventSequence: 12 });
+  expect(state.surge.count).toBe(2);
+  for (const age of [-1, 0, 3.2, Infinity]) expect(twilightSurgeEnvelope(age)).toBe(0);
+  expect(twilightSurgeEnvelope(0.55)).toBe(1);
+  expect(twilightSurgeEnvelope(1.45)).toBe(1);
+  for (let frame = 1; frame <= 192; frame++) {
+    expect(Math.abs(twilightSurgeEnvelope(frame / 60) - twilightSurgeEnvelope((frame - 1) / 60))).toBeLessThan(0.046);
+  }
+});
+
+test("Twilight Tides SURGE freezes every kinetic gate, resets arming and ignores invalid analysis", () => {
+  for (const controls of [{ ...playing, isPlaying: false }, { ...playing, motionEnabled: false }, { ...playing, reducedMotion: true }]) {
+    const state = startSolarSurge();
+    advanceTwilight(state, 0.7);
+    const before = structuredClone(state.surge);
+    advanceTwilight(state, 4, { ...loud, kickPulseAcceptedEventSequence: 8 }, controls);
+    expect(state.surge).toEqual(before);
+    advanceTwilight(state, 0.5);
+    expect(state.surge.ageSeconds).toBeCloseTo(before.ageSeconds + 0.5, 8);
+    const armed = createTwilightState();
+    advanceTwilight(armed, 0.6, { ...loud, smoothedEnergy: 0.2, kickPulseAcceptedEventSequence: 1 });
+    expect(armed.surge.qualification.armed).toBe(true);
+    advanceTwilight(armed, 0.1, { ...loud, kickPulseAcceptedEventSequence: 2 }, controls);
+    expect(armed.surge.qualification.armed).toBe(false);
+    advanceTwilight(armed, 0.2);
+    expect(armed.surge.count).toBe(0);
+  }
+  for (const snapshot of [null, undefined, { ...loud, isActive: false }, { ...loud, smoothedEnergy: NaN }, { ...loud, smoothedEnergy: Infinity }]) {
+    const state = createTwilightState();
+    advanceTwilight(state, 0.6, { ...loud, smoothedEnergy: 0.2, kickPulseAcceptedEventSequence: 0 });
+    updateTwilightState(state, 1 / 60, playing, snapshot);
+    advanceTwilight(state, 0.2);
+    expect(state.surge.count).toBe(0);
+  }
+  for (const chromaEnabled of [false, true]) {
+    const state = createTwilightState();
+    for (let frame = 0; frame < 80; frame++) {
+      updateTwilightState(state, 1 / 60, { ...playing, chromaEnabled },
+        { ...loud, smoothedEnergy: frame < 36 ? 0.2 : 1 });
+    }
+    expect(state.surge.scale).toBe(1.5);
+  }
+});
+
+test("Twilight Tides SURGE timing is energy-independent and does not drive baseline systems", () => {
+  const states = [30, 60, 120].map((fps) => {
+    const state = createTwilightState();
+    for (let frame = 0; frame < fps * 4; frame++) {
+      updateTwilightState(state, 1 / fps, playing, { ...loud, smoothedEnergy: frame < fps * 0.6 ? 0.2 : 1 });
+    }
+    expect(state.surge.count).toBe(1);
+    expect(state.surge.envelope).toBe(0);
+    return state;
+  });
+  expect(Math.max(...states.map((state) => state.surge.startedAt)) - Math.min(...states.map((state) => state.surge.startedAt))).toBeLessThan(70);
+  const surge = startSolarSurge();
+  const baseline = { ...structuredClone(surge), surge: createTwilightState().surge };
+  for (let frame = 0; frame < 240; frame++) {
+    updateTwilightState(surge, 1 / 60, playing, loud);
+    updateTwilightState(baseline, 1 / 60, playing, loud);
+    expect({ ...surge, surge: null }).toEqual({ ...baseline, surge: null });
+  }
+});
 
 declare global {
   interface Window {
@@ -404,6 +503,38 @@ async function renderedImage(page: Page) {
   }));
 }
 
+async function solarRadialProfiles(page: Page) {
+  const viewport = page.viewportSize()!;
+  const camera = new PerspectiveCamera(55, viewport.width / viewport.height, 0.5, 16000);
+  camera.position.set(0, 6, 0);
+  camera.lookAt(0, -3, -140);
+  camera.updateMatrixWorld();
+  const points = [TWILIGHT_SUN, TWILIGHT_ALIEN_SUN].map((sun, index) => {
+    const right = new Vector3().crossVectors(sun, new Vector3(0, 1, 0)).normalize();
+    return Array.from({ length: 81 }, (_, step) => {
+      const angle = step / 40 * (index ? 0.032 : 0.017);
+      const point = sun.clone().multiplyScalar(Math.cos(angle)).addScaledVector(right, Math.sin(angle))
+        .multiplyScalar(10000).add(camera.position).project(camera);
+      return { x: (point.x + 1) / 2, y: (1 - point.y) / 2 };
+    });
+  });
+  return page.getByLabel("Twilight Tides canvas").evaluate((element, suns) => new Promise<number[][][]>((resolve) => {
+    requestAnimationFrame(() => {
+      const canvas = element as HTMLCanvasElement;
+      const sample = document.createElement("canvas");
+      sample.width = canvas.width;
+      sample.height = canvas.height;
+      const context = sample.getContext("2d")!;
+      context.drawImage(canvas, 0, 0);
+      const { data } = context.getImageData(0, 0, sample.width, sample.height);
+      resolve(suns.map((points) => points.map(({ x, y }) => {
+        const offset = (Math.floor(y * sample.height) * sample.width + Math.floor(x * sample.width)) * 4;
+        return [data[offset], data[offset + 1], data[offset + 2]];
+      })));
+    });
+  }), points);
+}
+
 function imageDifference(a: number[], b: number[], startRow: number, endRow: number) {
   let total = 0;
   let changed = 0;
@@ -447,7 +578,7 @@ async function renderedSkyClocks(page: Page) {
       const program: WebGLProgram | null = gl.getParameter(gl.CURRENT_PROGRAM);
       if (!program) throw new Error("Expected the rendered Twilight Tides water program");
       const values: Record<string, number> = {};
-      for (const name of ["time", "skyTime", "waterEnergy", "meteorProgress", "auroraBass", "auroraMids", "auroraHighs"]) {
+      for (const name of ["time", "skyTime", "waterEnergy", "meteorProgress", "auroraBass", "auroraMids", "auroraHighs", "solarSurge", "solarSurgeTime", "solarScale"]) {
         const location = gl.getUniformLocation(program, name);
         if (!location) throw new Error(`Missing rendered uniform: ${name}`);
         const value: unknown = gl.getUniform(program, location);
@@ -489,6 +620,161 @@ test.describe("Twilight Tides player", () => {
     await page.evaluate(() => window.localStorage.clear());
     await page.reload();
     await page.getByLabel("Visual environment").selectOption("twilight-tides");
+  });
+
+  test("solar SURGE renders measured 1.5x discs, colorful curling ribbons and restrained reflections", async ({ page, pageErrors }, testInfo) => {
+    test.setTimeout(60_000);
+    const shaderMessages: string[] = [];
+    page.on("console", (message) => {
+      if (["warning", "error"].includes(message.type()) && /THREE|WebGL|shader/i.test(message.text())) shaderMessages.push(message.text());
+    });
+    await page.addInitScript(() => {
+      const shaderSource = WebGL2RenderingContext.prototype.shaderSource;
+      WebGL2RenderingContext.prototype.shaderSource = function (shader, source) {
+        if (source.includes("vec3 celestialBody(")) {
+          source = source.replace("uniform float solarSurge;", "uniform float testSolarVisibility;\nuniform float solarSurge;")
+            .replace("float edge = max(fwidth(angle)", "visibility *= testSolarVisibility;\nfloat edge = max(fwidth(angle)");
+        }
+        shaderSource.call(this, shader, source);
+      };
+    });
+    const measurements = [];
+    for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 }]) {
+      await page.setViewportSize(viewport);
+      await page.reload();
+      const inputs = { time: 17, skyTime: 7, colorEnergy: 0.7, waterEnergy: 0.7, chroma: 1,
+        solarSurge: 0, solarScale: 1, solarSurgeTime: 0, testSolarVisibility: 1 };
+      await setRenderedInputs(page, inputs);
+      const baseline = await renderedImage(page);
+      const normalProfiles = await solarRadialProfiles(page);
+      await setRenderedInputs(page, { ...inputs, testSolarVisibility: 0 });
+      const absentProfiles = await solarRadialProfiles(page);
+      await setRenderedInputs(page, { ...inputs, solarScale: 1.5 });
+      const bloom = await renderedImage(page);
+      const peakProfiles = await solarRadialProfiles(page);
+      const sizes = [0, 1].map((sun) => {
+        const radius = (profiles: number[][][]) => {
+          const differences = profiles[sun].map((rgb, index) => colorDifference(rgb, absentProfiles[sun][index]));
+          return differences.findIndex((difference) => difference < differences[0] * 0.5) / 40;
+        };
+        const normal = radius(normalProfiles);
+        const peak = radius(peakProfiles);
+        expect(normal).toBeGreaterThan(0.8);
+        expect(peak / normal).toBeGreaterThan(1.4);
+        expect(peak / normal).toBeLessThan(1.65);
+        return { normal, peak, ratio: peak / normal };
+      });
+      const peakInputs = { ...inputs, solarScale: 1.5, solarSurge: 1, solarSurgeTime: 1.1 };
+      await setRenderedInputs(page, peakInputs);
+      const peak = await renderedImage(page);
+      const ribbons = imageDifference(bloom, peak, 10, 43);
+      const water = imageDifference(bloom, peak, 50, 100);
+      expect(ribbons.mean).toBeGreaterThan(0.6);
+      expect(ribbons.coverage).toBeGreaterThan(0.035);
+      expect(water.mean).toBeGreaterThan(0.005);
+      expect(water.mean).toBeLessThan(ribbons.mean * 0.5);
+      expect(imageDifference(bloom, peak, 0, 9).mean).toBe(0);
+      const colors = await sceneColors(page);
+      expect(colors.horizonContrast).toBeLessThan(6);
+      expect(colors.seamContrast).toBeLessThan(3);
+      expect(colors.whitePixels).toBe(0);
+      for (const rgb of colors.suns) {
+        expect(new Color(rgb[0] / 255, rgb[1] / 255, rgb[2] / 255).getHSL({ h: 0, s: 0, l: 0 }).s).toBeGreaterThan(0.3);
+      }
+      if (await page.getByLabel("Toggle signal info").isChecked()) await toggle(page, "Info");
+      await page.getByRole("button", { name: "Collapse player panel" }).click();
+      await page.screenshot({ path: testInfo.outputPath(`solar-surge-peak-${viewport.width}.png`),
+        style: '[aria-label="Twilight Tides controls"] { opacity: 0 !important; }' });
+      await setRenderedInputs(page, { ...peakInputs, solarSurgeTime: 1.4 });
+      expect(imageDifference(peak, await renderedImage(page), 10, 43).mean).toBeGreaterThan(0.35);
+      await setRenderedInputs(page, { ...peakInputs, chroma: 0 });
+      const off = await renderedImage(page);
+      await page.screenshot({ path: testInfo.outputPath(`solar-surge-chroma-off-${viewport.width}.png`),
+        style: '[aria-label="Twilight Tides controls"] { opacity: 0 !important; }' });
+      await setRenderedInputs(page, { ...peakInputs, chroma: 0, solarSurge: 0 });
+      const offRibbons = imageDifference(off, await renderedImage(page), 10, 43);
+      expect(offRibbons.mean).toBeGreaterThan(0.1);
+      expect(offRibbons.mean).toBeLessThan(ribbons.mean);
+      await setRenderedInputs(page, { ...inputs, solarSurgeTime: 3.2 });
+      expect(imageDifference(baseline, await renderedImage(page), 0, 100).mean).toBe(0);
+      measurements.push({ viewport, sizes, ribbons, water, offRibbons });
+    }
+    await testInfo.attach("solar-surge-render-measurements", { body: JSON.stringify(measurements), contentType: "application/json" });
+    expect(shaderMessages).toEqual([]);
+    expect(pageErrors).toEqual([]);
+  });
+
+  test("real demo qualifies solar SURGE near 26 seconds and freezes an active burst with playback and Motion", async ({ page, pageErrors }, testInfo) => {
+    test.setTimeout(85_000);
+    await page.setViewportSize({ width: 1440, height: 900 });
+    if (await page.getByLabel("Toggle signal info").isChecked()) await toggle(page, "Info");
+    await page.getByRole("button", { name: "Play", exact: true }).click();
+    await expect.poll(async () => (await renderedSkyClocks(page)).solarScale,
+      { timeout: 40_000, intervals: [50] }).toBe(1.5);
+    const triggerTime = Number(await page.getByLabel("Seek playback").inputValue());
+    expect(triggerTime).toBeGreaterThan(23);
+    expect(triggerTime).toBeLessThan(30);
+    await page.getByRole("button", { name: "Pause", exact: true }).click();
+    await page.waitForTimeout(100);
+    const paused = await renderedSkyClocks(page);
+    expect(paused.solarSurge).toBeGreaterThan(0.9);
+    const image = await renderedImage(page);
+    await page.waitForTimeout(400);
+    expect(await renderedSkyClocks(page)).toEqual(paused);
+    expect(await renderedImage(page)).toEqual(image);
+    await expect.poll(async () => (await runtime(page)).environment.surgeCount).toBe(1);
+    const telemetry = (await runtime(page)).environment;
+    expect(telemetry.lastSurgeAt).toBeGreaterThan(20_000);
+    const performance = [];
+    for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 }]) {
+      await page.setViewportSize(viewport);
+      await page.waitForTimeout(2200);
+      const fps = (await runtime(page)).environment.renderFps;
+      expect(fps).toBeGreaterThan(0);
+      performance.push({ phase: "surge", viewport, fps });
+    }
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.screenshot({ path: testInfo.outputPath("solar-surge-real-demo.png"),
+      style: '[aria-label="Twilight Tides controls"] { opacity: 0 !important; }' });
+    await toggle(page, "Motion");
+    await page.getByRole("button", { name: "Play", exact: true }).click();
+    await page.waitForTimeout(500);
+    expect(await renderedSkyClocks(page)).toEqual(paused);
+    await toggle(page, "Chroma");
+    const off = await renderedImage(page);
+    await page.waitForTimeout(350);
+    expect(await renderedSkyClocks(page)).toEqual(paused);
+    expect(await renderedImage(page)).toEqual(off);
+    await toggle(page, "Chroma");
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    // The existing shell reads the preference on render; toggling Motion supplies that render.
+    await toggle(page, "Motion");
+    await page.waitForTimeout(350);
+    expect(await renderedSkyClocks(page)).toEqual(paused);
+    await expect(page.getByLabel("Motion")).toBeChecked();
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    await toggle(page, "Chroma");
+    await toggle(page, "Chroma");
+    await expect.poll(async () => (await renderedSkyClocks(page)).solarScale, { intervals: [100] }).toBe(1);
+    expect((await renderedSkyClocks(page)).solarSurge).toBe(0);
+    expect((await runtime(page)).environment.surgeCount).toBe(1);
+    await page.getByRole("button", { name: "Pause", exact: true }).click();
+    for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 }]) {
+      await page.setViewportSize(viewport);
+      await page.waitForTimeout(2200);
+      const fps = (await runtime(page)).environment.renderFps;
+      expect(fps).toBeGreaterThan(0);
+      performance.push({ phase: "baseline", viewport, fps });
+    }
+    for (let index = 0; index < 2; index++) {
+      expect(performance[index].fps!).toBeGreaterThan(performance[index + 2].fps! * 0.65);
+    }
+    await testInfo.attach("real-solar-surge", { body: JSON.stringify({ triggerTime, paused, telemetry, performance }), contentType: "application/json" });
+    await page.getByLabel("Visual environment").selectOption("minimal");
+    await expect(page.getByLabel("Twilight Tides canvas")).toHaveCount(0);
+    await page.getByLabel("Visual environment").selectOption("twilight-tides");
+    await expect.poll(async () => (await runtime(page)).environment.surgeCount).toBe(0);
+    expect(pageErrors).toEqual([]);
   });
 
   test("renders a fixed ocean, persists selection, and captures desktop/mobile palettes", async ({ page, pageErrors }, testInfo) => {
@@ -943,6 +1229,9 @@ test.describe("Twilight Tides player", () => {
       expect(mounted.frames).toBe(baseline.frames + 1);
       expect(mounted.textures).toBeGreaterThan(baseline.textures);
       expect(mounted.framebuffers).toBeGreaterThan(baseline.framebuffers);
+      await setRenderedInputs(page, { solarScale: 1.5, solarSurge: 1, solarSurgeTime: 1.1 });
+      expect((await renderedSkyClocks(page)).solarSurge).toBe(1);
+      expect(await counts()).toEqual(mounted);
       await selector.selectOption("minimal");
       await expect(page.getByLabel("Twilight Tides environment")).toHaveCount(0);
       await expect(fps).toHaveText("---");

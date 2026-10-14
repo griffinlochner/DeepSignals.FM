@@ -48,7 +48,11 @@ export default function TwilightTidesTheme({
     observer.observe(mount);
     window.addEventListener("resize", resize);
     resize();
-    const fpsSampler = createRenderFpsSampler((renderFps) => propsRef.current.onRuntimeTelemetry?.({ renderFps }));
+    const fpsSampler = createRenderFpsSampler((renderFps) => propsRef.current.onRuntimeTelemetry?.({
+      renderFps,
+      surgeCount: state.surge.count,
+      lastSurgeAt: Number.isFinite(state.surge.startedAt) ? state.surge.startedAt : undefined,
+    }));
     let frame = 0;
     let lastFrame = performance.now();
     const render = (now: number) => {

@@ -84,6 +84,9 @@ export function createTwilightOcean(renderer: THREE.WebGLRenderer, quality: Retu
     auroraHighs: { value: 0 },
     waterEnergy: { value: 0 },
     skyTime: { value: 0 },
+    solarSurge: { value: 0 },
+    solarSurgeTime: { value: 0 },
+    solarScale: { value: 1 },
     meteorProgress: { value: 1 },
     meteorPath: { value: new THREE.Vector4(...TWILIGHT_METEOR_PATHS[0]) },
     sunDirection: { value: TWILIGHT_SUN },
@@ -118,7 +121,7 @@ export function createTwilightOcean(renderer: THREE.WebGLRenderer, quality: Retu
       ${twilightColorShader}
       void main() {
         vec3 d = normalize(direction);
-        gl_FragColor = vec4(skyLight(d, 1.0, twilightClouds(d), 1.0), 1.0);
+        gl_FragColor = vec4(skyLight(d, 1.0, twilightClouds(d), 1.0, 1.0), 1.0);
         #include <tonemapping_fragment>
         #include <colorspace_fragment>
       }
@@ -185,7 +188,7 @@ export function createTwilightOcean(renderer: THREE.WebGLRenderer, quality: Retu
         reflected.y = max(reflected.y, 0.002);
         reflected = normalize(reflected);
         vec2 clouds = twilightClouds(reflected);
-        vec3 reflection = skyLight(reflected, solarVisibility, clouds, 0.45);
+        vec3 reflection = skyLight(reflected, solarVisibility, clouds, 0.45, 0.35);
         float facing = max(dot(normal, eye), 0.0);
         float fresnel = 0.025 + 0.975 * pow(1.0 - facing, 5.0);
         vec3 body = vec3(0.018, 0.025, 0.063) + twilightTreatment(vec3(0.12, 0.025, 0.16)) * 0.075;
@@ -225,6 +228,9 @@ export function createTwilightOcean(renderer: THREE.WebGLRenderer, quality: Retu
       uniforms.auroraHighs.value = state.auroraHighs;
       uniforms.waterEnergy.value = state.waterEnergy;
       uniforms.skyTime.value = state.skyTime;
+      uniforms.solarSurge.value = state.surge.envelope;
+      uniforms.solarSurgeTime.value = state.surge.ageSeconds;
+      uniforms.solarScale.value = state.surge.scale;
       updateTwilightPalette(palette, chromaEnabled ? state.paletteTime / TWILIGHT_PALETTE_SECONDS : 0);
       uniforms.meteorProgress.value = chromaEnabled ? state.meteorProgress : 1;
       const [startX, startY, endX, endY] = TWILIGHT_METEOR_PATHS[Math.max(0, state.meteorCount - 1) % TWILIGHT_METEOR_PATHS.length];
