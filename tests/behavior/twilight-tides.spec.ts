@@ -47,7 +47,9 @@ test("Twilight Tides freezes kinetic state with every gate, bounds deltas and pr
     { ...playing, reducedMotion: true },
   ]) {
     const state = createTwilightState();
-    for (let frame = 0; frame < (TWILIGHT_FIRST_METEOR_SECONDS + 0.5) * 60; frame++) updateTwilightState(state, 1 / 60, playing, loud);
+    for (let frame = 0; frame < (TWILIGHT_FIRST_METEOR_SECONDS + 0.5) * 60; frame++) {
+      updateTwilightState(state, 1 / 60, playing, { ...loud, bass: 0.6, mids: 0.7, highs: 0.8, kickPulse: 0.5 });
+    }
     expect(state.meteorCount).toBe(1);
     expect(state.meteorProgress).toBeLessThan(1);
     const before = { ...state };
@@ -59,6 +61,9 @@ test("Twilight Tides freezes kinetic state with every gate, bounds deltas and pr
     expect(state.meteorProgress).toBe(before.meteorProgress);
     expect(state.meteorWait).toBe(before.meteorWait);
     expect(state.waterEnergy).toBe(before.waterEnergy);
+    expect(state.auroraBass).toBe(before.auroraBass);
+    expect(state.auroraMids).toBe(before.auroraMids);
+    expect(state.auroraHighs).toBe(before.auroraHighs);
     if (controls.isPlaying) expect(state.colorEnergy).toBeLessThan(before.colorEnergy);
     else expect(state).toEqual(before);
     updateTwilightState(state, 100, playing, loud);
@@ -144,7 +149,7 @@ test("Twilight Tides schedules a light meteor shower with occasional pairs, quie
   }
 });
 
-test("Twilight Tides ignores Kick entirely while retaining smooth energy-driven motion", () => {
+test("Twilight Tides confines Kick accents to the aurora, not water, clouds, suns or meteors", () => {
   const kick = createTwilightState();
   const steady = createTwilightState();
   for (const controls of [playing, { ...playing, motionEnabled: false }, { ...playing, reducedMotion: true }, { ...playing, isPlaying: false }]) {
@@ -152,7 +157,47 @@ test("Twilight Tides ignores Kick entirely while retaining smooth energy-driven 
       const snapshot = { ...loud, kickPulse: [0, 1, NaN, Infinity, -1][frame % 5] };
       updateTwilightState(kick, 1 / 60, controls, snapshot);
       updateTwilightState(steady, 1 / 60, controls, loud);
-      expect(kick).toEqual(steady);
+      expect({ ...kick, auroraBass: 0 }).toEqual({ ...steady, auroraBass: 0 });
+    }
+  }
+  expect(kick.auroraBass).toBeGreaterThan(0.1);
+  expect(steady.auroraBass).toBe(0);
+});
+
+test("Twilight Tides aurora bands are smooth, bounded, independent and frame-rate independent", () => {
+  for (const [band, field] of [
+    ["bass", "auroraBass"], ["bassPulse", "auroraBass"], ["kickPulse", "auroraBass"],
+    ["mids", "auroraMids"], ["highs", "auroraHighs"], ["transient", "auroraHighs"],
+  ] as const) {
+    const state = createTwilightState();
+    updateTwilightState(state, 1 / 60, playing, { ...loud, [band]: 1 });
+    expect(state[field]).toBeGreaterThan(0.02);
+    expect(state[field]).toBeLessThan(0.15);
+    for (let frame = 0; frame < 180; frame++) updateTwilightState(state, 1 / 60, playing, { ...loud, [band]: 1 });
+    expect(state[field]).toBeGreaterThan(0.3);
+    expect(state[field]).toBeLessThanOrEqual(1);
+    for (const other of ["auroraBass", "auroraMids", "auroraHighs"] as const) {
+      if (other !== field) expect(state[other]).toBe(0);
+    }
+    const peak = state[field];
+    updateTwilightState(state, 1 / 60, playing, null);
+    expect(state[field]).toBeGreaterThan(peak * 0.94);
+    expect(state[field]).toBeLessThan(peak);
+  }
+  const bands = { bass: 0.6, kickPulse: 0.9, bassPulse: 0.7, mids: 0.5, highs: 0.8, transient: 0.4 };
+  const at30 = createTwilightState();
+  const at120 = createTwilightState();
+  for (let i = 0; i < 150; i++) updateTwilightState(at30, 1 / 30, playing, { ...loud, ...bands });
+  for (let i = 0; i < 600; i++) updateTwilightState(at120, 1 / 120, playing, { ...loud, ...bands });
+  for (const field of ["auroraBass", "auroraMids", "auroraHighs"] as const) expect(at30[field]).toBeCloseTo(at120[field], 10);
+  for (const snapshot of [undefined, null, { ...loud, ...bands, isActive: false },
+    { ...loud, ...bands, smoothedEnergy: 0 }, { ...loud, ...bands, smoothedEnergy: NaN },
+    { ...loud, bass: NaN, kickPulse: Infinity, bassPulse: -1, mids: -Infinity, highs: NaN, transient: Infinity }]) {
+    const state = { ...at30 };
+    for (let frame = 0; frame < 600; frame++) updateTwilightState(state, 1 / 60, playing, snapshot);
+    for (const field of ["auroraBass", "auroraMids", "auroraHighs"] as const) {
+      expect(Number.isFinite(state[field])).toBe(true);
+      expect(state[field]).toBeLessThan(0.0001);
     }
   }
 });
@@ -346,6 +391,32 @@ function colorDifference(a: number[], b: number[]) {
   return a.reduce((sum, value, i) => sum + Math.abs(value - b[i]), 0) / 3;
 }
 
+async function renderedImage(page: Page) {
+  return page.getByLabel("Twilight Tides canvas").evaluate((element) => new Promise<number[]>((resolve) => {
+    requestAnimationFrame(() => {
+      const sample = document.createElement("canvas");
+      sample.width = 160;
+      sample.height = 100;
+      const context = sample.getContext("2d")!;
+      context.drawImage(element as HTMLCanvasElement, 0, 0, 160, 100);
+      resolve(Array.from(context.getImageData(0, 0, 160, 100).data));
+    });
+  }));
+}
+
+function imageDifference(a: number[], b: number[], startRow: number, endRow: number) {
+  let total = 0;
+  let changed = 0;
+  const count = 160 * (endRow - startRow);
+  for (let pixel = 160 * startRow; pixel < 160 * endRow; pixel++) {
+    const offset = pixel * 4;
+    const difference = (Math.abs(a[offset] - b[offset]) + Math.abs(a[offset + 1] - b[offset + 1]) + Math.abs(a[offset + 2] - b[offset + 2])) / 3;
+    total += difference;
+    if (difference > 3) changed++;
+  }
+  return { mean: total / count, coverage: changed / count };
+}
+
 // Exercise the real compiled shaders at deterministic extrema without a production debug API.
 async function setRenderedInputs(page: Page, inputs: Record<string, number | number[]>) {
   await page.evaluate((values) => {
@@ -376,7 +447,7 @@ async function renderedSkyClocks(page: Page) {
       const program: WebGLProgram | null = gl.getParameter(gl.CURRENT_PROGRAM);
       if (!program) throw new Error("Expected the rendered Twilight Tides water program");
       const values: Record<string, number> = {};
-      for (const name of ["time", "skyTime", "waterEnergy", "meteorProgress"]) {
+      for (const name of ["time", "skyTime", "waterEnergy", "meteorProgress", "auroraBass", "auroraMids", "auroraHighs"]) {
         const location = gl.getUniformLocation(program, name);
         if (!location) throw new Error(`Missing rendered uniform: ${name}`);
         const value: unknown = gl.getUniform(program, location);
@@ -510,7 +581,8 @@ test.describe("Twilight Tides player", () => {
       await page.reload();
       for (const energy of [0, 1]) {
         await setRenderedInputs(page, { colorEnergy: energy, glintEnergy: energy, turbulence: 0.65 + energy * 0.85,
-          waterEnergy: energy, time: energy * 17, skyTime: energy * 7 });
+          waterEnergy: energy, time: energy * 17, skyTime: energy * 7,
+          auroraBass: energy, auroraMids: energy, auroraHighs: energy });
         const colors = await sceneColors(page);
         expect(colors.horizonContrast).toBeLessThan(6);
         expect(colors.seamContrast).toBeLessThan(3);
@@ -521,6 +593,131 @@ test.describe("Twilight Tides player", () => {
       await page.screenshot({ path: testInfo.outputPath(`twilight-horizon-${viewport.width}x${viewport.height}.png`) });
     }
     await testInfo.attach("horizon-measurements", { body: JSON.stringify(measurements), contentType: "application/json" });
+  });
+
+  test("aurora is always visible, band-reactive and softly reflected without hiding the suns", async ({ page }, testInfo) => {
+    test.setTimeout(60_000);
+    const shaderMessages: string[] = [];
+    page.on("console", (message) => {
+      if (["warning", "error"].includes(message.type()) && /THREE|WebGL|shader/i.test(message.text())) shaderMessages.push(message.text());
+    });
+    // Isolate the aurora contribution in the actual shaders, without shipping a debug switch.
+    await page.addInitScript(() => {
+      const shaderSource = WebGL2RenderingContext.prototype.shaderSource;
+      WebGL2RenderingContext.prototype.shaderSource = function (shader, source) {
+        if (source.includes("vec4 auroraLight(")) {
+          source = source.replace("uniform float auroraBass;", "uniform float testAuroraScale;\nuniform float auroraBass;")
+            .replace("return light * skyMask", "return light * testAuroraScale * skyMask");
+        }
+        shaderSource.call(this, shader, source);
+      };
+    });
+    const measurements = [];
+    for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 }]) {
+      await page.setViewportSize(viewport);
+      await page.reload();
+      const inputs = { testAuroraScale: 1, time: 17, skyTime: 7, colorEnergy: 0, waterEnergy: 0,
+        auroraBass: 0, auroraMids: 0, auroraHighs: 0 };
+      await setRenderedInputs(page, { ...inputs, testAuroraScale: 0 });
+      const quietAbsent = await renderedImage(page);
+      await setRenderedInputs(page, inputs);
+      const quiet = await renderedImage(page);
+      const quietSky = imageDifference(quietAbsent, quiet, 4, 28);
+      expect(quietSky.mean).toBeGreaterThan(2);
+      expect(quietSky.coverage).toBeGreaterThan(0.12);
+      if (await page.getByLabel("Toggle signal info").isChecked()) await toggle(page, "Info");
+      await page.getByRole("button", { name: "Collapse player panel" }).click();
+      await page.screenshot({ path: testInfo.outputPath(`aurora-quiet-${viewport.width}.png`),
+        style: '[aria-label="Twilight Tides controls"] { opacity: 0 !important; }' });
+      const energetic = { ...inputs, colorEnergy: 0.8, waterEnergy: 0.8 };
+      await setRenderedInputs(page, energetic);
+      const noBands = await renderedImage(page);
+      const bandChanges = [];
+      for (const band of ["auroraBass", "auroraMids", "auroraHighs"]) {
+        await setRenderedInputs(page, { ...energetic, [band]: 0.8 });
+        const change = imageDifference(noBands, await renderedImage(page), 4, 28);
+        expect(change.mean, band).toBeGreaterThan(band === "auroraHighs" ? 0.08 : 0.5);
+        bandChanges.push({ band, ...change });
+      }
+      const musical = { ...energetic, auroraBass: 0.8, auroraMids: 0.7, auroraHighs: 0.8 };
+      await setRenderedInputs(page, { ...musical, testAuroraScale: 0 });
+      const absent = await renderedImage(page);
+      const absentColors = await sceneColors(page);
+      await setRenderedInputs(page, musical);
+      const present = await renderedImage(page);
+      const colors = await sceneColors(page);
+      const sky = imageDifference(absent, present, 4, 28);
+      const water = imageDifference(absent, present, 50, 100);
+      expect(sky.mean).toBeGreaterThan(quietSky.mean * 1.5);
+      expect(sky.coverage).toBeGreaterThan(0.25);
+      expect(water.mean).toBeGreaterThan(0.15);
+      expect(water.mean).toBeLessThan(sky.mean * 0.6);
+      for (const sun of [0, 1]) {
+        expect(colorDifference(colors.suns[sun], absentColors.suns[sun])).toBeLessThan(1);
+        expect(colorDifference(colors.suns[sun], colors.sunSurroundings[sun])).toBeGreaterThan(18);
+      }
+      expect(colors.horizonContrast).toBeLessThan(6);
+      expect(colors.seamContrast).toBeLessThan(3);
+      expect(colors.whitePixels).toBe(0);
+      await page.screenshot({ path: testInfo.outputPath(`aurora-musical-${viewport.width}.png`),
+        style: '[aria-label="Twilight Tides controls"] { opacity: 0 !important; }' });
+      await setRenderedInputs(page, { ...musical, chroma: 0 });
+      const chromaOff = await renderedImage(page);
+      await setRenderedInputs(page, { ...inputs, chroma: 0 });
+      expect(await renderedImage(page)).toEqual(chromaOff);
+      await setRenderedInputs(page, { ...inputs, chroma: 0, testAuroraScale: 0 });
+      expect(imageDifference(chromaOff, await renderedImage(page), 4, 28).mean).toBeGreaterThan(0.1);
+      await setRenderedInputs(page, musical);
+      measurements.push({ viewport, quietSky, sky, water, bandChanges });
+    }
+    await testInfo.attach("aurora-render-measurements", { body: JSON.stringify(measurements), contentType: "application/json" });
+    expect(shaderMessages).toEqual([]);
+  });
+
+  test("observes uninstrumented aurora playback FPS on desktop and compact viewports", async ({ page }, testInfo) => {
+    test.setTimeout(45_000);
+    const observations = [];
+    for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 }]) {
+      await page.setViewportSize(viewport);
+      await page.reload();
+      await page.getByRole("button", { name: "Play", exact: true }).click();
+      await expect.poll(async () => (await runtime(page)).audio.smoothedEnergy, { timeout: 15_000 }).toBeGreaterThan(0.1);
+      await page.waitForTimeout(2000);
+      const renderFps = [];
+      for (let i = 0; i < 3; i++) {
+        await page.waitForTimeout(1100);
+        const fps = (await runtime(page)).environment.renderFps;
+        expect(fps).toBeGreaterThan(0);
+        renderFps.push(fps);
+      }
+      observations.push({ viewport, renderFps });
+    }
+    await testInfo.attach("aurora-uninstrumented-fps", { body: JSON.stringify(observations), contentType: "application/json" });
+  });
+
+  test("real demo drives aurora bands and mute smoothly relaxes them without removing the curtains", async ({ page }, testInfo) => {
+    test.setTimeout(45_000);
+    await page.getByRole("button", { name: "Play", exact: true }).click();
+    await expect.poll(async () => {
+      const values = await renderedSkyClocks(page);
+      return Math.min(values.auroraBass, values.auroraMids, values.auroraHighs);
+    }, { timeout: 15_000 }).toBeGreaterThan(0.05);
+    const musical = await renderedSkyClocks(page);
+    await page.getByRole("slider", { name: "Volume" }).fill("0");
+    await expect.poll(async () => {
+      const values = await renderedSkyClocks(page);
+      return Math.max(values.auroraBass, values.auroraMids, values.auroraHighs);
+    }, { timeout: 15_000 }).toBeLessThan(0.005);
+    const muted = await renderedSkyClocks(page);
+    expect(muted.skyTime).toBeGreaterThan(musical.skyTime);
+    await page.getByRole("slider", { name: "Volume" }).fill("1");
+    await expect.poll(async () => (await renderedSkyClocks(page)).auroraBass, { timeout: 15_000 }).toBeGreaterThan(0.1);
+    await page.getByRole("button", { name: "Pause", exact: true }).click();
+    await page.waitForTimeout(100);
+    const paused = await renderedImage(page);
+    await page.waitForTimeout(350);
+    expect(await renderedImage(page)).toEqual(paused);
+    await testInfo.attach("real-audio-aurora", { body: JSON.stringify({ musical, muted }), contentType: "application/json" });
   });
 
   test("real Kick leaves sun colors stable and readable with Motion off or reduced motion", async ({ page }, testInfo) => {
@@ -578,7 +775,8 @@ test.describe("Twilight Tides player", () => {
     let minimumSaturation = 1;
     for (let step = 0; step < 16; step++) {
       for (const skyTime of [0, 16, 40, 80, 120, 200]) {
-        await setRenderedInputs(page, { ...paletteInputs(step / 16), skyTime, colorEnergy: 1 });
+        await setRenderedInputs(page, { ...paletteInputs(step / 16), skyTime, colorEnergy: 1,
+          waterEnergy: 1, auroraBass: 1, auroraMids: 1, auroraHighs: 1 });
         const colors = await sceneColors(page);
         for (let sun = 0; sun < 2; sun++) {
           const contrast = colorDifference(colors.suns[sun], colors.sunSurroundings[sun]);

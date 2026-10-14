@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { twilightAuroraShader } from "./twilightAurora";
 
 export const TWILIGHT_SUN = new THREE.Vector3(-0.12, 0.045, -1).normalize();
 export const TWILIGHT_ALIEN_SUN = new THREE.Vector3(0.13, 0.15, -1).normalize();
@@ -86,6 +87,8 @@ export const twilightColorShader = /* glsl */`
   uniform vec3 cloudLightColor;
   uniform vec3 cloudVeilColor;
 
+  ${twilightAuroraShader}
+
   vec3 orangeRadiance() {
     return sunColor;
   }
@@ -170,10 +173,12 @@ export const twilightColorShader = /* glsl */`
     float fade = smoothstep(0.0, 0.16, meteorProgress) * (1.0 - smoothstep(0.55, 1.0, meteorProgress));
     return vec3(0.45, 0.65, 0.57) * trail * along * fade * chroma * waterEnergy * 0.55;
   }
-  vec3 skyLight(vec3 d, float solarVisibility, vec2 clouds) {
+  vec3 skyLight(vec3 d, float solarVisibility, vec2 clouds, float auroraVisibility) {
     vec3 color = twilightTreatment(atmosphereLight(d));
     float sunAngle = acos(clamp(dot(d, sunDirection), -1.0, 1.0));
     float alienAngle = acos(clamp(dot(d, alienSunDirection), -1.0, 1.0));
+    vec4 aurora = auroraLight(d, sunAngle, alienAngle) * auroraVisibility;
+    color = color * (1.0 - min(0.65, aurora.a)) + aurora.rgb;
     color = celestialBody(color, orangeRadiance(), sunAngle, 0.017, solarVisibility);
     color = celestialBody(color, alienRadiance(), alienAngle, 0.032, solarVisibility);
     // Thin cloud veils pass in front of both bodies without fully extinguishing them.

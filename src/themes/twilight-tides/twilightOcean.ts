@@ -79,6 +79,9 @@ export function createTwilightOcean(renderer: THREE.WebGLRenderer, quality: Retu
     chroma: { value: 1 },
     colorEnergy: { value: 0 },
     glintEnergy: { value: 0 },
+    auroraBass: { value: 0 },
+    auroraMids: { value: 0 },
+    auroraHighs: { value: 0 },
     waterEnergy: { value: 0 },
     skyTime: { value: 0 },
     meteorProgress: { value: 1 },
@@ -115,7 +118,7 @@ export function createTwilightOcean(renderer: THREE.WebGLRenderer, quality: Retu
       ${twilightColorShader}
       void main() {
         vec3 d = normalize(direction);
-        gl_FragColor = vec4(skyLight(d, 1.0, twilightClouds(d)), 1.0);
+        gl_FragColor = vec4(skyLight(d, 1.0, twilightClouds(d), 1.0), 1.0);
         #include <tonemapping_fragment>
         #include <colorspace_fragment>
       }
@@ -182,7 +185,7 @@ export function createTwilightOcean(renderer: THREE.WebGLRenderer, quality: Retu
         reflected.y = max(reflected.y, 0.002);
         reflected = normalize(reflected);
         vec2 clouds = twilightClouds(reflected);
-        vec3 reflection = skyLight(reflected, solarVisibility, clouds);
+        vec3 reflection = skyLight(reflected, solarVisibility, clouds, 0.45);
         float facing = max(dot(normal, eye), 0.0);
         float fresnel = 0.025 + 0.975 * pow(1.0 - facing, 5.0);
         vec3 body = vec3(0.018, 0.025, 0.063) + twilightTreatment(vec3(0.12, 0.025, 0.16)) * 0.075;
@@ -217,6 +220,9 @@ export function createTwilightOcean(renderer: THREE.WebGLRenderer, quality: Retu
       uniforms.chroma.value = chromaEnabled ? 1 : 0;
       uniforms.colorEnergy.value = chromaEnabled ? state.colorEnergy : 0;
       uniforms.glintEnergy.value = chromaEnabled ? state.glintEnergy : 0;
+      uniforms.auroraBass.value = state.auroraBass;
+      uniforms.auroraMids.value = state.auroraMids;
+      uniforms.auroraHighs.value = state.auroraHighs;
       uniforms.waterEnergy.value = state.waterEnergy;
       uniforms.skyTime.value = state.skyTime;
       updateTwilightPalette(palette, chromaEnabled ? state.paletteTime / TWILIGHT_PALETTE_SECONDS : 0);

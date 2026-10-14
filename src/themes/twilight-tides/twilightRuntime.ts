@@ -1,7 +1,7 @@
 import type { AudioReactiveSnapshot } from "../../app/playerTypes";
 
 type TwilightAudio = Pick<AudioReactiveSnapshot, "isActive" | "smoothedEnergy"> &
-  Partial<Pick<AudioReactiveSnapshot, "bass" | "highs">>;
+  Partial<Pick<AudioReactiveSnapshot, "bass" | "mids" | "highs" | "bassPulse" | "kickPulse" | "transient">>;
 
 export const TWILIGHT_PALETTE_SECONDS = 300;
 export const TWILIGHT_FIRST_METEOR_SECONDS = 8;
@@ -43,6 +43,7 @@ export function createTwilightState() {
   return {
     time: 0, skyTime: 0, paletteTime: 0,
     waterEnergy: 0, colorEnergy: 0, glintEnergy: 0,
+    auroraBass: 0, auroraMids: 0, auroraHighs: 0,
     meteorWait: TWILIGHT_FIRST_METEOR_SECONDS, meteorProgress: 1, meteorCount: 0,
   };
 }
@@ -61,6 +62,11 @@ export function updateTwilightState(
     state.glintEnergy = damp(state.glintEnergy, glint, dt, 4, 2);
   }
   if (controls.isPlaying && controls.motionEnabled && !controls.reducedMotion) {
+    const bass = unit(unit(snapshot?.bass) * 0.55 + unit(snapshot?.bassPulse) * 0.35 + unit(snapshot?.kickPulse) * 0.85);
+    const highs = unit(unit(snapshot?.highs) * 0.8 + unit(snapshot?.transient) * 0.5);
+    state.auroraBass = damp(state.auroraBass, energy * bass, dt, 9, 3);
+    state.auroraMids = damp(state.auroraMids, energy * unit(snapshot?.mids), dt, 4, 2);
+    state.auroraHighs = damp(state.auroraHighs, energy * highs, dt, 7, 3.5);
     const previousEnergy = state.waterEnergy;
     state.waterEnergy = damp(state.waterEnergy, energy, dt, 2.4, 1.6);
     const averageEnergy = (previousEnergy + state.waterEnergy) * 0.5;
