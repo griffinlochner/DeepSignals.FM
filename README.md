@@ -77,6 +77,18 @@ Run `npx playwright test tests/behavior/alien-megastructure-transit.spec.ts` for
 
 ## Player Architecture
 
+### Twilight Tides: first visual checkpoint
+
+Select **Twilight Tides** under **3D EXPERIENCES** in `/player/`. The fixed camera overlooks an open twilight ocean: orange/pink horizon, magenta/violet cloud veils, deep-blue upper sky and rippling water. There are no navigation controls or additional scenery.
+
+[The ocean renderer](src/themes/twilight-tides/twilightOcean.ts) adapts the techniques demonstrated by the [Three.js WebGL ocean](https://threejs.org/examples/#webgl_shaders_ocean): independently scrolling, layered normal samples, view-dependent Fresnel reflections and directional sun highlights. Three low-amplitude analytic swells add foreground geometry. Unlike the example's per-frame planar mirror, this sky-only scene bakes its procedural sky once into a small cubemap; the visible sky and reflected sky share the same color treatment. No WebGPU, bloom, HDRI, external texture, model, new analyser or debug interface is required.
+
+Shared `smoothedEnergy` is clamped and locally damped (1.2/sec) to gently increase water turbulence, ripple pace, shimmer and sky intensity. Quiet/muted/unavailable analysis returns to ambient water motion **while playback and MOTION are enabled**; there is no second volume multiplier. Pause, MOTION OFF and reduced motion freeze water time and turbulence. CHROMA remains independent: OFF is a stable, restrained authored twilight palette; ON enriches it and permits gentle audio illumination, including with MOTION OFF. Pause holds the current lighting, and CHROMA can still be toggled.
+
+Quality is bounded at mount: a 256px-per-face sky cubemap and 112x144 water grid on desktop, 128px and 72x96 for compact/coarse-pointer or <=4-core devices. Resize caps DPR at 1.6/1.25 and drawing-buffer budgets at 2.6M/1.1M pixels. A deterministic 128x128 RGBA ripple-normal texture is generated in memory (64 KiB before mipmaps); **no downloaded assets are added**. After six one-time sky-bake draws, each frame uses two draws, no reflection pass, lights or postprocessing. The sun disc is analytic to avoid cubemap pixelation. All geometries, materials, texture/cubemap resources, resize listeners, rAF and the shared actual-render FPS sampler are disposed on unmount, followed by explicit release of this scene's WebGL context (including renderer-internal placeholder resources). Reflection/grid quality stays fixed until remount; DPR responds to resize.
+
+The baked sky is regenerated after WebGL context restoration; lost-context callbacks neither advance the ocean nor count as rendered FPS. Run `npx playwright test twilight-tides.spec.ts player.spec.ts` for runtime, control, local-demo, desktop/mobile, context-restoration and cleanup coverage. For local visual review, run `npm run dev`, open `/player/`, select Twilight Tides and play either bundled demo or an existing radio station. Compare CHROMA OFF/ON, quiet/loud passages, volume/mute, pause/resume and MOTION OFF; use the existing FPS readout and diagnostics. This checkpoint deliberately excludes shoreline scenery, stars and SURGE spectacle.
+
 For new visualization work, start with the [visualization theme authoring and runtime guide](docs/environment-runtime-contract.md). It covers canonical scenes, registration, lifecycle, controls, shared audio/SURGE, FPS, performance, and testing.
 
 Hirschmilch track metadata uses a small server-side [Cloudflare Worker](docs/hirschmilch-metadata-worker.md) because its metadata service does not support browser clients. Hirschmilch audio still streams directly to the browser.
