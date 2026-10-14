@@ -1,6 +1,7 @@
 import type { Page } from "@playwright/test";
 import { test, expect } from "../support/test";
-import { createTwilightState, twilightQuality, updateTwilightState } from "../../src/themes/twilight-tides/twilightRuntime";
+import { createTwilightState, twilightQuality, updateTwilightState, twilightMusicEnergy, TWILIGHT_METEOR_PATHS } from "../../src/themes/twilight-tides/twilightRuntime";
+import { TWILIGHT_SUN, TWILIGHT_ALIEN_SUN } from "../../src/themes/twilight-tides/twilightSky";
 import type { RuntimeTestSnapshot } from "../../src/app/runtimeTestBridge";
 
 const playing = { isPlaying: true, motionEnabled: true, reducedMotion: false };
@@ -22,16 +23,17 @@ test("Twilight Tides smooths energy without beat pumping and retains ambient mot
   const state = createTwilightState();
   updateTwilightState(state, 1 / 60, playing, loud);
   expect(state.waterEnergy).toBeGreaterThan(0);
-  expect(state.waterEnergy).toBeLessThan(0.025);
+  expect(state.waterEnergy).toBeLessThan(0.04);
   for (let frame = 0; frame < 300; frame++) updateTwilightState(state, 1 / 60, playing, loud);
   expect(state.waterEnergy).toBeGreaterThan(0.99);
-  expect(state.time).toBeGreaterThan(4);
-  expect(state.time).toBeLessThan(4.7);
+  expect(state.time).toBeGreaterThan(5.2);
+  expect(state.time).toBeLessThan(5.4);
   for (const snapshot of [undefined, null, { ...loud, isActive: false }, { ...loud, smoothedEnergy: NaN }, { ...loud, smoothedEnergy: 0 }]) {
     const before = state.time;
     for (let frame = 0; frame < 600; frame++) updateTwilightState(state, 1 / 60, playing, snapshot);
     expect(state.waterEnergy).toBeLessThan(0.001);
-    expect(state.time).toBeGreaterThan(before + 7.4);
+    expect(state.time - before).toBeGreaterThan(0.44);
+    expect(state.time - before).toBeLessThan(1.15);
     expect(Number.isFinite(state.time)).toBe(true);
   }
 });
@@ -43,15 +45,22 @@ test("Twilight Tides freezes kinetic state with every gate, bounds deltas and pr
     { ...playing, reducedMotion: true },
   ]) {
     const state = createTwilightState();
-    for (let frame = 0; frame < 30; frame++) updateTwilightState(state, 1 / 60, playing, loud);
+    for (let frame = 0; frame < 1470; frame++) updateTwilightState(state, 1 / 60, playing, loud);
+    expect(state.meteorCount).toBe(1);
+    expect(state.meteorProgress).toBeLessThan(1);
     const before = { ...state };
-    for (let frame = 0; frame < 90; frame++) updateTwilightState(state, 1 / 60, controls, loud);
+    for (let frame = 0; frame < 90; frame++) updateTwilightState(state, 1 / 60, controls, { ...loud, smoothedEnergy: 0.1, bass: 0.3 });
     expect(state.time).toBe(before.time);
+    expect(state.skyTime).toBe(before.skyTime);
+    expect(state.paletteTime).toBe(before.paletteTime);
+    expect(state.meteorCount).toBe(before.meteorCount);
+    expect(state.meteorProgress).toBe(before.meteorProgress);
+    expect(state.meteorWait).toBe(before.meteorWait);
     expect(state.waterEnergy).toBe(before.waterEnergy);
-    if (controls.isPlaying) expect(state.colorEnergy).toBeGreaterThan(before.colorEnergy);
+    if (controls.isPlaying) expect(state.colorEnergy).toBeLessThan(before.colorEnergy);
     else expect(state).toEqual(before);
     updateTwilightState(state, 100, playing, loud);
-    expect(state.time - before.time).toBeLessThanOrEqual(0.05 * 0.93);
+    expect(state.time - before.time).toBeLessThanOrEqual(0.05 * 1.145 + 1e-10);
     const resumed = { ...state };
     for (const delta of [NaN, Infinity, -1]) updateTwilightState(state, delta, playing, loud);
     expect(state).toEqual(resumed);
@@ -62,6 +71,62 @@ test("Twilight Tides freezes kinetic state with every gate, bounds deltas and pr
   for (let i = 0; i < 600; i++) updateTwilightState(at120, 1 / 120, playing, loud);
   expect(at30.waterEnergy).toBeCloseTo(at120.waterEnergy, 10);
   expect(at30.time).toBeCloseTo(at120.time, 2);
+});
+
+test("Twilight Tides maps ordinary music into a visible range without amplifying silence or invalid bands", () => {
+  expect(twilightMusicEnergy({ ...loud, smoothedEnergy: 0.01 })).toBe(0);
+  expect(twilightMusicEnergy({ ...loud, smoothedEnergy: 0.1 })).toBeGreaterThan(0.25);
+  expect(twilightMusicEnergy({ ...loud, smoothedEnergy: 0.3 })).toBeGreaterThan(0.65);
+  expect(twilightMusicEnergy({ ...loud, smoothedEnergy: 0.5 })).toBe(1);
+  for (const value of [NaN, Infinity, -Infinity, -1]) expect(twilightMusicEnergy({ ...loud, smoothedEnergy: value })).toBe(0);
+  const quiet = createTwilightState();
+  const music = createTwilightState();
+  for (let frame = 0; frame < 600; frame++) {
+    updateTwilightState(quiet, 1 / 60, playing, { ...loud, smoothedEnergy: 0, bass: 1, highs: 1 });
+    updateTwilightState(music, 1 / 60, playing, { ...loud, smoothedEnergy: 0.3, bass: 0.7, highs: 0.4 });
+  }
+  expect(music.time).toBeGreaterThan(quiet.time * 12);
+  expect(music.skyTime).toBeGreaterThan(quiet.skyTime * 9);
+  expect(music.glintEnergy).toBeGreaterThan(0.45);
+  expect(quiet.glintEnergy).toBe(0);
+  const noBands = createTwilightState();
+  updateTwilightState(noBands, 0.05, playing, { ...loud, bass: NaN, highs: Infinity });
+  expect(noBands.glintEnergy).toBe(0);
+});
+
+test("Twilight Tides keeps meteors sparse, bounded, silent at mute, and CHROMA-off palette stable", () => {
+  const state = createTwilightState();
+  let previousCount = 0;
+  let lastStarted = -Infinity;
+  let progressInBounds = true;
+  for (let frame = 0; frame < 60 * 240; frame++) {
+    updateTwilightState(state, 1 / 60, playing, loud);
+    progressInBounds &&= state.meteorProgress >= 0 && state.meteorProgress <= 1;
+    if (state.meteorCount !== previousCount) {
+      expect(frame / 60 - lastStarted).toBeGreaterThan(48);
+      lastStarted = frame / 60;
+      previousCount = state.meteorCount;
+    }
+    expect(progressInBounds).toBe(true);
+  }
+  expect(state.meteorCount).toBeGreaterThanOrEqual(3);
+  expect(state.meteorCount).toBeLessThanOrEqual(5);
+  for (const chromaEnabled of [true, false]) {
+    const subdued = createTwilightState();
+    for (let frame = 0; frame < 60 * 90; frame++) {
+      updateTwilightState(subdued, 1 / 60, { ...playing, chromaEnabled }, chromaEnabled ? { ...loud, smoothedEnergy: 0 } : loud);
+    }
+    expect(subdued.meteorCount).toBe(0);
+    if (!chromaEnabled) expect(subdued.paletteTime).toBe(0);
+  }
+  expect(TWILIGHT_ALIEN_SUN.x).toBeGreaterThan(TWILIGHT_SUN.x);
+  expect(TWILIGHT_ALIEN_SUN.y).toBeGreaterThan(TWILIGHT_SUN.y);
+  for (const [startX, startY, endX, endY] of TWILIGHT_METEOR_PATHS) {
+    expect(Math.max(Math.abs(startX), Math.abs(endX))).toBeLessThan(0.22);
+    expect(startY).toBeLessThan(0.4);
+    expect(endY).toBeGreaterThan(0.25);
+    expect(Math.hypot(startX - endX, startY - endY)).toBeLessThan(0.22);
+  }
 });
 
 test("Twilight Tides quality bounds desktop, mobile and high-DPR drawing buffers", () => {
@@ -83,7 +148,7 @@ async function runtime(page: Page): Promise<RuntimeTestSnapshot> {
 
 async function canvasPixels(page: Page) {
   return page.getByLabel("Twilight Tides canvas").evaluate((element) =>
-    new Promise<{ hash: number; sky: number; water: number; colors: number }>((resolve) => {
+    new Promise<{ hash: number; sky: number; water: number; colors: number; greenSky: number; greenWater: number }>((resolve) => {
       requestAnimationFrame(() => {
         const sample = document.createElement("canvas");
         sample.width = 160;
@@ -94,6 +159,8 @@ async function canvasPixels(page: Page) {
         let hash = 0;
         let sky = 0;
         let water = 0;
+        let greenSky = 0;
+        let greenWater = 0;
         const colors = new Set<number>();
         for (let index = 0; index < pixels.length; index += 4) {
           const red = pixels[index];
@@ -102,12 +169,57 @@ async function canvasPixels(page: Page) {
           hash = (Math.imul(hash, 31) + red + green * 3 + blue * 7) | 0;
           if (index < pixels.length * 0.4) sky += red + green + blue;
           if (index > pixels.length * 0.5) water += red + green + blue;
+          if (green > 70 && green > red * 1.4 && green > blue * 1.2) {
+            if (index < pixels.length * 0.44) greenSky++;
+            if (index > pixels.length * 0.5) greenWater++;
+          }
           colors.add((red << 16) | (green << 8) | blue);
         }
-        resolve({ hash, sky, water, colors: colors.size });
+        resolve({ hash, sky, water, colors: colors.size, greenSky, greenWater });
       });
     }),
   );
+}
+
+async function visibleMotion(page: Page) {
+  return page.getByLabel("Twilight Tides canvas").evaluate((element) => new Promise<number>((resolve) => {
+    const sample = document.createElement("canvas");
+    sample.width = 160;
+    sample.height = 100;
+    const context = sample.getContext("2d")!;
+    requestAnimationFrame(() => {
+      context.drawImage(element as HTMLCanvasElement, 0, 0, 160, 100);
+      const before = context.getImageData(0, 0, 160, 100).data;
+      setTimeout(() => requestAnimationFrame(() => {
+        context.drawImage(element as HTMLCanvasElement, 0, 0, 160, 100);
+        const after = context.getImageData(0, 0, 160, 100).data;
+        let difference = 0;
+        for (let index = 160 * 50 * 4; index < after.length; index += 4) {
+          difference += Math.abs(after[index] - before[index]) + Math.abs(after[index + 1] - before[index + 1]) + Math.abs(after[index + 2] - before[index + 2]);
+        }
+        resolve(difference / (160 * 50 * 3));
+      }), 350);
+    });
+  }));
+}
+
+async function renderedSkyClocks(page: Page) {
+  return page.getByLabel("Twilight Tides canvas").evaluate((element) => new Promise<Record<string, number>>((resolve) => {
+    requestAnimationFrame(() => {
+      const gl = (element as HTMLCanvasElement).getContext("webgl2")!;
+      const program: WebGLProgram | null = gl.getParameter(gl.CURRENT_PROGRAM);
+      if (!program) throw new Error("Expected the rendered Twilight Tides water program");
+      const values: Record<string, number> = {};
+      for (const name of ["time", "skyTime", "palettePhase", "waterEnergy", "meteorProgress"]) {
+        const location = gl.getUniformLocation(program, name);
+        if (!location) throw new Error(`Missing rendered uniform: ${name}`);
+        const value: unknown = gl.getUniform(program, location);
+        if (typeof value !== "number") throw new Error(`Expected a numeric rendered uniform: ${name}`);
+        values[name] = value;
+      }
+      resolve(values);
+    });
+  }));
 }
 
 async function toggle(page: Page, name: "Chroma" | "Motion" | "Info") {
@@ -137,6 +249,8 @@ test.describe("Twilight Tides player", () => {
     expect(still.sky).toBeGreaterThan(500_000);
     expect(still.water).toBeGreaterThan(400_000);
     expect(still.colors).toBeGreaterThan(2000);
+    expect(still.greenSky).toBeGreaterThan(5);
+    expect(still.greenWater).toBeGreaterThan(2);
     await page.mouse.move(900, 450);
     await page.mouse.down();
     await page.mouse.move(600, 300, { steps: 10 });
@@ -171,7 +285,7 @@ test.describe("Twilight Tides player", () => {
     const beforeMusic = await canvasPixels(page);
     await page.getByRole("button", { name: "Play", exact: true }).click();
     await expect.poll(async () => (await runtime(page)).audio.smoothedEnergy, { timeout: 15_000 }).toBeGreaterThan(0.1);
-    await expect.poll(async () => (await canvasPixels(page)).sky).toBeGreaterThan(beforeMusic.sky * 1.015);
+    await expect.poll(async () => (await canvasPixels(page)).sky).toBeGreaterThan(beforeMusic.sky * 1.05);
     await toggle(page, "Chroma");
     const frozen = await canvasPixels(page);
     await page.waitForTimeout(400);
@@ -180,8 +294,14 @@ test.describe("Twilight Tides player", () => {
     await page.screenshot({ path: testInfo.outputPath("twilight-chroma-off.png") });
     await toggle(page, "Motion");
     await expect.poll(async () => (await canvasPixels(page)).hash).not.toBe(frozen.hash);
+    await page.waitForTimeout(1500);
+    const musicMotion = (await visibleMotion(page) + await visibleMotion(page)) / 2;
     await page.getByRole("slider", { name: "Volume" }).fill("0");
     await expect.poll(async () => (await runtime(page)).audio.smoothedEnergy, { timeout: 15_000 }).toBeLessThan(0.01);
+    await page.waitForTimeout(3000);
+    const quietMotion = (await visibleMotion(page) + await visibleMotion(page)) / 2;
+    expect(musicMotion).toBeGreaterThan(quietMotion * 2.5);
+    await testInfo.attach("music-versus-muted-motion", { body: JSON.stringify({ musicMotion, quietMotion }), contentType: "application/json" });
     const quiet = await canvasPixels(page);
     await expect.poll(async () => (await canvasPixels(page)).hash).not.toBe(quiet.hash);
     await toggle(page, "Chroma");
@@ -206,6 +326,36 @@ test.describe("Twilight Tides player", () => {
     await page.waitForTimeout(400);
     expect(await canvasPixels(page)).toEqual(frozen);
     await expect(page.getByLabel("Motion")).toBeChecked();
+    expect(pageErrors).toEqual([]);
+  });
+
+  test("cloud drift, palette and an active shooting star freeze in the rendered scene", async ({ page, pageErrors }, testInfo) => {
+    test.setTimeout(55_000);
+    await toggle(page, "Info");
+    const initial = await renderedSkyClocks(page);
+    await page.getByRole("button", { name: "Play", exact: true }).click();
+    await expect.poll(async () => {
+      const progress = (await renderedSkyClocks(page)).meteorProgress;
+      return progress > 0.12 && progress < 0.6;
+    }, { timeout: 45_000, intervals: [100] }).toBe(true);
+    await toggle(page, "Motion");
+    const frozen = await renderedSkyClocks(page);
+    expect(frozen.skyTime).toBeGreaterThan(initial.skyTime + 1);
+    expect(frozen.palettePhase).toBeGreaterThan(initial.palettePhase + 0.05);
+    expect(frozen.meteorProgress).toBeLessThan(1);
+    await page.waitForTimeout(450);
+    expect(await renderedSkyClocks(page)).toEqual(frozen);
+    await page.getByRole("button", { name: "Collapse player panel" }).click();
+    await page.screenshot({ path: testInfo.outputPath("twilight-meteor-motion-off.png") });
+    await page.getByRole("button", { name: "Expand player panel" }).click();
+    await toggle(page, "Motion");
+    await page.getByRole("button", { name: "Pause", exact: true }).click();
+    await page.waitForTimeout(100);
+    const paused = await renderedSkyClocks(page);
+    const pixels = await canvasPixels(page);
+    await page.waitForTimeout(350);
+    expect(await renderedSkyClocks(page)).toEqual(paused);
+    expect(await canvasPixels(page)).toEqual(pixels);
     expect(pageErrors).toEqual([]);
   });
 

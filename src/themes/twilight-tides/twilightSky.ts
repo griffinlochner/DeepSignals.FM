@@ -1,22 +1,110 @@
 import * as THREE from "three";
 
 export const TWILIGHT_SUN = new THREE.Vector3(-0.12, 0.045, -1).normalize();
+export const TWILIGHT_ALIEN_SUN = new THREE.Vector3(0.13, 0.15, -1).normalize();
 
 // The visible sky and reflected sky use exactly the same linear-light treatment.
 export const twilightColorShader = /* glsl */`
   uniform samplerCube skyMap;
   uniform float chroma;
   uniform float colorEnergy;
+  uniform float glintEnergy;
+  uniform float skyTime;
+  uniform float palettePhase;
+  uniform float waterEnergy;
+  uniform float meteorProgress;
+  uniform vec4 meteorPath;
   uniform vec3 sunDirection;
-  vec3 skyLight(vec3 direction) {
-    direction = normalize(direction);
-    vec3 color = textureCube(skyMap, direction).rgb;
-    float sunAngle = acos(clamp(dot(direction, sunDirection), -1.0, 1.0));
-    float edge = max(fwidth(sunAngle), 0.0006);
-    color = mix(color, vec3(1.0, 0.79, 0.44), 1.0 - smoothstep(0.017 - edge, 0.017 + edge, sunAngle));
+  uniform vec3 alienSunDirection;
+
+  vec3 orangeRadiance() {
+    return mix(vec3(1.0, 0.63, 0.27), vec3(1.0, 0.38, 0.32),
+      chroma * (colorEnergy * 0.35 + palettePhase * 0.16));
+  }
+  vec3 alienRadiance() {
+    return mix(vec3(0.12, 0.85, 0.035), vec3(0.065, 1.0, 0.18),
+      chroma * (colorEnergy * 0.5 + palettePhase * 0.18));
+  }
+  vec3 twilightTreatment(vec3 color) {
     float luminance = dot(color, vec3(0.2126, 0.7152, 0.0722));
     color = mix(vec3(luminance), color, mix(0.72, 1.12, chroma));
-    return max(color, vec3(0.0)) * (0.86 + chroma * (0.14 + colorEnergy * 0.22));
+    return max(color, vec3(0.0)) * (0.82 + chroma * (0.18 + colorEnergy * 0.55));
+  }
+  vec2 twilightClouds(vec3 d) {
+    float height = max(d.y, 0.0);
+    float mask = smoothstep(0.025, 0.13, height) * (1.0 - smoothstep(0.28, 0.55, height));
+    float angle = skyTime * 0.025;
+    vec3 drift = d;
+    drift.xz = mat2(cos(angle), -sin(angle), sin(angle), cos(angle)) * d.xz;
+    drift.y += sin(d.x * 5.0 + skyTime * 0.12) * 0.008 * mask;
+    return textureCube(skyMap, normalize(drift)).rg * mask;
+  }
+  vec3 atmosphereLight(vec3 d, vec2 clouds) {
+    float height = max(d.y, 0.0);
+    float sunFacing = pow(max(dot(normalize(vec3(d.x, 0.0, d.z)),
+      normalize(vec3(sunDirection.x, 0.0, sunDirection.z))), 0.0), 6.0);
+    vec3 horizon = mix(vec3(0.55, 0.105, 0.17), vec3(1.0, 0.32, 0.075), sunFacing);
+    horizon = mix(horizon, vec3(0.85, 0.12, 0.24), chroma * (palettePhase * 0.24 + colorEnergy * 0.12));
+    vec3 color = mix(horizon, vec3(0.63, 0.07, 0.23), smoothstep(0.0, 0.12, height));
+    color = mix(color, vec3(0.22, 0.025, 0.22), smoothstep(0.08, 0.23, height));
+    color = mix(color, vec3(0.017, 0.009, 0.06), smoothstep(0.18, 0.32, height));
+    color = mix(color, vec3(0.0015, 0.003, 0.014), smoothstep(0.28, 0.46, height));
+    vec3 cloudColor = mix(vec3(0.22, 0.035, 0.18), vec3(1.0, 0.30, 0.21),
+      exp(-height * 4.0) * (0.4 + 0.6 * sunFacing));
+    cloudColor = mix(cloudColor, cloudColor * vec3(0.8, 0.65, 1.45), palettePhase * chroma * 0.4);
+    color = mix(color, cloudColor, clouds.x * 0.55);
+    color += vec3(0.09, 0.012, 0.065) * clouds.y * (1.0 + chroma * colorEnergy * 0.65);
+    float sunAngle = acos(clamp(dot(d, sunDirection), -1.0, 1.0));
+    float alienAngle = acos(clamp(dot(d, alienSunDirection), -1.0, 1.0));
+    color += orangeRadiance() * 0.27 * exp(-sunAngle * 12.0);
+    color += alienRadiance() * 0.065 * exp(-alienAngle * 22.0) * (1.0 + chroma * colorEnergy);
+    return color;
+  }
+  float starHash(vec2 cell) {
+    return fract(sin(dot(cell, vec2(127.1, 311.7))) * 43758.5453);
+  }
+  vec3 starlight(vec3 d, float cloudCover) {
+    if (d.y < 0.22) return vec3(0.0);
+    vec2 coordinates = vec2(atan(d.x, -d.z), asin(clamp(d.y, -1.0, 1.0))) * 90.0;
+    vec2 cell = floor(coordinates);
+    float seed = starHash(cell);
+    vec2 center = vec2(starHash(cell + 17.3), starHash(cell - 9.1)) * 0.6 + 0.2;
+    float radius = mix(0.025, 0.065, starHash(cell + 5.7));
+    float aa = max(length(fwidth(coordinates)), 0.001);
+    float point = 1.0 - smoothstep(max(0.0, radius - aa * 0.5), radius + aa * 0.5, length(fract(coordinates) - center));
+    float twinkle = 0.88 + chroma * waterEnergy * 0.12 * sin(skyTime * 1.4 + seed * 90.0);
+    float visibility = smoothstep(0.22, 0.35, d.y) * (1.0 - cloudCover * 0.8);
+    float stars = point * step(0.955, seed) * twinkle * visibility * (1.0 - smoothstep(0.3, 1.0, aa));
+    return vec3(0.42, 0.48, 0.61) * stars;
+  }
+  vec3 shootingStar(vec3 d) {
+    if (meteorProgress >= 1.0 || d.z >= 0.0 || d.y < 0.20) return vec3(0.0);
+    vec2 p = d.xy / -d.z;
+    vec2 head = mix(meteorPath.xy, meteorPath.zw, meteorProgress);
+    vec2 tail = mix(meteorPath.xy, meteorPath.zw, max(0.0, meteorProgress - 0.18));
+    vec2 line = head - tail;
+    float along = clamp(dot(p - tail, line) / max(dot(line, line), 0.000001), 0.0, 1.0);
+    float distanceToTrail = length(p - tail - line * along);
+    float aa = max(length(fwidth(p)), 0.0001);
+    float trail = 1.0 - smoothstep(0.0003, 0.0006 + aa, distanceToTrail);
+    float fade = smoothstep(0.0, 0.16, meteorProgress) * (1.0 - smoothstep(0.55, 1.0, meteorProgress));
+    return vec3(0.45, 0.65, 0.57) * trail * along * fade * chroma * waterEnergy * 0.55;
+  }
+  vec3 skyLight(vec3 direction) {
+    vec3 d = normalize(direction);
+    vec2 clouds = twilightClouds(d);
+    vec3 color = atmosphereLight(d, clouds);
+    float sunAngle = acos(clamp(dot(d, sunDirection), -1.0, 1.0));
+    float alienAngle = acos(clamp(dot(d, alienSunDirection), -1.0, 1.0));
+    float sunEdge = max(fwidth(sunAngle), 0.0006);
+    float alienEdge = max(fwidth(alienAngle), 0.0006);
+    float sunDisc = 1.0 - smoothstep(0.017 - sunEdge, 0.017 + sunEdge, sunAngle);
+    float alienDisc = 1.0 - smoothstep(0.032 - alienEdge, 0.032 + alienEdge, alienAngle);
+    color = mix(color, orangeRadiance() * (1.0 + chroma * glintEnergy * 0.5), sunDisc);
+    float limb = 0.7 + 0.3 * sqrt(max(0.0, 1.0 - pow(alienAngle / 0.032, 2.0)));
+    color = mix(color, alienRadiance() * limb * (1.0 + chroma * glintEnergy * 0.7), alienDisc);
+    color += starlight(d, clouds.x) + shootingStar(d) * (1.0 - clouds.x * 0.75);
+    return twilightTreatment(color);
   }
 `;
 
@@ -32,7 +120,6 @@ export function createTwilightSky(renderer: THREE.WebGLRenderer, resolution: num
     side: THREE.BackSide,
     depthWrite: false,
     toneMapped: false,
-    uniforms: { sunDirection: { value: TWILIGHT_SUN } },
     vertexShader: /* glsl */`
       varying vec3 direction;
       void main() {
@@ -42,7 +129,6 @@ export function createTwilightSky(renderer: THREE.WebGLRenderer, resolution: num
     `,
     fragmentShader: /* glsl */`
       varying vec3 direction;
-      uniform vec3 sunDirection;
       float hash(vec2 p) {
         return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
       }
@@ -66,28 +152,13 @@ export function createTwilightSky(renderer: THREE.WebGLRenderer, resolution: num
       void main() {
         vec3 d = normalize(direction);
         float height = max(d.y, 0.0);
-        float sunFacing = pow(max(dot(normalize(vec3(d.x, 0.0, d.z)),
-          normalize(vec3(sunDirection.x, 0.0, sunDirection.z))), 0.0), 6.0);
-        vec3 horizon = mix(vec3(0.55, 0.105, 0.17), vec3(1.0, 0.32, 0.075), sunFacing);
-        vec3 color = mix(horizon, vec3(0.63, 0.07, 0.23), smoothstep(0.0, 0.12, height));
-        color = mix(color, vec3(0.22, 0.025, 0.22), smoothstep(0.08, 0.23, height));
-        color = mix(color, vec3(0.035, 0.016, 0.105), smoothstep(0.18, 0.34, height));
-        color = mix(color, vec3(0.006, 0.014, 0.048), smoothstep(0.30, 0.56, height));
-
         // A directional cloud layer stays continuous across all six cubemap faces.
         vec2 p = d.xz / (0.22 + height) * 2.1;
         float warp = cloudNoise(p * 0.7);
         float clouds = cloudNoise(p * vec2(1.1, 3.6) + warp * 1.8);
         float wisps = smoothstep(0.46, 0.76, clouds);
-        float cloudMask = smoothstep(0.025, 0.13, height) * (1.0 - smoothstep(0.55, 0.9, height));
-        vec3 cloudColor = mix(vec3(0.32, 0.055, 0.20), vec3(1.0, 0.30, 0.21),
-          exp(-height * 4.0) * (0.4 + 0.6 * sunFacing));
-        color = mix(color, cloudColor, wisps * cloudMask * 0.55 * (1.0 - smoothstep(0.25, 0.6, height)));
         float veil = pow(0.5 + 0.5 * sin(height * 48.0 + warp * 6.0), 6.0);
-        color += vec3(0.09, 0.012, 0.065) * veil * cloudMask * wisps;
-        float sunAngle = acos(clamp(dot(d, sunDirection), -1.0, 1.0));
-        color += vec3(0.30, 0.10, 0.035) * exp(-sunAngle * 12.0);
-        gl_FragColor = vec4(color, 1.0);
+        gl_FragColor = vec4(wisps, veil * wisps, 0.0, 1.0);
       }
     `,
   });

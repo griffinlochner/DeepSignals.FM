@@ -1,6 +1,7 @@
 import * as THREE from "three";
-import { createTwilightSky, TWILIGHT_SUN, twilightColorShader } from "./twilightSky";
+import { createTwilightSky, TWILIGHT_SUN, TWILIGHT_ALIEN_SUN, twilightColorShader } from "./twilightSky";
 import type { createTwilightState, twilightQuality } from "./twilightRuntime";
+import { TWILIGHT_METEOR_PATHS } from "./twilightRuntime";
 
 function createRippleNormals() {
   const size = 128;
@@ -73,10 +74,17 @@ export function createTwilightOcean(renderer: THREE.WebGLRenderer, quality: Retu
     skyMap: { value: skyTarget.texture },
     rippleMap: { value: normals },
     time: { value: 0 },
-    turbulence: { value: 0.85 },
+    turbulence: { value: 0.65 },
     chroma: { value: 1 },
     colorEnergy: { value: 0 },
+    glintEnergy: { value: 0 },
+    waterEnergy: { value: 0 },
+    skyTime: { value: 0 },
+    palettePhase: { value: 0 },
+    meteorProgress: { value: 1 },
+    meteorPath: { value: new THREE.Vector4(...TWILIGHT_METEOR_PATHS[0]) },
     sunDirection: { value: TWILIGHT_SUN },
+    alienSunDirection: { value: TWILIGHT_ALIEN_SUN },
   };
   const skyGeometry = new THREE.BoxGeometry(2, 2, 2);
   const skyMaterial = new THREE.ShaderMaterial({
@@ -140,6 +148,14 @@ export function createTwilightOcean(renderer: THREE.WebGLRenderer, quality: Retu
       varying vec3 worldPosition;
       varying vec2 swellSlope;
       ${twilightColorShader}
+      vec3 reflectedHighlight(vec3 normal, vec3 eye, vec3 lightDirection, vec3 radiance, float sharpness) {
+        vec3 halfDirection = normalize(eye + lightDirection);
+        float alignment = max(dot(normal, halfDirection), 0.0);
+        float highlight = pow(alignment, sharpness);
+        float broadHighlight = pow(alignment, 45.0);
+        return twilightTreatment(radiance) * (highlight * (0.85 + chroma * (colorEnergy * 0.9 + glintEnergy * 1.4))
+          + broadHighlight * 0.055);
+      }
       void main() {
         vec2 p = worldPosition.xz;
         vec2 a = texture2D(rippleMap, p * 0.031 + time * vec2(0.008, 0.005)).rg * 2.0 - 1.0;
@@ -155,15 +171,13 @@ export function createTwilightOcean(renderer: THREE.WebGLRenderer, quality: Retu
         vec3 reflection = skyLight(normalize(reflected));
         float facing = max(dot(normal, eye), 0.0);
         float fresnel = 0.025 + 0.975 * pow(1.0 - facing, 5.0);
-        vec3 body = vec3(0.018, 0.025, 0.063) + skyLight(vec3(0.0, 0.35, -1.0)) * 0.075;
-        vec3 halfDirection = normalize(eye + sunDirection);
-        float highlight = pow(max(dot(normal, halfDirection), 0.0), 380.0);
-        float broadHighlight = pow(max(dot(normal, halfDirection), 0.0), 45.0);
-        vec3 sun = vec3(1.0, 0.49, 0.22) * (highlight * 1.7 + broadHighlight * 0.055);
-        sun *= (0.85 + chroma * colorEnergy * 0.30);
+        vec3 body = vec3(0.018, 0.025, 0.063) + twilightTreatment(vec3(0.12, 0.025, 0.16)) * 0.075;
+        vec3 sun = reflectedHighlight(normal, eye, sunDirection, orangeRadiance(), 380.0)
+          + reflectedHighlight(normal, eye, alienSunDirection, alienRadiance(), 240.0);
         vec3 color = mix(body, reflection, fresnel) + sun;
         float haze = smoothstep(180.0, 7000.0, distanceToEye) * 0.4;
-        color = mix(color, skyLight(normalize(vec3(reflected.x, 0.01, reflected.z))), haze);
+        vec3 horizon = normalize(vec3(reflected.x, 0.01, reflected.z));
+        color = mix(color, twilightTreatment(atmosphereLight(horizon, vec2(0.0))), haze);
         gl_FragColor = vec4(color, 1.0);
         #include <tonemapping_fragment>
         #include <colorspace_fragment>
@@ -183,9 +197,16 @@ export function createTwilightOcean(renderer: THREE.WebGLRenderer, quality: Retu
     },
     update(state: ReturnType<typeof createTwilightState>, chromaEnabled: boolean) {
       uniforms.time.value = state.time;
-      uniforms.turbulence.value = 0.85 + state.waterEnergy * 0.30;
+      uniforms.turbulence.value = 0.65 + state.waterEnergy * 0.85;
       uniforms.chroma.value = chromaEnabled ? 1 : 0;
       uniforms.colorEnergy.value = chromaEnabled ? state.colorEnergy : 0;
+      uniforms.glintEnergy.value = chromaEnabled ? state.glintEnergy : 0;
+      uniforms.waterEnergy.value = state.waterEnergy;
+      uniforms.skyTime.value = state.skyTime;
+      uniforms.palettePhase.value = chromaEnabled ? 0.5 + 0.5 * Math.sin(state.paletteTime * 0.2) : 0;
+      uniforms.meteorProgress.value = chromaEnabled ? state.meteorProgress : 1;
+      const [startX, startY, endX, endY] = TWILIGHT_METEOR_PATHS[Math.max(0, state.meteorCount - 1) % TWILIGHT_METEOR_PATHS.length];
+      uniforms.meteorPath.value.set(startX, startY, endX, endY);
     },
     dispose() {
       scene.clear();
