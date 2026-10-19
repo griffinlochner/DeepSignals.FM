@@ -19,6 +19,7 @@ export type ExternalSignalId =
   | 'space-unicorn-radio'
   | 'deep-trip-radio'
   | 'psybient-sunset'
+  | 'triplag-darkpsy'
 
 export type ExternalSignalDefinition = {
   id: ExternalSignalId
@@ -195,6 +196,15 @@ export const EXTERNAL_SIGNAL_DEFINITIONS: ExternalSignalDefinition[] = [
     sourceAttribution: 'External signal from Space Unicorn Radio',
     publicPlayerCompatible: true,
     artworkUrl: publicAssetUrl('/images/stations/space-unicorn-radio.webp'),
+  },
+  {
+    id: 'triplag-darkpsy',
+    stationName: 'Triplag Darkpsy',
+    streamUrl: 'https://a3.asurahosting.com/listen/triplag/radio.mp3',
+    stationWebsite: 'https://triplag.com/webradio/',
+    sourceLinkLabel: 'Triplag',
+    sourceAttribution: 'External signal from Triplag',
+    publicPlayerCompatible: true,
   },
 ]
 

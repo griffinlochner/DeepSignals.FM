@@ -47,6 +47,7 @@ import {
   useSpaceUnicornTelemetry,
 } from "./useSpaceUnicornNowPlaying";
 import { useHirschmilchNowPlaying } from "./useHirschmilchNowPlaying";
+import { useTriplagNowPlaying } from "./useTriplagNowPlaying";
 import { getPsyBrazilArtworkUrl } from "./psybrazilArtwork";
 import { publishRuntimeTestSnapshot } from "./runtimeTestBridge";
 import {
@@ -482,6 +483,7 @@ function PlayerShell({ className }: PlayerShellProps) {
   const spaceUnicornNowPlaying = useSpaceUnicornNowPlaying(selectedSignalId);
   const spaceUnicornTelemetry = useSpaceUnicornTelemetry(selectedSignalId);
   const hirschmilchNowPlaying = useHirschmilchNowPlaying(selectedSignalId);
+  const triplag = useTriplagNowPlaying(selectedSignalId);
   const externalNowPlaying =
     psyStreamNowPlaying ??
     psyBrazilNowPlaying ??
@@ -492,7 +494,8 @@ function PlayerShell({ className }: PlayerShellProps) {
     psyBrazilElectroNowPlaying ??
     deepTripNowPlaying ??
     spaceUnicornNowPlaying ??
-    hirschmilchNowPlaying;
+    hirschmilchNowPlaying ??
+    triplag?.metadata;
   const externalNowPlayingWithArtwork = useMemo(() => {
     if (!externalNowPlaying) {
       return null;
@@ -1105,16 +1108,17 @@ function PlayerShell({ className }: PlayerShellProps) {
   ]);
 
   const transmissionLabel = useMemo(() => {
-    if (externalNowPlaying?.artist && externalNowPlaying.title) {
-      return `${externalNowPlaying.artist} — ${externalNowPlaying.title}`;
-    }
-
     if (externalNowPlaying?.title) {
-      return externalNowPlaying.title;
+      const label = externalNowPlaying.artist
+        ? `${externalNowPlaying.artist} — ${externalNowPlaying.title}`
+        : externalNowPlaying.title;
+      return triplag?.metadata?.album
+        ? `${label} — Album: ${triplag.metadata.album}`
+        : label;
     }
 
     return formatAudioSourceLabel(audioController.audioSource);
-  }, [audioController.audioSource, externalNowPlaying]);
+  }, [audioController.audioSource, externalNowPlaying, triplag]);
 
   const handleAudioTogglePlay = async () => {
     if (audioController.playbackStatus !== "playing") {
@@ -1237,6 +1241,7 @@ function PlayerShell({ className }: PlayerShellProps) {
             psyStreamTelemetry?.listeners ??
             psyBrazilTelemetry?.listeners ??
             spaceUnicornTelemetry?.listeners ??
+            triplag?.telemetry?.listeners ??
             null
           }
           bitrateKbps={
@@ -1244,6 +1249,7 @@ function PlayerShell({ className }: PlayerShellProps) {
             psyStreamTelemetry?.bitrateKbps ??
             psyBrazilTelemetry?.bitrateKbps ??
             spaceUnicornTelemetry?.bitrateKbps ??
+            triplag?.telemetry?.bitrateKbps ??
             null
           }
           audioSnapshot={audioAnalysis.snapshot}

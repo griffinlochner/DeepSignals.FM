@@ -6,12 +6,14 @@ export type ExternalNowPlayingMetadata = TrackSignalMetadata & {
   rawNowPlaying?: string
 }
 
-export type ExternalNowPlayingConfig = {
+export type ExternalNowPlayingConfig<T extends { changeKey: string } = ExternalNowPlayingMetadata> = {
   sourceId: string
   nowPlayingUrl: string
   pollMs: number
+  hiddenPollMs?: number
+  cache?: RequestCache
   fetchResponseType: 'json' | 'text'
-  parse: (raw: unknown) => ExternalNowPlayingMetadata | null
+  parse: (raw: unknown) => T | null
 }
 
 /**
@@ -20,11 +22,11 @@ export type ExternalNowPlayingConfig = {
  * supplies its endpoint + a response parser; polling/abort/cache-bust
  * lifecycle logic lives here once.
  */
-export function useExternalNowPlaying(
+export function useExternalNowPlaying<T extends { changeKey: string } = ExternalNowPlayingMetadata>(
   selectedSourceId: string | null,
-  config: ExternalNowPlayingConfig,
+  config: ExternalNowPlayingConfig<T>,
 ) {
-  const [metadata, setMetadata] = useState<ExternalNowPlayingMetadata | null>(null)
+  const [metadata, setMetadata] = useState<T | null>(null)
   const requestGenerationRef = useRef(0)
 
   useEffect(() => {
@@ -43,7 +45,7 @@ export function useExternalNowPlaying(
 
       try {
         const response = await fetch(config.nowPlayingUrl, {
-          cache: 'no-store',
+          cache: config.cache ?? 'no-store',
           mode: 'cors',
           signal: activeController.signal,
         })
@@ -79,7 +81,10 @@ export function useExternalNowPlaying(
         setMetadata(null)
       } finally {
         if (requestGenerationRef.current === generation) {
-          timeoutHandle = window.setTimeout(poll, config.pollMs)
+          const delay = document.visibilityState === 'hidden'
+            ? config.hiddenPollMs ?? config.pollMs
+            : config.pollMs
+          timeoutHandle = window.setTimeout(poll, delay)
         }
       }
     }
