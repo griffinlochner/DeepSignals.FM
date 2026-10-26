@@ -2,10 +2,10 @@ import {
   useExternalNowPlaying,
   type ExternalNowPlayingMetadata,
 } from './useExternalNowPlaying'
+import { isPsyBrazilRecord, selectPsyBrazilStation } from './psybrazilMetadata'
 
 const PSYBRAZIL_SOURCE_ID = 'psybrazil'
-// The legacy songstatus.php?sid=N route was retired upstream; the network now
-// exposes per-station now-playing through api/track.php?station=<mount>.
+// The endpoint now returns a network map; the parser selects this mount.
 const PSYBRAZIL_NOW_PLAYING_URL =
   'https://psybrazil.com.br/api/track.php?station=psybr'
 export const PSYBRAZIL_METADATA_POLL_MS = 15_000
@@ -66,52 +66,56 @@ function musicalArtist(value: string | null) {
   return normalizeText(value) || null
 }
 
-type PsyBrazilNowPlayingRecord = Record<string, unknown>
-
 /**
- * Every PsyBrazil network station shares one response shape: JSON where the
- * track arrives as a combined "Artist - Title" (or "Artist_-_Title" with
- * underscores for spaces) and any `artist` field carries the station label
- * rather than the musical artist. This parser unpacks that shape, still
- * supports a plain text response, and returns null (falling back to the
- * station name) only when no title is available, instead of throwing.
+ * Selects the requested station before normalizing combined track strings.
+ * Legacy single-station JSON and plain text responses remain supported.
  */
 function parseNetworkNowPlaying(
   raw: unknown,
   nowPlayingUrl: string,
 ): ExternalNowPlayingMetadata | null {
-  const rawText = typeof raw === 'string' ? raw.trim() : ''
-  let artist: string | null = null
-  let title: string | null = null
-  let rawNowPlaying: string | null = null
-
-  if (rawText) {
+  let value = raw
+  if (typeof raw === 'string') {
+    const rawText = raw.trim()
+    if (!rawText) {
+      return null
+    }
     try {
-      const parsed = JSON.parse(rawText) as PsyBrazilNowPlayingRecord
-      const fieldArtist =
-        cleanString(parsed.artist) ??
-        cleanString(parsed.Artist) ??
-        cleanString(parsed.singer)
-      const combined =
-        cleanString(parsed.now_playing) ??
-        cleanString(parsed.title) ??
-        cleanString(parsed.Title) ??
-        cleanString(parsed.song) ??
-        cleanString(parsed.track) ??
-        cleanString(parsed.nowplaying) ??
-        cleanString(parsed.current)
-      rawNowPlaying = combined?.toLowerCase() === 'unknown' ? null : combined
-      const split = combined ? splitCombinedTitle(combined) : null
-
-      artist = split?.artist ?? musicalArtist(fieldArtist)
-      title = split?.title ?? (combined ? normalizeText(combined) : null)
+      value = JSON.parse(rawText)
     } catch {
-      rawNowPlaying = rawText
-      const split = splitCombinedTitle(rawText)
-      artist = split?.artist ?? null
-      title = split?.title ?? (normalizeText(rawText) || null)
+      if (rawText.startsWith('{') || rawText.startsWith('[')) {
+        return null
+      }
+      value = { now_playing: rawText }
     }
   }
+
+  const stationKey = new URL(nowPlayingUrl).searchParams.get('station')
+  const parsed = stationKey ? selectPsyBrazilStation(value, stationKey) : null
+  if (!parsed) {
+    return null
+  }
+
+  const stream = isPsyBrazilRecord(parsed.stream) ? parsed.stream : null
+  const fieldArtist =
+    cleanString(parsed.artist) ??
+    cleanString(parsed.Artist) ??
+    cleanString(parsed.singer)
+  const combined =
+    cleanString(parsed.now_playing) ??
+    cleanString(stream?.current) ??
+    cleanString(parsed.title) ??
+    cleanString(parsed.Title) ??
+    cleanString(parsed.song) ??
+    cleanString(parsed.track) ??
+    cleanString(parsed.nowplaying) ??
+    cleanString(parsed.current)
+  if (!combined || combined.toLowerCase() === 'unknown') {
+    return null
+  }
+  const split = splitCombinedTitle(combined)
+  const artist = split?.artist ?? musicalArtist(fieldArtist)
+  const title = split?.title ?? normalizeText(combined)
 
   if (!title) {
     return null
@@ -123,7 +127,7 @@ function parseNetworkNowPlaying(
     artist: artist ?? undefined,
     origin: 'configured',
     changeKey: `${artist ?? ''}:${title}`,
-    rawNowPlaying: rawNowPlaying ?? undefined,
+    rawNowPlaying: combined,
   }
 }
 

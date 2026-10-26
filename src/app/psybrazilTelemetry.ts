@@ -1,16 +1,5 @@
 import type { StationTelemetry } from './useStationTelemetry'
-
-type PsyBrazilTelemetryResponse = {
-  station?: unknown
-  status?: unknown
-  listeners?: {
-    total?: unknown
-  }
-  stream?: {
-    direct_url?: unknown
-    bitrate?: unknown
-  }
-}
+import { isPsyBrazilRecord, selectPsyBrazilStation } from './psybrazilMetadata'
 
 export type PsyBrazilTelemetryIdentity = {
   stationKey: string
@@ -44,22 +33,32 @@ export function parsePsyBrazilTelemetry(
   value: unknown,
   expected: PsyBrazilTelemetryIdentity,
 ): StationTelemetry | null {
-  if (!value || typeof value !== 'object') {
+  const payload = selectPsyBrazilStation(value, expected.stationKey)
+  if (!payload || !isPsyBrazilRecord(payload.stream)) {
     return null
   }
 
-  const payload = value as PsyBrazilTelemetryResponse
-
+  const networkResponse = isPsyBrazilRecord(value) && 'stations' in value
+  const stream = payload.stream
   if (
-    payload.station !== expected.stationKey ||
     payload.status !== 'online' ||
-    payload.stream?.direct_url !== expected.streamUrl
+    (!networkResponse && payload.station !== expected.stationKey) ||
+    (!networkResponse && stream.direct_url !== expected.streamUrl) ||
+    (stream.direct_url !== undefined && stream.direct_url !== expected.streamUrl) ||
+    (stream.stream_url !== undefined &&
+      stream.stream_url !== expected.streamUrl &&
+      stream.stream_url !== `https://psybrazil.com.br/${expected.stationKey}`)
   ) {
     return null
   }
 
-  const listeners = parseNonNegativeInteger(payload.listeners?.total)
-  const bitrateKbps = parsePositiveNumber(payload.stream.bitrate)
+  const listeners = networkResponse
+    ? parseNonNegativeInteger(stream.listeners) ??
+      parseNonNegativeInteger(payload.listeners)
+    : parseNonNegativeInteger(
+        isPsyBrazilRecord(payload.listeners) ? payload.listeners.total : null,
+      )
+  const bitrateKbps = parsePositiveNumber(stream.bitrate)
 
   if (listeners === null && bitrateKbps === null) {
     return null

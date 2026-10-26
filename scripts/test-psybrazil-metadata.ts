@@ -156,6 +156,67 @@ assert.deepEqual(PSYBRAZIL_STATION_IDS, {
   'psybrazil-electro': 'electro',
 })
 
+// The complete network is returned for every request, with psybr last, not first.
+const networkStations = Object.fromEntries(
+  ['dumangue', 'electro', 'progressive', 'planb', 'lofi', 'whapade', 'lowbpm', 'psybr']
+    .map((id) => [id, {
+      id,
+      status: 'online',
+      now_playing: `${id}_Artist_-_${id}_Track`,
+      next_song: 'Next Artist - Do Not Display',
+      stream: { mount: id, current: `${id} Artist - Stream Track` },
+    }]),
+)
+
+for (const stationId of Object.values(PSYBRAZIL_STATION_IDS)) {
+  const url = `https://psybrazil.com.br/api/track.php?station=${stationId}`
+  const parse = createPsyBrazilNowPlayingParser(url)
+  const entry = networkStations[stationId]
+  const wrap = (station: unknown) => ({
+    ok: true,
+    now_playing: 'Wrong Artist - Network Root',
+    stations: { ...networkStations, [stationId]: station },
+  })
+  const result = parse(JSON.stringify(wrap(entry)))
+  assert.equal(result?.artist, `${stationId} Artist`)
+  assert.equal(result?.title, `${stationId} Track`)
+  assert.equal(result?.sourceUrl, url)
+  assert.equal(result?.rawNowPlaying, entry.now_playing)
+  assert.equal(
+    parse(wrap({ ...entry, now_playing: '', stream: entry.stream }))?.title,
+    'Stream Track',
+  )
+  assert.equal(
+    parse(JSON.stringify({ station: stationId, ...entry }))?.title,
+    `${stationId} Track`,
+  )
+
+  const otherStations = { ...networkStations }
+  delete otherStations[stationId]
+  assert.equal(parse({ ok: true, stations: otherStations }), null)
+  for (const invalid of [
+    null,
+    [],
+    { ...entry, id: 'other' },
+    { ...entry, station: 'other' },
+    { ...entry, status: 'offline' },
+    { ...entry, success: false },
+    { ...entry, stream: { ...entry.stream, mount: 'other' } },
+    { id: stationId, status: 'online', next_song: 'Not Current' },
+    { id: stationId, now_playing: 'Unknown' },
+  ]) {
+    assert.equal(parse(wrap(invalid)), null)
+  }
+  assert.equal(parse({ ...wrap(entry), ok: false }), null)
+  assert.equal(parse({ ...wrap(entry), success: false }), null)
+  assert.equal(parse({ stations: null, now_playing: 'Wrong - Root' }), null)
+  assert.equal(parse({ ...entry, station: 'other' }), null)
+}
+
+for (const invalid of ['null', '[]', '42', '{"stations":', '{"now_playing":']) {
+  assert.equal(parsePsyBrazilNowPlaying(invalid), null)
+}
+
 for (const [signalId, stationId] of Object.entries(PSYBRAZIL_STATION_IDS)) {
   const artworkUrl = getPsyBrazilArtworkUrl(
     signalId,
