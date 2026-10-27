@@ -1,6 +1,7 @@
 import { publicAssetUrl } from './publicAssetUrl'
 
 export type ExternalSignalId =
+  | 'deepsignals-psytrance'
   | 'psyradio-progressive'
   | 'psyradio-chillout'
   | 'psyndora-psytrance'

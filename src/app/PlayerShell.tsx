@@ -48,6 +48,7 @@ import {
 } from "./useSpaceUnicornNowPlaying";
 import { useHirschmilchNowPlaying } from "./useHirschmilchNowPlaying";
 import { useTriplagNowPlaying } from "./useTriplagNowPlaying";
+import { useDeepSignalsNowPlaying } from "./useDeepSignalsNowPlaying";
 import { getPsyBrazilArtworkUrl } from "./psybrazilArtwork";
 import { publishRuntimeTestSnapshot } from "./runtimeTestBridge";
 import {
@@ -484,6 +485,7 @@ function PlayerShell({ className }: PlayerShellProps) {
   const spaceUnicornTelemetry = useSpaceUnicornTelemetry(selectedSignalId);
   const hirschmilchNowPlaying = useHirschmilchNowPlaying(selectedSignalId);
   const triplag = useTriplagNowPlaying(selectedSignalId);
+  const deepSignals = useDeepSignalsNowPlaying(selectedSignalId);
   const externalNowPlaying =
     psyStreamNowPlaying ??
     psyBrazilNowPlaying ??
@@ -495,7 +497,8 @@ function PlayerShell({ className }: PlayerShellProps) {
     deepTripNowPlaying ??
     spaceUnicornNowPlaying ??
     hirschmilchNowPlaying ??
-    triplag?.metadata;
+    triplag?.metadata ??
+    deepSignals?.metadata;
   const externalNowPlayingWithArtwork = useMemo(() => {
     if (!externalNowPlaying) {
       return null;
@@ -592,9 +595,13 @@ function PlayerShell({ className }: PlayerShellProps) {
             disabled: true,
           },
           {
-            id: "deepsignals-psytrance-coming-soon",
-            label: "DeepSignals.FM Psytrance — COMING SOON",
-            disabled: true,
+            id: import.meta.env.DEV
+              ? "deepsignals-psytrance"
+              : "deepsignals-psytrance-coming-soon",
+            label: import.meta.env.DEV
+              ? "DeepSignals.FM Psytrance"
+              : "DeepSignals.FM Psytrance — COMING SOON",
+            disabled: !import.meta.env.DEV,
           },
         ],
       },
@@ -1242,6 +1249,7 @@ function PlayerShell({ className }: PlayerShellProps) {
             psyBrazilTelemetry?.listeners ??
             spaceUnicornTelemetry?.listeners ??
             triplag?.telemetry?.listeners ??
+            deepSignals?.telemetry?.listeners ??
             null
           }
           bitrateKbps={
@@ -1250,6 +1258,7 @@ function PlayerShell({ className }: PlayerShellProps) {
             psyBrazilTelemetry?.bitrateKbps ??
             spaceUnicornTelemetry?.bitrateKbps ??
             triplag?.telemetry?.bitrateKbps ??
+            deepSignals?.telemetry?.bitrateKbps ??
             null
           }
           audioSnapshot={audioAnalysis.snapshot}

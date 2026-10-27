@@ -679,6 +679,54 @@ The public player is available locally at:
 http://localhost:5173/player/
 ```
 
+### DeepSignals.FM Psytrance: local testing only
+
+The existing **DEEPSIGNALS.FM** selector group enables **DeepSignals.FM Psytrance**
+only under Vite's `import.meta.env.DEV` (`npm run dev`). Production builds and
+`npm run preview` retain the disabled **DeepSignals.FM Psytrance — COMING SOON**
+entry. The development source is excluded from the production audio registry;
+persisted development selections are sanitized on production load. DeepSignals.FM
+Chillout is unchanged.
+
+Local playback uses `https://a6.asurahosting.com:7530/radio.mp3` directly.
+The public AzuraCast station-764 endpoint,
+`https://a6.asurahosting.com/api/nowplaying/764`, supplies artist/title, HTTPS
+song artwork, and exact-mount listener/bitrate statistics using the same parser
+and polling engine as Triplag. Polling is 20 seconds visible / 60 seconds hidden,
+scheduled after each response with normal HTTP caching; switching sources or
+leaving the player aborts requests and clears timers/stale data. Missing/failed
+metadata or artwork uses the existing station-name, DSFM-brand and unknown-stat
+fallbacks without changing audio playback.
+
+On October 26, 2026, live checks returned HTTP 200 for the API, JPEG artwork and
+192 kbps MP3 stream. The API allowed cross-origin reads and Icecast allowed the
+local Origin. Playback and visualization use the existing anonymous-CORS media
+element and shared Web Audio analyser, with no proxy, credentials, new service
+or diagnostic UI. Existing DEV-only diagnostics remain available at
+`/player/?audioDebug=1`. Hosting/CORS and artwork availability can change.
+
+Focused deterministic development tests (starts/stops its own local Vite server):
+
+```bash
+npx playwright test --config playwright.dev.config.ts
+```
+
+In PowerShell, opt into a real browser stream/artwork/analysis probe:
+
+```powershell
+$env:DSFM_LIVE_STREAM_TEST = "1"
+npx playwright test --config playwright.dev.config.ts --grep "real DeepSignals"
+Remove-Item Env:\DSFM_LIVE_STREAM_TEST
+```
+
+Verify the production gate and unchanged shared AzuraCast behavior:
+
+```bash
+npx playwright test tests/smoke/deepsignals-psytrance.spec.ts tests/smoke/triplag.spec.ts tests/smoke/player.spec.ts
+```
+
+These are local checks only; do not push or deploy to test this station.
+
 ## Production Build
 
 Create a production build locally with:
