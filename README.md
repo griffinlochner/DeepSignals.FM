@@ -538,6 +538,11 @@ Proven workflow:
 
 Detailed guide: `docs/creating-image-environments.md`
 
+**DeepSignals.FM** is available under **DEPTH WORLDS** for every signal source.
+It reuses the supplied observatory artwork/depth pair and the shared 2.5D renderer,
+CHROMA, MOTION, and audio mapping. See the
+[registration and calibration notes](docs/creating-image-environments.md#deepsignalsfm).
+
 ### Removing an image environment
 
 Use this manual cleanup workflow:

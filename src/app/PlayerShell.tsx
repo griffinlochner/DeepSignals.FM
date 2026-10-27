@@ -105,6 +105,7 @@ const PUBLIC_PLAYER_ENVIRONMENT_IDS = [
   "slime-cavern",
   "dark-psy-temple",
   "psybrazil",
+  "deep-signals",
   "cosmic-roller-coaster",
   "signal-tunnel",
   "alien-megastructure-transit",
@@ -141,13 +142,11 @@ const ENVIRONMENT_GROUPS: EnvironmentGroup[] = [
       "analog-signal-laboratory",
       "crystal-cavern",
       "dark-psy-temple",
+      "deep-signals",
       "uv-reactive-jungle",
       "bioluminescent-psy-reef",
+      "psybrazil",
     ],
-  },
-  {
-    groupName: "STATION ENVIRONMENTS",
-    environmentIds: ["psybrazil"],
   },
   {
     groupName: "3D EXPERIENCES",

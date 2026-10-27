@@ -29,6 +29,12 @@ test("desktop player exposes critical controls", async ({ page }) => {
   await expect(page.getByRole("slider", { name: "Volume" })).toBeVisible();
   await expect(page.getByLabel("Visual environment")).toBeVisible();
   await expect(
+    page.getByLabel("Visual environment").locator('optgroup[label="DEPTH WORLDS"] option[value="psybrazil"]'),
+  ).toHaveText("PsyBrazil");
+  await expect(
+    page.getByLabel("Visual environment").locator('optgroup[label="STATION ENVIRONMENTS"]'),
+  ).toHaveCount(0);
+  await expect(
     page.getByLabel("Toggle environment chroma effects"),
   ).toBeVisible();
   await expect(page.getByLabel("Motion")).toBeVisible();

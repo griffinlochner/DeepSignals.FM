@@ -264,6 +264,23 @@ export const imageDepthEnvironmentRegistrationSeeds: EnvironmentCatalogSeed[] = 
     id: "psybrazil",
     displayName: "PsyBrazil",
   },
+  {
+    id: "deep-signals",
+    displayName: "DeepSignals.FM",
+    description:
+      "An observatory overlooking distant architecture, planets, and the Signal Nexus, rendered through the shared image-depth runtime.",
+    colorImageUrl: "/environments/deep-signals/deep-signals.webp",
+    depthMapUrl: "/environments/deep-signals/deep-signals.png",
+    productionBehaviorOverride: {
+      ...DEFAULT_IMAGE_DEPTH_CHILL_BEHAVIOR,
+      depth: {
+        ...DEFAULT_IMAGE_DEPTH_CHILL_BEHAVIOR.depth,
+        depthStrength: 0.58,
+        motionIntensity: 0.42,
+        pointerParallaxStrength: 0.5,
+      },
+    },
+  },
 ];
 
 export const imageDepthEnvironmentCatalog: EnvironmentCatalogEntry[] =

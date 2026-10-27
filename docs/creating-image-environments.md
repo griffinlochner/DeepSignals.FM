@@ -142,6 +142,37 @@ Current status:
 - UV Reactive Jungle remains specialized (`src/themes/uv-reactive-jungle/UvReactiveJungleTheme.tsx`).
 - Generic image/depth environments use the shared image-depth runtime.
 
+### DeepSignals.FM
+
+The `deep-signals` catalog seed promotes the existing
+`/environments/deep-signals/deep-signals.webp` artwork and
+`/environments/deep-signals/deep-signals.png` depth map without renaming,
+resampling, or cropping either asset. It is selectable as **DeepSignals.FM**
+under **DEPTH WORLDS**, independently of the selected station.
+Both assets are 4197 x 3148 pixels (approximately 4:3); framing preserves their
+exact ratio rather than forcing 4:3.
+
+The catalog generates its `deep-signals-default` production preset and theme
+definition. PlayerShell's catalog-derived texture preload and the DEV-only
+`/experiments/reactivity-lab` preview use the same asset pair and preset; no
+separate scene, loader, or diagnostics UI is needed.
+
+Initial overrides are `depthStrength: 0.58`, `motionIntensity: 0.42`, and
+`pointerParallaxStrength: 0.5`. Other behavior retains the shared defaults,
+including `staticDepth: 0.6`, CHROMA, and saturation response. The shared camera
+path and aspect-preserving cover-safe overscan remain unchanged. Motion intensity
+and pointer strength tune ambient sway, not the shared camera excursion limits.
+Production playback retains the player's Full On depth/hue/saturation mapping;
+authored breathing settings do not replace that mapping.
+
+For further calibration, use the existing lab's manual depth and audio mapping
+controls plus `?imageDepthStats=1` diagnostics. Inspect the near observatory and
+cable edges at maximum depth, the dish silhouette, and separation from the dark
+distant architecture/planets/Nexus. Prefer small depth-strength changes over
+amplifying the whole map, which can stretch foreground edges. Also inspect a full
+camera cycle and portrait cropping; cover framing intentionally shows less of the
+approximately 4:3 composition on narrow screens.
+
 ## H. Validation Checklist
 
 Checks:
