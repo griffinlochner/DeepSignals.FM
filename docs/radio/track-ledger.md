@@ -2,7 +2,7 @@
 
 **Hosting:** AzuraCast on Asura Hosting | **Playlist:** `Psytrance rotation`
 
-**119 MP3s across 16 releases.** Last checked: 2026-10-27. The original 39 filenames are screenshot-confirmed; the 80 tracks added at the operator's direction are assumed uploaded, with filenames normalized from Ektoplazm tracklists and not checked against AzuraCast.
+**173 MP3s across 24 releases.** Last checked: 2026-10-28. The original 39 filenames are screenshot-confirmed; the 134 tracks added at the operator's direction are assumed uploaded, with filenames normalized from Ektoplazm tracklists and not checked against AzuraCast.
 
 Release details apply to every row beneath them. Titles follow Ektoplazm; H1-H3 remain disputed, not corrections to uploaded metadata. Evidence links point to each release's license statement below its downloads.
 
@@ -263,11 +263,130 @@ Release details apply to every row beneath them. Titles follow Ektoplazm; H1-H3 
 | `03_-_cyclome_-_modulations.mp3` | Modulations |
 | `04_-_cyclome_-_unknown_future.mp3` | Unknown Future |
 
+## Various artists - Cosmic Consciousness (12 tracks)
+
+- **Source:** [Ektoplazm][cosmic-consciousness]
+- **License:** [CC BY-NC-ND 4.0][by-nc-nd] ([evidence][cosmic-consciousness])
+
+| Uploaded filename | Artist - track title |
+| --- | --- |
+| `01_-_nioka_-_stomping_people.mp3` | Nioka - Stomping People |
+| `02_-_narrenschwamm_-_quantumchoreography.mp3` | Narrenschwamm - Quantumchoreography |
+| `03_-_fluroneuro_-_visions_beneath_the_sequioa.mp3` | Fluroneuro - Visions Beneath The Sequioa |
+| `04_-_abducted_brain_-_hypnotic_therapy.mp3` | Abducted Brain - Hypnotic Therapy |
+| `05_-_fractali3n_-_mutated_elves.mp3` | Fractali3n - Mutated Elves |
+| `06_-_huz_det_-_mons_pisun.mp3` | Huz Det - Mons Pisun |
+| `07_-_shamikh_-_mokhya.mp3` | Shamikh - Mokhya |
+| `08_-_dalay_layna_-_save_the_planet.mp3` | Dalay Layna - Save The Planet |
+| `09_-_martian_de_-_illicit_mind_expansion.mp3` | Martian De - Illicit Mind Expansion |
+| `10_-_xcursion_-_indigo_dragon.mp3` | Xcursion - Indigo Dragon |
+| `11_-_dar_kapo__rudra_-_elemental_(remix).mp3` | Dar Kapo & Rudra - Elemental (Remix) |
+| `12_-_martian_de__windowpain_-_mechanical_mind.mp3` | Martian De & WindowpaiN - Mechanical Mind |
+
+## Ohmny - Way Of Light (3 tracks)
+
+- **Source:** [Ektoplazm][way-of-light]
+- **License:** [CC BY-NC-ND 4.0][by-nc-nd] ([evidence][way-of-light])
+
+| Uploaded filename | Track title |
+| --- | --- |
+| `01_-_ohmny_-_crystal_power.mp3` | Crystal Power |
+| `02_-_ohmny_-_white_fire.mp3` | White Fire |
+| `03_-_ohmny_-_way_of_light.mp3` | Way Of Light |
+
+## Sativa - The First Harvest (4 tracks)
+
+- **Source:** [Ektoplazm][the-first-harvest]
+- **License:** Creative Commons, noncommercial usage; specific license/version not identified (**Needs verification**) ([evidence][the-first-harvest])
+
+| Uploaded filename | Track title |
+| --- | --- |
+| `01_-_sativa_-_bing_bong_shivaya.mp3` | Bing Bong Shivaya |
+| `02_-_sativa_-_original_mechanics.mp3` | Original Mechanics |
+| `03_-_sativa_-_from_the_7th.mp3` | From The 7th |
+| `04_-_sativa_-_gnomo.mp3` | Gnomo |
+
+## Cyberbaba - Let The Shaman Dissolve Your Ego! (9 tracks)
+
+- **Source:** [Ektoplazm][shaman-dissolve-your-ego]
+- **License:** [CC BY-NC 4.0][by-nc] ([evidence][shaman-dissolve-your-ego])
+
+| Uploaded filename | Track title |
+| --- | --- |
+| `01_-_cyberbaba_-_swamp..._no_lamp!.mp3` | Swamp... No Lamp! |
+| `02_-_cyberbaba_-_techno_troll.mp3` | Techno Troll |
+| `03_-_cyberbaba_-_bleeding_mind_in_yin-yang_forest.mp3` | Bleeding Mind In Yin-Yang Forest |
+| `04_-_cyberbaba_-_far_away_nowhereland.mp3` | Far Away Nowhereland |
+| `05_-_cyberbaba_-_let_the_shaman_dissolve_your_ego.mp3` | Let The Shaman Dissolve Your Ego |
+| `06_-_cyberbaba_-_sound_killah.mp3` | Sound Killah |
+| `07_-_cyberbaba_-_swampoid_chimergration.mp3` | Swampoid Chimergration |
+| `08_-_cyberbaba_-_harmony_munam.mp3` | Harmony Munam |
+| `09_-_cyberbaba_-_outro.mp3` | Outro |
+
+## Nibana - Tales Of The Uncanny (9 tracks)
+
+- **Source:** [Ektoplazm][tales-of-the-uncanny]
+- **License:** [CC BY-NC-SA 4.0][by-nc-sa] ([evidence][tales-of-the-uncanny])
+
+| Uploaded filename | Artist - track title |
+| --- | --- |
+| `01_-_nibana_-_psynopsis.mp3` | Nibana - Psynopsis |
+| `02_-_nibana_-_tales_of_the_uncanny.mp3` | Nibana - Tales Of The Uncanny |
+| `03_-_nibana_-_dagon_and_the_7th_gate.mp3` | Nibana - Dagon And The 7th Gate |
+| `04_-_nibana__mark_day_-_blind_idiot_god.mp3` | Nibana & Mark Day - Blind Idiot God |
+| `05_-_nibana_-_in_the_hall_of_despair_(part_1).mp3` | Nibana - In The Hall Of Despair (Part 1) |
+| `06_-_nibana_-_in_the_hall_of_despair_(part_2).mp3` | Nibana - In The Hall Of Despair (Part 2) |
+| `07_-_nibana__ajja_-_glitched_matrice.mp3` | Nibana & Ajja - Glitched Matrice |
+| `08_-_nibana_-_naraku_no_soko.mp3` | Nibana - Naraku No Soko |
+| `09_-_nibana_-_ikana.mp3` | Nibana - Ikana |
+
+## Various artists - Absolut Shit EP6 (4 tracks)
+
+- **Source:** [Ektoplazm][absolut-shit-ep6]
+- **License:** [CC BY-NC-SA 4.0][by-nc-sa] ([evidence][absolut-shit-ep6])
+
+| Uploaded filename | Artist - track title |
+| --- | --- |
+| `01_-_datakult_-_acd_session.mp3` | Datakult - Acd Session |
+| `02_-_yoshua_e.m_-_no_expectations.mp3` | Yoshua E.M - No Expectations |
+| `03_-_oroboro_-_initial_ignition.mp3` | Oroboro - Initial Ignition |
+| `04_-_anficlavis_-_may.mp3` | Anficlavis - May |
+
+## Various artists - Zero Gravity (9 tracks)
+
+- **Source:** [Ektoplazm][zero-gravity]
+- **License:** [CC BY-NC-ND 4.0][by-nc-nd] ([evidence][zero-gravity])
+
+| Uploaded filename | Artist - track title |
+| --- | --- |
+| `01_-_grainripper_-_the_lizard_king.mp3` | Grainripper - The Lizard King |
+| `02_-_biomekanik_-_robots.mp3` | Biomekanik - Robots |
+| `03_-_primitive_sound_-_sachamama.mp3` | Primitive Sound - Sachamama |
+| `04_-_interius_umbra_-_nebbia_cosmica.mp3` | Interius Umbra - Nebbia Cosmica |
+| `05_-_ars_goetia_-_distopic_trance.mp3` | Ars Goetia - Distopic Trance |
+| `06_-_anceps_-_libro_luna.mp3` | Anceps - Libro Luna |
+| `07_-_manticore_-_overdrive.mp3` | Manticore - Overdrive |
+| `08_-_kaikkialla_vs_alpscore_-_phatty.mp3` | Kaikkialla vs AlpsCore - Phatty |
+| `09_-_zendumm_-_sun_decending.mp3` | Zendumm - Sun Decending |
+
+## Various artists - Straight Outta Space (4 tracks)
+
+- **Source:** [Ektoplazm][straight-outta-space]
+- **License:** [CC BY-NC-SA 4.0][by-nc-sa] ([evidence][straight-outta-space])
+- **Included tracks:** 2, 6, 7, and 22; the other tracks were not added to the station.
+
+| Uploaded filename | Artist - track title |
+| --- | --- |
+| `02_-_ocelot_-_preposterous_rhinoceros.mp3` | Ocelot - Preposterous Rhinoceros |
+| `06_-_sanathana_-_the_breath_of_brahma.mp3` | Sanathana - The Breath Of Brahma |
+| `07_-_keluk_-_kutuluk.mp3` | Keluk - Kutuluk |
+| `22_-_pet_peeve_-_nice.mp3` | Pet Peeve - Nice |
+
 ## Other verification notes
 
 - **Needs verification - playlist:** `Psytrance rotation` is operator-reported; assignments are not shown in the screenshots.
-- **Needs verification - station use:** commercial/noncommercial status and separate permissions were not supplied. The 98 BY-NC tracks require noncommercial use unless separately authorized; this inventory is not broadcast clearance.
-- **Needs verification - added filenames:** filenames for the 16 releases added at the operator's direction are normalized from the Ektoplazm tracklists, not confirmed in AzuraCast.
+- **Needs verification - station use:** commercial/noncommercial status and separate permissions were not supplied. The 152 tracks with noncommercial Creative Commons licenses require noncommercial use unless separately authorized; this inventory is not broadcast clearance.
+- **Needs verification - added filenames:** filenames for the 24 releases added at the operator's direction are normalized from the Ektoplazm tracklists, not confirmed in AzuraCast.
 
 ## Updating the inventory
 
@@ -291,6 +410,15 @@ Release details apply to every row beneath them. Titles follow Ektoplazm; H1-H3 
 [tribos-do-mato]: https://ektoplazm.com/free-music/golomp-tribos-do-mato
 [links-to-tartarus]: https://ektoplazm.com/free-music/links-to-tartarus
 [modulations]: https://ektoplazm.com/free-music/cyclome-modulations
+[cosmic-consciousness]: https://ektoplazm.com/free-music/cosmic-consciousness
+[way-of-light]: https://ektoplazm.com/free-music/ohmny-way-of-light
+[the-first-harvest]: https://ektoplazm.com/free-music/sativa-the-first-harvest
+[shaman-dissolve-your-ego]: https://ektoplazm.com/free-music/cyberbaba-let-the-shaman-dissolve-your-ego
+[tales-of-the-uncanny]: https://ektoplazm.com/free-music/nibana-tales-of-the-uncanny
+[absolut-shit-ep6]: https://ektoplazm.com/free-music/absolut-shit-ep6
+[zero-gravity]: https://ektoplazm.com/free-music/zero-gravity
+[straight-outta-space]: https://ektoplazm.com/free-music/straight-outta-space
 [by-nc-sa]: https://creativecommons.org/licenses/by-nc-sa/4.0/
 [by-nc-nd]: https://creativecommons.org/licenses/by-nc-nd/4.0/
+[by-nc]: https://creativecommons.org/licenses/by-nc/4.0/
 [by]: https://creativecommons.org/licenses/by/4.0/
