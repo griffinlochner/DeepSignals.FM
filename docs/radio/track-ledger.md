@@ -2,7 +2,7 @@
 
 **Hosting:** AzuraCast on Asura Hosting | **Playlist:** `Psytrance rotation`
 
-**95 MP3s across 12 releases.** Last checked: 2026-10-27. The original 39 filenames are screenshot-confirmed; the seven releases added below are assumed uploaded at the operator's direction, with filenames normalized from Ektoplazm tracklists and not checked against AzuraCast.
+**119 MP3s across 16 releases.** Last checked: 2026-10-27. The original 39 filenames are screenshot-confirmed; the 80 tracks added at the operator's direction are assumed uploaded, with filenames normalized from Ektoplazm tracklists and not checked against AzuraCast.
 
 Release details apply to every row beneath them. Titles follow Ektoplazm; H1-H3 remain disputed, not corrections to uploaded metadata. Evidence links point to each release's license statement below its downloads.
 
@@ -207,11 +207,67 @@ Release details apply to every row beneath them. Titles follow Ektoplazm; H1-H3 
 | `04_-_legolize__dahiama_(astral_shampoo)_-_sharks__the_spearfisher.mp3` | Légolize & Dahiama (Astral Shampoo) - Sharks & The Spearfisher |
 | `05_-_legolize_-_octopus_aristotles_lantern.mp3` | Légolize - Octopus Aristotle's Lantern |
 
+## Dark River - Airborne (5 tracks)
+
+- **Source:** [Ektoplazm][airborne]
+- **License:** [CC BY-NC-SA 4.0][by-nc-sa] ([evidence][airborne])
+
+| Uploaded filename | Track title |
+| --- | --- |
+| `02_-_dark_river_-_seed_of_the_future.mp3` | Seed Of The Future |
+| `04_-_dark_river_-_flipside_reality.mp3` | Flipside Reality |
+| `06_-_dark_river_-_descent.mp3` | Descent |
+| `08_-_dark_river_-_daw_of_creation.mp3` | DAW Of Creation |
+| `10_-_dark_river_-_interstellar_empire.mp3` | Interstellar Empire |
+
+## Golomp - Tribos do Mato (6 tracks)
+
+- **Source:** [Ektoplazm][tribos-do-mato]
+- **License:** [CC BY-NC-SA 4.0][by-nc-sa] ([evidence][tribos-do-mato])
+
+| Uploaded filename | Track title |
+| --- | --- |
+| `01_-_golomp_-_carnival_station.mp3` | Carnival Station |
+| `02_-_golomp__paracusia_-_anphiteater_of_angels.mp3` | Anphiteater of Angels |
+| `03_-_aegolius_-_paradox_(golomp_remix).mp3` | Paradox (Golomp Remix) |
+| `04_-_golomp_-_pixels.mp3` | Pixels |
+| `05_-_golomp_-_acanthacea.mp3` | Acanthacea |
+| `06_-_golomp_-_dixzar.mp3` | Dixzar |
+
+## Various artists - Links To Tartarus (9 tracks)
+
+- **Source:** [Ektoplazm][links-to-tartarus]
+- **License:** [CC BY-NC-SA 4.0][by-nc-sa] ([evidence][links-to-tartarus])
+
+| Uploaded filename | Artist - track title |
+| --- | --- |
+| `01_-_methodic_marble_-_twilight_forces.mp3` | Methodic Marble - Twilight Forces |
+| `02_-_tibetano_-_in_the_badgers_den.mp3` | Tibetano - In The Badgers Den |
+| `03_-_mandari_-_privilege_escalation.mp3` | Mandari - Privilege Escalation |
+| `04_-_crooked_mind_-_psilocybin_thoughts.mp3` | Crooked Mind - Psilocybin Thoughts |
+| `05_-_otkun_-_primordial_force.mp3` | Otkun - Primordial Force |
+| `06_-_aurokarya_-_paracusia.mp3` | Aurokarya - Paracusia |
+| `07_-_romeodark_meets_sporecarrier_-_wrong_place__time.mp3` | Romeodark Meets SporeCarrier - Wrong Place & Time |
+| `08_-_neverwaz_-_in_my_darkest_thoughts.mp3` | Neverwaz - In My Darkest Thoughts... |
+| `09_-_grainripper_-_industrial_village.mp3` | Grainripper - Industrial Village |
+
+## Cyclome - Modulations (4 tracks)
+
+- **Source:** [Ektoplazm][modulations]
+- **License:** linked [CC BY 4.0][by] ([evidence][modulations]); **Needs verification**. The page also says "for noncommercial usage," which conflicts with the linked license.
+
+| Uploaded filename | Track title |
+| --- | --- |
+| `01_-_cyclome_-_reversed_polarity_movements.mp3` | Reversed Polarity Movements |
+| `02_-_cyclome_-_disturbed_spaceship_flight.mp3` | Disturbed Spaceship Flight |
+| `03_-_cyclome_-_modulations.mp3` | Modulations |
+| `04_-_cyclome_-_unknown_future.mp3` | Unknown Future |
+
 ## Other verification notes
 
 - **Needs verification - playlist:** `Psytrance rotation` is operator-reported; assignments are not shown in the screenshots.
-- **Needs verification - station use:** commercial/noncommercial status and separate permissions were not supplied. The 78 BY-NC tracks require noncommercial use unless separately authorized; this inventory is not broadcast clearance.
-- **Needs verification - added filenames:** filenames for the seven releases added above are normalized from the Ektoplazm tracklists, not confirmed in AzuraCast.
+- **Needs verification - station use:** commercial/noncommercial status and separate permissions were not supplied. The 98 BY-NC tracks require noncommercial use unless separately authorized; this inventory is not broadcast clearance.
+- **Needs verification - added filenames:** filenames for the 16 releases added at the operator's direction are normalized from the Ektoplazm tracklists, not confirmed in AzuraCast.
 
 ## Updating the inventory
 
@@ -231,6 +287,10 @@ Release details apply to every row beneath them. Titles follow Ektoplazm; H1-H3 
 [under-the-moss-4]: https://ektoplazm.com/free-music/under-the-moss-vol-4
 [local-travelling-2]: https://ektoplazm.com/free-music/local-travelling-vol-2
 [dance-with-octopus]: https://ektoplazm.com/free-music/legolize-dance-with-octopus
+[airborne]: https://ektoplazm.com/free-music/psychoz-dark-river-airborne
+[tribos-do-mato]: https://ektoplazm.com/free-music/golomp-tribos-do-mato
+[links-to-tartarus]: https://ektoplazm.com/free-music/links-to-tartarus
+[modulations]: https://ektoplazm.com/free-music/cyclome-modulations
 [by-nc-sa]: https://creativecommons.org/licenses/by-nc-sa/4.0/
 [by-nc-nd]: https://creativecommons.org/licenses/by-nc-nd/4.0/
 [by]: https://creativecommons.org/licenses/by/4.0/
