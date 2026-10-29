@@ -2,7 +2,7 @@
 
 **Hosting:** AzuraCast on Asura Hosting | **Playlist:** `Psytrance rotation`
 
-**173 MP3s across 24 releases.** Last checked: 2026-10-28. The original 39 filenames are screenshot-confirmed; the 134 tracks added at the operator's direction are assumed uploaded, with filenames normalized from Ektoplazm tracklists and not checked against AzuraCast.
+**204 MP3s across 29 releases.** Last checked: 2026-10-28. The original 39 filenames are screenshot-confirmed; the 165 tracks added at the operator's direction are assumed uploaded, with filenames normalized from Ektoplazm tracklists and not checked against AzuraCast.
 
 Release details apply to every row beneath them. Titles follow Ektoplazm; H1-H3 remain disputed, not corrections to uploaded metadata. Evidence links point to each release's license statement below its downloads.
 
@@ -382,11 +382,82 @@ Release details apply to every row beneath them. Titles follow Ektoplazm; H1-H3 
 | `07_-_keluk_-_kutuluk.mp3` | Keluk - Kutuluk |
 | `22_-_pet_peeve_-_nice.mp3` | Pet Peeve - Nice |
 
+## Various artists - Fractal Mind Vol. 2 (10 tracks)
+
+- **Source:** [Ektoplazm][fractal-mind-2]
+- **License:** [CC BY-NC-ND 4.0][by-nc-nd] ([evidence][fractal-mind-2])
+
+| Uploaded filename | Artist - track title |
+| --- | --- |
+| `01_-_charu_-_lagarteesha.mp3` | Charu - Lagarteesha |
+| `02_-_edvoo_-_the_secret_of_kells.mp3` | Edvoo - The Secret Of Kells |
+| `03_-_isometric_-_secret_of_the_bonobo.mp3` | Isometric - Secret Of The Bonobo |
+| `04_-_psy_mr_vs_tskun_-_trance_communication.mp3` | Psy Mr. vs Tskun - Trance Communication |
+| `05_-_acrasia_-_kraken.mp3` | Acrasia - Kraken |
+| `06_-_tokaii_-_strance_society.mp3` | Tokaii - Strance Society |
+| `07_-_zero_point_module_-_forestopia.mp3` | Zero Point Module - Forestopia |
+| `08_-_fobi_-_wisdom.mp3` | Fobi - Wisdom |
+| `09_-_cerbura_-_sommer_die2.mp3` | Cerbura - Sommer Die2 |
+| `10_-_sik_vs_caveman_-_the_man_who_spoke_to_the_car.mp3` | Sik vs Caveman - The Man Who Spoke To The Car |
+
+## Slate - Ragged Dagger (4 tracks)
+
+- **Source:** [Ektoplazm][ragged-dagger]
+- **License:** [CC BY-NC-SA 4.0][by-nc-sa] ([evidence][ragged-dagger])
+
+| Uploaded filename | Track title |
+| --- | --- |
+| `01_-_slate_vs_red_dead_jo_-_beyond.mp3` | Beyond |
+| `02_-_slate_vs_red_dead_jo_-_aim_to_the_few.mp3` | Aim To The Few |
+| `03_-_slate_-_insignificant_soul.mp3` | Insignificant Soul |
+| `04_-_slate_-_daphnis_nerii.mp3` | Daphnis Nerii |
+
+## Fractali3n - Waiting For The Sun (5 tracks)
+
+- **Source:** [Ektoplazm][waiting-for-the-sun]
+- **License:** [CC BY-NC-SA 4.0][by-nc-sa] ([evidence][waiting-for-the-sun])
+
+| Uploaded filename | Track title |
+| --- | --- |
+| `01_-_fractali3n_-_waiting_for_the_sun.mp3` | Waiting For The Sun |
+| `02_-_fractali3n_-_indians_on_pluto.mp3` | Indians On Pluto |
+| `03_-_fractali3n_-_meditation_spiritualism_and_love.mp3` | Meditation, Spiritualism And Love |
+| `04_-_fractali3n_-_logical_disfunktion.mp3` | Logical Disfunktion |
+| `05_-_fractali3n_-_marleys_wisdom.mp3` | Marleys Wisdom |
+
+## Various artists - Elemental Spirits (9 tracks)
+
+- **Source:** [Ektoplazm][elemental-spirits]
+- **License:** [CC BY-NC-SA 4.0][by-nc-sa] ([evidence][elemental-spirits])
+
+| Uploaded filename | Artist - track title |
+| --- | --- |
+| `01_-_solarythm_vs_an-agram_-_elemental_earth.mp3` | Solarythm vs An-Agram - Elemental Earth |
+| `02_-_methodic_marble_-_road_to_nowhere.mp3` | Methodic Marble - Road To Nowhere |
+| `03_-_wizack_twizack_-_the_right_substance_(tibetano_remix).mp3` | Wizack Twizack - The Right Substance (Tibetano Remix) |
+| `04_-_digitalx_-_witches_of_the_code.mp3` | DigitalX - Witches Of The Code |
+| `05_-_lab_-_chemical_sorcery_(nibana_remix).mp3` | LAB - Chemical Sorcery (Nibana Remix) |
+| `06_-_aurokarya_-_entanglement.mp3` | Aurokarya - Entanglement |
+| `07_-_varazslo__sporecarrier_-_alien_with_a_bong_(sporecarrier_remix).mp3` | Varázsló & SporeCarrier - Alien With A Bong (SporeCarrier Remix) |
+| `08_-_otkun_-_odysseus.mp3` | Otkun - Odysseus |
+| `09_-_digital_abstract_-_stretched_dimensions.mp3` | Digital Abstract - Stretched Dimensions |
+
+## Munsmawa - El Camino Del Corazón (3 tracks)
+
+- **Source:** [Ektoplazm][el-camino-del-corazon]
+- **License:** [CC BY-NC-SA 4.0][by-nc-sa] ([evidence][el-camino-del-corazon])
+
+| Uploaded filename | Track title |
+| --- | --- |
+| `01_-_munsmawa_-_caminante_de_estrellas.mp3` | Caminante De Estrellas |
+| `02_-_munsmawa_-_rios_transparentes_(los_ojos_de_jaya).mp3` | Rios Transparentes (Los Ojos De Jaya) |
+| `03_-_munsmawa_-_amor_fe_y_confianza!.mp3` | Amor Fe y Confianza! |
+
 ## Other verification notes
 
 - **Needs verification - playlist:** `Psytrance rotation` is operator-reported; assignments are not shown in the screenshots.
-- **Needs verification - station use:** commercial/noncommercial status and separate permissions were not supplied. The 152 tracks with noncommercial Creative Commons licenses require noncommercial use unless separately authorized; this inventory is not broadcast clearance.
-- **Needs verification - added filenames:** filenames for the 24 releases added at the operator's direction are normalized from the Ektoplazm tracklists, not confirmed in AzuraCast.
+- **Needs verification - station use:** commercial/noncommercial status and separate permissions were not supplied. The 183 tracks with noncommercial Creative Commons licenses require noncommercial use unless separately authorized; this inventory is not broadcast clearance.
+- **Needs verification - added filenames:** filenames for the 29 releases added at the operator's direction are normalized from the Ektoplazm tracklists, not confirmed in AzuraCast.
 
 ## Updating the inventory
 
@@ -418,6 +489,11 @@ Release details apply to every row beneath them. Titles follow Ektoplazm; H1-H3 
 [absolut-shit-ep6]: https://ektoplazm.com/free-music/absolut-shit-ep6
 [zero-gravity]: https://ektoplazm.com/free-music/zero-gravity
 [straight-outta-space]: https://ektoplazm.com/free-music/straight-outta-space
+[fractal-mind-2]: https://ektoplazm.com/free-music/fractal-mind-vol-2
+[ragged-dagger]: https://ektoplazm.com/free-music/slate-ragged-dagger
+[waiting-for-the-sun]: https://ektoplazm.com/free-music/fractali3n-waiting-for-the-sun
+[elemental-spirits]: https://ektoplazm.com/free-music/elemental-spirits
+[el-camino-del-corazon]: https://ektoplazm.com/free-music/munsmawa-el-camino-del-corazon
 [by-nc-sa]: https://creativecommons.org/licenses/by-nc-sa/4.0/
 [by-nc-nd]: https://creativecommons.org/licenses/by-nc-nd/4.0/
 [by-nc]: https://creativecommons.org/licenses/by-nc/4.0/
