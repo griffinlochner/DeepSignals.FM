@@ -11,6 +11,7 @@ export type ExternalNowPlayingConfig<T extends { changeKey: string } = ExternalN
   nowPlayingUrl: string
   pollMs: number
   hiddenPollMs?: number
+  refreshOnVisible?: boolean
   cache?: RequestCache
   fetchResponseType: 'json' | 'text'
   parse: (raw: unknown) => T | null
@@ -39,8 +40,10 @@ export function useExternalNowPlaying<T extends { changeKey: string } = External
 
     let timeoutHandle: number | null = null
     let activeController: AbortController | null = null
+    let inFlight = false
 
     const poll = async () => {
+      inFlight = true
       activeController = new AbortController()
 
       try {
@@ -80,6 +83,7 @@ export function useExternalNowPlaying<T extends { changeKey: string } = External
         console.warn(`${config.sourceId} Now Playing metadata unavailable`, error)
         setMetadata(null)
       } finally {
+        inFlight = false
         if (requestGenerationRef.current === generation) {
           const delay = document.visibilityState === 'hidden'
             ? config.hiddenPollMs ?? config.pollMs
@@ -89,10 +93,33 @@ export function useExternalNowPlaying<T extends { changeKey: string } = External
       }
     }
 
+    // An in-flight poll reschedules itself with the visible cadence when it settles.
+    const handleVisibilityChange = () => {
+      if (
+        document.visibilityState !== 'visible' ||
+        inFlight ||
+        requestGenerationRef.current !== generation
+      ) {
+        return
+      }
+
+      if (timeoutHandle !== null) {
+        window.clearTimeout(timeoutHandle)
+        timeoutHandle = null
+      }
+
+      void poll()
+    }
+
+    if (config.refreshOnVisible) {
+      document.addEventListener('visibilitychange', handleVisibilityChange)
+    }
+
     void poll()
 
     return () => {
       requestGenerationRef.current += 1
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
       activeController?.abort()
       setMetadata(null)
 

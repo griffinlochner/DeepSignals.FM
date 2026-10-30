@@ -1,7 +1,8 @@
 import type { Page } from "@playwright/test";
 import { test, expect } from "../support/test";
 import { instrumentAudio, readAudio } from "../support/audioProbe";
-import { parseAzuraCastNowPlaying } from "../../src/app/azuraCastNowPlaying";
+import { createAzuraCastNowPlayingConfig, parseAzuraCastNowPlaying } from "../../src/app/azuraCastNowPlaying";
+import { DEEPSIGNALS_NOW_PLAYING_CONFIG } from "../../src/app/useDeepSignalsNowPlaying";
 
 const ID = "deepsignals-psytrance";
 const NAME = "DeepSignals.FM Psytrance";
@@ -51,6 +52,16 @@ test("DeepSignals AzuraCast response selects the configured mount and preserves 
   expect(parse({ ...fixture, station: { mounts: [{ url: "https://example.com/other", bitrate: 320 }] } })?.telemetry).toBeNull();
   expect(parse({ ...fixture, is_online: false })).toMatchObject({ metadata: null, telemetry: null });
   expect(parse({ ...fixture, now_playing: null })?.metadata).toBeNull();
+});
+
+test("DeepSignals polls faster without HTTP caching while shared AzuraCast defaults stay unchanged", () => {
+  expect(DEEPSIGNALS_NOW_PLAYING_CONFIG).toMatchObject({
+    sourceId: ID, nowPlayingUrl: API, pollMs: 10_000, hiddenPollMs: 60_000,
+    cache: "no-store", refreshOnVisible: true,
+  });
+  const shared = createAzuraCastNowPlayingConfig("other", { nowPlayingUrl: "https://example.com/api", streamUrl: STREAM });
+  expect(shared).toMatchObject({ pollMs: 20_000, hiddenPollMs: 60_000, cache: "default" });
+  expect(shared).not.toHaveProperty("refreshOnVisible");
 });
 
 test("production keeps Psytrance COMING SOON and rejects a persisted development selection", async ({ page }, testInfo) => {
@@ -103,7 +114,7 @@ test.describe("local Vite development station", () => {
     await expect(bitrate(page)).toHaveText("192");
     await expect(image(page)).toHaveAttribute("src", ART);
     await expect.poll(() => image(page).evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0)).toBe(true);
-    await page.clock.fastForward(19_000);
+    await page.clock.fastForward(9_000);
     expect(calls).toBe(1);
     await page.clock.fastForward(1_100);
     await expect(transmission(page)).toHaveText("Biomekanik — Fragments of Reality");
@@ -142,6 +153,51 @@ test.describe("local Vite development station", () => {
     await expect(listeners(page)).toHaveText("---");
     await expect(bitrate(page)).toHaveText("---");
     expect(warnings.some((warning) => warning.includes(`${ID} Now Playing metadata unavailable`))).toBe(true);
+  });
+
+  test("refreshes immediately when a hidden tab becomes visible, then resumes the visible cadence", async ({ page }) => {
+    await page.clock.install();
+    await page.addInitScript(() => {
+      let state: DocumentVisibilityState = "hidden";
+      Object.defineProperty(document, "visibilityState", { get: () => state });
+      (window as unknown as { setVisibility: (next: DocumentVisibilityState) => void }).setVisibility = (next) => {
+        state = next;
+        document.dispatchEvent(new Event("visibilitychange"));
+      };
+    });
+    let calls = 0;
+    await page.route(API, (route) => {
+      calls++;
+      return route.fulfill({ json: calls === 1 ? fixture : {
+        ...fixture,
+        now_playing: { ...fixture.now_playing, song: { ...fixture.now_playing.song, title: `Track ${calls}` } },
+      } });
+    });
+    await page.route(`${ART}*`, (route) => route.fulfill({ status: 404 }));
+    const setVisibility = (next: DocumentVisibilityState) => page.evaluate(
+      (value) => (window as unknown as { setVisibility: (next: DocumentVisibilityState) => void }).setVisibility(value),
+      next,
+    );
+    await selectStation(page);
+    await expect(transmission(page)).toHaveText("Biomekanik — Symphony of Noises");
+    await page.clock.fastForward(30_000);
+    expect(calls).toBe(1);
+    await setVisibility("visible");
+    await expect(transmission(page)).toHaveText("Biomekanik — Track 2");
+    expect(calls).toBe(2);
+    await page.clock.fastForward(9_000);
+    expect(calls).toBe(2);
+    await page.clock.fastForward(1_100);
+    await expect(transmission(page)).toHaveText("Biomekanik — Track 3");
+    await setVisibility("hidden");
+    await setVisibility("visible");
+    await expect(transmission(page)).toHaveText("Biomekanik — Track 4");
+    await page.getByLabel("Signal source").selectOption("psybient-sunset");
+    await expect(transmission(page)).toHaveText("Psybient Sunset");
+    await setVisibility("hidden");
+    await setVisibility("visible");
+    await page.clock.fastForward(60_000);
+    expect(calls).toBe(4);
   });
 
   test("aborts pending metadata and ignores stale responses after station switching", async ({ page }) => {
