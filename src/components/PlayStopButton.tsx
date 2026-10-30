@@ -22,15 +22,13 @@ function PauseIcon() {
 }
 
 function PlayStopButton({ isPlaying, isLoading = false, isDisabled, onToggle }: PlayStopButtonProps) {
-  const isButtonDisabled = isDisabled || isLoading
-
   return (
     <button
       className="play-stop-button"
       data-state={isLoading ? "loading" : isPlaying ? "stop" : "play"}
-      disabled={isButtonDisabled}
+      disabled={isDisabled}
       onClick={onToggle}
-      aria-label={isLoading ? "Loading playback" : isPlaying ? "Pause" : "Play"}
+      aria-label={isLoading ? "Pause loading playback" : isPlaying ? "Pause" : "Play"}
     >
       {isLoading ? (
         "LOAD"

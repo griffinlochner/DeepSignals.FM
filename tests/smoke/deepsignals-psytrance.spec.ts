@@ -64,27 +64,25 @@ test("DeepSignals polls faster without HTTP caching while shared AzuraCast defau
   expect(shared).not.toHaveProperty("refreshOnVisible");
 });
 
-test("production keeps Psytrance COMING SOON and rejects a persisted development selection", async ({ page }, testInfo) => {
+test("production enables Psytrance and restores its persisted selection without unlaunched entries", async ({ page }, testInfo) => {
   test.skip(testInfo.config.metadata.development === true, "Production preview only");
-  const requests: string[] = [];
-  page.on("request", (request) => requests.push(request.url()));
+  await page.route(API, (route) => route.fulfill({ json: fixture }));
+  await page.route(ART, (route) => route.fulfill({ status: 404 }));
   await page.addInitScript((id) => {
     localStorage.setItem("deepsignals.player.preferences.v3", JSON.stringify({ selectedAudioSourceId: id }));
   }, ID);
   await page.goto("/player/");
   const group = page.locator('optgroup[label="DEEPSIGNALS.FM"]');
-  await expect(group.locator(`option[value="${ID}-coming-soon"]`)).toHaveText(`${NAME} — COMING SOON`);
-  await expect(group.locator(`option[value="${ID}-coming-soon"]`)).toBeDisabled();
-  await expect(page.locator(`option[value="${ID}"]`)).toHaveCount(0);
-  await expect(group.locator('option[value="deepsignals-chillout-coming-soon"]')).toBeDisabled();
-  await expect(page.getByLabel("Signal source")).not.toHaveValue(ID);
-  await expect(transmission(page)).not.toContainText(NAME);
-  expect(requests.some((url) => url.startsWith("https://a6.asurahosting.com"))).toBe(false);
+  await expect(group.locator(`option[value="${ID}"]`)).toHaveText(NAME);
+  await expect(group.locator(`option[value="${ID}"]`)).toBeEnabled();
+  await expect(group.locator("option")).toHaveCount(1);
+  await expect(page.getByLabel("Signal source")).toHaveValue(ID);
+  await expect(transmission(page)).toHaveText("Biomekanik — Symphony of Noises");
+  await expect(page.locator('option[value="psyndora-chillout"]')).toBeEnabled();
 });
 
-test.describe("local Vite development station", () => {
-  test.beforeEach(({ pageErrors }, testInfo) => {
-    test.skip(testInfo.config.metadata.development !== true, "Development server only");
+test.describe("DeepSignals production and development station", () => {
+  test.beforeEach(({ pageErrors }) => {
     expect(pageErrors).toEqual([]);
   });
 
@@ -107,7 +105,7 @@ test.describe("local Vite development station", () => {
     await selectStation(page);
     await expect(page.locator(`option[value="${ID}"]`)).toHaveCount(1);
     await expect(page.locator(`optgroup[label="DEEPSIGNALS.FM"] option[value="${ID}"]`)).toBeEnabled();
-    await expect(page.locator('option[value="deepsignals-chillout-coming-soon"]')).toBeDisabled();
+    await expect(page.locator('option[value="deepsignals-chillout-coming-soon"]')).toHaveCount(0);
     await expect(page.getByLabel("Seek playback")).toHaveCount(0);
     await expect(transmission(page)).toHaveText("Biomekanik — Symphony of Noises");
     await expect(listeners(page)).toHaveText("1");

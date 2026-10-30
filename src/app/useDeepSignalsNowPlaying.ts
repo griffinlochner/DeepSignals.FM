@@ -13,5 +13,5 @@ export const DEEPSIGNALS_NOW_PLAYING_CONFIG = {
 } satisfies ReturnType<typeof createAzuraCastNowPlayingConfig>
 
 export function useDeepSignalsNowPlaying(selectedSourceId: string | null) {
-  return useExternalNowPlaying(import.meta.env.DEV ? selectedSourceId : null, DEEPSIGNALS_NOW_PLAYING_CONFIG)
+  return useExternalNowPlaying(selectedSourceId, DEEPSIGNALS_NOW_PLAYING_CONFIG)
 }

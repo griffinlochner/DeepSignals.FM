@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AUDIO_SOURCES, DEMO_PSYCHEDELIC_EXPERIENCE_AUDIO_SOURCE } from './audioSources'
 import type { AudioPlaybackStatus, AudioSource } from './playerTypes'
 
@@ -21,6 +21,15 @@ type UsePersistentAudioControllerResult = {
 }
 
 let sharedAudioElement: HTMLAudioElement | null = null
+const LIVE_RETRY_DELAYS_MS = [3_000, 8_000, 15_000]
+const LIVE_RECOVERY_WINDOW_MS = 20_000
+
+function clearRecoveryTimer(timer: { current: number | null }) {
+  if (timer.current !== null) {
+    window.clearTimeout(timer.current)
+    timer.current = null
+  }
+}
 
 function getSharedAudioElement() {
   if (!sharedAudioElement) {
@@ -72,6 +81,12 @@ export function usePersistentAudioController(initialVolume = 0.7, selectedSource
   const audioElementRef = useRef<HTMLAudioElement | null>(null)
   const playbackStatusRef = useRef<AudioPlaybackStatus>('idle')
   const pendingPlayRequestRef = useRef(false)
+  const playRequestGenerationRef = useRef(0)
+  const playIntentRef = useRef(false)
+  const liveSourceRef = useRef(false)
+  const recoveryAttemptsRef = useRef(0)
+  const recoveryTimerRef = useRef<number | null>(null)
+  const recoveryDeadlineRef = useRef<number | null>(null)
   const sourceUrlRef = useRef<string>('')
   const safeInitialVolume = clampVolume(initialVolume)
   const volumeRef = useRef(safeInitialVolume)
@@ -87,6 +102,11 @@ export function usePersistentAudioController(initialVolume = 0.7, selectedSource
   const [seekable, setSeekable] = useState(DEMO_PSYCHEDELIC_EXPERIENCE_AUDIO_SOURCE.isSeekable)
   const [metadataLoaded, setMetadataLoaded] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+
+  const cancelRecovery = useCallback(() => {
+    clearRecoveryTimer(recoveryTimerRef)
+    recoveryDeadlineRef.current = null
+  }, [])
 
   const audioSource = useMemo(() => {
     if (!selectedSourceId) {
@@ -108,6 +128,68 @@ export function usePersistentAudioController(initialVolume = 0.7, selectedSource
     const audio = getSharedAudioElement()
     audio.volume = volumeRef.current
     audioElementRef.current = audio
+
+    const stopRecovery = (message: string) => {
+      playRequestGenerationRef.current += 1
+      playIntentRef.current = false
+      pendingPlayRequestRef.current = false
+      cancelRecovery()
+      setPlaybackStatus('error')
+      playbackStatusRef.current = 'error'
+      setMetadataLoaded(false)
+      setErrorMessage(message)
+      audio.pause()
+      audio.removeAttribute('src')
+      audio.load()
+    }
+
+    const expireRecovery = () => {
+      if (recoveryDeadlineRef.current === null || Date.now() < recoveryDeadlineRef.current) return false
+      stopRecovery('Live stream interrupted. Press Play to reconnect.')
+      return true
+    }
+
+    const scheduleRecovery = (delay?: number) => {
+      if (!liveSourceRef.current || !playIntentRef.current || recoveryTimerRef.current !== null) return
+      recoveryDeadlineRef.current ??= Date.now() + LIVE_RECOVERY_WINDOW_MS
+      if (expireRecovery()) return
+      const scheduledGeneration = playRequestGenerationRef.current
+      const deadline = recoveryDeadlineRef.current
+      pendingPlayRequestRef.current = true
+      setPlaybackStatus('loading')
+      playbackStatusRef.current = 'loading'
+      recoveryTimerRef.current = window.setTimeout(() => {
+        if (scheduledGeneration !== playRequestGenerationRef.current || deadline !== recoveryDeadlineRef.current) return
+        recoveryTimerRef.current = null
+        if (!playIntentRef.current || expireRecovery()) return
+        if (recoveryAttemptsRef.current >= LIVE_RETRY_DELAYS_MS.length) {
+          stopRecovery('Live stream interrupted. Press Play to reconnect.')
+          return
+        }
+        recoveryAttemptsRef.current += 1
+        const generation = ++playRequestGenerationRef.current
+        audio.src = sourceUrlRef.current
+        audio.load()
+        // Bound a reconnect that never resolves or emits another media event.
+        scheduleRecovery(15_000)
+        void audio.play().then(() => {
+          if (generation === playRequestGenerationRef.current) expireRecovery()
+        }).catch((error: unknown) => {
+          if (generation !== playRequestGenerationRef.current) return
+          if (expireRecovery()) return
+          if (!playIntentRef.current && error instanceof DOMException && error.name === 'AbortError') return
+          if (error instanceof DOMException && error.name === 'NotAllowedError') {
+            stopRecovery('Playback needs your permission. Press Play to reconnect.')
+            return
+          }
+          setErrorMessage(error instanceof Error ? error.message : 'Live stream reconnect failed.')
+          scheduleRecovery()
+        })
+      }, Math.min(
+        delay ?? LIVE_RETRY_DELAYS_MS[recoveryAttemptsRef.current] ?? 15_000,
+        deadline - Date.now(),
+      ))
+    }
 
     const syncVolume = () => {
       setVolumeState(audio.volume)
@@ -141,6 +223,13 @@ export function usePersistentAudioController(initialVolume = 0.7, selectedSource
     }
 
     const handlePlaying = () => {
+      if (expireRecovery()) return
+      if (!playIntentRef.current) {
+        audio.pause()
+        return
+      }
+      if (audio.paused) return
+      cancelRecovery()
       pendingPlayRequestRef.current = false
       setPlaybackStatus('playing')
       playbackStatusRef.current = 'playing'
@@ -149,9 +238,14 @@ export function usePersistentAudioController(initialVolume = 0.7, selectedSource
     }
 
     const handlePause = () => {
+      if (!audio.paused) return
+      // Network failures/endings may pause media without cancelling listener intent.
+      if (playIntentRef.current && (audio.error || audio.ended)) return
+      playIntentRef.current = false
+      cancelRecovery()
       pendingPlayRequestRef.current = false
       setPlaybackStatus((current) => (current === 'playing' || current === 'loading' ? 'paused' : current))
-      playbackStatusRef.current = 'paused'
+      if (playbackStatusRef.current !== 'error') playbackStatusRef.current = 'paused'
       syncTime()
     }
 
@@ -159,6 +253,13 @@ export function usePersistentAudioController(initialVolume = 0.7, selectedSource
       if (pendingPlayRequestRef.current || playbackStatusRef.current === 'playing') {
         setPlaybackStatus('loading')
         playbackStatusRef.current = 'loading'
+      }
+      scheduleRecovery(15_000)
+    }
+
+    const handleStalled = () => {
+      if (audio.readyState < HTMLMediaElement.HAVE_FUTURE_DATA) {
+        handleWaiting()
       }
     }
 
@@ -173,6 +274,7 @@ export function usePersistentAudioController(initialVolume = 0.7, selectedSource
     }
 
     const handleTimeUpdate = () => {
+      if (expireRecovery()) return
       syncTime()
     }
 
@@ -185,14 +287,22 @@ export function usePersistentAudioController(initialVolume = 0.7, selectedSource
       setPlaybackStatus('paused')
       playbackStatusRef.current = 'paused'
       syncTime()
+      scheduleRecovery()
     }
 
     const handleError = () => {
+      if (!audio.error) return
       pendingPlayRequestRef.current = false
       setPlaybackStatus('error')
       playbackStatusRef.current = 'error'
       setMetadataLoaded(false)
       setErrorMessage(getPlaybackErrorMessage(audio))
+      if (audio.error.code === MediaError.MEDIA_ERR_NETWORK) {
+        clearRecoveryTimer(recoveryTimerRef)
+        scheduleRecovery()
+      } else {
+        stopRecovery(getPlaybackErrorMessage(audio))
+      }
     }
 
     audio.addEventListener('loadstart', handleLoadStart)
@@ -201,12 +311,14 @@ export function usePersistentAudioController(initialVolume = 0.7, selectedSource
     audio.addEventListener('playing', handlePlaying)
     audio.addEventListener('pause', handlePause)
     audio.addEventListener('waiting', handleWaiting)
+    audio.addEventListener('stalled', handleStalled)
     audio.addEventListener('timeupdate', handleTimeUpdate)
     audio.addEventListener('seeking', handleSeeking)
     audio.addEventListener('seeked', handleSeeked)
     audio.addEventListener('volumechange', handleVolumeChange)
     audio.addEventListener('ended', handleEnded)
     audio.addEventListener('error', handleError)
+    document.addEventListener('visibilitychange', expireRecovery)
 
     return () => {
       audio.removeEventListener('loadstart', handleLoadStart)
@@ -215,17 +327,25 @@ export function usePersistentAudioController(initialVolume = 0.7, selectedSource
       audio.removeEventListener('playing', handlePlaying)
       audio.removeEventListener('pause', handlePause)
       audio.removeEventListener('waiting', handleWaiting)
+      audio.removeEventListener('stalled', handleStalled)
       audio.removeEventListener('timeupdate', handleTimeUpdate)
       audio.removeEventListener('seeking', handleSeeking)
       audio.removeEventListener('seeked', handleSeeked)
       audio.removeEventListener('volumechange', handleVolumeChange)
       audio.removeEventListener('ended', handleEnded)
       audio.removeEventListener('error', handleError)
+      document.removeEventListener('visibilitychange', expireRecovery)
+      playRequestGenerationRef.current += 1
+      playIntentRef.current = false
+      cancelRecovery()
       audio.pause()
+      audio.removeAttribute('src')
+      audio.load()
+      sourceUrlRef.current = ''
       audioElementRef.current = null
       pendingPlayRequestRef.current = false
     }
-  }, [])
+  }, [cancelRecovery])
 
   useEffect(() => {
     const audio = audioElementRef.current
@@ -239,6 +359,10 @@ export function usePersistentAudioController(initialVolume = 0.7, selectedSource
       return
     }
 
+    playRequestGenerationRef.current += 1
+    playIntentRef.current = false
+    cancelRecovery()
+    liveSourceRef.current = audioSource.kind === 'live-stream'
     pendingPlayRequestRef.current = false
     seekableRef.current = audioSource.isSeekable
     sourceUrlRef.current = audioSource.audioUrl
@@ -258,7 +382,7 @@ export function usePersistentAudioController(initialVolume = 0.7, selectedSource
     audio.preload = audioSource.kind === 'live-stream' ? 'none' : 'metadata'
     audio.src = audioSource.audioUrl
     audio.load()
-  }, [audioSource.audioUrl, audioSource.isSeekable, audioSource.kind])
+  }, [audioSource.audioUrl, audioSource.isSeekable, audioSource.kind, cancelRecovery])
 
   useEffect(() => {
     const audio = audioElementRef.current
@@ -281,6 +405,15 @@ export function usePersistentAudioController(initialVolume = 0.7, selectedSource
       return
     }
 
+    const generation = ++playRequestGenerationRef.current
+    cancelRecovery()
+    playIntentRef.current = true
+    recoveryAttemptsRef.current = 0
+    if (audioSource.kind === 'live-stream' || audio.error || audio.ended) {
+      // Reconnect live radio at the broadcast edge, never at an old paused buffer.
+      audio.src = sourceUrlRef.current
+      audio.load()
+    }
     pendingPlayRequestRef.current = true
     setPlaybackStatus('loading')
     playbackStatusRef.current = 'loading'
@@ -289,6 +422,15 @@ export function usePersistentAudioController(initialVolume = 0.7, selectedSource
     try {
       await audio.play()
     } catch (error) {
+      if (generation !== playRequestGenerationRef.current) return
+      if (!playIntentRef.current && error instanceof DOMException && error.name === 'AbortError') return
+      if (error instanceof DOMException && error.name === 'NotAllowedError') {
+        cancelRecovery()
+      }
+      // Network failures are handled by the media error event and bounded recovery.
+      if (recoveryTimerRef.current !== null) return
+      playRequestGenerationRef.current += 1
+      playIntentRef.current = false
       pendingPlayRequestRef.current = false
       setPlaybackStatus('error')
       playbackStatusRef.current = 'error'
@@ -303,14 +445,22 @@ export function usePersistentAudioController(initialVolume = 0.7, selectedSource
       return
     }
 
+    playRequestGenerationRef.current += 1
+    playIntentRef.current = false
+    cancelRecovery()
     pendingPlayRequestRef.current = false
     audio.pause()
+    if (audioSource.kind === 'live-stream') {
+      audio.removeAttribute('src')
+      audio.load()
+      setMetadataLoaded(false)
+    }
     setPlaybackStatus('paused')
     playbackStatusRef.current = 'paused'
   }
 
   const togglePlay = async () => {
-    if (playbackStatus === 'playing') {
+    if (playbackStatusRef.current === 'playing' || playbackStatusRef.current === 'loading') {
       pause()
       return
     }

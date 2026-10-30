@@ -23,7 +23,7 @@ The wordmark colors come from the resolved decoder states in `src/components/pub
 
 Public service online
 
-The public player carries live music from multiple independent radio partners with immersive, music-reactive visual environments.
+The public player carries our self-hosted DeepSignals.FM Psytrance station and live music from independent radio partners with immersive, music-reactive visual environments.
 
 ## Planned Features
 
@@ -684,50 +684,69 @@ The public player is available locally at:
 http://localhost:5173/player/
 ```
 
-### DeepSignals.FM Psytrance: local testing only
+### DeepSignals.FM Psytrance: public station
 
 The existing **DEEPSIGNALS.FM** selector group enables **DeepSignals.FM Psytrance**
-only under Vite's `import.meta.env.DEV` (`npm run dev`). Production builds and
-`npm run preview` retain the disabled **DeepSignals.FM Psytrance — COMING SOON**
-entry. The development source is excluded from the production audio registry;
-persisted development selections are sanitized on production load. DeepSignals.FM
-Chillout is unchanged.
+in development and production, including persisted station selections.
+The unlaunched DeepSignals.FM Chillout placeholder is removed; external chillout
+stations are unchanged.
 
-Local playback uses `https://a6.asurahosting.com:7530/radio.mp3` directly.
+Playback uses `https://a6.asurahosting.com:7530/radio.mp3` directly.
 The public AzuraCast station-764 endpoint,
 `https://a6.asurahosting.com/api/nowplaying/764`, supplies artist/title, HTTPS
 song artwork, and exact-mount listener/bitrate statistics using the same parser
-and polling engine as Triplag. Polling is 20 seconds visible / 60 seconds hidden,
-scheduled after each response with normal HTTP caching; switching sources or
+and polling engine as Triplag. Polling is 10 seconds visible / 60 seconds hidden,
+scheduled after each response with HTTP cache bypass and immediate refresh when
+the tab becomes visible (without overlapping in-flight requests). Triplag retains
+its existing 20-second cadence and caching. Switching sources or
 leaving the player aborts requests and clears timers/stale data. Missing/failed
 metadata or artwork uses the existing station-name, DSFM-brand and unknown-stat
 fallbacks without changing audio playback.
 
-On October 26, 2026, live checks returned HTTP 200 for the API, JPEG artwork and
+On October 30, 2026, production-preview live checks verified the API, artwork and
 192 kbps MP3 stream. The API allowed cross-origin reads and Icecast allowed the
-local Origin. Playback and visualization use the existing anonymous-CORS media
+local and `https://deepsignals.fm` origins. Playback and visualization use the existing anonymous-CORS media
 element and shared Web Audio analyser, with no proxy, credentials, new service
 or diagnostic UI. Existing DEV-only diagnostics remain available at
 `/player/?audioDebug=1`. Hosting/CORS and artwork availability can change.
 
-Focused deterministic development tests (starts/stops its own local Vite server):
+Live-stream Pause releases the connection; Play reconnects to the current broadcast
+rather than replaying a paused buffer. Buffering remains cancellable. Unexpected
+live network errors, ended streams or 15-second waits/stalls can reconnect while
+Play intent remains active, with at most three retries per explicit Play
+(3/8/15-second error backoff and a 15-second connection watchdog), additionally
+bounded by a fixed 20-second wall-clock window from the first detected interruption.
+Retries/watchdogs are capped at that deadline; repeated errors cannot extend it.
+Callbacks, pending retry completions, playback events and visibility changes check
+expiry so a suspended tab cannot initiate an expired reconnect when it resumes.
+Expiry releases the stream, invalidates pending work and requires a new Play.
+JavaScript cannot enforce a timer while the browser suspends execution; expired
+playback is stopped when execution/events resume. Successful
+playback clears the interruption deadline but does not replenish the attempt budget. Pause, station switching and leaving the
+player cancel recovery; permission rejection stops automatic retries and asks for
+Play. No reconnect is attempted for unsupported/undecodable media or demo tracks.
+iOS background execution, lock-screen/Bluetooth controls and Wi-Fi-to-cellular
+handoff still require physical-device checks; browsers may suspend timers or
+require a fresh user gesture. There is no guarantee of uninterrupted background audio.
+
+Focused deterministic production tests (builds and starts Vite preview):
 
 ```bash
-npx playwright test --config playwright.dev.config.ts
+npx playwright test deepsignals-psytrance.spec.ts
 ```
 
 In PowerShell, opt into a real browser stream/artwork/analysis probe:
 
 ```powershell
 $env:DSFM_LIVE_STREAM_TEST = "1"
-npx playwright test --config playwright.dev.config.ts --grep "real DeepSignals"
+npx playwright test deepsignals-psytrance.spec.ts --grep "real DeepSignals"
 Remove-Item Env:\DSFM_LIVE_STREAM_TEST
 ```
 
-Verify the production gate and unchanged shared AzuraCast behavior:
+Verify production availability and unchanged shared AzuraCast behavior:
 
 ```bash
-npx playwright test tests/smoke/deepsignals-psytrance.spec.ts tests/smoke/triplag.spec.ts tests/smoke/player.spec.ts
+npx playwright test deepsignals-psytrance.spec.ts live-recovery.spec.ts triplag.spec.ts player.spec.ts
 ```
 
 These are local checks only; do not push or deploy to test this station.

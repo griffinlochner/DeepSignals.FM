@@ -589,18 +589,8 @@ function PlayerShell({ className }: PlayerShellProps) {
         label: "DEEPSIGNALS.FM",
         signals: [
           {
-            id: "deepsignals-chillout-coming-soon",
-            label: "DeepSignals.FM Chillout — COMING SOON",
-            disabled: true,
-          },
-          {
-            id: import.meta.env.DEV
-              ? "deepsignals-psytrance"
-              : "deepsignals-psytrance-coming-soon",
-            label: import.meta.env.DEV
-              ? "DeepSignals.FM Psytrance"
-              : "DeepSignals.FM Psytrance — COMING SOON",
-            disabled: !import.meta.env.DEV,
+            id: "deepsignals-psytrance",
+            label: "DeepSignals.FM Psytrance",
           },
         ],
       },
@@ -1127,11 +1117,18 @@ function PlayerShell({ className }: PlayerShellProps) {
   }, [audioController.audioSource, externalNowPlaying, triplag]);
 
   const handleAudioTogglePlay = async () => {
-    if (audioController.playbackStatus !== "playing") {
-      await audioAnalysis.requestInitializationFromUserGesture();
+    if (
+      audioController.playbackStatus === "playing" ||
+      audioController.playbackStatus === "loading"
+    ) {
+      await audioController.togglePlay();
+      return;
     }
 
+    // Start both APIs in the click gesture; do not wait for AudioContext.resume().
+    const initialization = audioAnalysis.requestInitializationFromUserGesture();
     await audioController.togglePlay();
+    await initialization;
   };
 
   if (!activeTheme) {

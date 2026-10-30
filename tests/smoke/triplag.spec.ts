@@ -198,6 +198,7 @@ test("Triplag API failures clear stale metadata and stats without interrupting a
   await expect(transmission(page)).toHaveText(fullLabel);
   await page.getByRole("button", { name: "Play", exact: true }).click();
   await expect.poll(async () => (await readAudio(page)).paused).toBe(false);
+  await expect(page.getByRole("button", { name: "Pause", exact: true })).toBeVisible();
   for (let i = 2; i <= 4; i++) {
     await page.clock.fastForward(20_100);
     await expect.poll(() => calls).toBe(i);

@@ -96,20 +96,20 @@ export const PUBLIC_EXTERNAL_AUDIO_SOURCES: AudioSource[] =
     (definition) => definition.publicPlayerCompatible,
   ).map(createLiveStreamAudioSource)
 
-export const DEVELOPMENT_AUDIO_SOURCES: AudioSource[] = import.meta.env.DEV
-  ? [createLiveStreamAudioSource({
+export const DEEPSIGNALS_AUDIO_SOURCES: AudioSource[] = [
+  createLiveStreamAudioSource({
     id: 'deepsignals-psytrance',
     stationName: 'DeepSignals.FM Psytrance',
     streamUrl: 'https://a6.asurahosting.com:7530/radio.mp3',
     stationWebsite: 'https://deepsignals.fm/',
     sourceLinkLabel: 'DeepSignals.FM',
-    sourceAttribution: 'DeepSignals.FM development signal',
-    publicPlayerCompatible: false,
-  })]
-  : []
+    sourceAttribution: 'DeepSignals.FM',
+    publicPlayerCompatible: true,
+  }),
+]
 
 export const AUDIO_SOURCES: AudioSource[] = [
   ...DEMO_AUDIO_SOURCES,
   ...PUBLIC_EXTERNAL_AUDIO_SOURCES,
-  ...DEVELOPMENT_AUDIO_SOURCES,
+  ...DEEPSIGNALS_AUDIO_SOURCES,
 ]
