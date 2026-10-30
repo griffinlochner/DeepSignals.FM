@@ -2,7 +2,7 @@
 
 **Hosting:** AzuraCast on Asura Hosting | **Playlist:** `Psytrance rotation`
 
-**204 MP3s across 29 releases.** Last checked: 2026-10-28. The original 39 filenames are screenshot-confirmed; the 165 tracks added at the operator's direction are assumed uploaded, with filenames normalized from Ektoplazm tracklists and not checked against AzuraCast.
+**244 MP3s across 33 releases.** Last checked: 2026-10-29. The original 39 filenames are screenshot-confirmed; the 205 tracks added at the operator's direction are assumed uploaded, with filenames normalized from Ektoplazm tracklists and not checked against AzuraCast.
 
 Release details apply to every row beneath them. Titles follow Ektoplazm; H1-H3 remain disputed, not corrections to uploaded metadata. Evidence links point to each release's license statement below its downloads.
 
@@ -453,11 +453,83 @@ Release details apply to every row beneath them. Titles follow Ektoplazm; H1-H3 
 | `02_-_munsmawa_-_rios_transparentes_(los_ojos_de_jaya).mp3` | Rios Transparentes (Los Ojos De Jaya) |
 | `03_-_munsmawa_-_amor_fe_y_confianza!.mp3` | Amor Fe y Confianza! |
 
+## Pororoca - Agent Ant (4 tracks)
+
+- **Source:** [Ektoplazm][agent-ant]
+- **License:** [CC BY-NC-SA 4.0][by-nc-sa] ([evidence][agent-ant])
+
+| Uploaded filename | Track title |
+| --- | --- |
+| `01_-_pororoca_-_agent_ant.mp3` | Agent Ant |
+| `02_-_pororoca_-_extraordinary_odd.mp3` | Extraordinary Odd |
+| `03_-_pororoca_-_sweet_chili_swap.mp3` | Sweet Chili Swap |
+| `04_-_pororoca_-_honeytooth.mp3` | Honeytooth |
+
+## Various artists - New Beginning (22 tracks)
+
+- **Source:** [Ektoplazm][new-beginning]
+- **License:** [CC BY-NC-SA 4.0][by-nc-sa] ([evidence][new-beginning])
+
+| Uploaded filename | Artist - track title |
+| --- | --- |
+| `01_-_re_set_-_eve.mp3` | Re_Set - Eve |
+| `02_-_sonork_-_decameron.mp3` | Sonork - Decameron |
+| `03_-_sourone_-_cheesy_dimension.mp3` | SourOne - Cheesy Dimension |
+| `04_-_qawabeat_-_furama_(jungle_haze_remix).mp3` | Qawabeat - Furama (Jungle Haze Remix) |
+| `05_-_headroom_-_vistarama_(neuroplasm_remix).mp3` | Headroom - Vistarama (Neuroplasm Remix) |
+| `06_-_oddwave__earthworm_-_my_monster.mp3` | Oddwave & Earthworm - My Monster |
+| `07_-_makelel_-_pwn.mp3` | Makelel - Pwn |
+| `08_-_in_lak_ech_-_between_machines.mp3` | In Lak Ech - Between Machines |
+| `09_-_hashashin_-_lazer_fight.mp3` | Hashashin - Lazer Fight |
+| `10_-_killawatt_-_fancy_that.mp3` | Killawatt - Fancy That |
+| `11_-_sionnach_-_zeal.mp3` | Sionnach - Zeal |
+| `12_-_antithesis_-_fracture.mp3` | Antithesis - Fracture |
+| `13_-_slide_and_dopadocks_-_sauna.mp3` | Slide and Dopadocks - Sauna |
+| `14_-_caveman_-_burnt.mp3` | Caveman - Burnt |
+| `15_-_atezu_-_gammazita_(atezu_remix).mp3` | Atezu - Gammazita (Atezu Remix) |
+| `16_-_metrix_-_hide_and_seek.mp3` | Metrix - Hide and Seek |
+| `17_-_kronos_-_whirlwind.mp3` | Kronos - Whirlwind |
+| `18_-_init_preset__rizomorf_-_one_day.mp3` | Init Preset & Rizomorf - One Day |
+| `19_-_d.o.c_-_humanize.mp3` | D.O.C - Humanize |
+| `20_-_once_upon_a_time__juu_-_will_for_life_(experimental_remix).mp3` | Once Upon A Time & Juu - Will For Life (Experimental Remix) |
+| `21_-_aum_sector_-_anima.mp3` | Aum Sector - Anima |
+| `22_-_tskun_-_disturbed.mp3` | Tskun - Disturbed |
+
+## Psyshastra - Dei Ex Machina (5 tracks)
+
+- **Source:** [Ektoplazm][dei-ex-machina]
+- **License:** [CC BY-NC-ND 4.0][by-nc-nd] ([evidence][dei-ex-machina])
+
+| Uploaded filename | Track title |
+| --- | --- |
+| `01_-_psyshastra_-_follow_the_shaman.mp3` | Follow The Shaman |
+| `02_-_psyshastra_-_call_to_starship.mp3` | Call To Starship |
+| `03_-_psyshastra_-_under_the_ground.mp3` | Under The Ground |
+| `04_-_psyshastra_-_a_tale_too_true.mp3` | A Tale Too True |
+| `05_-_psyshastra_-_delusional_gods.mp3` | Delusional Gods |
+
+## Schizoid Bears - Dictator Of Silence (9 tracks)
+
+- **Source:** [Ektoplazm][dictator-of-silence]
+- **License:** linked [CC BY 4.0][by] ([evidence][dictator-of-silence]); **Needs verification**. The page says "for noncommercial usage," which conflicts with the linked license.
+
+| Uploaded filename | Track title |
+| --- | --- |
+| `01_-_schizoid_bears_-_shimmy_ye.mp3` | Shimmy Ye |
+| `02_-_schizoid_bears_-_kito_visato.mp3` | Kito Visato |
+| `03_-_schizoid_bears_-_analogue_woods.mp3` | Analogue Woods |
+| `04_-_schizoid_bears_-_man_robot.mp3` | Man / Robot |
+| `05_-_schizoid_bears_-_spacecake.mp3` | Spacecake |
+| `06_-_schizoid_bears_-_drop_out.mp3` | Drop Out |
+| `07_-_schizoid_bears_-_kuelveerstuk.mp3` | Kuelveerstuk |
+| `08_-_schizoid_bears_-_keep_it_in_my_heart.mp3` | Keep It In My Heart |
+| `09_-_schizoid_bears_-_parabulock.mp3` | Parabulock |
+
 ## Other verification notes
 
 - **Needs verification - playlist:** `Psytrance rotation` is operator-reported; assignments are not shown in the screenshots.
-- **Needs verification - station use:** commercial/noncommercial status and separate permissions were not supplied. The 183 tracks with noncommercial Creative Commons licenses require noncommercial use unless separately authorized; this inventory is not broadcast clearance.
-- **Needs verification - added filenames:** filenames for the 29 releases added at the operator's direction are normalized from the Ektoplazm tracklists, not confirmed in AzuraCast.
+- **Needs verification - station use:** commercial/noncommercial status and separate permissions were not supplied. The 214 tracks with noncommercial Creative Commons licenses require noncommercial use unless separately authorized; this inventory is not broadcast clearance.
+- **Needs verification - added filenames:** filenames for the 33 releases added at the operator's direction are normalized from the Ektoplazm tracklists, not confirmed in AzuraCast.
 
 ## Updating the inventory
 
@@ -494,6 +566,10 @@ Release details apply to every row beneath them. Titles follow Ektoplazm; H1-H3 
 [waiting-for-the-sun]: https://ektoplazm.com/free-music/fractali3n-waiting-for-the-sun
 [elemental-spirits]: https://ektoplazm.com/free-music/elemental-spirits
 [el-camino-del-corazon]: https://ektoplazm.com/free-music/munsmawa-el-camino-del-corazon
+[agent-ant]: https://ektoplazm.com/free-music/pororoca-agent-ant
+[new-beginning]: https://ektoplazm.com/free-music/new-beginning
+[dei-ex-machina]: https://ektoplazm.com/free-music/psyshastra-dei-ex-machina
+[dictator-of-silence]: https://ektoplazm.com/free-music/schizoid-bears-dictator-of-silence
 [by-nc-sa]: https://creativecommons.org/licenses/by-nc-sa/4.0/
 [by-nc-nd]: https://creativecommons.org/licenses/by-nc-nd/4.0/
 [by-nc]: https://creativecommons.org/licenses/by-nc/4.0/
