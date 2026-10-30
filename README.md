@@ -691,7 +691,13 @@ in development and production, including persisted station selections.
 The unlaunched DeepSignals.FM Chillout placeholder is removed; external chillout
 stations are unchanged.
 
-Playback uses `https://a6.asurahosting.com:7530/radio.mp3` directly.
+Playback uses `https://a6.asurahosting.com:7530/radio.mp3?_ic2=1`.
+The query bypasses Icecast's Safari-user-agent redirect: the canonical URL returns
+a 302 without CORS headers for Safari/iOS, even though its final MP3 response
+allows CORS. This breaks anonymous-CORS embedded playback, not direct navigation.
+The host, port and MP3 mount are unchanged; metadata/telemetry still match the
+canonical mount URL without the query. Triplag has no corresponding redirect and
+is unchanged. Anonymous CORS and the shared Web Audio graph remain enabled.
 The public AzuraCast station-764 endpoint,
 `https://a6.asurahosting.com/api/nowplaying/764`, supplies artist/title, HTTPS
 song artwork, and exact-mount listener/bitrate statistics using the same parser

@@ -2,7 +2,7 @@ import { test, expect } from "../support/test";
 import { instrumentAudio } from "../support/audioProbe";
 
 const ID = "deepsignals-psytrance";
-const STREAM = "https://a6.asurahosting.com:7530/radio.mp3";
+const STREAM = "https://a6.asurahosting.com:7530/radio.mp3?_ic2=1";
 
 test.beforeEach(async ({ page }) => {
   await page.clock.install({ time: new Date("2026-10-30T12:00:00Z") });

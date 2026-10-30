@@ -8,6 +8,7 @@ const ID = "deepsignals-psytrance";
 const NAME = "DeepSignals.FM Psytrance";
 const API = "https://a6.asurahosting.com/api/nowplaying/764";
 const STREAM = "https://a6.asurahosting.com:7530/radio.mp3";
+const PLAYBACK_STREAM = `${STREAM}?_ic2=1`;
 const ART = "https://a6.asurahosting.com/api/station/deepsignals.fm_psytrance/art/441768eb61a678fb00180412-1793051699.jpg";
 const BRAND = "/branding/deepsignals-logo-square.png";
 const TRACK = "public\\audio\\demo\\illustrator-psychedelic-experience.mp3";
@@ -248,7 +249,7 @@ test.describe("DeepSignals production and development station", () => {
       const first = await readAudio(page);
       await expect.poll(async () => (await readAudio(page)).frequencySum).not.toBe(first.frequencySum);
       const audio = await readAudio(page);
-      if (id === ID) expect(audio.src).toBe(STREAM);
+      if (id === ID) expect(audio.src).toBe(PLAYBACK_STREAM);
       expect([audio.elementCount, audio.analyserCount, audio.sourceCount]).toEqual([1, 1, 1]);
       expect(audio.contextStates).toEqual(["running"]);
       expect(audio.error).toBeNull();
@@ -271,13 +272,80 @@ test.describe("DeepSignals production and development station", () => {
   test("preserves playback, shared analysis, controls and station switching", async ({ page }) => {
     test.setTimeout(90_000);
     await instrumentAudio(page);
-    await page.route(STREAM, (route) => route.fulfill({
+    await page.route(PLAYBACK_STREAM, (route) => route.fulfill({
       path: TRACK, contentType: "audio/mpeg", headers: { "Access-Control-Allow-Origin": "*" },
     }));
     await page.route(API, (route) => route.fulfill({ json: fixture }));
     await page.route(ART, (route) => route.fulfill({ status: 404 }));
     await selectStation(page);
     await verifyPlayback(page);
+  });
+
+  for (const [browserName, userAgent] of [
+    ["Safari", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Safari/605.1.15"],
+    ["iOS Chrome", "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/130.0.0.0 Mobile/15E148 Safari/604.1"],
+  ]) {
+    test.describe(`${browserName} server-redirect compatibility (Chromium engine)`, () => {
+      test.use({ userAgent });
+
+      test("bypasses the non-CORS redirect on Play and resume while preserving canonical mount metadata", async ({ page }) => {
+        await instrumentAudio(page);
+        const requested: string[] = [];
+        await page.route(`${STREAM}*`, (route) => {
+          requested.push(route.request().url());
+          return route.request().url() === STREAM
+            ? route.fulfill({ status: 302, headers: { Location: PLAYBACK_STREAM } })
+            : route.fulfill({ path: TRACK, contentType: "audio/mpeg", headers: { "Access-Control-Allow-Origin": "*" } });
+        });
+        await page.route(API, (route) => route.fulfill({ json: fixture }));
+        await page.route(ART, (route) => route.fulfill({ status: 404 }));
+        await selectStation(page);
+        await expect(transmission(page)).toHaveText("Biomekanik — Symphony of Noises");
+        await expect(listeners(page)).toHaveText("1");
+        for (let attempt = 0; attempt < 2; attempt++) {
+          await page.getByRole("button", { name: "Play", exact: true }).click();
+          await expect.poll(async () => (await readAudio(page)).rms).toBeGreaterThan(0.00001);
+          expect((await readAudio(page)).src).toBe(PLAYBACK_STREAM);
+          await page.getByRole("button", { name: "Pause", exact: true }).click();
+        }
+        expect(requested.length).toBeGreaterThanOrEqual(2);
+        expect(requested.every((url) => url === PLAYBACK_STREAM)).toBe(true);
+      });
+
+      test("real DeepSignals stream avoids the Safari-UA redirect and supplies analysable audio", async ({ page }) => {
+        test.skip(process.env.DSFM_LIVE_STREAM_TEST !== "1", "Opt-in live network test; user agent coverage, not physical Safari");
+        await instrumentAudio(page);
+        await selectStation(page);
+        const responsePromise = page.waitForResponse(PLAYBACK_STREAM);
+        await page.getByRole("button", { name: "Play", exact: true }).click();
+        const response = await responsePromise;
+        expect(response.status()).toBe(200);
+        expect(response.request().redirectedFrom()).toBeNull();
+        expect(await response.headerValue("access-control-allow-origin")).toBe(new URL(page.url()).origin);
+        await expect.poll(async () => (await readAudio(page)).rms, { timeout: 20_000 }).toBeGreaterThan(0.00001);
+        await expect(transmission(page)).not.toHaveText(NAME);
+        expect((await readAudio(page)).error).toBeNull();
+        await page.getByRole("button", { name: "Pause", exact: true }).click();
+      });
+    });
+  }
+
+  test("audio and metadata remain available when AudioContext is unavailable", async ({ page }) => {
+    await instrumentAudio(page);
+    await page.addInitScript(() => Object.defineProperty(window, "AudioContext", { value: undefined }));
+    await page.route(PLAYBACK_STREAM, (route) => route.fulfill({
+      path: TRACK, contentType: "audio/mpeg", headers: { "Access-Control-Allow-Origin": "*" },
+    }));
+    await page.route(API, (route) => route.fulfill({ json: fixture }));
+    await page.route(ART, (route) => route.fulfill({ status: 404 }));
+    await selectStation(page);
+    await page.getByRole("button", { name: "Play", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Pause", exact: true })).toBeVisible();
+    await expect.poll(async () => (await readAudio(page)).currentTime).toBeGreaterThan(0.2);
+    expect((await readAudio(page)).analyserCount).toBe(0);
+    await expect(transmission(page)).toHaveText("Biomekanik — Symphony of Noises");
+    await expect(page.locator(".floating-player-panel__audio-error")).toHaveCount(0);
+    await page.getByRole("button", { name: "Pause", exact: true }).click();
   });
 
   test("real DeepSignals stream plays with metadata, artwork, telemetry and reactive audio", async ({ page }) => {

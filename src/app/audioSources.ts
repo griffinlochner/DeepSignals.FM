@@ -100,7 +100,8 @@ export const DEEPSIGNALS_AUDIO_SOURCES: AudioSource[] = [
   createLiveStreamAudioSource({
     id: 'deepsignals-psytrance',
     stationName: 'DeepSignals.FM Psytrance',
-    streamUrl: 'https://a6.asurahosting.com:7530/radio.mp3',
+    // Bypass Icecast's Safari redirect, whose 302 response omits CORS headers.
+    streamUrl: 'https://a6.asurahosting.com:7530/radio.mp3?_ic2=1',
     stationWebsite: 'https://deepsignals.fm/',
     sourceLinkLabel: 'DeepSignals.FM',
     sourceAttribution: 'DeepSignals.FM',
