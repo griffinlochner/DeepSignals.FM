@@ -2,7 +2,7 @@
 
 **Hosting:** AzuraCast on Asura Hosting | **Playlist:** `Psytrance rotation`
 
-**244 MP3s across 33 releases.** Last checked: 2026-10-29. The original 39 filenames are screenshot-confirmed; the 205 tracks added at the operator's direction are assumed uploaded, with filenames normalized from Ektoplazm tracklists and not checked against AzuraCast.
+**275 MP3s across 37 releases.** Last checked: 2026-10-30. The original 39 filenames are screenshot-confirmed; the 236 tracks added at the operator's direction are assumed uploaded, with filenames normalized from Ektoplazm tracklists and not checked against AzuraCast.
 
 Release details apply to every row beneath them. Titles follow Ektoplazm; H1-H3 remain disputed, not corrections to uploaded metadata. Evidence links point to each release's license statement below its downloads.
 
@@ -525,11 +525,74 @@ Release details apply to every row beneath them. Titles follow Ektoplazm; H1-H3 
 | `08_-_schizoid_bears_-_keep_it_in_my_heart.mp3` | Keep It In My Heart |
 | `09_-_schizoid_bears_-_parabulock.mp3` | Parabulock |
 
+## Various artists - Badgers Visions (11 tracks)
+
+- **Source:** [Ektoplazm][badgers-visions]
+- **License:** [CC BY-NC-SA 4.0][by-nc-sa] ([evidence][badgers-visions])
+
+| Uploaded filename | Artist - track title |
+| --- | --- |
+| `01_-_d.o.d_-_badgers_vision_rehearsal.mp3` | D.O.D. - Badgers Vision Rehearsal |
+| `02_-_charu_-_clustering_illusions.mp3` | Charu - Clustering Illusions |
+| `03_-_shiibashunsuke_-_mesopotamia_twisted.mp3` | Shiibashunsuke - Mesopotamia Twisted |
+| `04_-_third_eye_of_monkey_-_taam_root.mp3` | Third Eye Of Monkey - Taam Root |
+| `05_-_solarythm_-_abusive_consumption.mp3` | Solarythm - Abusive Consumption |
+| `06_-_goch_-_fokigra.mp3` | Goch - Fokigra |
+| `07_-_strix_aluco_-_crumble_jack.mp3` | Strix Aluco - Crumble Jack |
+| `08_-_lab_-_flatland_(chudl_remix).mp3` | LAB - Flatland (Chudl Remix) |
+| `09_-_digital_abstract_-_broken_twig.mp3` | Digital Abstract - Broken Twig |
+| `10_-_methodic_marble_-_ermita.mp3` | Methodic Marble - Ermita |
+| `11_-_d.o.d_-_space_balls.mp3` | D.O.D. - Space Balls |
+
+## Kalumet - Transfix (4 tracks)
+
+- **Source:** [Ektoplazm][transfix]
+- **License:** [CC BY-NC-ND 4.0][by-nc-nd] ([evidence][transfix])
+
+| Uploaded filename | Track title |
+| --- | --- |
+| `01_-_kalumet_-_parittya_16.mp3` | Parittya 16 |
+| `02_-_kalumet_-_spiritus_sanctus.mp3` | Spiritus Sanctus |
+| `03_-_kalumet_-_mithocondrium.mp3` | Mithocondrium |
+| `04_-_kalumet_-_prelude_to_a_dream_(kalumet_remix).mp3` | Prelude To A Dream (Kalumet Remix) |
+
+## Intra Frekish Void - Self-Transforming Nature (9 tracks)
+
+- **Source:** [Ektoplazm][self-transforming-nature]
+- **License:** [CC BY-NC 4.0][by-nc] ([evidence][self-transforming-nature])
+
+| Uploaded filename | Track title |
+| --- | --- |
+| `01_-_intra_frekish_void_-_we_are_all_mad_here.mp3` | We Are All Mad Here |
+| `02_-_intra_frekish_void_-_on_fire_and_blood.mp3` | On Fire And Blood |
+| `03_-_intra_frekish_void_-_reptilian_kontrol.mp3` | Reptilian Kontrol |
+| `04_-_intra_frekish_void_-_the_big_movie.mp3` | The Big Movie |
+| `05_-_intra_frekish_void_-_the_last_tears_of_humanity.mp3` | The Last Tears Of Humanity |
+| `06_-_intra_frekish_void_-_the_man_from_the_bottom_of_the_river.mp3` | The Man From The Bottom Of The River |
+| `07_-_intra_frekish_void_-_creation.mp3` | Creation |
+| `08_-_intra_frekish_void_-_expansion.mp3` | Expansion |
+| `09_-_intra_frekish_void_-_love_tenderness_freedom_and_peace.mp3` | Love Tenderness Freedom And Peace |
+
+## Various artists - Amar Utu (7 tracks)
+
+- **Source:** [Ektoplazm][amar-utu]
+- **License:** [CC BY-NC-SA 4.0][by-nc-sa] ([evidence][amar-utu])
+
+| Uploaded filename | Artist - track title |
+| --- | --- |
+| `01_-_ohnoma_topee_-_groove_mood.mp3` | Ohnoma Topee - Groove Mood |
+| `02_-_synema__total_stranger_-_ancient_stele_of_999_spells.mp3` | Synema & Total Stranger - Ancient Stele Of 999 Spells |
+| `03_-_cyclome_-_experiments.mp3` | Cyclome - Experiments |
+| `04_-_electrypnose_-_2013_(nibana_remix).mp3` | Electrypnose - 2013 (Nibana Remix) |
+| `05_-_fx23_-_sarakonar.mp3` | FX23 - Sarakonar |
+| `06_-_fighting_shadows_vs_veheme_-_eplorations.mp3` | Fighting Shadows vs Veheme - Eplorations |
+| `07_-_rewox_-_discord_line.mp3` | Rewox - Discord Line |
+
 ## Other verification notes
 
 - **Needs verification - playlist:** `Psytrance rotation` is operator-reported; assignments are not shown in the screenshots.
-- **Needs verification - station use:** commercial/noncommercial status and separate permissions were not supplied. The 214 tracks with noncommercial Creative Commons licenses require noncommercial use unless separately authorized; this inventory is not broadcast clearance.
-- **Needs verification - added filenames:** filenames for the 33 releases added at the operator's direction are normalized from the Ektoplazm tracklists, not confirmed in AzuraCast.
+- **Needs verification - station use:** commercial/noncommercial status and separate permissions were not supplied. The 245 tracks with noncommercial Creative Commons licenses require noncommercial use unless separately authorized; this inventory is not broadcast clearance.
+- **Needs verification - added filenames:** filenames for the 37 releases added at the operator's direction are normalized from the Ektoplazm tracklists, not confirmed in AzuraCast.
 
 ## Updating the inventory
 
@@ -570,6 +633,10 @@ Release details apply to every row beneath them. Titles follow Ektoplazm; H1-H3 
 [new-beginning]: https://ektoplazm.com/free-music/new-beginning
 [dei-ex-machina]: https://ektoplazm.com/free-music/psyshastra-dei-ex-machina
 [dictator-of-silence]: https://ektoplazm.com/free-music/schizoid-bears-dictator-of-silence
+[badgers-visions]: https://ektoplazm.com/free-music/badgers-visions
+[transfix]: https://ektoplazm.com/free-music/kalumet-transfix
+[self-transforming-nature]: https://ektoplazm.com/free-music/intra-frekish-void-self-transforming-nature
+[amar-utu]: https://ektoplazm.com/free-music/amar-utu
 [by-nc-sa]: https://creativecommons.org/licenses/by-nc-sa/4.0/
 [by-nc-nd]: https://creativecommons.org/licenses/by-nc-nd/4.0/
 [by-nc]: https://creativecommons.org/licenses/by-nc/4.0/
