@@ -37,6 +37,12 @@ const listeners = (page: Page) => page.locator(".visual-feed-window__metric--lis
 const bitrate = (page: Page) => page.locator(".visual-feed-window__metric--bitrate .visual-feed-window__metric-value");
 
 async function selectStation(page: Page) {
+  await page.addInitScript((key) => {
+    localStorage.setItem(
+      key,
+      JSON.stringify({ selectedAudioSourceId: "demo-psychedelic-experience" }),
+    );
+  }, "deepsignals.player.preferences.v3");
   await page.goto("/player/");
   await page.getByLabel("Signal source").selectOption(ID);
   await page.getByLabel("Toggle signal info").check();

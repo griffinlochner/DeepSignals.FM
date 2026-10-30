@@ -9,7 +9,6 @@ import {
 import {
   AUDIO_SOURCES,
   DEMO_AUDIO_SOURCES,
-  DEMO_PSYCHEDELIC_EXPERIENCE_AUDIO_SOURCE,
   PUBLIC_EXTERNAL_AUDIO_SOURCES,
   formatAudioSourceLabel,
 } from "./audioSources";
@@ -88,8 +87,7 @@ type VisualFeedDockMode = "right" | "bottom";
 const PLAYER_PREFERENCES_STORAGE_KEY_V3 = "deepsignals.player.preferences.v3";
 
 const DEFAULT_PLAYER_THEME_ID = "cosmic-roller-coaster";
-const DEFAULT_PLAYER_AUDIO_SOURCE_ID =
-  DEMO_PSYCHEDELIC_EXPERIENCE_AUDIO_SOURCE.id;
+const DEFAULT_PLAYER_AUDIO_SOURCE_ID = "deepsignals-psytrance";
 const PUBLIC_PLAYER_ENVIRONMENT_IDS = [
   "signal-runner",
   "signal-runner-2",

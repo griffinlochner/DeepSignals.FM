@@ -9,6 +9,11 @@ const PSYNDORA_PSYTRANCE_TELEMETRY_URL =
   "https://cast.magicstreams.gr:2199/rpc/psyndora/streaminfo.get";
 const PSYNDORA_CHILLOUT_TELEMETRY_URL =
   "https://cast.magicstreams.gr:2199/rpc/psychill/streaminfo.get";
+const DEEPSIGNALS_NOW_PLAYING_URL =
+  "https://a6.asurahosting.com/api/nowplaying/764";
+const DEEPSIGNALS_ARTWORK_URL =
+  "https://a6.asurahosting.com/api/station/deepsignals.fm_psytrance/art/default.jpg";
+const PLAYER_PREFERENCES_KEY = "deepsignals.player.preferences.v3";
 
 function normalizePsyndoraBitrate(value: unknown) {
   const match = String(value).trim().match(/^(\d+(?:\.\d+)?)\s*(?:kbps)?$/i);
@@ -756,23 +761,77 @@ test("fresh player defaults apply without replacing persisted choices", async ({
   page,
 }) => {
   await page.evaluate(() => window.localStorage.clear());
+  await page.route(DEEPSIGNALS_NOW_PLAYING_URL, (route) =>
+    route.fulfill({
+      json: {
+        is_online: true,
+        station: {
+          mounts: [
+            {
+              url: "https://a6.asurahosting.com:7530/radio.mp3",
+              bitrate: 192,
+              listeners: { current: 1 },
+            },
+          ],
+        },
+        now_playing: {
+          song: {
+            artist: "Biomekanik",
+            title: "Symphony of Noises",
+            album: "Cinematech",
+            art: DEEPSIGNALS_ARTWORK_URL,
+          },
+        },
+      },
+    }),
+  );
+  await page.route(DEEPSIGNALS_ARTWORK_URL, (route) =>
+    route.fulfill({
+      contentType: "image/svg+xml",
+      body: '<svg xmlns="http://www.w3.org/2000/svg" width="2" height="2"/>',
+    }),
+  );
   await page.reload();
 
   await expect(page.getByLabel("Signal source")).toHaveValue(
-    "demo-psychedelic-experience",
+    "deepsignals-psytrance",
   );
   await expect(page.getByLabel("Visual environment")).toHaveValue(
     "cosmic-roller-coaster",
   );
+  await expect(page.locator(".track-marquee__live")).toHaveText(
+    "Biomekanik — Symphony of Noises",
+  );
+  await expect(page.locator(".visual-feed-window__artwork")).toHaveAttribute(
+    "src",
+    DEEPSIGNALS_ARTWORK_URL,
+  );
   await expect(
     page.getByRole("button", { name: "Play", exact: true }),
   ).toBeVisible();
+  await expect(page.locator(".player-shell")).toHaveAttribute(
+    "data-signal-state",
+    "armed",
+  );
   await expect(
     page.getByLabel("Toggle environment chroma effects"),
   ).toBeChecked();
   await expect(page.getByLabel("Motion")).toBeChecked();
   await expect(page.locator(".visual-feed-window")).toBeVisible();
   await expect(page.locator(".floating-player-panel")).toBeVisible();
+  await expect
+    .poll(() =>
+      page.evaluate((key) => {
+        const preferences = JSON.parse(
+          window.localStorage.getItem(key) ?? "{}",
+        );
+        return [
+          preferences.selectedAudioSourceId,
+          preferences.selectedThemeId,
+        ];
+      }, PLAYER_PREFERENCES_KEY),
+    )
+    .toEqual(["deepsignals-psytrance", "cosmic-roller-coaster"]);
 
   await page
     .getByLabel("Signal source")
@@ -801,6 +860,59 @@ test("fresh player defaults apply without replacing persisted choices", async ({
   await expect(page.locator(".visual-feed-window")).toBeHidden();
 });
 
+test("saved station and environment hydrate independently without being overwritten", async ({
+  page,
+}) => {
+  const signalSource = page.getByLabel("Signal source");
+  const environment = page.getByLabel("Visual environment");
+
+  await page.evaluate((key) => {
+    window.localStorage.setItem(
+      key,
+      JSON.stringify({ selectedAudioSourceId: "demo-psychedelic-experience" }),
+    );
+  }, PLAYER_PREFERENCES_KEY);
+  await page.reload();
+  await expect(signalSource).toHaveValue("demo-psychedelic-experience");
+  await expect(environment).toHaveValue("cosmic-roller-coaster");
+  await expect
+    .poll(() =>
+      page.evaluate((key) => {
+        const preferences = JSON.parse(
+          window.localStorage.getItem(key) ?? "{}",
+        );
+        return [
+          preferences.selectedAudioSourceId,
+          preferences.selectedThemeId,
+        ];
+      }, PLAYER_PREFERENCES_KEY),
+    )
+    .toEqual(["demo-psychedelic-experience", "cosmic-roller-coaster"]);
+
+  await page.evaluate((key) => {
+    window.localStorage.setItem(
+      key,
+      JSON.stringify({ selectedThemeId: "neon-hyper-racer" }),
+    );
+  }, PLAYER_PREFERENCES_KEY);
+  await page.reload();
+  await expect(signalSource).toHaveValue("deepsignals-psytrance");
+  await expect(environment).toHaveValue("neon-hyper-racer");
+  await expect
+    .poll(() =>
+      page.evaluate((key) => {
+        const preferences = JSON.parse(
+          window.localStorage.getItem(key) ?? "{}",
+        );
+        return [
+          preferences.selectedAudioSourceId,
+          preferences.selectedThemeId,
+        ];
+      }, PLAYER_PREFERENCES_KEY),
+    )
+    .toEqual(["deepsignals-psytrance", "neon-hyper-racer"]);
+});
+
 test("demo transmissions retain two playable tracks and switch across sources", async ({
   page,
 }) => {
@@ -816,6 +928,7 @@ test("demo transmissions retain two playable tracks and switch across sources", 
     "Globular — For The Time Being",
     "Illustrator — Psychedelic Experience",
   ]);
+  await signalSource.selectOption("demo-psychedelic-experience");
   await expect(signalSource).toHaveValue("demo-psychedelic-experience");
 
   await page.getByRole("button", { name: "Play", exact: true }).click();
