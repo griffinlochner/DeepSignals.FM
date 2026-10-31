@@ -2,7 +2,7 @@
 
 **Hosting:** AzuraCast on Asura Hosting | **Playlist:** `Psytrance rotation`
 
-**275 MP3s across 37 releases.** Last checked: 2026-10-30. The original 39 filenames are screenshot-confirmed; the 236 tracks added at the operator's direction are assumed uploaded, with filenames normalized from Ektoplazm tracklists and not checked against AzuraCast.
+**37 previously documented releases (275 track entries), plus seven source tracklists below (57 listed tracks).** Last checked: 2026-10-30. These are ledger counts, not a verified live or unique MP3 count: tracks may be absent, removed, or represented under multiple releases. The original 39 filenames are screenshot-confirmed; the prior 236 tracks added at the operator's direction are assumed uploaded, with filenames normalized from Ektoplazm tracklists and not checked against AzuraCast. The operator reports that generally most or all tracks from the seven new releases are used, but individual station inclusion and filenames are unverified and some tracks may not be used.
 
 Release details apply to every row beneath them. Titles follow Ektoplazm; H1-H3 remain disputed, not corrections to uploaded metadata. Evidence links point to each release's license statement below its downloads.
 
@@ -588,11 +588,125 @@ Release details apply to every row beneath them. Titles follow Ektoplazm; H1-H3 
 | `06_-_fighting_shadows_vs_veheme_-_eplorations.mp3` | Fighting Shadows vs Veheme - Eplorations |
 | `07_-_rewox_-_discord_line.mp3` | Rewox - Discord Line |
 
+## Various artists - From This World To The Next 2 (10 source-listed tracks)
+
+- **Source:** [Ektoplazm][from-this-world-2]
+- **License:** [CC BY-NC-ND 4.0][by-nc-nd] ([evidence][from-this-world-2])
+
+| Normalized filename (unverified) | Artist - track title |
+| --- | --- |
+| `01_-_martian_de_-_smooth_sailing.mp3` | Martian De - Smooth Sailing |
+| `02_-_dalay_layna_-_aliens.mp3` | Dalay Layna - Aliens |
+| `03_-_boga__modula_junkie_-_parvati.mp3` | Boga vs Modula Junkie - Parvati |
+| `04_-_kounoupi_-_mantispidae.mp3` | Kounoupi - Mantispidae |
+| `05_-_dar_kapo_-_angel_dust.mp3` | Dar Kapo - Angel Dust |
+| `06_-_tredecim_-_helgrind.mp3` | Tredecim - Helgrind |
+| `07_-_nocturnal_mars_-_forgotten_paradise.mp3` | Nocturnal Mars - Forgotten Paradise |
+| `08_-_absycho__tuat_-_sonic_boom.mp3` | Absycho & Tuat - Sonic Boom |
+| `09_-_fluroneuro_-_cosmic_vastness.mp3` | Fluroneuro - Cosmic Vastness |
+| `10_-_backflip_family_-_lost_in_a_vision.mp3` | Backflip Family - Lost In A Vision |
+
+## Praheya - Tales From The Process (4 source-listed tracks)
+
+- **Source:** [Ektoplazm][tales-from-the-process]
+- **License:** [CC BY-NC-SA 4.0][by-nc-sa] ([evidence][tales-from-the-process])
+
+| Normalized filename (unverified) | Track title |
+| --- | --- |
+| `01_-_praheya_-_dna_unlocking_codes.mp3` | DNA Unlocking Codes |
+| `02_-_praheya_-_tales_from_the_process.mp3` | Tales From The Process |
+| `03_-_praheya_-_one_night_in_persia_(vs_third_eye_of_monkey).mp3` | One Night In Persia (vs Third Eye of Monkey) |
+| `04_-_praheya_-_shiftshaper.mp3` | Shiftshaper |
+
+## Mr Miaou - Warp Rift (9 source-listed tracks)
+
+- **Source:** [Ektoplazm][warp-rift]
+- **License:** linked [CC BY 4.0][by] ([evidence][warp-rift]); **Needs verification**. The page says "for noncommercial usage," which conflicts with the linked license.
+
+| Normalized filename (unverified) | Track title |
+| --- | --- |
+| `01_-_mr_miaou_-_warp_rift.mp3` | Warp Rift |
+| `02_-_mr_miaou_-_mental_property.mp3` | Mental Property |
+| `03_-_mr_miaou_-_mental_waves.mp3` | Mental Waves |
+| `04_-_mr_miaou_-_jusqu'ici_tout_va_bien.mp3` | Jusqu'Ici Tout Va Bien |
+| `05_-_mr_miaou_-_le_christ_cosmique.mp3` | Le Christ Cosmique |
+| `06_-_mr_miaou_-_mental_vibration_2.0.mp3` | Mental Vibration 2.0 |
+| `07_-_mr_miaou_-_sacre_hubert.mp3` | Sacré Hubert |
+| `08_-_mr_miaou_-_they_are_watching_us.mp3` | They Are Watching Us |
+| `09_-_mr_miaou_-_l'age_de_pierre.mp3` | L'àge de Pierre |
+
+## Priapizzm - Hyakki Yagyō! Volume One (5 source-listed tracks)
+
+- **Source:** [Ektoplazm][hyakki-yagyo-volume-one]
+- **License:** [CC BY-NC-ND 4.0][by-nc-nd] ([evidence][hyakki-yagyo-volume-one])
+
+| Normalized filename (unverified) | Artist - track title |
+| --- | --- |
+| `01_-_kaoji__priapizzm_-_ikiriyo.mp3` | Kaoji & Priapizzm - Ikiriyō |
+| `02_-_shiibashunsuke__priapizzm_-_medama-oyaji.mp3` | Shiibashunsuke & Priapizzm - Medama-Oyaji |
+| `03_-_greenix__priapizzm_-_hyakume.mp3` | Greenix & Priapizzm - Hyakume |
+| `04_-_samyaza__priapizzm_-_chimi.mp3` | Samyaza & Priapizzm - Chimi |
+| `05_-_transiant__jagno_gaia__priapizzm_-_shirime.mp3` | Transiant & Jagno Gaia & Priapizzm - Shirime |
+
+## Tribal Yaohu - União (8 source-listed tracks)
+
+- **Source:** [Ektoplazm][uniao]
+- **License:** [CC BY-NC-SA 4.0][by-nc-sa] ([evidence][uniao])
+
+| Normalized filename (unverified) | Track title |
+| --- | --- |
+| `01_-_tribal_yaohu__aruanda_-_sat_surya.mp3` | Tribal Yaohu & Aruanda - Sat Surya |
+| `02_-_tribal_yaohu__aruanda_-_soul_del_sul.mp3` | Tribal Yaohu & Aruanda - Soul del Sul |
+| `03_-_tribal_yaohu_-_seres_indigos_cristal_e_diamante.mp3` | Tribal Yaohu - Seres Indigos, Cristal e Diamante |
+| `04_-_tribal_yaohu_-_ayhuasca.mp3` | Tribal Yaohu - Ayhuasca |
+| `05_-_tribal_yaohu__urucubaca_-_krishnamurti_knowledge.mp3` | Tribal Yaohu & Urucubaca - Krishnamurti Knowledge |
+| `06_-_tribal_yaohu_-_aguuuhh.mp3` | Tribal Yaohu - Aguuuhh |
+| `07_-_tribal_yaohu_-_psycodelico_som_da_transmutacao.mp3` | Tribal Yaohu - Psycodélico Som da Transmutação |
+| `08_-_tribal_yaohu__baktti_sattva__vishnuha_-_uniao.mp3` | Tribal Yaohu & Baktti Sattva & Vishnuha - União |
+
+## Various artists - Bootlegs (9 source-listed tracks)
+
+- **Source:** [Ektoplazm][bootlegs]
+- **License:** [CC BY-NC-SA 4.0][by-nc-sa] ([evidence][bootlegs])
+- **Tracklist note:** the page description says 12 tracks, but its numbered tracklist and player show 9; only those 9 listed tracks are entered here.
+
+| Normalized filename (unverified) | Artist - track title |
+| --- | --- |
+| `01_-_atezu_-_non_si_torna_indietro.mp3` | Atezu - Non Si Torna Indietro |
+| `02_-_kronos_-_travelers.mp3` | Kronos - Travelers |
+| `03_-_dopadocks_-_synthcaos.mp3` | Dopadocks - Synthcaos |
+| `04_-_init_preset__rizomorf_-_quantum_flow.mp3` | Init Preset & Rizomorf - Quantum Flow |
+| `05_-_hooryama_-_synthetik_karma.mp3` | Hooryama - Synthetik Karma |
+| `06_-_sadhana__spore_carrier_-_gamblers_luck.mp3` | Sadhana & Spore Carrier - Gambler's Luck |
+| `07_-_alien_translator_-_critical_point.mp3` | Alien Translator - Critical Point |
+| `08_-_d.o.c_-_the_horribly_slow_murder.mp3` | D.O.C - The Horribly Slow Murder |
+| `09_-_psynetik_-_vuelan_las_brujas.mp3` | Psynetik - Vuelan Las Brujas |
+
+## Various artists - Waking Dreams (12 source-listed tracks)
+
+- **Source:** [Ektoplazm][waking-dreams]
+- **License:** [CC BY-NC-SA 4.0][by-nc-sa] ([evidence][waking-dreams])
+
+| Normalized filename (unverified) | Artist - track title |
+| --- | --- |
+| `01_-_kalamour_-_acid.mp3` | Kalamour - Acid |
+| `02_-_u.z_-_limitless.mp3` | U.Z - Limitless |
+| `03_-_achillesehne_vs_paracusia_-_you_dream.mp3` | AchilleSehne vs Paracusia - You Dream |
+| `04_-_legolize__dahiama_-_dragons_weed.mp3` | Légolize & Dahiama - Dragon's Weed |
+| `05_-_liink__legolize_-_massive_extinction.mp3` | LiinK & Légolize - Massive Extinction |
+| `06_-_mouchkitek_-_thakar.mp3` | Mouchkitek - Thakar |
+| `07_-_sama_mantis_-_chill_in_a_strange_world.mp3` | Sama Mantis - Chill In A Strange World |
+| `08_-_sama_mantis__mouchkitek_-_atlas_noise.mp3` | Sama Mantis & Mouchkitek - Atlas Noise |
+| `09_-_ergotrip_-_knights_of_ni!.mp3` | ErgoTrip - Knights Of Ni! |
+| `10_-_dork_-_futur.mp3` | Dork - Futur |
+| `11_-_dahiama_-_a_new_conception_of_brain.mp3` | Dahiama - A New Conception Of Brain |
+| `12_-_blind-ox_-_unfaithful_soul.mp3` | Blind-Ox - Unfaithful Soul |
+
 ## Other verification notes
 
 - **Needs verification - playlist:** `Psytrance rotation` is operator-reported; assignments are not shown in the screenshots.
-- **Needs verification - station use:** commercial/noncommercial status and separate permissions were not supplied. The 245 tracks with noncommercial Creative Commons licenses require noncommercial use unless separately authorized; this inventory is not broadcast clearance.
-- **Needs verification - added filenames:** filenames for the 37 releases added at the operator's direction are normalized from the Ektoplazm tracklists, not confirmed in AzuraCast.
+- **Needs verification - station use:** commercial/noncommercial status and separate permissions were not supplied. Releases with noncommercial Creative Commons terms require noncommercial use unless separately authorized; this inventory is not broadcast clearance.
+- **Needs verification - added filenames:** prior filenames added at the operator's direction are normalized from the Ektoplazm tracklists, not confirmed in AzuraCast. The seven new source tracklists above do not confirm station presence.
 
 ## Updating the inventory
 
@@ -637,6 +751,13 @@ Release details apply to every row beneath them. Titles follow Ektoplazm; H1-H3 
 [transfix]: https://ektoplazm.com/free-music/kalumet-transfix
 [self-transforming-nature]: https://ektoplazm.com/free-music/intra-frekish-void-self-transforming-nature
 [amar-utu]: https://ektoplazm.com/free-music/amar-utu
+[from-this-world-2]: https://ektoplazm.com/free-music/from-this-world-to-the-next-2
+[tales-from-the-process]: https://ektoplazm.com/free-music/praheya-tales-from-the-process
+[warp-rift]: https://ektoplazm.com/free-music/mr-miaou-warp-rift
+[hyakki-yagyo-volume-one]: https://ektoplazm.com/free-music/priapizzm-hyakki-yagyo-volume-one
+[uniao]: https://ektoplazm.com/free-music/tribal-yaohu-uniao
+[bootlegs]: https://ektoplazm.com/free-music/bootlegs
+[waking-dreams]: https://ektoplazm.com/free-music/waking-dreams
 [by-nc-sa]: https://creativecommons.org/licenses/by-nc-sa/4.0/
 [by-nc-nd]: https://creativecommons.org/licenses/by-nc-nd/4.0/
 [by-nc]: https://creativecommons.org/licenses/by-nc/4.0/
