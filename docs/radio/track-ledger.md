@@ -2,7 +2,7 @@
 
 **Hosting:** AzuraCast on Asura Hosting | **Playlist:** `Psytrance rotation`
 
-**37 previously documented releases (275 track entries), plus seven source tracklists below (57 listed tracks).** Last checked: 2026-10-30. These are ledger counts, not a verified live or unique MP3 count: tracks may be absent, removed, or represented under multiple releases. The original 39 filenames are screenshot-confirmed; the prior 236 tracks added at the operator's direction are assumed uploaded, with filenames normalized from Ektoplazm tracklists and not checked against AzuraCast. The operator reports that generally most or all tracks from the seven new releases are used, but individual station inclusion and filenames are unverified and some tracks may not be used.
+**37 previously documented releases (275 track entries), plus 15 source tracklists below (119 listed tracks).** Last checked: 2026-10-31. These are ledger counts, not a verified live or unique MP3 count: tracks may be absent, removed, or represented under multiple releases. The original 39 filenames are screenshot-confirmed; the prior 236 tracks added at the operator's direction are assumed uploaded, with filenames normalized from Ektoplazm tracklists and not checked against AzuraCast. The operator reports that generally most or all tracks from some source-listed releases are used, but individual station inclusion and filenames are unverified and some tracks may not be used.
 
 Release details apply to every row beneath them. Titles follow Ektoplazm; H1-H3 remain disputed, not corrections to uploaded metadata. Evidence links point to each release's license statement below its downloads.
 
@@ -702,6 +702,133 @@ Release details apply to every row beneath them. Titles follow Ektoplazm; H1-H3 
 | `11_-_dahiama_-_a_new_conception_of_brain.mp3` | Dahiama - A New Conception Of Brain |
 | `12_-_blind-ox_-_unfaithful_soul.mp3` | Blind-Ox - Unfaithful Soul |
 
+## Kronus - Own Nature (6 source-listed tracks)
+
+- **Source:** [Ektoplazm][own-nature]
+- **License:** [CC BY-NC-SA 4.0][by-nc-sa] ([evidence][own-nature])
+
+| Track title |
+| --- |
+| Own Nature |
+| Wax |
+| Odara |
+| Secret Valley |
+| Redux (vs Ritualistic) |
+| Running In The Dark Forest (Kronus Remix) |
+
+## Spruce - Bazel (9 source-listed tracks)
+
+- **Source:** [Ektoplazm][bazel]
+- **License:** [CC BY-NC-SA 4.0][by-nc-sa] ([evidence][bazel])
+
+| Track title |
+| --- |
+| N,N'Gyubo Ukluxi |
+| Moladd |
+| Aysh Advega |
+| Eo Tjii |
+| Balsyrgl |
+| Mvy Sselsret |
+| U Wu Ve Va |
+| Mnesprakhzan |
+| Tel Sof |
+
+## Rose Red Flechette - Inutilis (1 source-listed track)
+
+- **Source:** [Ektoplazm][inutilis]
+- **License:** [CC BY-NC 4.0][by-nc] ([evidence][inutilis])
+- **Tracklist scope:** only the requested track is listed.
+
+| Track title |
+| --- |
+| Weaponize |
+
+## Various artists - From This World To The Next (9 source-listed tracks)
+
+- **Source:** [Ektoplazm][from-this-world]
+- **License:** [CC BY-NC-ND 4.0][by-nc-nd] ([evidence][from-this-world])
+
+| Artist - track title |
+| --- |
+| Vemetik - The Nice Guy |
+| Borucca Psy - Trance Ancestral |
+| Crooked Mind - Ayahuasca (Remix) |
+| Haryashvas - Awaken Mind |
+| Absycho - Maha Mantra |
+| FluroNeuro - Polychromatic Jungle |
+| Nocturnal Mars - Project Oracle |
+| Dar Kapo - Mind Melt |
+| Lyserg Zwerg - New World Order |
+
+## Groot - Grootesque (4 source-listed tracks)
+
+- **Source:** [Ektoplazm][grootesque]
+- **License:** [CC BY-NC 4.0][by-nc] ([evidence][grootesque])
+
+| Track title |
+| --- |
+| Thanks For Asking |
+| Wobbling Planet |
+| Unearthed |
+| Inhabitability |
+
+## Cyclome - Oniric Discordance (4 source-listed tracks)
+
+- **Source:** [Ektoplazm][oniric-discordance]
+- **License:** [CC BY-NC-SA 4.0][by-nc-sa] ([evidence][oniric-discordance])
+
+| Track title |
+| --- |
+| Magnetic Waves |
+| Polyrythmus |
+| Galaxian Cowboy |
+| Destructured Disorder |
+
+## Various artists - Mush Moon Tales (15 source-listed tracks)
+
+- **Source:** [Ektoplazm][mush-moon-tales]
+- **License:** [CC BY-NC-SA 4.0][by-nc-sa] ([evidence][mush-moon-tales])
+
+| Artist - track title |
+| --- |
+| Yogh - Katharsis |
+| Phyfer - Uncharted Territories |
+| Golomp & Kamboo - Hardel In Gretell |
+| Egova - Think Different |
+| Arcturians - Get Out Of My Head |
+| Shivattva - Wild Thickets |
+| Fungoloyds - Super Polen (Remix) |
+| Already Mangala - Xama Vovô |
+| Photophobia & Fractoy - Tampaksiring |
+| Quip Tone Beatz - MadApe31700cc |
+| Suzi - Nosebleed |
+| Egova - Alive In Noise |
+| Dundoo - Caffine |
+| Sulekose & Shiibashunsuke - Quiet Syndrome |
+| Hentaicameraman & Fumi - Yagibush八木節 |
+
+## Various artists - Primal Mind (14 source-listed tracks)
+
+- **Source:** [Ektoplazm][primal-mind]
+- **License:** [CC BY-NC 4.0][by-nc] ([evidence][primal-mind])
+
+| Artist - track title |
+| --- |
+| Abra - Intro |
+| Psydewise - Tricks & Hookers |
+| Tystix - Volcanic Ash |
+| Abra - Transmute |
+| Kaziel - Tempted |
+| Flooting Grooves - Lisen Propali |
+| Kabi - Our Minds |
+| Trogon - Our Place In The Dirt |
+| Jacksource - Interactive Psyche |
+| Killer B - Green Monster |
+| Skull & Tones (Highstyle) - Deep In The Woods |
+| Killawatt - That Look |
+| Higherwattska - Jazz Cigarette |
+| Abra - Outro |
+
 ## Other verification notes
 
 - **Needs verification - playlist:** `Psytrance rotation` is operator-reported; assignments are not shown in the screenshots.
@@ -758,6 +885,14 @@ Release details apply to every row beneath them. Titles follow Ektoplazm; H1-H3 
 [uniao]: https://ektoplazm.com/free-music/tribal-yaohu-uniao
 [bootlegs]: https://ektoplazm.com/free-music/bootlegs
 [waking-dreams]: https://ektoplazm.com/free-music/waking-dreams
+[own-nature]: https://ektoplazm.com/free-music/kronus-own-nature
+[bazel]: https://ektoplazm.com/free-music/spruce-bazel
+[inutilis]: https://ektoplazm.com/free-music/rose-red-flechette-inutilis
+[from-this-world]: https://ektoplazm.com/free-music/from-this-world-to-the-next
+[grootesque]: https://ektoplazm.com/free-music/groot-grootesque
+[oniric-discordance]: https://ektoplazm.com/free-music/cyclome-oniric-discordance
+[mush-moon-tales]: https://ektoplazm.com/free-music/mush-moon-tales
+[primal-mind]: https://ektoplazm.com/free-music/primal-mind
 [by-nc-sa]: https://creativecommons.org/licenses/by-nc-sa/4.0/
 [by-nc-nd]: https://creativecommons.org/licenses/by-nc-nd/4.0/
 [by-nc]: https://creativecommons.org/licenses/by-nc/4.0/
