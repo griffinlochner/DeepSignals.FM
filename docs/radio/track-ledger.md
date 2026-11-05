@@ -2,7 +2,7 @@
 
 **Hosting:** AzuraCast on Asura Hosting | **Playlist:** `Psytrance rotation`
 
-**37 previously documented releases (275 track entries), plus 25 source tracklists below (172 listed tracks).** Last checked: 2026-11-04. These are ledger counts, not a verified live or unique MP3 count: tracks may be absent, removed, or represented under multiple releases. The original 39 filenames are screenshot-confirmed; the prior 236 tracks added at the operator's direction are assumed uploaded, with filenames normalized from Ektoplazm tracklists and not checked against AzuraCast. The operator reports that generally most or all tracks from some source-listed releases are used, but individual station inclusion and filenames are unverified and some tracks may not be used.
+**37 previously documented releases (275 track entries), plus 30 source tracklists below (208 listed tracks).** Last checked: 2026-11-04. These are ledger counts, not a verified live or unique MP3 count: tracks may be absent, removed, or represented under multiple releases. The original 39 filenames are screenshot-confirmed; the prior 236 tracks added at the operator's direction are assumed uploaded, with filenames normalized from Ektoplazm tracklists and not checked against AzuraCast. The operator reports that generally most or all tracks from some source-listed releases are used, but individual station inclusion and filenames are unverified and some tracks may not be used.
 
 Release details apply to every row beneath them. Titles follow Ektoplazm; H1-H3 remain disputed, not corrections to uploaded metadata. Evidence links point to each release's license statement below its downloads.
 
@@ -964,6 +964,83 @@ Release details apply to every row beneath them. Titles follow Ektoplazm; H1-H3 
 | `02_-_higherwattska_-_tribal_douchebag.mp3` | Tribal Douchebag |
 | `03_-_higherwattska_-_nothing_personal.mp3` | Nothing Personal |
 
+## Various artists - Interstellar Immigration (11 source-listed tracks)
+
+- **Source:** [Ektoplazm][interstellar-immigration]
+- **License:** [CC BY-NC-ND 4.0][by-nc-nd] ([evidence][interstellar-immigration])
+- **Tracklist note:** source tracks 04, Zamot - Static Contact, and 06, Rakaill - Shiny Diamond Sky Eye, are omitted at the operator's request.
+
+| Artist - track title |
+| --- |
+| In Progress - Raveyard |
+| Mariochainsaw - The Green Feen |
+| Fraktal Arabesque - Digitarians |
+| Sirtja - Neuro Trip |
+| Fyzz - Leumas Fyzz |
+| Palais Ideal - First World |
+| Yobott - Schrödingers Cat |
+| Utu - Aloha, Bitches! |
+| Phal-anx - Rigel 7 |
+| Unreal Sign - Walking Planets |
+| Keluk - The New Era |
+
+## Various artists - Creatures Of Carnival (9 source-listed tracks)
+
+- **Source:** [Ektoplazm][creatures-of-carnival]
+- **License:** linked [CC BY 4.0][by] ([evidence][creatures-of-carnival]); **Needs verification**. The page says "for noncommercial usage," which conflicts with the linked license.
+
+| Artist - track title |
+| --- |
+| Kreiskegelstumpf - Frustum Calling |
+| Third Eye Of Monkey - Ch'Eh'Oc |
+| Strix Aluco - Naked Monkey |
+| Draghul - Ixtra VaganZa |
+| Yogh - Wormhole Adventures |
+| Chudl - In The Middle Of Nowhere |
+| Tohuwabouhu Project - Into The Djungle |
+| Biomekanik - Welcome To The Underground |
+| Ohm In - WorldWideWeird |
+
+## The Galactic Brain - High Life (5 source-listed tracks)
+
+- **Source:** [Ektoplazm][the-galactic-brain-high-life]
+- **License:** [CC BY-NC-SA 4.0][by-nc-sa] ([evidence][the-galactic-brain-high-life])
+
+| Artist - track title |
+| --- |
+| The Galactic Brain & Nierika - California Gold |
+| The Galactic Brain - Conducted Patterns |
+| The Galactic Brain - High Life |
+| The Galactic Brain - Tabernacle Of Illusion |
+| The Galactic Brain & i-Logic - You Are A Monkey |
+
+## Cosmic Sadhu - Interference (5 source-listed tracks)
+
+- **Source:** [Ektoplazm][cosmic-sadhu-interference]
+- **License:** [CC BY-NC-SA 4.0][by-nc-sa] ([evidence][cosmic-sadhu-interference])
+
+| Track title |
+| --- |
+| Punkodrome |
+| Cosmic Tea |
+| Interference |
+| Halib Bagwa |
+| Extraterestrial |
+
+## Omnom - Virtual Plastic (6 source-listed tracks)
+
+- **Source:** [Ektoplazm][omnom-virtual-plastic]
+- **License:** [CC BY-NC-SA 4.0][by-nc-sa] ([evidence][omnom-virtual-plastic])
+
+| Track title |
+| --- |
+| Beard And Moustache |
+| Modular Spheres |
+| Ploopy Droops |
+| Visions |
+| Babelfish |
+| Strange Liquids |
+
 ## Other verification notes
 
 - **Needs verification - playlist:** `Psytrance rotation` is operator-reported; assignments are not shown in the screenshots.
@@ -1038,6 +1115,11 @@ Release details apply to every row beneath them. Titles follow Ektoplazm; H1-H3 
 [modem-festival-vol-4]: https://ektoplazm.com/free-music/modem-festival-vol-4
 [the-forest-riddle]: https://ektoplazm.com/free-music/reflection-the-forest-riddle
 [nothing-personal]: https://ektoplazm.com/free-music/higherwattska-nothing-personal
+[interstellar-immigration]: https://ektoplazm.com/free-music/interstellar-immigration
+[creatures-of-carnival]: https://ektoplazm.com/free-music/creatures-of-carnival
+[the-galactic-brain-high-life]: https://ektoplazm.com/free-music/the-galactic-brain-high-life
+[cosmic-sadhu-interference]: https://ektoplazm.com/free-music/cosmic-sadhu-interference
+[omnom-virtual-plastic]: https://ektoplazm.com/free-music/omnom-virtual-plastic
 [by-nc-sa]: https://creativecommons.org/licenses/by-nc-sa/4.0/
 [by-nc-nd]: https://creativecommons.org/licenses/by-nc-nd/4.0/
 [by-nc]: https://creativecommons.org/licenses/by-nc/4.0/
