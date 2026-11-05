@@ -47,6 +47,13 @@ import {
 import { useHirschmilchNowPlaying } from "./useHirschmilchNowPlaying";
 import { useTriplagNowPlaying } from "./useTriplagNowPlaying";
 import { useDeepSignalsNowPlaying } from "./useDeepSignalsNowPlaying";
+import {
+  ENVIRONMENT_GROUPS,
+  HIDDEN_ENVIRONMENT_DROPDOWN_IDS,
+  SHUFFLE_MODES,
+} from "./environmentSelection";
+import { getShuffleTrack } from "./environmentShuffle";
+import { useEnvironmentShuffle } from "./useEnvironmentShuffle";
 import { getPsyBrazilArtworkUrl } from "./psybrazilArtwork";
 import { publishRuntimeTestSnapshot } from "./runtimeTestBridge";
 import {
@@ -111,8 +118,6 @@ const PUBLIC_PLAYER_ENVIRONMENT_IDS = [
 const publicPlayerEnvironmentIds = new Set<string>(
   PUBLIC_PLAYER_ENVIRONMENT_IDS,
 );
-// Kept selectable via persisted/dev state, but hidden from the visible Environment dropdown.
-const HIDDEN_ENVIRONMENT_DROPDOWN_IDS = new Set<string>(["slime-cavern"]);
 // Short, user-facing labels for the Environment dropdown; underlying theme names/ids are unchanged.
 const PUBLIC_ENVIRONMENT_DISPLAY_NAME_OVERRIDES: Record<string, string> = {
   "cosmic-nexus": "The Signal Nexus",
@@ -123,42 +128,6 @@ const PUBLIC_ENVIRONMENT_DISPLAY_NAME_OVERRIDES: Record<string, string> = {
   "minimal": "Black",
 };
 
-// Environment dropdown organization by category
-type EnvironmentGroup = {
-  groupName: string;
-  environmentIds: ThemeId[];
-};
-const ENVIRONMENT_GROUPS: EnvironmentGroup[] = [
-  {
-    groupName: "MINIMAL",
-    environmentIds: ["minimal", "signal-gradient", "signal-rain"],
-  },
-  {
-    groupName: "DEPTH WORLDS",
-    environmentIds: [
-      "analog-signal-laboratory",
-      "crystal-cavern",
-      "dark-psy-temple",
-      "deep-signals",
-      "uv-reactive-jungle",
-      "bioluminescent-psy-reef",
-      "psybrazil",
-    ],
-  },
-  {
-    groupName: "3D EXPERIENCES",
-    environmentIds: [
-      "signal-runner-2",
-      "cosmic-roller-coaster",
-      "alien-megastructure-transit",
-      "neon-hyper-racer",
-      "signal-runner",
-      "signal-tunnel",
-      "cosmic-nexus",
-      "twilight-tides",
-    ],
-  },
-];
 // Additional PsyBrazil network station ids can be added here as they are onboarded.
 // Order is intentional (flagship first) rather than alphabetical.
 const PSYBRAZIL_NETWORK_SOURCE_IDS = [
@@ -495,6 +464,22 @@ function PlayerShell({ className }: PlayerShellProps) {
     hirschmilchNowPlaying ??
     triplag?.metadata ??
     deepSignals?.metadata;
+  const handleThemeChange = useCallback((themeId: ThemeId) => {
+    sceneThemeIdRef.current = themeId;
+    setRenderFps({ themeId, value: null });
+    setSelectedThemeId(themeId);
+  }, []);
+  const shuffleTrack = useMemo(
+    () => getShuffleTrack(externalNowPlaying),
+    [externalNowPlaying],
+  );
+  const environmentSelection = useEnvironmentShuffle({
+    stationId: selectedSignalId,
+    track: shuffleTrack,
+    playing: audioController.playbackStatus === "playing",
+    activeEnvironment: selectedThemeId,
+    onEnvironmentChange: handleThemeChange,
+  });
   const externalNowPlayingWithArtwork = useMemo(() => {
     if (!externalNowPlaying) {
       return null;
@@ -638,8 +623,9 @@ function PlayerShell({ className }: PlayerShellProps) {
   };
 
   const themeOptions: EnvironmentOptionGroup[] = useMemo(
-    () =>
-      ENVIRONMENT_GROUPS.map((group) => ({
+    () => [
+      { groupName: "SHUFFLE MODES", options: [...SHUFFLE_MODES] },
+      ...ENVIRONMENT_GROUPS.map((group) => ({
         groupName: group.groupName,
         options: group.environmentIds
           .flatMap((themeId) => {
@@ -662,6 +648,7 @@ function PlayerShell({ className }: PlayerShellProps) {
               : [];
           }),
       })),
+    ],
     [],
   );
 
@@ -776,12 +763,6 @@ function PlayerShell({ className }: PlayerShellProps) {
 
   const handleSignalChange = (id: string) => {
     setSelectedSignalId(sanitizeAudioSourceId(id) || null);
-  };
-
-  const handleThemeChange = (themeId: ThemeId) => {
-    sceneThemeIdRef.current = themeId;
-    setRenderFps({ themeId, value: null });
-    setSelectedThemeId(themeId);
   };
 
   useEffect(() => {
@@ -1190,8 +1171,8 @@ function PlayerShell({ className }: PlayerShellProps) {
             ref={playerPanelRef}
             environmentName={activeTheme.name}
             environmentOptions={themeOptions}
-            selectedEnvironmentId={selectedThemeId}
-            onEnvironmentChange={handleThemeChange}
+            selectedEnvironmentId={environmentSelection.selectedEnvironment}
+            onEnvironmentChange={environmentSelection.selectEnvironment}
             audioPlaybackStatus={audioController.playbackStatus}
             audioReactiveSnapshot={audioAnalysis.snapshot}
             getLatestAudioSnapshot={audioAnalysis.getLatestSnapshot}

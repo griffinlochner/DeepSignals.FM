@@ -24,11 +24,25 @@ For Tunnel's independently testable logic, inspect [src/themes/signal-tunnel/tun
 
 1. Add a scene and an `index.ts` exporting a `ThemeDefinition`, following [src/themes/signal-tunnel/index.ts](../src/themes/signal-tunnel/index.ts). Declare a stable id, scoped class, performance tier, `Scene`, and meaningful capability flags.
 2. Add the definition to `themeRegistry`. Image/depth definitions also use their catalog/presets; follow the image guide.
-3. For public selection, update `PUBLIC_PLAYER_ENVIRONMENT_IDS` and `ENVIRONMENT_GROUPS` in [src/app/PlayerShell.tsx](../src/app/PlayerShell.tsx). Check optional name overrides and hidden ids. Registry membership alone does not expose an option.
+3. For public selection, update `PUBLIC_PLAYER_ENVIRONMENT_IDS` in [src/app/PlayerShell.tsx](../src/app/PlayerShell.tsx) and `ENVIRONMENT_GROUPS` in [src/app/environmentSelection.ts](../src/app/environmentSelection.ts). Check optional name overrides and hidden ids. Registry membership alone does not expose an option.
 4. PlayerShell persists selection, resolves `activeTheme`, and renders `<SceneComponent {...sceneProps} />`. Different component types unmount/mount through React; there is no universal keyed factory. Shared-component variants must handle identity changes explicitly.
 5. Keep shell edits limited to integration. `defaultThemeId` is the registry fallback; `DEFAULT_PLAYER_THEME_ID` is the separate fresh-player default.
 
 The player does not mount floating environment branding or schedule periodic branding overlays. The cycling glyph branding in the player header remains owned by [PublicBrandIdent](../src/components/PublicBrandIdent.tsx), independently of scene rendering.
+
+### Automatic environment shuffle
+
+While a shuffle mode is selected, the native Environment select displays a decorative neon-green shuffle icon beside its chevron. Its 2.5-second opacity-only status blink holds briefly at full brightness, smoothly fades to 15%, and returns to full brightness. With `prefers-reduced-motion` it stays fully visible; the selected mode label remains the accessible state indicator.
+
+The dropdown's **SHUFFLE MODES** group selects All Environments, Depth Worlds, or 3D Experiences. Pools derive from the same visible category definitions; all shuffle modes exclude Black (`minimal`), PsyBrazil (`psybrazil`), DSFM (`deep-signals`), and hidden environments. These exclusions do not affect manual selection. Each randomized bag visits every eligible environment once, avoiding the current environment at a cycle boundary when possible. Selecting another mode rebuilds the bag and immediately selects an environment; selecting an individual environment disables shuffle.
+
+[useEnvironmentShuffle](../src/app/useEnvironmentShuffle.ts) keeps the selected mode separate from PlayerShell's existing active theme. Automatic changes use the same theme-change handler as manual selection, leaving one scene mounted and the persistent audio controller untouched. Existing preferences continue storing the active environment; shuffle itself is session-only.
+
+[EnvironmentShuffle](../src/app/environmentShuffle.ts) consumes existing now-playing metadata without new requests or subscriptions. It compares normalized title/artist, ignoring artwork, API change keys, whitespace/case changes, blank/placeholder titles, temporary missing artist fields, and backtracking among the last eight observed tracks. The first valid track is a baseline, never a transition. Metadata updates while stopped or during cooldown update that baseline but are not queued. Title-only feeds work; stations with no useful track metadata use the fallback. The current metadata adapters do not expose a reliable track/ident classification, so shuffle does not guess from track names, artists, durations, or playlist labels.
+
+Automatic transitions require a two-minute cooldown. A single timeout advances after ten minutes of accumulated **playing** time since the last transition. Paused/loading/error time does not accumulate; the timeout is removed while stopped, when manual selection disables shuffle, and on unmount. Track transitions reset the fallback. Station changes keep the current scene and mode, clear track history for a new baseline, restart the ten-minute countdown, and restart the two-minute cooldown, including when returning to a previously visited station.
+
+Focused checks: `npx playwright test environment-shuffle.spec.ts` (unit timing/bag checks and browser integration, including persistent audio and timer cleanup).
 
 `supportsAudioReactiveBehavior` currently opts into PlayerShell's production Full On depth/hue/saturation overrides. It is **not** permission to read audio: Tunnel, Rain, and Gradient consume snapshots with this flag false. Inspect that shell branch before enabling it. `performanceTier` is metadata, not automatic quality scaling.
 

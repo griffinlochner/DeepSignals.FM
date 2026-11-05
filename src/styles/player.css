@@ -460,6 +460,32 @@
   box-shadow: 0 0 8px var(--theme-glow, rgba(57, 255, 20, 0.3));
 }
 
+.theme-selector[data-shuffle-active="true"] .theme-selector__select {
+  padding-right: 58px;
+  text-overflow: ellipsis;
+}
+
+.theme-selector__shuffle-icon {
+  position: absolute;
+  right: 34px;
+  top: calc(50% - 7px);
+  color: #9cff57;
+  pointer-events: none;
+  opacity: 1;
+  animation: theme-selector-shuffle-breathe 2.5s ease-in-out infinite;
+}
+
+@keyframes theme-selector-shuffle-breathe {
+  0%, 15%, 100% { opacity: 1; }
+  60% { opacity: 0.15; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-selector__shuffle-icon {
+    animation: none;
+  }
+}
+
 /* ============================================================
    TRACK MARQUEE
    ============================================================ */
