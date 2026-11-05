@@ -81,78 +81,8 @@ function parseBitrateFromAudioInfo(value: unknown): number | null {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : null
 }
 
-function pickTelemetrySource(value: unknown): SpaceUnicornSourceEntry | null {
-  if (!value || typeof value !== 'object') {
-    return null
-  }
-
-  const root = value as {
-    icestats?: {
-      source?: unknown
-    }
-  }
-
-  const rawSources = Array.isArray(root.icestats?.source)
-    ? root.icestats.source
-    : root.icestats?.source
-      ? [root.icestats.source]
-      : []
-
-  let bestSource: { source: SpaceUnicornSourceEntry; score: number } | null = null
-
-  for (const candidate of rawSources) {
-    if (!candidate || typeof candidate !== 'object') {
-      continue
-    }
-
-    const source = candidate as SpaceUnicornSourceEntry
-    const listenUrl = cleanString(source.listenurl)
-    const serverName = cleanString(source.server_name)
-    const serverDescription = cleanString(source.server_description)
-    const title = cleanString(source.title)
-    const hasSpaceUnicornIdentity =
-      !!(serverName && /space unicorn/i.test(serverName)) ||
-      !!(listenUrl && /spaceunicorn\.radio/i.test(listenUrl)) ||
-      !!(serverDescription && /space unicorn/i.test(serverDescription))
-
-    if (!hasSpaceUnicornIdentity && !title && !serverName && !serverDescription) {
-      continue
-    }
-
-    let score = 0
-
-    if (serverName && /space unicorn/i.test(serverName)) {
-      score += 100
-    }
-    if (listenUrl && /spaceunicorn\.radio/i.test(listenUrl)) {
-      score += 60
-    }
-    if (listenUrl && /\/(autodj|live|stream)(\/|$)/i.test(listenUrl)) {
-      score += 20
-    }
-    if (title) {
-      score += 20
-    }
-    if (serverDescription) {
-      score += 10
-    }
-    if (source.listeners !== undefined) {
-      score += 5
-    }
-    if (source.bitrate !== undefined || source.audio_info !== undefined) {
-      score += 5
-    }
-
-    if (!bestSource || score > bestSource.score) {
-      bestSource = { source, score }
-    }
-  }
-
-  return bestSource?.source ?? null
-}
-
 export function parseSpaceUnicornTelemetry(value: unknown): StationTelemetry | null {
-  const source = pickTelemetrySource(value)
+  const source = pickMeaningfulSource(value)
 
   if (!source) {
     return null
@@ -239,7 +169,7 @@ function pickMeaningfulSource(value: unknown): SpaceUnicornSourceEntry | null {
   return bestSource?.source ?? null
 }
 
-function parseSpaceUnicornNowPlaying(value: unknown): ExternalNowPlayingMetadata | null {
+export function parseSpaceUnicornNowPlaying(value: unknown): ExternalNowPlayingMetadata | null {
   const activeSource = pickMeaningfulSource(value)
 
   if (!activeSource) {

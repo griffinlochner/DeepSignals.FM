@@ -12,6 +12,7 @@
     "test:hirschmilch-worker": "npm --prefix workers/hirschmilch-metadata test",
     "test:psybrazil-metadata": "tsx scripts/test-psybrazil-metadata.ts",
     "test:psybrazil-telemetry": "tsx scripts/test-psybrazil-telemetry.ts",
+    "test:space-unicorn": "tsx scripts/test-space-unicorn.ts",
     "preview": "vite preview",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",

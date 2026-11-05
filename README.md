@@ -46,6 +46,8 @@ The behavior spec also runs against the bundled `Illustrator — Psychedelic Exp
 
 Phase 2B also covers Race volume-zero and volume-ramp behavior, qualified SURGE during local demo playback, and the shared qualifier's arm/cooldown semantics. Run `npx playwright test tests/behavior/volume-surge.spec.ts tests/behavior/surge-qualification.spec.ts`.
 
+Space Unicorn metadata and listener telemetry share the same Icecast source selector, so both follow the meaningful mount rather than favoring the AutoDJ station name. Missing or invalid listener statistics display `---`, while a reported zero remains `0`. Run `npm run test:space-unicorn` and `npx playwright test tests/smoke/space-unicorn-telemetry.spec.ts` for source-selection, mode-transition and unavailable-statistics regressions.
+
 ## Asteroid Runner: focused encounter refinement
 
 **Asteroid Runner** remains independent of the original Signal Runner. Its current scene-specific details below supersede the historical Phase 2 inventory in the runtime guide; the shared runtime contract is unchanged.
