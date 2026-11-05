@@ -28,6 +28,8 @@ For Tunnel's independently testable logic, inspect [src/themes/signal-tunnel/tun
 4. PlayerShell persists selection, resolves `activeTheme`, and renders `<SceneComponent {...sceneProps} />`. Different component types unmount/mount through React; there is no universal keyed factory. Shared-component variants must handle identity changes explicitly.
 5. Keep shell edits limited to integration. `defaultThemeId` is the registry fallback; `DEFAULT_PLAYER_THEME_ID` is the separate fresh-player default.
 
+The player does not mount floating environment branding or schedule periodic branding overlays. The cycling glyph branding in the player header remains owned by [PublicBrandIdent](../src/components/PublicBrandIdent.tsx), independently of scene rendering.
+
 `supportsAudioReactiveBehavior` currently opts into PlayerShell's production Full On depth/hue/saturation overrides. It is **not** permission to read audio: Tunnel, Rain, and Gradient consume snapshots with this flag false. Inspect that shell branch before enabling it. `performanceTier` is metadata, not automatic quality scaling.
 
 ## Lifecycle and resource ownership

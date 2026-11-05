@@ -14,7 +14,6 @@ import {
 } from "./audioSources";
 import AudioAnalysisDiagnostics from "../components/AudioAnalysisDiagnostics";
 import FloatingPlayerPanel from "../components/FloatingPlayerPanel";
-import StationIdentOverlay from "../components/StationIdentOverlay";
 import VisualFeedWindow from "../components/VisualFeedWindow";
 import { themeRegistry } from "../themes/themeRegistry";
 import type {
@@ -1151,10 +1150,6 @@ function PlayerShell({ className }: PlayerShellProps) {
       <div className="player-shell__scene" aria-hidden="true">
         <SceneComponent {...sceneProps} />
       </div>
-
-      <StationIdentOverlay
-        isAudioPlaying={audioController.playbackStatus === "playing"}
-      />
 
       {audioDebugEnabled ? (
         <AudioAnalysisDiagnostics
