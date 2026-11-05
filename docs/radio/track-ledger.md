@@ -2,7 +2,7 @@
 
 **Hosting:** AzuraCast on Asura Hosting | **Playlist:** `Psytrance rotation`
 
-**37 previously documented releases (275 track entries), plus 15 source tracklists below (119 listed tracks).** Last checked: 2026-10-31. These are ledger counts, not a verified live or unique MP3 count: tracks may be absent, removed, or represented under multiple releases. The original 39 filenames are screenshot-confirmed; the prior 236 tracks added at the operator's direction are assumed uploaded, with filenames normalized from Ektoplazm tracklists and not checked against AzuraCast. The operator reports that generally most or all tracks from some source-listed releases are used, but individual station inclusion and filenames are unverified and some tracks may not be used.
+**37 previously documented releases (275 track entries), plus 25 source tracklists below (172 listed tracks).** Last checked: 2026-11-04. These are ledger counts, not a verified live or unique MP3 count: tracks may be absent, removed, or represented under multiple releases. The original 39 filenames are screenshot-confirmed; the prior 236 tracks added at the operator's direction are assumed uploaded, with filenames normalized from Ektoplazm tracklists and not checked against AzuraCast. The operator reports that generally most or all tracks from some source-listed releases are used, but individual station inclusion and filenames are unverified and some tracks may not be used.
 
 Release details apply to every row beneath them. Titles follow Ektoplazm; H1-H3 remain disputed, not corrections to uploaded metadata. Evidence links point to each release's license statement below its downloads.
 
@@ -829,11 +829,146 @@ Release details apply to every row beneath them. Titles follow Ektoplazm; H1-H3 
 | Higherwattska - Jazz Cigarette |
 | Abra - Outro |
 
+## Various artists - Absolut Shit EP2 (1 source-listed track)
+
+- **Source:** [Ektoplazm][absolut-shit-ep2]
+- **License:** [CC BY-NC-SA 4.0][by-nc-sa] ([evidence][absolut-shit-ep2])
+- **Tracklist scope:** only the requested track is listed.
+
+| Normalized filename (unverified) | Artist - track title |
+| --- | --- |
+| `02_-_mind_distortion_system_-_kachina_doll.mp3` | Mind Distortion System - Kachina Doll |
+
+## Various artists - Groove Addicted (9 source-listed tracks)
+
+- **Source:** [Ektoplazm][groove-addicted]
+- **License:** [CC BY-NC-SA 4.0][by-nc-sa] ([evidence][groove-addicted])
+
+| Normalized filename (unverified) | Artist - track title |
+| --- | --- |
+| `01_-_hypereggs_-_ode_to_the_road.mp3` | Hypereggs - Ode To The Road |
+| `02_-_triqy__kacid_-_stoned_conversations_(kacid_remix).mp3` | Triqy & Kacid - Stoned Conversations (Kacid Remix) |
+| `03_-_wider__wishi__propagul_-_old_tree_talks.mp3` | Wider & Wishi & Propagul - Old Tree Talks |
+| `04_-_highstyle_-_low_frequency.mp3` | Highstyle - Low Frequency |
+| `05_-_gaspard_-_royal_with_cheese_(groove_hunter_remix).mp3` | Gaspard - Royal With Cheese (Groove Hunter Remix) |
+| `06_-_laatoka_-_silmykaivo.mp3` | LaaToka - Silmykaivo |
+| `07_-_laatoka__groove_hunter_-_dimensions_of_being.mp3` | LaaToka & Groove Hunter - Dimensions Of Being |
+| `08_-_zzbing_-_reanimylated.mp3` | Zzbing - ReAnimylated |
+| `09_-_dissociactive_-_25th_frame_effect_(sorrowmurk_remix).mp3` | Dissociactive - 25th Frame Effect (Sorrowmurk Remix) |
+
+## Hybrid Reality - Beyond The Doors Of Mind (4 source-listed tracks)
+
+- **Source:** [Ektoplazm][hybrid-reality-beyond-the-doors-of-mind]
+- **License:** [CC BY-NC-ND 4.0][by-nc-nd] ([evidence][hybrid-reality-beyond-the-doors-of-mind])
+
+| Normalized filename (unverified) | Track title |
+| --- | --- |
+| `01_-_hybrid_reality_-_mentanimals.mp3` | Mentanimals |
+| `02_-_hybrid_reality_-_subaquatrip.mp3` | Subaquatrip |
+| `03_-_hybrid_reality_-_black_flag.mp3` | Black Flag |
+| `04_-_hybrid_reality_-_broceliande.mp3` | Broceliande |
+
+## Dibold - Magic Of Darkness (4 source-listed tracks)
+
+- **Source:** [Ektoplazm][dibold-magic-of-darkness]
+- **License:** linked [CC BY 4.0][by] ([evidence][dibold-magic-of-darkness]); **Needs verification**. The page says "for noncommercial usage," which conflicts with the linked license.
+
+| Normalized filename (unverified) | Track title |
+| --- | --- |
+| `01_-_dibold_-_magic_of_darkness.mp3` | Magic Of Darkness |
+| `02_-_dibold_-_darkpsy.mp3` | Darkpsy |
+| `03_-_dibold_-_menehunu.mp3` | Menehunu |
+| `04_-_dibold_-_somewhere_in_space.mp3` | Somewhere In Space |
+
+## Various artists - Night Candy Vol. 1 (8 source-listed tracks)
+
+- **Source:** [Ektoplazm][night-candy-vol-1]
+- **License:** [CC BY-NC-ND 4.0][by-nc-nd] ([evidence][night-candy-vol-1])
+
+| Normalized filename (unverified) | Artist - track title |
+| --- | --- |
+| `01_-_rudra_vs_brainh34dz_-_kayyos.mp3` | Rudra vs Brainh34dz - Kayyos |
+| `02_-_dar_kapo_vs_ron_e_-_from_outer_space_to_inner_self.mp3` | Dar Kapo vs Ron E - From Outer Space To Inner Self |
+| `03_-_psyshastra_vs_dar_kapo_vs_aalsilogh_-_an_excuse_to_get_high.mp3` | Psyshastra vs Dar Kapo vs Aalsilogh - An Excuse To Get High |
+| `04_-_dar_kapo_vs_ron_e_-_take_off_your_landing.mp3` | Dar Kapo vs Ron E - Take Off Your Landing |
+| `05_-_monkey_doodle_vs_woozy_bubbles_on_acid_-_the_acid_is_too_strong.mp3` | Monkey Doodle vs Woozy Bubbles On Acid - The Acid Is Too Strong |
+| `06_-_monkey_doodle_vs_dar_kapo_-_granule.mp3` | Monkey Doodle vs Dar Kapo - Granule |
+| `07_-_aalsilogh_vs_rudra_-_rumble_mumble_tumble.mp3` | Aalsilogh vs Rudra - Rumble Mumble Tumble |
+| `08_-_dar_kapo_vs_monkey_doodle_vs_woozy_bubbles_-_another_excuse_to_get_high.mp3` | Dar Kapo vs Monkey Doodle vs Woozy Bubbles - Another Excuse To Get High |
+
+## LuneCell - Cylon Lounge (4 source-listed tracks)
+
+- **Source:** [Ektoplazm][cylon-lounge]
+- **License:** [CC BY-NC-ND 4.0][by-nc-nd] ([evidence][cylon-lounge])
+
+| Normalized filename (unverified) | Track title |
+| --- | --- |
+| `01_-_lunecell_-_cylon_lounge.mp3` | Cylon Lounge |
+| `02_-_lunecell_-_sagittaron.mp3` | Sagittaron |
+| `03_-_lunecell_-_lords_of_kobol.mp3` | Lords Of Kobol |
+| `04_-_lunecell_-_silent_observer.mp3` | Silent Observer |
+
+## Praheya - Galactic Human (3 source-listed tracks)
+
+- **Source:** [Ektoplazm][galactic-human]
+- **License:** [CC BY-NC-SA 4.0][by-nc-sa] ([evidence][galactic-human])
+- **Tracklist note:** “Sounds From Venus” is omitted at the operator's request.
+
+| Normalized filename (unverified) | Artist - track title |
+| --- | --- |
+| `01_-_praheya_-_earth_mother.mp3` | Praheya - Earth Mother |
+| `02_-_praheya_-_galactic_human.mp3` | Praheya - Galactic Human |
+| `03_-_praheya_-_space_blues.mp3` | Praheya - Space Blues |
+
+## Various artists - MoDem Festival Vol. 4 (10 source-listed tracks)
+
+- **Source:** [Ektoplazm][modem-festival-vol-4]
+- **License:** linked [CC BY 4.0][by] ([evidence][modem-festival-vol-4]); **Needs verification**. The page says "for noncommercial usage," which conflicts with the linked license.
+
+| Normalized filename (unverified) | Artist - track title |
+| --- | --- |
+| `01_-_drip_drop_-_time.mp3` | Drip Drop - Time |
+| `02_-_dirty_saffi_-_rest_of_our_lives.mp3` | Dirty Saffi - Rest Of Our Lives |
+| `03_-_sprocket_-_hyperbolic.mp3` | Sprocket - Hyperbolic |
+| `04_-_r2_-_proper_procrastination.mp3` | R2 - Proper Procrastination |
+| `05_-_southwild_-_modemized.mp3` | Southwild - Modemized |
+| `06_-_parasense_-_djs_centipede.mp3` | Parasense - DJ's Centipede |
+| `07_-_gaspard_-_sonder.mp3` | Gaspard - Sonder |
+| `08_-_psyberpunk_-_grandfather.mp3` | Psyberpunk - Grandfather |
+| `09_-_harmonic_rebel_-_sensory_amplification.mp3` | Harmonic Rebel - Sensory Amplification |
+| `10_-_insane_creatures_-_already_bugged.mp3` | Insane Creatures - Already Bugged |
+
+## Reflection - The Forest Riddle (7 source-listed tracks)
+
+- **Source:** [Ektoplazm][the-forest-riddle]
+- **License:** [CC BY-NC-SA 4.0][by-nc-sa] ([evidence][the-forest-riddle])
+
+| Normalized filename (unverified) | Track title |
+| --- | --- |
+| `01_-_reflection_-_circus_train.mp3` | Circus Train |
+| `02_-_reflection_-_demon_cave.mp3` | Demon Cave |
+| `03_-_reflection_-_tree_grave.mp3` | Tree Grave |
+| `04_-_reflection_-_the_sirens_are_coming.mp3` | The Sirens Are Coming |
+| `05_-_reflection_-_dark_souls_(part_1).mp3` | Dark Souls (Part 1) |
+| `06_-_reflection_-_chaotic_dimension_(part_2).mp3` | Chaotic Dimension (Part 2) |
+| `07_-_reflection_-_raining_trees_(part_3).mp3` | Raining Trees (Part 3) |
+
+## HigherWattska - Nothing Personal (3 source-listed tracks)
+
+- **Source:** [Ektoplazm][nothing-personal]
+- **License:** [CC BY-NC-ND 4.0][by-nc-nd] ([evidence][nothing-personal])
+
+| Normalized filename (unverified) | Track title |
+| --- | --- |
+| `01_-_higherwattska_-_so_cool_man.mp3` | So Cool Man |
+| `02_-_higherwattska_-_tribal_douchebag.mp3` | Tribal Douchebag |
+| `03_-_higherwattska_-_nothing_personal.mp3` | Nothing Personal |
+
 ## Other verification notes
 
 - **Needs verification - playlist:** `Psytrance rotation` is operator-reported; assignments are not shown in the screenshots.
 - **Needs verification - station use:** commercial/noncommercial status and separate permissions were not supplied. Releases with noncommercial Creative Commons terms require noncommercial use unless separately authorized; this inventory is not broadcast clearance.
-- **Needs verification - added filenames:** prior filenames added at the operator's direction are normalized from the Ektoplazm tracklists, not confirmed in AzuraCast. The seven new source tracklists above do not confirm station presence.
+- **Needs verification - added filenames:** prior filenames added at the operator's direction are normalized from the Ektoplazm tracklists, not confirmed in AzuraCast. Source tracklists do not confirm station presence.
 
 ## Updating the inventory
 
@@ -893,6 +1028,16 @@ Release details apply to every row beneath them. Titles follow Ektoplazm; H1-H3 
 [oniric-discordance]: https://ektoplazm.com/free-music/cyclome-oniric-discordance
 [mush-moon-tales]: https://ektoplazm.com/free-music/mush-moon-tales
 [primal-mind]: https://ektoplazm.com/free-music/primal-mind
+[absolut-shit-ep2]: https://ektoplazm.com/free-music/absolut-shit-ep2
+[groove-addicted]: https://ektoplazm.com/free-music/groove-addicted
+[hybrid-reality-beyond-the-doors-of-mind]: https://ektoplazm.com/free-music/hybrid-reality-beyond-the-doors-of-mind
+[dibold-magic-of-darkness]: https://ektoplazm.com/free-music/dibold-magic-of-darkness
+[night-candy-vol-1]: https://ektoplazm.com/free-music/night-candy-vol-1
+[cylon-lounge]: https://ektoplazm.com/free-music/lunecell-cylon-lounge
+[galactic-human]: https://ektoplazm.com/free-music/praheya-galactic-human
+[modem-festival-vol-4]: https://ektoplazm.com/free-music/modem-festival-vol-4
+[the-forest-riddle]: https://ektoplazm.com/free-music/reflection-the-forest-riddle
+[nothing-personal]: https://ektoplazm.com/free-music/higherwattska-nothing-personal
 [by-nc-sa]: https://creativecommons.org/licenses/by-nc-sa/4.0/
 [by-nc-nd]: https://creativecommons.org/licenses/by-nc-nd/4.0/
 [by-nc]: https://creativecommons.org/licenses/by-nc/4.0/
