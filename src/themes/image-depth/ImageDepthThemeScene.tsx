@@ -313,14 +313,10 @@ export function ImageDepthThemeScene({
   );
 
   useEffect(() => {
-    const reducedMotionMatches =
-      typeof window !== "undefined" &&
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
     visualStateRef.current = {
       isPlaying,
       signalId,
-      reducedMotion: reducedMotion || reducedMotionMatches,
+      reducedMotion,
       motionEnabled,
       chromaEnabled,
       sourceBpm,

@@ -15,6 +15,7 @@ export type ThemeSceneProps = {
   volume: number;
   signalId: string | null;
   audioLevel: number;
+  // Resolved visualization suppression, not the raw OS preference.
   reducedMotion: boolean;
   sourceBpm?: number | null;
   motionEnabled?: boolean;

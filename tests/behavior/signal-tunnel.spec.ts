@@ -494,9 +494,10 @@ test.describe("Signal Tunnel player", () => {
     expect(pageErrors).toEqual([]);
   });
 
-  test("reduced motion freezes the visible tunnel", async ({ page, pageErrors }) => {
+  test("reduced motion defaults MOTION off and explicit ON resumes the tunnel", async ({ page, pageErrors }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.reload();
+    await page.getByLabel("Signal source").selectOption("demo-psychedelic-experience");
     await expect(page.getByLabel("Signal Tunnel canvas")).toBeVisible();
     await page.getByRole("button", { name: "Play", exact: true }).click();
     await expect.poll(async () => (await runtime(page)).motionSpeed).toBe(0);
@@ -505,6 +506,10 @@ test.describe("Signal Tunnel player", () => {
     await page.waitForTimeout(350);
     expect((await runtime(page)).travelPosition).toBe(frozen);
     expect(await canvasPixels(page)).toEqual(pixels);
+    await expect(page.getByLabel("Motion", { exact: true })).not.toBeChecked();
+    await page.locator("label").filter({ hasText: /^Motion$/ }).click();
+    await expect.poll(async () => (await runtime(page)).travelPosition).toBeGreaterThan(frozen!);
+    await expect(page.getByLabel("Motion", { exact: true })).toBeChecked();
     expect(pageErrors).toEqual([]);
   });
 

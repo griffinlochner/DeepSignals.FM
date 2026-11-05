@@ -92,16 +92,23 @@ test("branded transmission is prominent and present while stopped", async ({
   await expect(canvas).toHaveAttribute("data-motion-active", "false");
 });
 
-test("reduced motion keeps Signal Rain spatially frozen", async ({ page }) => {
+test("reduced motion defaults Signal Rain MOTION off and explicit ON animates it", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.reload();
   await page.getByLabel("Visual environment").selectOption("signal-rain");
 
   const canvas = page.locator(".signal-rain-canvas");
+  await page.getByLabel("Signal source").selectOption(DEMO_SOURCE_ID);
+  await page.getByRole("button", { name: "Play", exact: true }).click();
+  await expect(page.getByLabel("Motion")).not.toBeChecked();
   await expect(canvas).toHaveAttribute("data-motion-active", "false");
   const frozen = await canvas.getAttribute("data-travel-position");
   await page.waitForTimeout(350);
   await expect(canvas).toHaveAttribute("data-travel-position", frozen!);
+  await page.locator("label").filter({ hasText: /^Motion$/ }).click();
+  await expect(canvas).toHaveAttribute("data-motion-active", "true");
+  await expect.poll(async () => Number(await canvas.getAttribute("data-travel-position")))
+    .toBeGreaterThan(Number(frozen));
 });
 
 test("CHROMA switches between fixed baseline and audio color energy", async ({

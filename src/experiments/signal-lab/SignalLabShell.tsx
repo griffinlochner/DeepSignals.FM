@@ -3,6 +3,7 @@ import { AUDIO_SOURCES, formatAudioSourceLabel } from "../../app/audioSources";
 import type { AudioReactiveSnapshot } from "../../app/playerTypes";
 import { useAudioAnalysis } from "../../app/useAudioAnalysis";
 import { usePersistentAudioController } from "../../app/usePersistentAudioController";
+import { useVisualizationMotion } from "../../app/useVisualizationMotion";
 import VolumeControl from "../../components/VolumeControl";
 import SignalRunnerExperience from "../signal-runner/SignalRunnerExperience";
 import type {
@@ -87,7 +88,7 @@ function SignalLabShell() {
   const [monitorSnapshot, setMonitorSnapshot] =
     useState<AudioReactiveSnapshot>(ZERO_SNAPSHOT);
   const [chromaEnabled, setChromaEnabled] = useState(true);
-  const [motionEnabled, setMotionEnabled] = useState(true);
+  const { motionEnabled, setMotionEnabled } = useVisualizationMotion();
   const [selectedEnvironmentId, setSelectedEnvironmentId] =
     useState<SignalLabEnvironmentId>("signal-runner");
   const [runnerControlMode, setRunnerControlMode] =
@@ -113,8 +114,7 @@ function SignalLabShell() {
     volume: controller.volume,
     signalId: selectedSourceId,
     audioLevel: 0,
-    reducedMotion: window.matchMedia("(prefers-reduced-motion: reduce)")
-      .matches,
+    reducedMotion: !motionEnabled,
     sourceBpm: controller.audioSource.bpm ?? null,
     motionEnabled,
     chromaEnabled,

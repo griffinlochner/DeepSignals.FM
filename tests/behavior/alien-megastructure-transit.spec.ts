@@ -619,9 +619,10 @@ test.describe("Deep Space Drift player", () => {
     expect(pageErrors).toEqual([]);
   });
 
-  test("reduced motion freezes travel and ring rotation without changing MOTION", async ({ page, pageErrors }) => {
+  test("reduced motion defaults MOTION off; explicit ON resumes travel", async ({ page, pageErrors }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.reload();
+    await page.getByLabel("Signal source").selectOption("demo-psychedelic-experience");
     await page.locator("label").filter({ hasText: /^Chroma$/ }).click();
     await page.getByRole("button", { name: "Play", exact: true }).click();
     await expect(page.getByRole("button", { name: "Pause", exact: true })).toBeVisible();
@@ -630,7 +631,9 @@ test.describe("Deep Space Drift player", () => {
     await page.waitForTimeout(350);
     expect(await canvasPixels(page)).toEqual(frozen);
     expect((await runtime(page)).travelPosition).toBe(0);
-    await expect(page.getByLabel("Motion", { exact: true })).toBeChecked();
+    await expect(page.getByLabel("Motion", { exact: true })).not.toBeChecked();
+    await page.locator("label").filter({ hasText: /^Motion$/ }).click();
+    await expect.poll(async () => (await runtime(page)).travelPosition).toBeGreaterThan(0);
     expect(pageErrors).toEqual([]);
   });
 

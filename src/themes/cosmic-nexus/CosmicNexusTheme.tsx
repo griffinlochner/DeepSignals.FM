@@ -1814,10 +1814,7 @@ function CosmicNexusTheme(props: ThemeSceneProps) {
       timer.update();
 
       const state = visualStateRef.current;
-      const systemReducedMotion = window.matchMedia(
-        "(prefers-reduced-motion: reduce)",
-      ).matches;
-      const reduced = state.reducedMotion || systemReducedMotion;
+      const reduced = state.reducedMotion;
       const isPlaying = state.isPlaying === true;
       const chromaEnabled = state.chromaEnabled !== false;
       const hasSignal = Boolean(state.signalId);

@@ -737,7 +737,8 @@ test.describe("Asteroid Runner player", () => {
     expect(pageErrors).toEqual([]);
   });
 
-  test("idle, pause, MOTION and reduced motion freeze pixels and resume without preference changes", async ({ page, pageErrors }) => {
+  test("idle, pause and MOTION freeze pixels; saved ON overrides reduced motion", async ({ page, pageErrors }) => {
+    await page.getByLabel("Signal source").selectOption("demo-psychedelic-experience");
     await expect.poll(async () => (await runtime(page)).motionSpeed).toBe(0);
     const idle = await pixels(page);
     await page.waitForTimeout(250);
@@ -762,10 +763,9 @@ test.describe("Asteroid Runner player", () => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.reload();
     await page.getByRole("button", { name: "Play", exact: true }).click();
-    await expect.poll(async () => (await runtime(page)).motionSpeed).toBe(0);
+    await expect.poll(async () => (await runtime(page)).motionSpeed).toBeGreaterThan(0);
     const reduced = await pixels(page);
-    await page.waitForTimeout(350);
-    expect(await pixels(page)).toEqual(reduced);
+    await expect.poll(async () => (await pixels(page)).hash).not.toBe(reduced.hash);
     expect(await page.evaluate(() => window.__DSFM_TEST__!.controls.motion)).toBe(true);
     expect(pageErrors).toEqual([]);
   });

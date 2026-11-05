@@ -11,7 +11,7 @@ export default defineConfig({
   reporter: [["html", { open: "never" }]],
   use: {
     baseURL: process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:4173",
-    trace: "retain-on-first-retry",
+    trace: "on-first-retry",
     screenshot: "only-on-failure",
     video: "retain-on-failure",
     ...devices["Desktop Chrome"],

@@ -54,6 +54,7 @@ import {
 } from "./environmentSelection";
 import { getShuffleTrack } from "./environmentShuffle";
 import { useEnvironmentShuffle } from "./useEnvironmentShuffle";
+import { useVisualizationMotion } from "./useVisualizationMotion";
 import { getPsyBrazilArtworkUrl } from "./psybrazilArtwork";
 import { publishRuntimeTestSnapshot } from "./runtimeTestBridge";
 import {
@@ -76,7 +77,7 @@ type PlayerPreferences = {
   selectedThemeId: ThemeId;
   selectedAudioSourceId: string;
   volume: number;
-  motionEnabled: boolean;
+  motionEnabled: boolean | null;
   infoOpen: boolean;
   colorEnabled?: boolean;
 };
@@ -193,7 +194,7 @@ function readStoredPlayerPreferences(): PlayerPreferences {
     selectedThemeId: DEFAULT_PLAYER_THEME_ID,
     selectedAudioSourceId: DEFAULT_PLAYER_AUDIO_SOURCE_ID,
     volume: 1,
-    motionEnabled: true,
+    motionEnabled: null,
     colorEnabled: true,
     infoOpen: true,
   };
@@ -218,7 +219,8 @@ function readStoredPlayerPreferences(): PlayerPreferences {
           parsed.selectedAudioSourceId,
         ),
         volume: 1,
-        motionEnabled: sanitizeBoolean(parsed.motionEnabled, true),
+        motionEnabled:
+          typeof parsed.motionEnabled === "boolean" ? parsed.motionEnabled : null,
         colorEnabled: sanitizeBoolean(parsed.colorEnabled, true),
         infoOpen: sanitizeBoolean(
           parsed.infoOpen,
@@ -384,9 +386,8 @@ function PlayerShell({ className }: PlayerShellProps) {
   const [selectedSignalId, setSelectedSignalId] = useState<string | null>(
     storedPreferences.selectedAudioSourceId,
   );
-  const [motionEnabled, setMotionEnabled] = useState(
-    storedPreferences.motionEnabled,
-  );
+  const { motionEnabled, motionOverride, setMotionEnabled } =
+    useVisualizationMotion(storedPreferences.motionEnabled);
   // Reserved for future environment chroma-effect wiring; currently UI preference only.
   const [chromaEnabled, setChromaEnabled] = useState(
     sanitizeBoolean(storedPreferences.colorEnabled, true),
@@ -956,8 +957,7 @@ function PlayerShell({ className }: PlayerShellProps) {
     signalId: selectedSignalId,
     audioLevel: 0,
     sourceBpm: effectiveReactiveBpm,
-    reducedMotion: window.matchMedia("(prefers-reduced-motion: reduce)")
-      .matches,
+    reducedMotion: !motionEnabled,
     motionEnabled,
     chromaEnabled,
     getLatestAudioSnapshot: audioAnalysis.getLatestSnapshot,
@@ -1060,7 +1060,7 @@ function PlayerShell({ className }: PlayerShellProps) {
         selectedThemeId: sanitizeThemeId(selectedThemeId),
         selectedAudioSourceId: sanitizeAudioSourceId(selectedSignalId),
         volume: sanitizeVolume(audioController.volume),
-        motionEnabled,
+        motionEnabled: motionOverride,
         colorEnabled: chromaEnabled,
         infoOpen,
       };
@@ -1075,7 +1075,7 @@ function PlayerShell({ className }: PlayerShellProps) {
   }, [
     audioController.volume,
     chromaEnabled,
-    motionEnabled,
+    motionOverride,
     selectedSignalId,
     selectedThemeId,
     infoOpen,
