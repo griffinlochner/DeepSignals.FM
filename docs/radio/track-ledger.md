@@ -2,7 +2,7 @@
 
 **Hosting:** AzuraCast on Asura Hosting | **Playlist:** `Psytrance rotation`
 
-**37 previously documented releases (275 track entries), plus 30 source tracklists below (208 listed tracks).** Last checked: 2026-11-04. These are ledger counts, not a verified live or unique MP3 count: tracks may be absent, removed, or represented under multiple releases. The original 39 filenames are screenshot-confirmed; the prior 236 tracks added at the operator's direction are assumed uploaded, with filenames normalized from Ektoplazm tracklists and not checked against AzuraCast. The operator reports that generally most or all tracks from some source-listed releases are used, but individual station inclusion and filenames are unverified and some tracks may not be used.
+**37 previously documented releases (275 track entries), plus 35 source tracklists below (249 listed tracks).** Last checked: 2026-11-07. These are ledger counts, not a verified live or unique MP3 count: tracks may be absent, removed, or represented under multiple releases. The original 39 filenames are screenshot-confirmed; the prior 236 tracks added at the operator's direction are assumed uploaded, with filenames normalized from Ektoplazm tracklists and not checked against AzuraCast. The operator reports that generally most or all tracks from some source-listed releases are used, but individual station inclusion and filenames are unverified and some tracks may not be used.
 
 Release details apply to every row beneath them. Titles follow Ektoplazm; H1-H3 remain disputed, not corrections to uploaded metadata. Evidence links point to each release's license statement below its downloads.
 
@@ -1041,6 +1041,88 @@ Release details apply to every row beneath them. Titles follow Ektoplazm; H1-H3 
 | Babelfish |
 | Strange Liquids |
 
+## Seven Strategy - Sampling Singularity (5 source-listed tracks)
+
+- **Source:** [Ektoplazm][sampling-singularity]
+- **License:** [CC BY-NC-SA 4.0][by-nc-sa] ([evidence][sampling-singularity])
+
+| Normalized filename (unverified) | Track title |
+| --- | --- |
+| `01_-_seven_strategy_-_space_traveler.mp3` | Space Traveler |
+| `02_-_seven_strategy_-_movement.mp3` | Movement |
+| `03_-_seven_strategy_-_polar_axis.mp3` | Polar Axis |
+| `04_-_seven_strategy_-_singularity.mp3` | Singularity |
+| `05_-_seven_strategy_-_collider.mp3` | Collider |
+
+## Priapizzm - 'Murican (6 source-listed tracks)
+
+- **Source:** [Ektoplazm][murican]
+- **License:** [CC BY-NC-SA 4.0][by-nc-sa] ([evidence][murican])
+- **Tracklist scope:** only chapters 1 and 2 (tracks 01-06) are listed; chapter 3 was not uploaded.
+
+| Normalized filename (unverified) | Track title |
+| --- | --- |
+| `01_-_priapizzm_-_chapter_1.1.mp3` | Chapter 1.1 |
+| `02_-_priapizzm_-_chapter_1.2.mp3` | Chapter 1.2 |
+| `03_-_priapizzm_-_chapter_1.3.mp3` | Chapter 1.3 |
+| `04_-_priapizzm_-_chapter_2.1.mp3` | Chapter 2.1 |
+| `05_-_priapizzm_-_chapter_2.2.mp3` | Chapter 2.2 |
+| `06_-_priapizzm_-_chapter_2.3.mp3` | Chapter 2.3 |
+
+## Chudl - Fluid Of Life (4 source-listed tracks)
+
+- **Source:** [Ektoplazm][fluid-of-life]
+- **License:** [CC BY-NC-SA 4.0][by-nc-sa] ([evidence][fluid-of-life])
+
+| Normalized filename (unverified) | Track title |
+| --- | --- |
+| `01_-_chudl_-_soundness.mp3` | Soundness |
+| `02_-_chudl_-_eros.mp3` | Eros |
+| `03_-_chudl_-_fluid_of_life.mp3` | Fluid Of Life |
+| `04_-_chudl_-_homunculus.mp3` | Homunculus |
+
+## Psyshastra - Occult Particle (5 source-listed tracks)
+
+- **Source:** [Ektoplazm][occult-particle]
+- **License:** [CC BY-NC-ND 4.0][by-nc-nd] ([evidence][occult-particle])
+
+| Normalized filename (unverified) | Artist - track title |
+| --- | --- |
+| `01_-_psyshastra_-_spectral_incantation.mp3` | Psyshastra - Spectral Incantation |
+| `02_-_dar_kapo_-_rock_and_roll_ranger_danger_(psyshastra_remix).mp3` | Dar Kapo - Rock And Roll Ranger Danger (Psyshastra Remix) |
+| `03_-_psyshastra_-_occult_particle.mp3` | Psyshastra - Occult Particle |
+| `04_-_psyshastra_-_last_ritual.mp3` | Psyshastra - Last Ritual |
+| `05_-_psyshastra_-_swamp_gut.mp3` | Psyshastra - Swamp Gut |
+
+## Various artists - Mechanical Madness (21 source-listed tracks)
+
+- **Source:** [Ektoplazm][mechanical-madness]
+- **License:** linked [CC BY 4.0][by] ([evidence][mechanical-madness]); **Needs verification**. The page says "for noncommercial usage," which conflicts with the linked license.
+
+| Normalized filename (unverified) | Artist - track title |
+| --- | --- |
+| `01_-_deadorphans_-_smeagol_riddle.mp3` | DeadOrphans - Smeagol Riddle |
+| `02_-_doubletap_-_nuts_and_bolts.mp3` | DoubleTap - Nuts & Bolts |
+| `03_-_nocturnes_creatures_-_intimidating_situation.mp3` | Nocturnes Creatures - Intimidating Situation |
+| `04_-_txubaka_-_blue_meditation.mp3` | Txubaka - Blue Meditation |
+| `05_-_nocturnes_creatures_-_radical_mechanical.mp3` | Nocturnes Creatures - Radical Mechanical |
+| `06_-_mekanical_mind__botelhas_-_middle_of_conversation.mp3` | Mekanical Mind & Botelhas - Middle of Conversation |
+| `07_-_criticalfreak_-_inner_vision.mp3` | CriticalFreak - Inner Vision |
+| `08_-_hyperburst_-_invisible_connections.mp3` | HyperBurst - Invisible Connections |
+| `09_-_anceps_-_modul_op.mp3` | Anceps - Modul Op |
+| `10_-_pastor_john__dr.bops_-_organ_failure.mp3` | Pastor John & Dr.Bops - Organ Failure |
+| `11_-_metalizard_-_dislocated.mp3` | MetaLizard - Dislocated |
+| `12_-_gunatama_(catharsys_vs_prong)_-_no_discussion.mp3` | GunaTama (Catharsys vs Prong) - No Discussion |
+| `13_-_setek_-_do_you_believe.mp3` | Setek - Do you Believe |
+| `14_-_helix_one_-_slow_electronic.mp3` | Helix One - Slow Electronic |
+| `15_-_sound_curious_vs_criticalfreak_feat._parakustik_-_krakatoa_blast.mp3` | Sound Curious vs CriticalFreak feat. Parakustik - Krakatoa Blast |
+| `16_-_nocturnes_creatures__selective_mood_-_topstory.mp3` | Nocturnes Creatures & Selective Mood - Topstory |
+| `17_-_i-logic_-_crazy_cookies.mp3` | I-logic - Crazy Cookies |
+| `18_-_alien_chaos_-_blasting_volca.mp3` | Alien Chaos - Blasting Volca |
+| `19_-_cathachyon_(catharsys_vs_tachyon)_-_oompaloompa.mp3` | Cathachyon (Catharsys vs Tachyon) - OompaLoompa |
+| `20_-_kaikkialla_vs_girisha_-_vision_on_brutality.mp3` | Kaikkialla vs Girisha - Vision On Brutality |
+| `21_-_nibiru__anceps_-_kidz.mp3` | Nibiru & Anceps - Kidz |
+
 ## Other verification notes
 
 - **Needs verification - playlist:** `Psytrance rotation` is operator-reported; assignments are not shown in the screenshots.
@@ -1120,6 +1202,11 @@ Release details apply to every row beneath them. Titles follow Ektoplazm; H1-H3 
 [the-galactic-brain-high-life]: https://ektoplazm.com/free-music/the-galactic-brain-high-life
 [cosmic-sadhu-interference]: https://ektoplazm.com/free-music/cosmic-sadhu-interference
 [omnom-virtual-plastic]: https://ektoplazm.com/free-music/omnom-virtual-plastic
+[sampling-singularity]: https://ektoplazm.com/free-music/seven-strategy-sampling-singularity
+[murican]: https://ektoplazm.com/free-music/priapizzm-murican
+[fluid-of-life]: https://ektoplazm.com/free-music/chudl-fluid-of-life
+[occult-particle]: https://ektoplazm.com/free-music/psyshastra-occult-particle
+[mechanical-madness]: https://ektoplazm.com/free-music/mechanical-madness
 [by-nc-sa]: https://creativecommons.org/licenses/by-nc-sa/4.0/
 [by-nc-nd]: https://creativecommons.org/licenses/by-nc-nd/4.0/
 [by-nc]: https://creativecommons.org/licenses/by-nc/4.0/
