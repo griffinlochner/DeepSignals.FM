@@ -42,7 +42,7 @@ test("shuffle pools follow the visible categories, excluding Black, branded and 
   ];
   const experiences = [
     "signal-runner-2", "cosmic-roller-coaster", "alien-megastructure-transit",
-    "neon-hyper-racer", "signal-runner", "signal-tunnel", "cosmic-nexus", "twilight-tides",
+    "neon-hyper-racer", "signal-runner", "signal-tunnel", "cosmic-nexus", "twilight-tides", "toxic-horizon",
   ];
   expect(getShufflePool("shuffle-depth")).toEqual(depth);
   expect(getShufflePool("shuffle-3d")).toEqual(experiences);
@@ -339,7 +339,7 @@ test.describe("player shuffle integration", () => {
     await expect(selector).toBeFocused();
     await selector.press("End");
     await selector.press("Enter");
-    await expect(selector).toHaveValue("twilight-tides");
+    await expect(selector).toHaveValue("toxic-horizon");
     await expect(icon).toHaveCount(0);
     expect(pageErrors).toEqual([]);
   });

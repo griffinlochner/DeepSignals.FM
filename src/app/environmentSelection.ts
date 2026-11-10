@@ -39,6 +39,7 @@ export const ENVIRONMENT_GROUPS: {
       "signal-tunnel",
       "cosmic-nexus",
       "twilight-tides",
+      "toxic-horizon",
     ],
   },
 ];

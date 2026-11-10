@@ -122,7 +122,7 @@ for (const enabled of [true, false]) {
 for (const environment of [
   "signal-tunnel", "signal-runner-2", "neon-hyper-racer",
   "cosmic-roller-coaster", "alien-megastructure-transit", "signal-rain",
-  "signal-runner", "cosmic-nexus", "twilight-tides", "uv-reactive-jungle",
+  "signal-runner", "cosmic-nexus", "twilight-tides", "toxic-horizon", "uv-reactive-jungle",
 ]) {
   test(`explicit ON animates ${environment} despite OS reduced motion`, async ({ page }) => {
     test.setTimeout(60_000);
@@ -143,7 +143,7 @@ for (const environment of [
       const off = await sceneTransform(page);
       expect(off[12]).toBeCloseTo(0, 2);
       expect(off[13]).toBeCloseTo(0, 2);
-    } else if (["cosmic-nexus", "twilight-tides"].includes(environment)) {
+    } else if (["cosmic-nexus", "twilight-tides", "toxic-horizon"].includes(environment)) {
       const initial = await pixelHash(page);
       await expect.poll(() => pixelHash(page)).not.toBe(initial);
       await toggleMotion(page);

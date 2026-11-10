@@ -118,6 +118,7 @@ const PUBLIC_PLAYER_ENVIRONMENT_IDS = [
   "signal-tunnel",
   "alien-megastructure-transit",
   "twilight-tides",
+  "toxic-horizon",
 ] as const;
 const publicPlayerEnvironmentIds = new Set<string>(
   PUBLIC_PLAYER_ENVIRONMENT_IDS,
