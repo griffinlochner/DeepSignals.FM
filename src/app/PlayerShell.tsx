@@ -51,6 +51,8 @@ import {
   ENVIRONMENT_GROUPS,
   HIDDEN_ENVIRONMENT_DROPDOWN_IDS,
   SHUFFLE_MODES,
+  isShuffleMode,
+  type ShuffleMode,
 } from "./environmentSelection";
 import { getShuffleTrack } from "./environmentShuffle";
 import { useEnvironmentShuffle } from "./useEnvironmentShuffle";
@@ -75,6 +77,7 @@ type PlayerShellProps = {
 
 type PlayerPreferences = {
   selectedThemeId: ThemeId;
+  selectedShuffleMode: ShuffleMode | null;
   selectedAudioSourceId: string;
   volume: number;
   motionEnabled: boolean | null;
@@ -192,6 +195,7 @@ function sanitizeVolume(value: unknown) {
 function readStoredPlayerPreferences(): PlayerPreferences {
   const fallback: PlayerPreferences = {
     selectedThemeId: DEFAULT_PLAYER_THEME_ID,
+    selectedShuffleMode: null,
     selectedAudioSourceId: DEFAULT_PLAYER_AUDIO_SOURCE_ID,
     volume: 1,
     motionEnabled: null,
@@ -215,6 +219,11 @@ function readStoredPlayerPreferences(): PlayerPreferences {
 
       return {
         selectedThemeId: sanitizeThemeId(parsed.selectedThemeId),
+        selectedShuffleMode:
+          typeof parsed.selectedShuffleMode === "string" &&
+          isShuffleMode(parsed.selectedShuffleMode)
+            ? parsed.selectedShuffleMode
+            : null,
         selectedAudioSourceId: sanitizeAudioSourceId(
           parsed.selectedAudioSourceId,
         ),
@@ -475,6 +484,7 @@ function PlayerShell({ className }: PlayerShellProps) {
     [externalNowPlaying],
   );
   const environmentSelection = useEnvironmentShuffle({
+    initialMode: storedPreferences.selectedShuffleMode,
     stationId: selectedSignalId,
     track: shuffleTrack,
     playing: audioController.playbackStatus === "playing",
@@ -1058,6 +1068,7 @@ function PlayerShell({ className }: PlayerShellProps) {
     try {
       const payload: PlayerPreferences = {
         selectedThemeId: sanitizeThemeId(selectedThemeId),
+        selectedShuffleMode: environmentSelection.selectedShuffleMode,
         selectedAudioSourceId: sanitizeAudioSourceId(selectedSignalId),
         volume: sanitizeVolume(audioController.volume),
         motionEnabled: motionOverride,
@@ -1075,6 +1086,7 @@ function PlayerShell({ className }: PlayerShellProps) {
   }, [
     audioController.volume,
     chromaEnabled,
+    environmentSelection.selectedShuffleMode,
     motionOverride,
     selectedSignalId,
     selectedThemeId,

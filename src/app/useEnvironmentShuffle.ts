@@ -8,6 +8,7 @@ import {
 } from "./environmentShuffle";
 
 type Props = {
+  initialMode: ShuffleMode | null;
   stationId: string | null;
   track: ShuffleTrack | null;
   playing: boolean;
@@ -16,13 +17,14 @@ type Props = {
 };
 
 export function useEnvironmentShuffle({
+  initialMode,
   stationId,
   track,
   playing,
   activeEnvironment,
   onEnvironmentChange,
 }: Props) {
-  const [mode, setMode] = useState<ShuffleMode | null>(null);
+  const [mode, setMode] = useState<ShuffleMode | null>(initialMode);
   const [shuffle] = useState(() => new EnvironmentShuffle());
   const title = track?.title;
   const artist = track?.artist;
@@ -45,5 +47,9 @@ export function useEnvironmentShuffle({
     }
   }, [onEnvironmentChange]);
 
-  return { selectedEnvironment: mode ?? activeEnvironment, selectEnvironment };
+  return {
+    selectedShuffleMode: mode,
+    selectedEnvironment: mode ?? activeEnvironment,
+    selectEnvironment,
+  };
 }

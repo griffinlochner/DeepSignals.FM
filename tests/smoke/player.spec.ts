@@ -1,5 +1,8 @@
 import { test, expect } from "../support/test";
 import { expectSaneGeometry } from "../support/geometry";
+import { SHUFFLE_MODES, getShufflePool } from "../../src/app/environmentSelection";
+import { SHUFFLE_FALLBACK_MS } from "../../src/app/environmentShuffle";
+import { instrumentAudio, readAudio } from "../support/audioProbe";
 
 const PSYSTREAM_TELEMETRY_URL =
   "https://radio.psymusic.co.uk/api/nowplaying_static/psystream.json";
@@ -912,6 +915,124 @@ test("saved station and environment hydrate independently without being overwrit
     )
     .toEqual(["deepsignals-psytrance", "neon-hyper-racer"]);
 });
+
+for (const mode of SHUFFLE_MODES) {
+  test(`${mode.id} preference survives reload and automatic environment switching`, async ({
+    page,
+    pageErrors,
+  }) => {
+    await instrumentAudio(page);
+    await page.clock.install();
+    const environment = page.getByLabel("Visual environment");
+    const shell = page.locator(".player-shell");
+    await page.getByLabel("Signal source").selectOption("demo-psychedelic-experience");
+    await environment.selectOption(mode.id);
+    await expect(environment).toHaveValue(mode.id);
+    await expect.poll(() => page.evaluate((key) =>
+      JSON.parse(localStorage.getItem(key) ?? "{}").selectedShuffleMode,
+    PLAYER_PREFERENCES_KEY)).toBe(mode.id);
+
+    await page.reload();
+    await expect(environment).toHaveValue(mode.id);
+    await expect(page.getByLabel("Signal source")).toHaveValue("demo-psychedelic-experience");
+    await expect(page.getByRole("button", { name: "Play", exact: true })).toBeVisible();
+    expect((await readAudio(page)).paused).toBe(true);
+    await expect.poll(() => page.evaluate((key) =>
+      JSON.parse(localStorage.getItem(key) ?? "{}").selectedShuffleMode,
+    PLAYER_PREFERENCES_KEY)).toBe(mode.id);
+
+    await page.getByRole("button", { name: "Play", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Pause", exact: true })).toBeVisible();
+    const previousEnvironment = await shell.getAttribute("data-theme");
+    expect(getShufflePool(mode.id)).toContain(previousEnvironment);
+    await page.clock.fastForward(SHUFFLE_FALLBACK_MS);
+    await expect(shell).not.toHaveAttribute("data-theme", previousEnvironment!);
+    const nextEnvironment = await shell.getAttribute("data-theme");
+    expect(getShufflePool(mode.id)).toContain(nextEnvironment);
+    await expect(environment).toHaveValue(mode.id);
+    await expect.poll(() => page.evaluate((key) => {
+      const preferences = JSON.parse(localStorage.getItem(key) ?? "{}");
+      return [preferences.selectedThemeId, preferences.selectedShuffleMode];
+    }, PLAYER_PREFERENCES_KEY)).toEqual([nextEnvironment, mode.id]);
+
+    await page.reload();
+    await expect(environment).toHaveValue(mode.id);
+    await expect(page.getByRole("button", { name: "Play", exact: true })).toBeVisible();
+    expect((await readAudio(page)).paused).toBe(true);
+    expect(pageErrors).toEqual([]);
+  });
+}
+
+test("manual environment choice clears the shuffle preference across reload", async ({
+  page,
+  pageErrors,
+}) => {
+  const environment = page.getByLabel("Visual environment");
+  await environment.selectOption("shuffle-depth");
+  await environment.selectOption("neon-hyper-racer");
+  await expect(environment).toHaveValue("neon-hyper-racer");
+  await expect.poll(() => page.evaluate((key) => {
+    const preferences = JSON.parse(localStorage.getItem(key) ?? "{}");
+    return [preferences.selectedThemeId, preferences.selectedShuffleMode];
+  }, PLAYER_PREFERENCES_KEY)).toEqual(["neon-hyper-racer", null]);
+
+  await page.reload();
+  await expect(environment).toHaveValue("neon-hyper-racer");
+  await expect(page.locator(".player-shell")).toHaveAttribute("data-theme", "neon-hyper-racer");
+  await expect.poll(() => page.evaluate((key) =>
+    JSON.parse(localStorage.getItem(key) ?? "{}").selectedShuffleMode,
+  PLAYER_PREFERENCES_KEY)).toBeNull();
+  expect(pageErrors).toEqual([]);
+});
+
+for (const [label, selectedShuffleMode] of [
+  ["legacy missing", undefined],
+  ["null", null],
+  ["obsolete", "shuffle"],
+  ["unknown", "shuffle-future"],
+  ["number", 3],
+  ["boolean", true],
+  ["object", { mode: "shuffle-all" }],
+] as const) {
+  test(`${label} shuffle preference restores a manual environment safely`, async ({
+    page,
+    pageErrors,
+  }) => {
+    await page.evaluate(({ key, mode }) => {
+      localStorage.setItem(key, JSON.stringify({
+        selectedThemeId: "neon-hyper-racer",
+        selectedShuffleMode: mode,
+        selectedAudioSourceId: "demo-psychedelic-experience",
+        volume: 0.4,
+        motionEnabled: false,
+        colorEnabled: false,
+        visualFeedOpen: false,
+      }));
+    }, { key: PLAYER_PREFERENCES_KEY, mode: selectedShuffleMode });
+    await page.reload();
+    await expect(page.getByLabel("Visual environment")).toHaveValue("neon-hyper-racer");
+    await expect(page.locator(".player-shell")).toHaveAttribute("data-theme", "neon-hyper-racer");
+    await expect(page.getByLabel("Signal source")).toHaveValue("demo-psychedelic-experience");
+    await expect(page.getByLabel("Motion")).not.toBeChecked();
+    await expect(page.getByLabel("Toggle environment chroma effects")).not.toBeChecked();
+    await expect(page.locator(".visual-feed-window")).toBeHidden();
+    // Reload keeps the existing full-volume default, not the previously saved volume.
+    await expect(page.getByRole("slider", { name: "Volume" })).toHaveValue("1");
+    await expect(page.getByRole("button", { name: "Play", exact: true })).toBeVisible();
+    await expect.poll(() => page.evaluate((key) =>
+      JSON.parse(localStorage.getItem(key) ?? "{}"),
+    PLAYER_PREFERENCES_KEY)).toMatchObject({
+      selectedThemeId: "neon-hyper-racer",
+      selectedShuffleMode: null,
+      selectedAudioSourceId: "demo-psychedelic-experience",
+      volume: 1,
+      motionEnabled: false,
+      colorEnabled: false,
+      infoOpen: false,
+    });
+    expect(pageErrors).toEqual([]);
+  });
+}
 
 test("demo transmissions retain two playable tracks and switch across sources", async ({
   page,
