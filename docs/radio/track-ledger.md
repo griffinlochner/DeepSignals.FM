@@ -2,7 +2,7 @@
 
 **Hosting:** AzuraCast on Asura Hosting | **Playlist:** `Psytrance rotation`
 
-**37 previously documented releases (275 track entries), plus 35 source tracklists below (249 listed tracks).** Last checked: 2026-11-07. These are ledger counts, not a verified live or unique MP3 count: tracks may be absent, removed, or represented under multiple releases. The original 39 filenames are screenshot-confirmed; the prior 236 tracks added at the operator's direction are assumed uploaded, with filenames normalized from Ektoplazm tracklists and not checked against AzuraCast. The operator reports that generally most or all tracks from some source-listed releases are used, but individual station inclusion and filenames are unverified and some tracks may not be used.
+**37 previously documented releases (275 track entries), plus 40 source tracklists below (300 listed tracks).** Last checked: 2026-11-11. These are ledger counts, not a verified live or unique MP3 count: tracks may be absent, removed, or represented under multiple releases. The original 39 filenames are screenshot-confirmed; the prior 236 tracks added at the operator's direction are assumed uploaded, with filenames normalized from Ektoplazm tracklists and not checked against AzuraCast. The operator reports that generally most or all tracks from some source-listed releases are used, but individual station inclusion and filenames are unverified and some tracks may not be used.
 
 Release details apply to every row beneath them. Titles follow Ektoplazm; H1-H3 remain disputed, not corrections to uploaded metadata. Evidence links point to each release's license statement below its downloads.
 
@@ -1123,6 +1123,98 @@ Release details apply to every row beneath them. Titles follow Ektoplazm; H1-H3 
 | `20_-_kaikkialla_vs_girisha_-_vision_on_brutality.mp3` | Kaikkialla vs Girisha - Vision On Brutality |
 | `21_-_nibiru__anceps_-_kidz.mp3` | Nibiru & Anceps - Kidz |
 
+## Various artists - Age Of Apocalypse (9 source-listed tracks)
+
+- **Source:** [Ektoplazm][age-of-apocalypse]
+- **License:** [CC BY-NC-SA 4.0][by-nc-sa] ([evidence][age-of-apocalypse])
+- **Tracklist note:** source tracks 03, Dizmental - Age Of Apocalypse, and 10, Metaform - Freaking Out, are omitted at the operator's request.
+
+| Normalized filename (unverified) | Artist - track title |
+| --- | --- |
+| `01_-_fryquenciezz__noizhartt_-_antimateria_(dark_element_remix).mp3` | Fryquenciezz & Noizhartt - Antimateria (Dark Element Remix) |
+| `02_-_aurokarya_-_early_retirement.mp3` | Aurokarya - Early Retirement |
+| `04_-_a.t.o.a.m._-_apocalyptic_nonsense.mp3` | A.T.O.A.M. - Apocalyptic Nonsense |
+| `05_-_plasmorh_-_apocalypse_now.mp3` | Plasmorh - Apocalypse Now |
+| `06_-_mimic_vat_-_6_days_(mindless_apes_remix).mp3` | Mimic Vat - 6 Days (Mindless Apes Remix) |
+| `07_-_hypnotoad_-_event_horizon.mp3` | Hypnotoad - Event Horizon |
+| `08_-_noizhartt_-_demons_of_sleep_paralysis_2.0.1_alpha.mp3` | Noizhartt - Demons Of Sleep Paralysis 2.0.1 Alpha |
+| `09_-_critical_freak_vs_hyperburst_-_hyperfreaks.mp3` | Critical Freak vs HyperBurst - HyperFreaks |
+| `11_-_moksa__nibiru_-_distorted_dimension.mp3` | Moksa & Nibiru - Distorted Dimension |
+
+## Various artists - Lotus Rising (11 source-listed tracks)
+
+- **Source:** [Ektoplazm][lotus-rising]
+- **License:** [CC BY-NC-ND 4.0][by-nc-nd] ([evidence][lotus-rising])
+
+| Normalized filename (unverified) | Artist - track title |
+| --- | --- |
+| `01_-_esoteric_bloom_-_lotus_rising_(intro).mp3` | Esoteric Bloom - Lotus Rising (Intro) |
+| `02_-_moai_project_-_broadcast.mp3` | Moai Project - Broadcast |
+| `03_-_microsphere_-_enigma.mp3` | Microsphere - Enigma |
+| `04_-_gridy_cosm_-_atcha.mp3` | Gridy Cosm - Atcha |
+| `05_-_highstyle_-_understand_something.mp3` | Highstyle - Understand Something |
+| `06_-_killawatt_-_true_story.mp3` | Killawatt - True Story |
+| `07_-_leso_-_sick_society.mp3` | Leso - Sick Society |
+| `08_-_leopardtron_vs_ra_root_-_mondaygroove.mp3` | Leopardtron vs Ra Root - Mondaygroove |
+| `09_-_ra_root_-_now_you_see_me.mp3` | Ra Root - Now You See Me |
+| `10_-_electrypnose_-_une_biere_dans_la_riviere_(spore_remix).mp3` | Electrypnose - Une Biere Dans La Riviere (Spore Remix) |
+| `11_-_esoteric_bloom_-_floating_petals_(outro).mp3` | Esoteric Bloom - Floating Petals (Outro) |
+
+## Various artists - Nokturnal Wonderland: The Labyrinth (10 source-listed tracks)
+
+- **Source:** [Ektoplazm][nokturnal-wonderland-the-labyrinth]
+- **License:** [CC BY-NC-SA 4.0][by-nc-sa] ([evidence][nokturnal-wonderland-the-labyrinth])
+
+| Normalized filename (unverified) | Artist - track title |
+| --- | --- |
+| `01_-_silent_horror__claw_-_forest_freak.mp3` | Silent Horror & Claw - Forest Freak |
+| `02_-_netrosystem_-_aliens_hunter.mp3` | Netrosystem - Aliens Hunter |
+| `03_-_malice_in_wonderland_-_in_the_forest_of_forgetting.mp3` | Malice In Wonderland - In The Forest Of Forgetting |
+| `04_-_chemical_spoon_-_pathfinder.mp3` | Chemical Spoon - Pathfinder |
+| `05_-_methodic_marble_-_soul_conscience__balls.mp3` | Methodic Marble - Soul, Conscience & Balls |
+| `06_-_karash__airi_-_erreur.mp3` | Karash & Airi - Erreur |
+| `07_-_loose_connection__nyama_-_happy_accidents.mp3` | Loose Connection & Nyama - Happy Accidents |
+| `08_-_fatal_discord_-_terrible_one.mp3` | Fatal Discord - Terrible One |
+| `09_-_devic_-_bronto.mp3` | Devic - Bronto |
+| `10_-_necropsycho_-_religious_order.mp3` | Necropsycho - Religious Order |
+
+## Various artists - God’s Food (12 source-listed tracks)
+
+- **Source:** [Ektoplazm][gods-food]
+- **License:** [CC BY-NC-SA 4.0][by-nc-sa] ([evidence][gods-food])
+
+| Normalized filename (unverified) | Artist - track title |
+| --- | --- |
+| `01_-_golomp_-_the_birds_of_paradise.mp3` | Golomp - The Birds Of Paradise |
+| `02_-_uttu_-_mad_naturally.mp3` | Uttu - Mad Naturally |
+| `03_-_fungolyds_-_chay__chillow.mp3` | Fungolyds - Chay & Chillow |
+| `04_-_sr_tune_-_power_guido.mp3` | Sr Tune - Power Guido |
+| `05_-_spooky_hertz_-_trippy_tales.mp3` | Spooky Hertz - Trippy Tales |
+| `06_-_sinapse_-_fracgrow.mp3` | Sinapse - FracGrow |
+| `07_-_kamboo_-_animal_frequencies.mp3` | Kamboo - Animal Frequencies |
+| `08_-_tots__dundoo_-_san_rock.mp3` | Tots & Dundoo - San Rock |
+| `09_-_acid_tricks_-_imagination_make_us_infinite.mp3` | Acid Tricks - Imagination Make Us Infinite |
+| `10_-_igbooga_-_losing_the_mud.mp3` | Igboogã - Losing the Mud |
+| `11_-_black_goats_of_salvation_-_to_the_flyglound_too_the_underflu.mp3` | Black Goats Of Salvation - To The Flyglound Too The Underflu |
+| `12_-_atropp_-_medicina.mp3` | Atropp - Medicina |
+
+## Various artists - Tales From A Lost Reality (9 source-listed tracks)
+
+- **Source:** [Ektoplazm][tales-from-a-lost-reality]
+- **License:** [CC BY-NC-ND 4.0][by-nc-nd] ([evidence][tales-from-a-lost-reality])
+
+| Normalized filename (unverified) | Artist - track title |
+| --- | --- |
+| `01_-_kyros_-_the_one.mp3` | Kyros - The One |
+| `02_-_cyko_-_escape.mp3` | Cyko - Escape |
+| `03_-_malkaviam__rawar_-_mortal_drape.mp3` | Malkaviam & Rawar - Mortal Drape |
+| `04_-_necropsycho_-_in_memoria.mp3` | Necropsycho - In Memoria |
+| `05_-_digitalist_-_tales_from_a_lost_reality.mp3` | Digitalist - Tales From A Lost Reality |
+| `06_-_rawar_-_om_shree_guru_dev_datta.mp3` | Rawar - Om Shree Guru Dev Datta |
+| `07_-_massive_noise_-_inside_the_vortex.mp3` | Massive Noise - Inside The Vortex |
+| `08_-_agressive_mood_-_pineal_waveforms.mp3` | Agressive Mood - Pineal Waveforms |
+| `09_-_neosapiens_-_any_form.mp3` | NeoSapiens - Any Form |
+
 ## Other verification notes
 
 - **Needs verification - playlist:** `Psytrance rotation` is operator-reported; assignments are not shown in the screenshots.
@@ -1207,6 +1299,11 @@ Release details apply to every row beneath them. Titles follow Ektoplazm; H1-H3 
 [fluid-of-life]: https://ektoplazm.com/free-music/chudl-fluid-of-life
 [occult-particle]: https://ektoplazm.com/free-music/psyshastra-occult-particle
 [mechanical-madness]: https://ektoplazm.com/free-music/mechanical-madness
+[age-of-apocalypse]: https://ektoplazm.com/free-music/age-of-apocalypse
+[lotus-rising]: https://ektoplazm.com/free-music/lotus-rising
+[nokturnal-wonderland-the-labyrinth]: https://ektoplazm.com/free-music/nokturnal-wonderland-the-labyrinth
+[gods-food]: https://ektoplazm.com/free-music/gods-food
+[tales-from-a-lost-reality]: https://ektoplazm.com/free-music/tales-from-a-lost-reality
 [by-nc-sa]: https://creativecommons.org/licenses/by-nc-sa/4.0/
 [by-nc-nd]: https://creativecommons.org/licenses/by-nc-nd/4.0/
 [by-nc]: https://creativecommons.org/licenses/by-nc/4.0/
