@@ -71,6 +71,30 @@ test("DeepSignals polls faster without HTTP caching while shared AzuraCast defau
   expect(shared).not.toHaveProperty("refreshOnVisible");
 });
 
+test("DeepSignals playlist attribution uses exact matches without changing song metadata or shared parsing", () => {
+  const cases = [
+    { playlist: "Mittai Music", sourceLink: { url: "https://mittaimusic.bandcamp.com/", label: "Mittai Music" } },
+    { playlist: "Ektoplazm — Psytrance Rotation", sourceLink: { url: "https://ektoplazm.com/", label: "ektoplazm.com" } },
+    ...["", undefined, null, "Psytrance rotation", "mittai music", "Mittai Music ", "Ektoplazm - Psytrance Rotation"]
+      .map((playlist) => ({ playlist, sourceLink: undefined })),
+  ];
+  const baseline = DEEPSIGNALS_NOW_PLAYING_CONFIG.parse(fixture)!;
+  for (const { playlist, sourceLink } of cases) {
+    const response = { ...fixture, now_playing: { ...fixture.now_playing, playlist } };
+    const snapshot = DEEPSIGNALS_NOW_PLAYING_CONFIG.parse(response)!;
+    expect(snapshot.metadata?.sourceLink).toEqual(sourceLink);
+    expect(snapshot.metadata).toMatchObject({
+      sourceUrl: API, artist: "Biomekanik", title: "Symphony of Noises",
+      album: "Cinematech", artworkUrl: ART,
+    });
+    expect(snapshot.telemetry).toEqual(baseline.telemetry);
+    expect(snapshot.changeKey === baseline.changeKey).toBe(!sourceLink);
+    expect(snapshot.metadata?.changeKey === baseline.metadata?.changeKey).toBe(!sourceLink);
+    expect(parseAzuraCastNowPlaying(response, { nowPlayingUrl: API, streamUrl: STREAM })?.metadata)
+      .not.toHaveProperty("sourceLink");
+  }
+});
+
 test("production enables Psytrance and restores its persisted selection without unlaunched entries", async ({ page }, testInfo) => {
   test.skip(testInfo.config.metadata.development === true, "Production preview only");
   await page.route(API, (route) => route.fulfill({ json: fixture }));
@@ -91,6 +115,102 @@ test("production enables Psytrance and restores its persisted selection without 
 test.describe("DeepSignals production and development station", () => {
   test.beforeEach(({ pageErrors }) => {
     expect(pageErrors).toEqual([]);
+  });
+
+  test("playlist transitions update both link destinations and labels without changing AzuraCast artwork", async ({ page }) => {
+    await page.clock.install();
+    let playlist: string | undefined = "Mittai Music";
+    let title = fixture.now_playing.song.title;
+    let calls = 0;
+    let fail = false;
+    await page.route(API, (route) => {
+      calls++;
+      return fail ? route.fulfill({ status: 503 }) : route.fulfill({ json: {
+        ...fixture,
+        now_playing: {
+          ...fixture.now_playing,
+          ...(playlist === undefined ? {} : { playlist }),
+          song: { ...fixture.now_playing.song, title },
+        },
+      } });
+    });
+    await page.route(ART, (route) => route.fulfill({
+      path: "public\\branding\\deepsignals-logo-square.png", contentType: "image/png",
+    }));
+    await page.route("https://a3.asurahosting.com/api/nowplaying/triplag", (route) => route.fulfill({
+      json: { ...fixture, now_playing: { ...fixture.now_playing, playlist: "Mittai Music" } },
+    }));
+    await selectStation(page);
+    const source = page.locator(".visual-feed-window__source-link");
+    const artwork = page.locator(".visual-feed-window__artwork-link");
+    const about = page.locator(".visual-feed-window__about-link");
+    const checkLinks = async (url: string, label?: string) => {
+      for (const link of [source, artwork]) {
+        await expect(link).toHaveAttribute("href", url);
+        await expect(link).toHaveAttribute("target", "_blank");
+        await expect(link).toHaveAttribute("rel", "noopener noreferrer");
+        if (label) {
+          await expect(link).toHaveAttribute("title", `Visit ${label}`);
+          await expect(link).toHaveAccessibleName(`Visit ${label}`);
+        }
+      }
+      if (!label) {
+        await expect(source).not.toHaveAttribute("title");
+        await expect(source).toHaveAccessibleName(`Open source for ${title}`);
+        await expect(artwork).toHaveAttribute("title", "Visit DeepSignals.FM");
+        await expect(artwork).toHaveAccessibleName("Visit DeepSignals.FM");
+      }
+      await expect(about).toHaveAttribute("href", "/about/");
+      await expect(about).toHaveAccessibleName("About DeepSignals.FM - opens in a new tab");
+    };
+    await checkLinks("https://mittaimusic.bandcamp.com/", "Mittai Music");
+    // Keep song identity unchanged first to cover attribution-only updates.
+    for (const next of [
+      { playlist: "Ektoplazm — Psytrance Rotation", url: "https://ektoplazm.com/", label: "ektoplazm.com" },
+      { playlist: "", url: "https://deepsignals.fm/" },
+      { playlist: "Mittai Music", url: "https://mittaimusic.bandcamp.com/", label: "Mittai Music" },
+      { playlist: undefined, url: "https://deepsignals.fm/" },
+      { playlist: "Ektoplazm — Psytrance Rotation", url: "https://ektoplazm.com/", label: "ektoplazm.com" },
+      { playlist: "Psytrance rotation", url: "https://deepsignals.fm/" },
+    ]) {
+      playlist = next.playlist;
+      if (!next.label) title = `Next track ${calls}`;
+      const previousCalls = calls;
+      await page.clock.fastForward(10_100);
+      await expect.poll(() => calls).toBe(previousCalls + 1);
+      await checkLinks(next.url, next.label);
+      await expect(transmission(page)).toHaveText(`Biomekanik — ${title}`);
+      await expect(image(page)).toHaveAttribute("src", ART);
+    }
+
+    playlist = "Mittai Music";
+    await page.clock.fastForward(10_100);
+    await checkLinks("https://mittaimusic.bandcamp.com/", "Mittai Music");
+    await page.getByLabel("Signal source").selectOption("triplag-darkpsy");
+    for (const link of [source, artwork]) {
+      await expect(link).toHaveAttribute("href", "https://triplag.com/webradio/");
+    }
+    await expect(source).not.toHaveAttribute("title");
+    await expect(source).toHaveAccessibleName(`Open source for ${fixture.now_playing.song.title}`);
+    await expect(artwork).toHaveAttribute("title", "Visit Triplag");
+    await expect(artwork).toHaveAccessibleName("Visit Triplag");
+    const stoppedAt = calls;
+    await page.clock.fastForward(20_100);
+    expect(calls).toBe(stoppedAt);
+
+    playlist = undefined;
+    await page.getByLabel("Signal source").selectOption(ID);
+    await expect(transmission(page)).toHaveText(`Biomekanik — ${title}`);
+    await checkLinks("https://deepsignals.fm/");
+    playlist = "Mittai Music";
+    await page.clock.fastForward(10_100);
+    await checkLinks("https://mittaimusic.bandcamp.com/", "Mittai Music");
+    fail = true;
+    await page.clock.fastForward(10_100);
+    await expect(transmission(page)).toHaveText(NAME);
+    title = NAME;
+    await checkLinks("https://deepsignals.fm/");
+    await expect(image(page)).toHaveAttribute("src", BRAND);
   });
 
   test("selects only in the DSFM group, updates metadata/art/stats in one poll and stops on switch", async ({ page, pageErrors }) => {

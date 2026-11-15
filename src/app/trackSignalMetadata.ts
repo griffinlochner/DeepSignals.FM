@@ -12,6 +12,7 @@ export type TrackSignalMetadata = {
   license?: string
   label?: string
   releaseUrl?: string
+  sourceLink?: { url: string; label: string }
   artworkUrl?: string
   artworkMimeType?: string
   origin: TrackSignalMetadataOrigin

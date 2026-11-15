@@ -205,10 +205,14 @@ function VisualFeedWindow({
     selectedTrackSource?.title ||
     selectedTrackSource?.displayName ||
     "Signal source unavailable";
-  const artworkLinkLabel =
+  const sourceLink =
+    selectedTrackSource?.id === "deepsignals-psytrance"
+      ? metadataOverride?.sourceLink
+      : undefined;
+  const artworkLinkLabel = sourceLink?.label ?? (
     selectedTrackSource?.kind === "live-stream"
       ? selectedTrackSource.sourceLinkLabel ?? selectedTrackSource.displayName
-      : resolvedTitle;
+      : resolvedTitle);
   const artworkUrl =
     [
       metadataOverride?.artworkUrl,
@@ -224,7 +228,7 @@ function VisualFeedWindow({
     : `Cover artwork unavailable for ${resolvedTitle}`;
   const externalSourceUrl =
     selectedTrackSource?.kind === "live-stream"
-      ? selectedTrackSource.sourceUrl
+      ? sourceLink?.url ?? selectedTrackSource.sourceUrl
       : undefined;
   const artworkImage = artworkUrl ? (
     <img
@@ -307,7 +311,8 @@ function VisualFeedWindow({
             href={externalSourceUrl}
             target="_blank"
             rel="noopener noreferrer"
-            aria-label={`Open source for ${resolvedTitle}`}
+            aria-label={sourceLink ? `Visit ${sourceLink.label}` : `Open source for ${resolvedTitle}`}
+            title={sourceLink ? `Visit ${sourceLink.label}` : undefined}
           >
             SOURCE <ExternalLinkIcon />
           </a>
