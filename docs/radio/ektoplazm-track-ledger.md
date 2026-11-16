@@ -1,6 +1,6 @@
 # DeepSignals.FM Psytrance Music Inventory
 
-**Hosting:** AzuraCast on Asura Hosting | **Playlist:** `Psytrance rotation`
+**Hosting:** AzuraCast on Asura Hosting | **Playlist:** `Ektoplazm — Psytrance Rotation`
 
 **37 previously documented releases (275 track entries), plus 40 source tracklists below (300 listed tracks).** Last checked: 2026-11-11. These are ledger counts, not a verified live or unique MP3 count: tracks may be absent, removed, or represented under multiple releases. The original 39 filenames are screenshot-confirmed; the prior 236 tracks added at the operator's direction are assumed uploaded, with filenames normalized from Ektoplazm tracklists and not checked against AzuraCast. The operator reports that generally most or all tracks from some source-listed releases are used, but individual station inclusion and filenames are unverified and some tracks may not be used.
 
