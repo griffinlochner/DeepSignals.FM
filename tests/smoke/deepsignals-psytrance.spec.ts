@@ -125,6 +125,50 @@ test("Psyko-Trance attribution requires an exact normalized playlist and artist"
   }
 });
 
+test("Psyko-Trance resolves the supplied artist destinations and track exceptions", () => {
+  const cases = [
+    { artist: "Elvispeker", title: "Mr. Magoo", id: "6Zt1hjGPfXY6FSWYXXdZhL", label: "Elvispeker" },
+    { artist: "  ELVISPEKER ", title: "  mr. MAGOO  ", id: "6Zt1hjGPfXY6FSWYXXdZhL", label: "Elvispeker" },
+    { artist: "Elvispeker", title: "Desert Impulse", id: "3I7Knrh3dU2J2HM2dbef4u", label: "Elvispeker" },
+    { artist: "Elvispeker", title: "Dunes And Peyote", id: "3I7Knrh3dU2J2HM2dbef4u", label: "Elvispeker" },
+    { artist: "Spiralmynd", title: "Awakening", id: "21cvbCw9LymPBJtwdzYvgW", label: "Spiralmynd" },
+    { artist: "Spiralmynd", title: "Moksha", id: "21cvbCw9LymPBJtwdzYvgW", label: "Spiralmynd" },
+    { artist: "Spiralmynd", title: "Samsara", id: "21cvbCw9LymPBJtwdzYvgW", label: "Spiralmynd" },
+    { artist: "Triscele", title: "Corsair", id: "4SKBU6Dzedns3sfF71cKRh", label: "Triscele" },
+    { artist: "Triscele", title: "Gnome Universe", id: "4SKBU6Dzedns3sfF71cKRh", label: "Triscele" },
+    { artist: "Triscele", title: "Moth", id: "4SKBU6Dzedns3sfF71cKRh", label: "Triscele" },
+    { artist: "Triscele", title: "Space Unreal", id: "4SKBU6Dzedns3sfF71cKRh", label: "Triscele" },
+    { artist: "Ferno Style", title: "Techno (Triscele RMX)", id: "4SKBU6Dzedns3sfF71cKRh", label: "Triscele" },
+    { artist: "Uranio", title: "Lovesta", id: "4qA9tVEROncwP1NU1Zj8ns", label: "Uranio" },
+    { artist: "Space Fly", title: "Frozen Crown", id: "1VaLGarluNO8D8oBcTkdZ2", label: "Space Fly" },
+    { artist: "Space Fly", title: "Ice's Queen", id: "1VaLGarluNO8D8oBcTkdZ2", label: "Space Fly" },
+    { artist: "Space Fly", title: "King of Fire", id: "1VaLGarluNO8D8oBcTkdZ2", label: "Space Fly" },
+    { artist: "Space Fly", title: "Realm Circle", id: "1VaLGarluNO8D8oBcTkdZ2", label: "Space Fly" },
+    { artist: "Space Fly", title: "Zenith", id: "1VaLGarluNO8D8oBcTkdZ2", label: "Space Fly" },
+    { artist: "Elvispeker", title: "Another track" },
+    { artist: "Elvispeker", title: "Mr. Magoo remix" },
+    { artist: "Another Artist", title: "Mr. Magoo" },
+    { artist: "Ferno Style", title: "Another track" },
+    { artist: "Ferno Style", title: "Techno (Triscele RMX) extended" },
+    { artist: "Space Fly Project", title: "Frozen Crown" },
+  ];
+  for (const { artist, title, id, label } of cases) {
+    const response = {
+      ...fixture,
+      now_playing: { ...fixture.now_playing, playlist: "Psyko-Trance Records", song: { ...fixture.now_playing.song, artist, title } },
+    };
+    const snapshot = DEEPSIGNALS_NOW_PLAYING_CONFIG.parse(response)!;
+    expect(snapshot.metadata?.sourceLink).toEqual(id
+      ? { url: `https://open.spotify.com/artist/${id}`, label: `${label} on Spotify` }
+      : undefined);
+    expect(snapshot.metadata).toMatchObject({ artist: artist.trim(), title: title.trim(), artworkUrl: ART });
+    const otherPlaylist = DEEPSIGNALS_NOW_PLAYING_CONFIG.parse({
+      ...response, now_playing: { ...response.now_playing, playlist: "Other playlist" },
+    });
+    expect(otherPlaylist?.metadata?.sourceLink).toBeUndefined();
+  }
+});
+
 test("production enables Psytrance and restores its persisted selection without unlaunched entries", async ({ page }, testInfo) => {
   test.skip(testInfo.config.metadata.development === true, "Production preview only");
   await page.route(API, (route) => route.fulfill({ json: fixture }));
@@ -145,6 +189,39 @@ test("production enables Psytrance and restores its persisted selection without 
 test.describe("DeepSignals production and development station", () => {
   test.beforeEach(({ pageErrors }) => {
     expect(pageErrors).toEqual([]);
+  });
+
+  test("track-specific Spotify links update together across track transitions", async ({ page }) => {
+    await page.clock.install();
+    let artist = "Elvispeker";
+    let title = "Mr. Magoo";
+    await page.route(API, (route) => route.fulfill({ json: {
+      ...fixture,
+      now_playing: { ...fixture.now_playing, playlist: "Psyko-Trance Records", song: { ...fixture.now_playing.song, artist, title } },
+    } }));
+    await page.route(ART, (route) => route.fulfill({
+      path: "public\\branding\\deepsignals-logo-square.png", contentType: "image/png",
+    }));
+    await selectStation(page);
+    const source = page.locator(".visual-feed-window__source-link");
+    const artwork = page.locator(".visual-feed-window__artwork-link");
+    for (const next of [
+      { artist: "Elvispeker", title: "Mr. Magoo", id: "6Zt1hjGPfXY6FSWYXXdZhL", label: "Elvispeker" },
+      { artist: "Elvispeker", title: "Desert Impulse", id: "3I7Knrh3dU2J2HM2dbef4u", label: "Elvispeker" },
+      { artist: "Ferno Style", title: "Techno (Triscele RMX)", id: "4SKBU6Dzedns3sfF71cKRh", label: "Triscele" },
+      { artist: "Ferno Style", title: "Another track", id: undefined, label: undefined },
+    ]) {
+      artist = next.artist;
+      title = next.title;
+      await page.clock.fastForward(10_100);
+      await expect(transmission(page)).toHaveText(`${artist} — ${title}`);
+      const url = next.id ? `https://open.spotify.com/artist/${next.id}` : "https://deepsignals.fm/";
+      for (const link of [source, artwork]) {
+        await expect(link).toHaveAttribute("href", url);
+      }
+      await expect(artwork).toHaveAttribute("title", `Visit ${next.label ?? "DeepSignals.FM"}${next.label ? " on Spotify" : ""}`);
+      await expect(image(page)).toHaveAttribute("src", ART);
+    }
   });
 
   test("playlist transitions update both link destinations and labels without changing AzuraCast artwork", async ({ page }) => {
