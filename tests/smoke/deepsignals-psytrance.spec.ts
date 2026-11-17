@@ -96,15 +96,15 @@ test("DeepSignals playlist attribution uses exact matches without changing song 
   }
 });
 
-test("PsyKo-Trance attribution requires an exact normalized playlist and artist", () => {
+test("Psyko-Trance attribution requires an exact normalized playlist and artist", () => {
   const cases = [
-    { playlist: "PsyKo-Trance Records", artist: "AlcheMyth", mapped: true },
+    { playlist: "Psyko-Trance Records", artist: "AlcheMyth", mapped: true },
     { playlist: "  psyko-TRANCE RECORDS  ", artist: "  aLCHEMYTH  ", mapped: true },
-    { playlist: "PsyKo-Trance Records", artist: "Another Artist", mapped: false },
-    { playlist: "PsyKo-Trance Records", artist: "AlcheMyth & Another Artist", mapped: false },
-    { playlist: "PsyKo-Trance Records", artist: undefined, mapped: false },
+    { playlist: "Psyko-Trance Records", artist: "Another Artist", mapped: false },
+    { playlist: "Psyko-Trance Records", artist: "AlcheMyth & Another Artist", mapped: false },
+    { playlist: "Psyko-Trance Records", artist: undefined, mapped: false },
     { playlist: "Other playlist", artist: "AlcheMyth", mapped: false },
-    { playlist: "PsyKo-Trance Records extra", artist: "AlcheMyth", mapped: false },
+    { playlist: "Psyko-Trance Records extra", artist: "AlcheMyth", mapped: false },
     { playlist: undefined, artist: "AlcheMyth", mapped: false },
     { playlist: null, artist: "AlcheMyth", mapped: false },
   ];
@@ -170,7 +170,7 @@ test.describe("DeepSignals production and development station", () => {
     }));
     await page.route("https://a3.asurahosting.com/api/nowplaying/triplag", (route) => route.fulfill({
       json: { ...fixture, now_playing: {
-        ...fixture.now_playing, playlist: "PsyKo-Trance Records",
+        ...fixture.now_playing, playlist: "Psyko-Trance Records",
         song: { ...fixture.now_playing.song, artist: "AlcheMyth" },
       } },
     }));
@@ -199,12 +199,12 @@ test.describe("DeepSignals production and development station", () => {
     };
     await checkLinks("https://mittaimusic.bandcamp.com/", "Mittai Music");
     for (const next of [
-      { playlist: "PsyKo-Trance Records", artist: "AlcheMyth", url: ALCHEMYTH_URL, label: "AlcheMyth on Spotify" },
-      { playlist: "PsyKo-Trance Records", artist: "Another Artist", url: "https://deepsignals.fm/", label: undefined },
+      { playlist: "Psyko-Trance Records", artist: "AlcheMyth", url: ALCHEMYTH_URL, label: "AlcheMyth on Spotify" },
+      { playlist: "Psyko-Trance Records", artist: "Another Artist", url: "https://deepsignals.fm/", label: undefined },
       { playlist: "Other playlist", artist: "AlcheMyth", url: "https://deepsignals.fm/", label: undefined },
       { playlist: "  psyko-trance records  ", artist: " alCHEMYTH ", url: ALCHEMYTH_URL, label: "AlcheMyth on Spotify" },
       { playlist: "Mittai Music", artist: "AlcheMyth", url: "https://mittaimusic.bandcamp.com/", label: "Mittai Music" },
-      { playlist: "PsyKo-Trance Records", artist: "AlcheMyth", url: ALCHEMYTH_URL, label: "AlcheMyth on Spotify" },
+      { playlist: "Psyko-Trance Records", artist: "AlcheMyth", url: ALCHEMYTH_URL, label: "AlcheMyth on Spotify" },
       { playlist: "Ektoplazm — Psytrance Rotation", artist: "AlcheMyth", url: "https://ektoplazm.com/", label: "ektoplazm.com" },
       { playlist: undefined, artist: "AlcheMyth", url: "https://deepsignals.fm/", label: undefined },
     ]) {
@@ -238,7 +238,7 @@ test.describe("DeepSignals production and development station", () => {
       await expect(image(page)).toHaveAttribute("src", ART);
     }
 
-    playlist = "PsyKo-Trance Records";
+    playlist = "Psyko-Trance Records";
     artist = "AlcheMyth";
     await page.clock.fastForward(10_100);
     await checkLinks(ALCHEMYTH_URL, "AlcheMyth on Spotify");

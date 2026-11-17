@@ -6,6 +6,7 @@ const azuraCastConfig = createAzuraCastNowPlayingConfig('deepsignals-psytrance',
   streamUrl: 'https://a6.asurahosting.com:7530/radio.mp3',
 })
 
+const psykoTrancePlaylist = 'Psyko-Trance Records'
 const psykoTranceArtists = new Map([
   ['alchemyth', { url: 'https://open.spotify.com/artist/0a0snzS1l2QyQN9C3Wd35H', label: 'AlcheMyth on Spotify' }],
 ])
@@ -26,7 +27,7 @@ export const DEEPSIGNALS_NOW_PLAYING_CONFIG = {
       ? { url: 'https://mittaimusic.bandcamp.com/', label: 'Mittai Music' }
       : playlist === 'Ektoplazm — Psytrance Rotation'
         ? { url: 'https://ektoplazm.com/', label: 'ektoplazm.com' }
-        : typeof playlist === 'string' && playlist.trim().toLowerCase() === 'psyko-trance records'
+        : typeof playlist === 'string' && playlist.trim().toLowerCase() === psykoTrancePlaylist.toLowerCase()
           ? psykoTranceArtists.get(snapshot.metadata.artist?.trim().toLowerCase() ?? '')
           : undefined
     if (!sourceLink) return snapshot
