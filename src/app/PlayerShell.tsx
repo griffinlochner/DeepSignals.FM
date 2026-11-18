@@ -46,6 +46,7 @@ import {
 } from "./useSpaceUnicornNowPlaying";
 import { useHirschmilchNowPlaying } from "./useHirschmilchNowPlaying";
 import { useTriplagNowPlaying } from "./useTriplagNowPlaying";
+import { useEsotericaNowPlaying } from "./useEsotericaNowPlaying";
 import { useDeepSignalsNowPlaying } from "./useDeepSignalsNowPlaying";
 import {
   ENVIRONMENT_GROUPS,
@@ -461,6 +462,7 @@ function PlayerShell({ className }: PlayerShellProps) {
   const spaceUnicornTelemetry = useSpaceUnicornTelemetry(selectedSignalId);
   const hirschmilchNowPlaying = useHirschmilchNowPlaying(selectedSignalId);
   const triplag = useTriplagNowPlaying(selectedSignalId);
+  const esoterica = useEsotericaNowPlaying(selectedSignalId);
   const deepSignals = useDeepSignalsNowPlaying(selectedSignalId);
   const externalNowPlaying =
     psyStreamNowPlaying ??
@@ -474,6 +476,7 @@ function PlayerShell({ className }: PlayerShellProps) {
     spaceUnicornNowPlaying ??
     hirschmilchNowPlaying ??
     triplag?.metadata ??
+    esoterica?.metadata ??
     deepSignals?.metadata;
   const handleThemeChange = useCallback((themeId: ThemeId) => {
     sceneThemeIdRef.current = themeId;
@@ -1232,6 +1235,7 @@ function PlayerShell({ className }: PlayerShellProps) {
             psyBrazilTelemetry?.listeners ??
             spaceUnicornTelemetry?.listeners ??
             triplag?.telemetry?.listeners ??
+            esoterica?.telemetry?.listeners ??
             deepSignals?.telemetry?.listeners ??
             null
           }
@@ -1241,6 +1245,7 @@ function PlayerShell({ className }: PlayerShellProps) {
             psyBrazilTelemetry?.bitrateKbps ??
             spaceUnicornTelemetry?.bitrateKbps ??
             triplag?.telemetry?.bitrateKbps ??
+            esoterica?.telemetry?.bitrateKbps ??
             deepSignals?.telemetry?.bitrateKbps ??
             null
           }

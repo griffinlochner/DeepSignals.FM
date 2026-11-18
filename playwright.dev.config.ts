@@ -3,7 +3,7 @@ import config from "./playwright.config";
 
 export default defineConfig({
   ...config,
-  testMatch: "**/deepsignals-psytrance.spec.ts",
+  testMatch: ["**/deepsignals-psytrance.spec.ts", "**/esoterica-radio-s4.spec.ts"],
   metadata: { development: true },
   use: { ...config.use, baseURL: "http://127.0.0.1:4175" },
   webServer: {

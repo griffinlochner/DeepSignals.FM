@@ -312,7 +312,11 @@ function VisualFeedWindow({
             target="_blank"
             rel="noopener noreferrer"
             aria-label={sourceLink ? `Visit ${sourceLink.label}` : `Open source for ${resolvedTitle}`}
-            title={sourceLink ? `Visit ${sourceLink.label}` : undefined}
+            title={sourceLink
+              ? `Visit ${sourceLink.label}`
+              : selectedTrackSource?.id === "esoterica-radio-s4"
+                ? `Visit ${artworkLinkLabel}`
+                : undefined}
           >
             SOURCE <ExternalLinkIcon />
           </a>

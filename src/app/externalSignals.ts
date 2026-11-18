@@ -21,6 +21,7 @@ export type ExternalSignalId =
   | 'deep-trip-radio'
   | 'psybient-sunset'
   | 'triplag-darkpsy'
+  | 'esoterica-radio-s4'
 
 export type ExternalSignalDefinition = {
   id: ExternalSignalId
@@ -205,6 +206,15 @@ export const EXTERNAL_SIGNAL_DEFINITIONS: ExternalSignalDefinition[] = [
     stationWebsite: 'https://triplag.com/webradio/',
     sourceLinkLabel: 'Triplag',
     sourceAttribution: 'External signal from Triplag',
+    publicPlayerCompatible: true,
+  },
+  {
+    id: 'esoterica-radio-s4',
+    stationName: 'ESOTERICA RADIO S4',
+    streamUrl: 'https://esoterica.servemp3.com:444/listen/psytrance_progressivepsytrance/radio.mp3',
+    stationWebsite: 'https://esoterica.live/station4',
+    sourceLinkLabel: 'Esoterica Radio S4',
+    sourceAttribution: 'External signal from Esoterica Radio S4',
     publicPlayerCompatible: true,
   },
 ]
